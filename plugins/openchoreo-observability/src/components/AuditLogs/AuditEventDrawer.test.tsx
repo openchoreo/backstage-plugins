@@ -92,6 +92,32 @@ describe('AuditEventDrawer', () => {
     expect(onAddToken).toHaveBeenCalledWith('resource.resource', 'orders-db');
   });
 
+  it('shows the release line and filters by it', async () => {
+    const onAddToken = jest.fn();
+    render(
+      <AuditEventDrawer
+        {...defaults}
+        record={{
+          ...record,
+          resource: {
+            type: 'workload',
+            namespace: 'default',
+            project: 'default',
+            component: 'hello',
+            release_line: 'next',
+            name: 'hello-next-workload',
+          },
+        }}
+        onAddToken={onAddToken}
+      />,
+    );
+
+    await userEvent.click(
+      screen.getByTitle('Filter by resource.release_line:next'),
+    );
+    expect(onAddToken).toHaveBeenCalledWith('resource.release_line', 'next');
+  });
+
   it('leaves the cluster scope as text, since no filter selects it', () => {
     render(
       <AuditEventDrawer

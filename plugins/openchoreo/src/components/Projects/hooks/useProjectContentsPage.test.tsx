@@ -48,6 +48,7 @@ const mockCatalogApi = { queryEntities: jest.fn() };
 const mockClient = {
   fetchReleaseBindings: jest.fn(),
   fetchResourceReleaseBindings: jest.fn(),
+  fetchReleaseLines: jest.fn(),
 };
 
 function renderPage(params: ProjectContentsPageParams) {
@@ -219,5 +220,52 @@ describe('useProjectContentsPage', () => {
     expect(resource.deploymentStatus.staging).toEqual(
       expect.objectContaining({ isDeployed: true, status: 'NotReady' }),
     );
+  });
+
+  it('summarises a component with release lines by its lines', async () => {
+    const releaseLineComponent = {
+      ...componentEntity,
+      metadata: {
+        ...componentEntity.metadata,
+        name: 'hello',
+        labels: { 'openchoreo.io/managed': 'true' },
+        annotations: {
+          ...componentEntity.metadata.annotations,
+          [CHOREO_ANNOTATIONS.RELEASE_LINES_ENABLED]: 'true',
+        },
+      },
+    };
+    mockCatalogApi.queryEntities.mockResolvedValue({
+      items: [releaseLineComponent],
+      totalItems: 1,
+      pageInfo: {},
+    });
+    mockClient.fetchReleaseLines.mockResolvedValue([
+      {
+        name: 'main',
+        environments: [
+          { environment: 'development', releaseBinding: 'b1', ready: true },
+        ],
+      },
+      {
+        name: 'next',
+        environments: [
+          { environment: 'development', releaseBinding: 'b2', ready: true },
+          { environment: 'staging', releaseBinding: 'b3', ready: false },
+        ],
+      },
+    ]);
+
+    const { result } = renderPage(baseParams);
+    await waitFor(() =>
+      expect(result.current.items[0]?.deploymentLoaded).toBe(true),
+    );
+
+    expect(mockClient.fetchReleaseBindings).not.toHaveBeenCalled();
+    expect(result.current.items[0].releaseLines).toEqual([
+      { name: 'main', environments: ['development'] },
+      { name: 'next', environments: ['development', 'staging'] },
+    ]);
+    expect(result.current.items[0].deploymentStatus).toEqual({});
   });
 });

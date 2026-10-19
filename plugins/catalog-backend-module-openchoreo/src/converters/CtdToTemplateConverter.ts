@@ -20,6 +20,8 @@ export interface ComponentType {
     workloadType: string;
     allowedWorkflows?: Array<string | { kind?: string; name: string }>;
     allowedTraits?: Array<{ kind?: string; name: string }>;
+    /** Whether components of this type can enable release lines */
+    releaseLines?: 'Allowed' | 'Disallowed';
     tags?: string[];
     createdAt?: string;
   };
@@ -194,7 +196,70 @@ export class CtdToTemplateConverter {
       this.generateWorkloadDetailsSection(componentType, namespaceName),
     );
 
+    // Declare Release Line comes last, just before the review step, once the
+    // component's configuration (which the line starts from) is settled.
+    if (componentType.metadata.releaseLines === 'Allowed') {
+      parameters.push(this.generateReleaseLineSection());
+    }
+
     return parameters;
+  }
+
+  /**
+   * Generate the Declare Release Line section, shown for component types that
+   * allow release lines. Release lines can only be enabled when the component
+   * is created, so the wizard declares the component's first line.
+   */
+  private generateReleaseLineSection(): any {
+    return {
+      title: 'Declare Release Line',
+      description:
+        'Components of this type can deploy through release lines: named lines of the component, ' +
+        'each built and deployed independently, for example from different branches. ' +
+        'A release line starts with the component configuration from the previous steps and can override ' +
+        'its parameters, traits, build parameters and auto deploy. Those overrides are configured later, ' +
+        "on the release line's pages. More release lines can be created as needed after the component is created. " +
+        'Release lines can only be enabled when the component is created.',
+      properties: {
+        releaseLines: {
+          title: 'Release Lines',
+          type: 'object',
+          properties: {
+            enabled: {
+              title: 'Deploy through release lines',
+              type: 'boolean',
+              default: true,
+            },
+          },
+          dependencies: {
+            enabled: {
+              oneOf: [
+                {
+                  properties: {
+                    enabled: { const: true },
+                    releaseLineName: {
+                      title: 'Release Line Name',
+                      type: 'string',
+                      default: 'main',
+                      pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$',
+                      maxLength: 63,
+                      description:
+                        'Name of the first release line. Release line names are unique within a namespace.',
+                    },
+                  },
+                  required: ['releaseLineName'],
+                },
+                {
+                  properties: {
+                    enabled: { const: false },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      },
+    };
   }
 
   /**
@@ -494,6 +559,10 @@ export class CtdToTemplateConverter {
           // External CI parameters
           ciPlatform: '${{ parameters.buildAndDeploy.ciPlatform }}',
           ciIdentifier: '${{ parameters.buildAndDeploy.ciIdentifier }}',
+          ...(componentType.metadata.releaseLines === 'Allowed' && {
+            releaseLinesEnabled: '${{ parameters.releaseLines.enabled }}',
+            releaseLineName: '${{ parameters.releaseLines.releaseLineName }}',
+          }),
         },
       },
     ];

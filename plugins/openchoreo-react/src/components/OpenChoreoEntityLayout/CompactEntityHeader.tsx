@@ -32,7 +32,7 @@ import {
   type Entity,
   type EntityRelation,
 } from '@backstage/catalog-model';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   lightTokens,
   darkTokens,
@@ -49,6 +49,8 @@ export interface CompactEntityHeaderProps {
   kindDisplayNames?: Record<string, string>;
   parentEntity?: EntityRelation | null;
   ancestorEntity?: EntityRelation | null;
+  /** The ancestor's parent, for entities nested under a component */
+  rootAncestorEntity?: EntityRelation | null;
   contextMenu?: ReactNode;
   /**
    * True while navigating to another entity. When set, the header keeps its
@@ -355,6 +357,18 @@ const useStyles = makeStyles(
   { name: 'BackstageHeader' },
 );
 
+/**
+ * An entity's label in the breadcrumb. A release line's title carries its
+ * component (`hello:next`) for the page header; the crumb already sits under
+ * the component, so it shows the line's own name.
+ */
+function breadcrumbLabel(entity: Entity, name: string): string {
+  if (entity.kind.toLowerCase() === 'releaseline') {
+    return name;
+  }
+  return entity.metadata.title ?? name;
+}
+
 export function CompactEntityHeader(props: CompactEntityHeaderProps) {
   const {
     entity,
@@ -363,11 +377,13 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
     kindDisplayNames,
     parentEntity,
     ancestorEntity,
+    rootAncestorEntity,
     contextMenu,
     loading = false,
   } = props;
   const classes = useStyles();
   const navigate = useNavigate();
+  const location = useLocation();
   const catalogApi = useApi(catalogApiRef);
   const [breadcrumbMenuAnchor, setBreadcrumbMenuAnchor] =
     useState<HTMLElement | null>(null);
@@ -381,10 +397,13 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
 
   // Expected number of parent breadcrumb levels for the URL kind, used to size
   // the skeleton trail while loading so it matches the real trail's shape:
-  // Component/Resource/API sit under Namespace > Project (2), Project under
+  // A ReleaseLine sits under Namespace > Project > Component (3),
+  // Component/Resource/API under Namespace > Project (2), Project under
   // Namespace (1), Namespace and standalone platform resources have none (0).
   const loadingAncestorCount = (() => {
     switch (kind.toLowerCase()) {
+      case 'releaseline':
+        return 3;
       case 'component':
       case 'resource':
       case 'api':
@@ -417,6 +436,12 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
   };
 
   // Fetch display titles for parent/ancestor entities (we only have refs)
+  const { value: rootAncestorTitle } = useAsync(async () => {
+    if (!rootAncestorEntity?.targetRef) return undefined;
+    const ent = await catalogApi.getEntityByRef(rootAncestorEntity.targetRef);
+    return ent?.metadata.title;
+  }, [rootAncestorEntity?.targetRef]);
+
   const { value: ancestorTitle } = useAsync(async () => {
     if (!ancestorEntity?.targetRef) return undefined;
     const ent = await catalogApi.getEntityByRef(ancestorEntity.targetRef);
@@ -463,12 +488,25 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
       };
     };
 
+    if (rootAncestorEntity?.targetRef) {
+      nodes.push(
+        makeNode(
+          `root-ancestor-${rootAncestorEntity.targetRef}`,
+          rootAncestorEntity.targetRef,
+          { valueOverride: rootAncestorTitle ?? undefined },
+        ),
+      );
+    }
+
     if (ancestorEntity?.targetRef) {
       nodes.push(
         makeNode(
           `ancestor-${ancestorEntity.targetRef}`,
           ancestorEntity.targetRef,
-          { valueOverride: ancestorTitle ?? undefined },
+          {
+            relationType: rootAncestorEntity?.type,
+            valueOverride: ancestorTitle ?? undefined,
+          },
         ),
       );
     }
@@ -486,18 +524,20 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
     nodes.push(
       makeNode(`current-${currentRef}`, currentRef, {
         isCurrent: true,
-        valueOverride: entity.metadata.title ?? entityName,
+        valueOverride: breadcrumbLabel(entity, entityName),
         relationType: parentEntity?.type,
       }),
     );
 
     return nodes;
   }, [
+    rootAncestorEntity,
     ancestorEntity,
     parentEntity,
     entity,
     entityName,
     kindDisplayNames,
+    rootAncestorTitle,
     ancestorTitle,
     parentTitle,
   ]);
@@ -602,13 +642,24 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
     const effectiveCandidates =
       siblingCandidates.length > 0 ? siblingCandidates : sameKindCandidates;
 
+    // Switching between release lines of a component keeps the open tab
+    // (Deploy, Build, ...), as lines share the same tabs. Only the tab is
+    // kept: deeper paths (a build run, an environment) belong to one line.
+    const currentPath = openTargetNode.isCurrent ? openTargetNode.path : null;
+    const tabSuffix =
+      openTargetNode.kind.toLowerCase() === 'releaseline' &&
+      currentPath &&
+      location.pathname.startsWith(`${currentPath}/`)
+        ? `/${location.pathname.slice(currentPath.length + 1).split('/')[0]}`
+        : '';
+
     const siblingItems = effectiveCandidates
       .map(candidate => {
         const candidateRef = stringifyEntityRef(candidate);
         return {
           key: `${openTargetNode.kind}-${candidateRef}`,
-          value: candidate.metadata.title ?? candidate.metadata.name,
-          path: buildCatalogEntityPathFromEntity(candidate),
+          value: breadcrumbLabel(candidate, candidate.metadata.name),
+          path: `${buildCatalogEntityPathFromEntity(candidate)}${tabSuffix}`,
           isCurrent:
             normalizeEntityRef(candidateRef) === openTargetNode.normalizedRef,
         };
@@ -616,7 +667,7 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
       .sort((a, b) => a.value.localeCompare(b.value));
 
     return siblingItems.length > 0 ? siblingItems : currentOnly;
-  }, [openTargetNode, openLeftNode, siblingEntities]);
+  }, [openTargetNode, openLeftNode, siblingEntities, location.pathname]);
 
   // "Loading" only for the true first fetch (no cached data yet) — a background
   // revalidation of an already-cached list must NOT show the spinner.
@@ -627,6 +678,19 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
       const targetNode = breadcrumbNodes[targetNodeIndex];
       if (!targetNode) {
         return '/catalog';
+      }
+
+      // Release lines are not listed in the catalog; they are listed on
+      // their component's Overview.
+      const parentNode = breadcrumbNodes[targetNodeIndex - 1];
+      if (targetNode.kind.toLowerCase() === 'releaseline' && parentNode?.path) {
+        return parentNode.path;
+      }
+
+      // Release lines are not listed in the catalog; their component's
+      // Overview lists them.
+      if (targetNode.kind.toLowerCase() === 'releaseline') {
+        return breadcrumbNodes[targetNodeIndex - 1]?.path ?? '/catalog';
       }
 
       const params = new URLSearchParams();

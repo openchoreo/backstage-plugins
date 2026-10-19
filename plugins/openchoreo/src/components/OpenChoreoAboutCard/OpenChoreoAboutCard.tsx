@@ -129,6 +129,8 @@ function OpenChoreoAboutContent({ entity }: { entity: Entity }) {
   const isComponent = entity.kind.toLocaleLowerCase('en-US') === 'component';
   const isAPI = entity.kind.toLocaleLowerCase('en-US') === 'api';
   const isResource = entity.kind.toLocaleLowerCase('en-US') === 'resource';
+  const isReleaseLine =
+    entity.kind.toLocaleLowerCase('en-US') === 'releaseline';
 
   const partOfSystemRelations = getEntityRelations(entity, RELATION_PART_OF, {
     kind: 'system',
@@ -205,6 +207,18 @@ function OpenChoreoAboutContent({ entity }: { entity: Entity }) {
               entityRefs={partOfComponentRelations}
               defaultKind="component"
             />
+          </AboutField>
+        </Grid>
+      )}
+      {isReleaseLine && (
+        <Grid item xs={12} sm={6} lg={4}>
+          <AboutField label="Component" value="No Component">
+            {partOfComponentRelations.length > 0 && (
+              <EntityRefLinks
+                entityRefs={partOfComponentRelations}
+                defaultKind="component"
+              />
+            )}
           </AboutField>
         </Grid>
       )}

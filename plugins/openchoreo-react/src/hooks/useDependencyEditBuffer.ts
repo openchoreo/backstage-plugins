@@ -16,6 +16,8 @@ export interface UseDependencyEditBufferOptions {
   onRemoveDependency: (index: number) => void;
   /** Default project to populate when a dependency has no project set (API omits it for same-project) */
   defaultProject?: string;
+  /** Whether the dependency's target component requires a release line */
+  requiresReleaseLine?: (dependency: Dependency) => boolean;
 }
 
 export interface UseDependencyEditBufferResult {
@@ -58,8 +60,14 @@ function isDependencyEmpty(dependency: Dependency | undefined | null): boolean {
 /**
  * Check if a dependency is valid (all required fields filled)
  */
-function isDependencyValid(dependency: Dependency | undefined | null): boolean {
+function isDependencyValid(
+  dependency: Dependency | undefined | null,
+  requiresReleaseLine?: (dependency: Dependency) => boolean,
+): boolean {
   if (!dependency) return false;
+  if (requiresReleaseLine?.(dependency) && !dependency.releaseLine) {
+    return false;
+  }
   return !!(dependency.component && dependency.name && dependency.visibility);
 }
 
@@ -80,6 +88,7 @@ export function useDependencyEditBuffer(
     onDependencyReplace,
     onRemoveDependency,
     defaultProject,
+    requiresReleaseLine,
   } = options;
 
   // Track which row is currently being edited (only one at a time)
@@ -90,7 +99,7 @@ export function useDependencyEditBuffer(
   const [editBuffer, setEditBuffer] = useState<Dependency | null>(null);
 
   const isAnyRowEditing = editingRow !== null;
-  const isBufferValid = isDependencyValid(editBuffer);
+  const isBufferValid = isDependencyValid(editBuffer, requiresReleaseLine);
 
   const isRowEditing = useCallback(
     (index: number): boolean => {
@@ -157,7 +166,7 @@ export function useDependencyEditBuffer(
     }
 
     // Don't commit invalid buffers — keep the row editable so the user can fix it
-    if (!isDependencyValid(editBuffer)) {
+    if (!isDependencyValid(editBuffer, requiresReleaseLine)) {
       return;
     }
 
@@ -167,7 +176,13 @@ export function useDependencyEditBuffer(
 
     setEditBuffer(null);
     setEditingRow(null);
-  }, [editingRow, editBuffer, onDependencyReplace, onRemoveDependency]);
+  }, [
+    editingRow,
+    editBuffer,
+    onDependencyReplace,
+    onRemoveDependency,
+    requiresReleaseLine,
+  ]);
 
   // Cancel editing - discards buffer, removes new rows
   const cancelEdit = useCallback(() => {
@@ -189,9 +204,14 @@ export function useDependencyEditBuffer(
     setEditingRow(null);
   }, []);
 
-  // Update a single field in the buffer
+  // Update a single field in the buffer; undefined removes the field
   const updateBuffer = useCallback((field: keyof Dependency, value: any) => {
-    setEditBuffer(prev => (prev ? { ...prev, [field]: value } : null));
+    setEditBuffer(prev => {
+      if (!prev) return null;
+      const next: Partial<Dependency> = { ...prev, [field]: value };
+      if (value === undefined) delete next[field];
+      return next as Dependency;
+    });
   }, []);
 
   // Update a nested field in envBindings

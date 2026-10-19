@@ -1,6 +1,9 @@
 import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
-import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
+import {
+  useOpenChoreoQuery,
+  useReleaseLine,
+} from '@openchoreo/backstage-plugin-react';
 import type { ComponentRelease } from '@openchoreo/backstage-plugin-common';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 
@@ -23,11 +26,12 @@ const getCreationTime = (release: ComponentRelease): number => {
  */
 export const useReleases = (entity: Entity): UseReleasesResult => {
   const client = useApi(openChoreoClientApiRef);
+  const { releaseLine } = useReleaseLine();
 
   const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
-    ['releases', stringifyEntityRef(entity)],
+    ['releases', stringifyEntityRef(entity), releaseLine ?? ''],
     async (): Promise<ComponentRelease[]> => {
-      const response = await client.listComponentReleases(entity);
+      const response = await client.listComponentReleases(entity, releaseLine);
       const items = response.data?.items ?? [];
       return [...items].sort((a, b) => getCreationTime(b) - getCreationTime(a));
     },

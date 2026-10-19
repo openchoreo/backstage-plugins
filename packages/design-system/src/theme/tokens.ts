@@ -387,6 +387,7 @@ export const lightTokens: ThemeTokens = {
     // accent-on-white contrast above 3:1 (UI component bar, WCAG 2.2 AA).
     system: { accent: '#5568c4', tint: '#eef0fa' },
     component: { accent: '#64748b', tint: '#f1f5f9' },
+    releaseline: { accent: '#7e22ce', tint: '#faf5ff' },
     api: { accent: '#5568c4', tint: '#eef0fa' },
     group: { accent: '#6b7280', tint: '#f3f4f6' },
     user: { accent: '#6b7280', tint: '#f3f4f6' },
@@ -626,6 +627,7 @@ export const darkTokens: ThemeTokens = {
   entityKind: {
     system: { accent: '#8fa0ea', tint: '#1a1d2e' },
     component: { accent: '#94a3b8', tint: '#1e2330' },
+    releaseline: { accent: '#c084fc', tint: '#24162e' },
     api: { accent: '#8fa0ea', tint: '#1a1d2e' },
     group: { accent: '#9ca3af', tint: '#1f2128' },
     user: { accent: '#9ca3af', tint: '#1f2128' },

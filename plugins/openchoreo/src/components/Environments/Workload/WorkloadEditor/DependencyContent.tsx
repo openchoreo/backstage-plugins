@@ -1,6 +1,7 @@
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Dependency,
+  isReleaseLinesEnabledComponent,
   ResourceDependency,
   ResourceTypeOutput,
   WorkloadEndpoint,
@@ -12,6 +13,7 @@ import {
   type ProjectOption,
   type ComponentOption,
   type EndpointOption,
+  type ReleaseLineOption,
 } from '@openchoreo/backstage-plugin-react';
 import { catalogApiRef, useEntity } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
@@ -63,6 +65,7 @@ export const DependencyContent: FC<DependencyContentProps> = ({
     selectedEntity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] || '';
 
   const [allComponents, setAllComponents] = useState<Entity[]>([]);
+  const [allReleaseLines, setAllReleaseLines] = useState<Entity[]>([]);
   const [endpointCache, setEndpointCache] = useState<{
     [key: string]: EndpointMap;
   }>({});
@@ -78,11 +81,33 @@ export const DependencyContent: FC<DependencyContentProps> = ({
     [ref: string]: ResourceTypeOutput[];
   }>({});
 
+  const findTargetComponent = useCallback(
+    (dependency: Dependency | undefined): Entity | undefined => {
+      const projectName = dependency?.project || currentProject;
+      if (!dependency?.component) return undefined;
+      return allComponents.find(
+        c =>
+          c.metadata.name === dependency.component &&
+          c.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT] === projectName,
+      );
+    },
+    [allComponents, currentProject],
+  );
+
+  const requiresReleaseLine = useCallback(
+    (dependency: Dependency): boolean => {
+      const target = findTargetComponent(dependency);
+      return !!target && isReleaseLinesEnabledComponent(target);
+    },
+    [findTargetComponent],
+  );
+
   const editBuffer = useDependencyEditBuffer({
     dependencies,
     onDependencyReplace,
     onRemoveDependency,
     defaultProject: currentProject,
+    requiresReleaseLine,
   });
 
   // Report editing state to context
@@ -94,6 +119,9 @@ export const DependencyContent: FC<DependencyContentProps> = ({
   useEffect(() => {
     const fetchComponents = async () => {
       const entities = await catalogApi.getEntities();
+      setAllReleaseLines(
+        entities.items?.filter(entity => entity.kind === 'ReleaseLine') || [],
+      );
       setAllComponents(
         entities.items?.filter(
           entity =>
@@ -176,25 +204,39 @@ export const DependencyContent: FC<DependencyContentProps> = ({
     [allComponents],
   );
 
-  // Fetch endpoints for a component (caches full endpoint data)
+  // Endpoint cache key for a dependency's target. A release-lines-enabled
+  // target has a Workload per line, so its endpoints are keyed by the line.
+  const endpointCacheKey = useCallback(
+    (dependency: Dependency | undefined): string | undefined => {
+      const projectName = dependency?.project || currentProject;
+      if (!dependency || !projectName || !dependency.component) {
+        return undefined;
+      }
+      const key = `${projectName}/${dependency.component}`;
+      if (!requiresReleaseLine(dependency)) return key;
+      return dependency.releaseLine
+        ? `${key}@${dependency.releaseLine}`
+        : undefined;
+    },
+    [currentProject, requiresReleaseLine],
+  );
+
+  // Fetch endpoints for a dependency's target (caches full endpoint data)
   const fetchEndpoints = useCallback(
-    async (projectName: string, componentName: string) => {
-      const cacheKey = `${projectName}/${componentName}`;
+    async (dependency: Dependency) => {
+      const cacheKey = endpointCacheKey(dependency);
+      if (!cacheKey) return {};
       if (endpointCache[cacheKey]) {
         return endpointCache[cacheKey];
       }
 
-      const component = allComponents.find(
-        c =>
-          c.metadata.name === componentName &&
-          c.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT] === projectName,
-      );
-
+      const component = findTargetComponent(dependency);
       if (!component) return {};
 
       try {
         const workload: WorkloadResource = await client.fetchWorkloadInfo(
           component,
+          requiresReleaseLine(dependency) ? dependency.releaseLine : undefined,
         );
         const endpoints: EndpointMap = workload?.spec?.endpoints || {};
         setEndpointCache(prev => ({ ...prev, [cacheKey]: endpoints }));
@@ -203,7 +245,13 @@ export const DependencyContent: FC<DependencyContentProps> = ({
         return {};
       }
     },
-    [allComponents, client, endpointCache],
+    [
+      endpointCacheKey,
+      endpointCache,
+      findTargetComponent,
+      client,
+      requiresReleaseLine,
+    ],
   );
 
   /** Get the effective dependency for a given index (buffer if editing, else stored) */
@@ -216,40 +264,25 @@ export const DependencyContent: FC<DependencyContentProps> = ({
     [dependencies, editBuffer],
   );
 
-  // Fetch endpoints when dependencies or edit buffer reference uncached components
+  // Fetch endpoints when dependencies or edit buffer reference uncached targets
   useEffect(() => {
-    const keysToFetch = new Set<string>();
+    const toFetch = new Map<string, Dependency>();
+    const candidates = editBuffer.editBuffer
+      ? [...dependencies, editBuffer.editBuffer]
+      : dependencies;
 
-    dependencies.forEach(dep => {
-      const projectName = dep?.project || currentProject;
-      const componentName = dep?.component;
-      if (projectName && componentName) {
-        const cacheKey = `${projectName}/${componentName}`;
-        if (!endpointCache[cacheKey]) {
-          keysToFetch.add(cacheKey);
-        }
+    candidates.forEach(dep => {
+      const cacheKey = endpointCacheKey(dep);
+      if (cacheKey && !endpointCache[cacheKey]) {
+        toFetch.set(cacheKey, dep);
       }
     });
 
-    if (editBuffer.editBuffer) {
-      const projectName = editBuffer.editBuffer.project || currentProject;
-      const componentName = editBuffer.editBuffer.component;
-      if (projectName && componentName) {
-        const cacheKey = `${projectName}/${componentName}`;
-        if (!endpointCache[cacheKey]) {
-          keysToFetch.add(cacheKey);
-        }
-      }
-    }
-
-    keysToFetch.forEach(key => {
-      const [projectName, componentName] = key.split('/');
-      fetchEndpoints(projectName, componentName);
-    });
+    toFetch.forEach(dep => fetchEndpoints(dep));
   }, [
     dependencies,
     editBuffer.editBuffer,
-    currentProject,
+    endpointCacheKey,
     endpointCache,
     fetchEndpoints,
   ]);
@@ -274,13 +307,8 @@ export const DependencyContent: FC<DependencyContentProps> = ({
   // Get endpoints for a dependency based on its selected component
   const getEndpoints = useCallback(
     (index: number): EndpointOption[] => {
-      const dependency = getEffectiveDependency(index);
-      const projectName = dependency?.project || currentProject;
-      const componentName = dependency?.component;
-      if (!projectName || !componentName) return [];
-
-      const cacheKey = `${projectName}/${componentName}`;
-      const cached = endpointCache[cacheKey];
+      const cacheKey = endpointCacheKey(getEffectiveDependency(index));
+      const cached = cacheKey ? endpointCache[cacheKey] : undefined;
       if (cached) {
         return Object.keys(cached).map(name => ({ name }));
       }
@@ -288,7 +316,34 @@ export const DependencyContent: FC<DependencyContentProps> = ({
       // Cache miss — the useEffect will trigger the fetch
       return [];
     },
-    [getEffectiveDependency, endpointCache, currentProject],
+    [getEffectiveDependency, endpointCacheKey, endpointCache],
+  );
+
+  // Release lines of the dependency's target; undefined when it has none
+  const getReleaseLines = useCallback(
+    (index: number): ReleaseLineOption[] | undefined => {
+      const target = findTargetComponent(getEffectiveDependency(index));
+      if (!target || !isReleaseLinesEnabledComponent(target)) return undefined;
+      const annotations = target.metadata.annotations ?? {};
+      return allReleaseLines
+        .filter(line => {
+          const lineAnnotations = line.metadata.annotations ?? {};
+          return (
+            lineAnnotations[CHOREO_ANNOTATIONS.COMPONENT] ===
+              target.metadata.name &&
+            lineAnnotations[CHOREO_ANNOTATIONS.PROJECT] ===
+              annotations[CHOREO_ANNOTATIONS.PROJECT] &&
+            lineAnnotations[CHOREO_ANNOTATIONS.NAMESPACE] ===
+              annotations[CHOREO_ANNOTATIONS.NAMESPACE]
+          );
+        })
+        .map(line => ({
+          name:
+            line.metadata.annotations?.[CHOREO_ANNOTATIONS.RELEASE_LINE] ||
+            line.metadata.name,
+        }));
+    },
+    [findTargetComponent, getEffectiveDependency, allReleaseLines],
   );
 
   // Get available visibility options based on target endpoint and relationship
@@ -301,8 +356,8 @@ export const DependencyContent: FC<DependencyContentProps> = ({
       }
 
       // Look up the target endpoint's declared visibilities
-      const cacheKey = `${effectiveProject}/${dependency.component}`;
-      const cached = endpointCache[cacheKey];
+      const cacheKey = endpointCacheKey(dependency);
+      const cached = cacheKey ? endpointCache[cacheKey] : undefined;
       if (!cached) return [];
 
       const targetEndpoint = cached[dependency.name];
@@ -347,6 +402,7 @@ export const DependencyContent: FC<DependencyContentProps> = ({
     },
     [
       getEffectiveDependency,
+      endpointCacheKey,
       endpointCache,
       allComponents,
       currentProject,
@@ -386,6 +442,7 @@ export const DependencyContent: FC<DependencyContentProps> = ({
       getProjects={getProjects}
       getComponents={getComponents}
       getEndpoints={getEndpoints}
+      getReleaseLines={getReleaseLines}
       onProjectChange={handleProjectChange}
       onComponentChange={handleComponentChange}
       onEndpointChange={handleEndpointChange}

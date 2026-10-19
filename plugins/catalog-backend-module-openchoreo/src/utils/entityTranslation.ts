@@ -1,4 +1,5 @@
 import { Entity } from '@backstage/catalog-model';
+import type { JsonObject } from '@backstage/types';
 import {
   CHOREO_ANNOTATIONS,
   CHOREO_LABELS,
@@ -38,6 +39,7 @@ import type {
   ProjectTypeEntityV1alpha1,
   DeploymentPipelineEntityV1alpha1,
   ObservabilityAlertsNotificationChannelEntityV1alpha1,
+  ReleaseLineEntityV1alpha1,
   NotificationEmailConfig,
   NotificationWebhookConfig,
 } from '../kinds';
@@ -76,6 +78,7 @@ type NewClusterProjectType =
   OpenChoreoComponents['schemas']['ClusterProjectType'];
 type NewProjectType = OpenChoreoComponents['schemas']['ProjectType'];
 type NewResource = OpenChoreoComponents['schemas']['ResourceInstance'];
+type NewReleaseLine = OpenChoreoComponents['schemas']['ReleaseLine'];
 type NewNamespace = OpenChoreoComponents['schemas']['Namespace'];
 type NewAgentConnectionStatus =
   OpenChoreoComponents['schemas']['AgentConnectionStatus'];
@@ -257,6 +260,9 @@ export function translateComponentToEntity(
         ...(component.componentType?.kind && {
           [CHOREO_ANNOTATIONS.COMPONENT_TYPE_KIND]:
             component.componentType.kind,
+        }),
+        ...(component.releaseLinesEnabled && {
+          [CHOREO_ANNOTATIONS.RELEASE_LINES_ENABLED]: 'true',
         }),
         [CHOREO_ANNOTATIONS.PROJECT]: projectName,
         [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
@@ -565,6 +571,7 @@ export function translateComponentTypeToEntity(
     workloadType?: string;
     allowedWorkflows?: Array<string | AllowedWorkflowRef>;
     allowedTraits?: Array<string | AllowedTraitRef>;
+    releaseLines?: 'Allowed' | 'Disallowed';
     createdAt?: string;
     deletionTimestamp?: string;
   },
@@ -606,6 +613,7 @@ export function translateComponentTypeToEntity(
         'Workflow',
       ),
       allowedTraits: normalizeAllowedTraits(ct.allowedTraits, 'Trait'),
+      ...(ct.releaseLines && { releaseLines: ct.releaseLines }),
     },
   } as ComponentTypeEntityV1alpha1;
 }
@@ -847,6 +855,96 @@ export function translateResourceToEntity(
 }
 
 /**
+ * Configuration for release line entity translation
+ */
+export interface ReleaseLineEntityTranslationConfig
+  extends EntityTranslationConfig {
+  defaultOwner: string;
+}
+
+/**
+ * Translates an OpenChoreo ReleaseLine to a Backstage ReleaseLine entity.
+ * The entity carries its component's project and component annotations, so
+ * the line inherits the component's catalog permissions.
+ */
+export function translateReleaseLineToEntity(
+  releaseLine: {
+    name: string;
+    uid?: string;
+    description?: string;
+    projectName: string;
+    componentName: string;
+    autoDeploy?: boolean;
+    parameters?: Record<string, unknown>;
+    traits?: Array<Record<string, unknown>>;
+    workflow?: { parameters?: Record<string, unknown> };
+    createdAt?: string;
+    deletionTimestamp?: string;
+    status?: string;
+  },
+  namespaceName: string,
+  config: ReleaseLineEntityTranslationConfig,
+): ReleaseLineEntityV1alpha1 {
+  const hasKeys = (value?: object) => !!value && Object.keys(value).length > 0;
+
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'ReleaseLine',
+    metadata: {
+      name: releaseLine.name,
+      namespace: namespaceName,
+      // Line names alone (main, next) are ambiguous outside their component.
+      title: `${releaseLine.componentName}:${releaseLine.name}`,
+      description:
+        releaseLine.description ||
+        `Release line ${releaseLine.name} of ${releaseLine.componentName}`,
+      tags: ['openchoreo', 'release-line'],
+      annotations: {
+        'backstage.io/managed-by-location': `provider:${config.locationKey}`,
+        'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
+        [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+        [CHOREO_ANNOTATIONS.PROJECT]: releaseLine.projectName,
+        [CHOREO_ANNOTATIONS.COMPONENT]: releaseLine.componentName,
+        [CHOREO_ANNOTATIONS.RELEASE_LINE]: releaseLine.name,
+        ...(releaseLine.createdAt && {
+          [CHOREO_ANNOTATIONS.CREATED_AT]: releaseLine.createdAt,
+        }),
+        ...(releaseLine.deletionTimestamp && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]:
+            releaseLine.deletionTimestamp,
+        }),
+        ...(releaseLine.status && {
+          [CHOREO_ANNOTATIONS.STATUS]: releaseLine.status,
+        }),
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+      },
+    },
+    spec: {
+      component: `component:${namespaceName}/${releaseLine.componentName}`,
+      system: releaseLine.projectName,
+      owner: config.defaultOwner,
+      ...(releaseLine.autoDeploy !== undefined && {
+        autoDeploy: releaseLine.autoDeploy,
+      }),
+      ...(hasKeys(releaseLine.parameters) && {
+        parameters: releaseLine.parameters as JsonObject,
+      }),
+      ...(releaseLine.traits &&
+        releaseLine.traits.length > 0 && {
+          traits: releaseLine.traits as JsonObject[],
+        }),
+      ...(hasKeys(releaseLine.workflow?.parameters) && {
+        workflow: {
+          parameters: releaseLine.workflow!.parameters as JsonObject,
+        },
+      }),
+    },
+  };
+}
+
+/**
  * Configuration for namespace entity translation
  */
 export interface NamespaceEntityTranslationConfig
@@ -909,6 +1007,7 @@ export function translateClusterComponentTypeToEntity(
     workloadType?: string;
     allowedWorkflows?: Array<string | AllowedWorkflowRef>;
     allowedTraits?: Array<string | AllowedTraitRef>;
+    releaseLines?: 'Allowed' | 'Disallowed';
     createdAt?: string;
     deletionTimestamp?: string;
   },
@@ -947,6 +1046,7 @@ export function translateClusterComponentTypeToEntity(
         'ClusterWorkflow',
       ),
       allowedTraits: normalizeAllowedTraits(ct.allowedTraits, 'ClusterTrait'),
+      ...(ct.releaseLines && { releaseLines: ct.releaseLines }),
     },
   } as ClusterComponentTypeEntityV1alpha1;
 }
@@ -1420,6 +1520,7 @@ export function translateNewComponentToEntity(
       createdAt: getCreatedAt(component),
       description: getDescription(component),
       deletionTimestamp: getDeletionTimestamp(component),
+      releaseLinesEnabled: component.spec?.releaseLinesEnabled,
       componentWorkflow: component.spec?.workflow
         ? {
             name: component.spec.workflow.name ?? '',
@@ -1811,6 +1912,7 @@ export function translateNewComponentTypeToEntity(
       workloadType: ct.spec?.workloadType,
       allowedWorkflows: ct.spec?.allowedWorkflows,
       allowedTraits: ct.spec?.allowedTraits,
+      releaseLines: ct.spec?.releaseLines,
       createdAt: getCreatedAt(ct),
       deletionTimestamp: getDeletionTimestamp(ct),
     },
@@ -1887,6 +1989,7 @@ export function translateNewClusterComponentTypeToEntity(
       workloadType: cct.spec?.workloadType,
       allowedWorkflows: cct.spec?.allowedWorkflows,
       allowedTraits: cct.spec?.allowedTraits,
+      releaseLines: cct.spec?.releaseLines,
       createdAt: getCreatedAt(cct),
       deletionTimestamp: getDeletionTimestamp(cct),
     },
@@ -2006,6 +2109,36 @@ export function translateNewResourceToEntity(
     },
     namespaceName,
     { locationKey: ctx.providerName, defaultOwner: ctx.defaultOwner },
+  );
+}
+
+/**
+ * Translates a new-API ReleaseLine into a Backstage ReleaseLine entity.
+ */
+export function translateNewReleaseLineToEntity(
+  releaseLine: NewReleaseLine,
+  namespaceName: string,
+  owner: string,
+  ctx: NewApiTranslatorContext,
+): ReleaseLineEntityV1alpha1 {
+  const spec = releaseLine.spec;
+  return translateReleaseLineToEntity(
+    {
+      name: getName(releaseLine)!,
+      uid: getUid(releaseLine),
+      description: getDescription(releaseLine),
+      projectName: spec?.owner.projectName ?? '',
+      componentName: spec?.owner.componentName ?? '',
+      autoDeploy: spec?.autoDeploy,
+      parameters: spec?.parameters,
+      traits: spec?.traits as Array<Record<string, unknown>> | undefined,
+      workflow: spec?.workflow,
+      createdAt: getCreatedAt(releaseLine),
+      deletionTimestamp: getDeletionTimestamp(releaseLine),
+      status: isReady(releaseLine) ? 'Ready' : 'Not Ready',
+    },
+    namespaceName,
+    { locationKey: ctx.providerName, defaultOwner: owner },
   );
 }
 

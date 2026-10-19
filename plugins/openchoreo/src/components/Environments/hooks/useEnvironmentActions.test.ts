@@ -84,6 +84,7 @@ describe('useEnvironmentActions.handleRemoveDeployment', () => {
     expect(mockClient.deleteReleaseBinding).toHaveBeenCalledWith(
       entity,
       'staging',
+      undefined,
     );
   });
 
@@ -207,6 +208,7 @@ describe('useEnvironmentActions.handleRolloutRestart', () => {
     expect(mockClient.rolloutRestartReleaseBinding).toHaveBeenCalledWith(
       entity,
       'beta-web-staging',
+      undefined,
     );
   });
 

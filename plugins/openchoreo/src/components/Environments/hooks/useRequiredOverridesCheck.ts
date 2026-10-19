@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { JSONSchema7 } from 'json-schema';
 import { Entity } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
+import { useReleaseLine } from '@openchoreo/backstage-plugin-react';
 import {
   openChoreoClientApiRef,
   ReleaseBinding,
@@ -46,6 +47,7 @@ export function useRequiredOverridesCheck(
   entity: Entity,
 ): UseRequiredOverridesCheckReturn {
   const client = useApi(openChoreoClientApiRef);
+  const { releaseLine } = useReleaseLine();
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -106,7 +108,10 @@ export function useRequiredOverridesCheck(
         setHasRequiredOverrides(true);
 
         // Fetch existing release bindings to get current overrides
-        const bindingsResponse = await client.fetchReleaseBindings(entity);
+        const bindingsResponse = await client.fetchReleaseBindings(
+          entity,
+          releaseLine,
+        );
 
         let currentOverrides: Record<string, unknown> = {};
 
@@ -147,7 +152,7 @@ export function useRequiredOverridesCheck(
         setIsLoading(false);
       }
     },
-    [entity, client],
+    [entity, client, releaseLine],
   );
 
   return {

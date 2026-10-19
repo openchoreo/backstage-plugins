@@ -31,6 +31,7 @@ import { ClusterWorkflowEntityProcessor } from './ClusterWorkflowEntityProcessor
 import { ClusterWorkflowPlaneEntityProcessor } from './ClusterWorkflowPlaneEntityProcessor';
 import { ComponentEntityProcessor } from './ComponentEntityProcessor';
 import { ResourceEntityProcessor } from './ResourceEntityProcessor';
+import { ReleaseLineEntityProcessor } from './ReleaseLineEntityProcessor';
 import { ComponentTypeEntityProcessor } from './ComponentTypeEntityProcessor';
 import { CustomAnnotationProcessor } from './CustomAnnotationProcessor';
 import { DataplaneEntityProcessor } from './DataplaneEntityProcessor';
@@ -405,6 +406,64 @@ describe('ComponentEntityProcessor', () => {
 // ---------------------------------------------------------------------------
 // ComponentTypeEntityProcessor
 // ---------------------------------------------------------------------------
+describe('ReleaseLineEntityProcessor', () => {
+  const processor = new ReleaseLineEntityProcessor();
+
+  it('validates only the ReleaseLine kind', async () => {
+    expect(
+      await processor.validateEntityKind({ kind: 'ReleaseLine' } as any),
+    ).toBe(true);
+    expect(
+      await processor.validateEntityKind({ kind: 'Component' } as any),
+    ).toBe(false);
+  });
+
+  it('emits partOf/hasPart between the line and its component', async () => {
+    const emit = jest.fn();
+    const entity = {
+      kind: 'ReleaseLine',
+      metadata: { name: 'next', namespace: 'default' },
+      spec: { component: 'component:default/hello', system: 'default' },
+    } as any;
+    await processor.postProcessEntity(entity, mockLocation, emit);
+    expect(emit).toHaveBeenCalledWith(
+      processingResult.relation({
+        source: { kind: 'releaseline', namespace: 'default', name: 'next' },
+        target: { kind: 'component', namespace: 'default', name: 'hello' },
+        type: RELATION_PART_OF,
+      }),
+    );
+    expect(emit).toHaveBeenCalledWith(
+      processingResult.relation({
+        source: { kind: 'component', namespace: 'default', name: 'hello' },
+        target: { kind: 'releaseline', namespace: 'default', name: 'next' },
+        type: RELATION_HAS_PART,
+      }),
+    );
+  });
+
+  it('rejects a ReleaseLine without a component', async () => {
+    const entity = {
+      kind: 'ReleaseLine',
+      metadata: { name: 'next', namespace: 'default' },
+      spec: {},
+    } as any;
+    await expect(
+      processor.postProcessEntity(entity, mockLocation, jest.fn()),
+    ).rejects.toThrow('spec.component');
+  });
+
+  it('skips other kinds', async () => {
+    const emit = jest.fn();
+    await processor.postProcessEntity(
+      { kind: 'Component', metadata: { name: 'x' }, spec: {} } as any,
+      mockLocation,
+      emit,
+    );
+    expect(emit).not.toHaveBeenCalled();
+  });
+});
+
 describe('ComponentTypeEntityProcessor', () => {
   const processor = new ComponentTypeEntityProcessor();
 

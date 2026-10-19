@@ -6,6 +6,7 @@ import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import {
   calculateTimeRange,
   useOpenChoreoInfiniteQuery,
+  useReleaseLine,
 } from '@openchoreo/backstage-plugin-react';
 
 export interface UseRuntimeEventsOptions {
@@ -55,6 +56,7 @@ export function useRuntimeEvents(
   enabled: boolean = true,
 ): UseRuntimeEventsResult {
   const observabilityApi = useApi(observabilityApiRef);
+  const { releaseLine } = useReleaseLine();
 
   const componentName =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
@@ -78,6 +80,7 @@ export function useRuntimeEvents(
       project,
       options.environment,
       componentName ?? null,
+      releaseLine ?? null,
       options.timeRange,
       options.customStartTime,
       options.customEndTime,
@@ -103,7 +106,7 @@ export function useRuntimeEvents(
         project,
         options.environment,
         componentName!,
-        { limit: pageSize, startTime, endTime, sortOrder },
+        { limit: pageSize, startTime, endTime, sortOrder, releaseLine },
       );
       return { items: response.events, total: response.total ?? 0 };
     },

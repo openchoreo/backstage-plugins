@@ -1,6 +1,9 @@
 import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
-import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
+import {
+  useOpenChoreoQuery,
+  useReleaseLine,
+} from '@openchoreo/backstage-plugin-react';
 import type { ReleaseBindingCondition } from '@openchoreo/backstage-plugin-common';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { isForbiddenError } from '../../../utils/errorUtils';
@@ -56,10 +59,14 @@ export interface Environment {
 
 export function useEnvironmentData(entity: Entity) {
   const client = useApi(openChoreoClientApiRef);
+  const { releaseLine } = useReleaseLine();
 
   const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
-    ['environments', stringifyEntityRef(entity)],
-    () => client.fetchEnvironmentInfo(entity) as Promise<Environment[]>,
+    ['environments', stringifyEntityRef(entity), releaseLine ?? ''],
+    () =>
+      client.fetchEnvironmentInfo(entity, releaseLine) as Promise<
+        Environment[]
+      >,
   );
 
   return {

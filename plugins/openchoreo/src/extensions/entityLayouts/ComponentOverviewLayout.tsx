@@ -1,5 +1,7 @@
 import Grid from '@material-ui/core/Grid';
 import type { EntityContentLayoutProps } from '@backstage/plugin-catalog-react/alpha';
+import { useEntity } from '@backstage/plugin-catalog-react';
+import { isReleaseLinesEnabledComponent } from '@openchoreo/backstage-plugin-common';
 import {
   BuildFailureNotifierSlot,
   FeatureGate,
@@ -13,6 +15,7 @@ import { EntityWarningStrip } from './EntityWarningStrip';
 import { OpenChoreoAboutCard } from '../../components/OpenChoreoAboutCard';
 import { ContainedCatalogGraphCard } from '../../components/ContainedCatalogGraphCard';
 import { ForeignCardsSection } from './foreignCards';
+import { ReleaseLinesComponentOverview } from './ReleaseLinesComponentOverview';
 
 /**
  * The Component-kind Overview layout. `BuildFailureNotifierSlot` renders the
@@ -23,6 +26,11 @@ import { ForeignCardsSection } from './foreignCards';
 export default function ComponentOverviewLayout({
   cards,
 }: EntityContentLayoutProps) {
+  const { entity } = useEntity();
+  if (isReleaseLinesEnabledComponent(entity)) {
+    return <ReleaseLinesComponentOverview />;
+  }
+
   return (
     <Grid container spacing={3} alignItems="stretch">
       <BuildFailureNotifierSlot />

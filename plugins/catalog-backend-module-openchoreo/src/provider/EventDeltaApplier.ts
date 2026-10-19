@@ -47,6 +47,7 @@ import {
   translateNewProjectToEntity,
   translateNewClusterProjectTypeToEntity,
   translateNewProjectTypeToEntity,
+  translateNewReleaseLineToEntity,
   translateNewResourceToEntity,
   translateNewResourceTypeToEntity,
   translateNewTraitToEntity,
@@ -89,6 +90,7 @@ type NewProjectType = OpenChoreoComponents['schemas']['ProjectType'];
 type NewClusterProjectType =
   OpenChoreoComponents['schemas']['ClusterProjectType'];
 type NewResource = OpenChoreoComponents['schemas']['ResourceInstance'];
+type NewReleaseLine = OpenChoreoComponents['schemas']['ReleaseLine'];
 type NewTrait = OpenChoreoComponents['schemas']['Trait'];
 type NewWorkflow = OpenChoreoComponents['schemas']['Workflow'];
 type NewClusterComponentType =
@@ -757,7 +759,11 @@ export class EventDeltaApplier {
       // Resolve the owning System *before* removing the component — once the
       // component entity is gone we can no longer read its `partOf` relation.
       const parentSystemRef = await this.findParentSystemRef(ns, name);
-      await this.removeEntityRefs([this.buildEntityRef('component', ns, name)]);
+      const releaseLineRefs = await this.findReleaseLineRefs(ns, name);
+      await this.removeEntityRefs([
+        this.buildEntityRef('component', ns, name),
+        ...releaseLineRefs,
+      ]);
       // Removing the component leaves the System's reverse `hasPart` relation
       // dangling: the System's denormalized relations are only recomputed when
       // it is itself re-processed, and the periodic full sync re-emits it
@@ -906,7 +912,175 @@ export class EventDeltaApplier {
           })
         : [];
 
-    await this.upsertEntities([componentEntity, ...apiEntities]);
+    const releaseLineEntities = component.spec?.releaseLinesEnabled
+      ? (await this.fetchReleaseLines(client, ns, name)).map(line =>
+          translateNewReleaseLineToEntity(
+            line,
+            ns,
+            resolvedOwner,
+            this.translatorContext,
+          ),
+        )
+      : [];
+
+    await this.upsertEntities([
+      componentEntity,
+      ...apiEntities,
+      ...releaseLineEntities,
+    ]);
+  }
+
+  /**
+   * Refreshes a ReleaseLine entity. The API serves release lines under their
+   * component, so the owning component is read from the catalog entity, or,
+   * for a line the catalog has not seen yet, found among the namespace's
+   * components with release lines enabled.
+   */
+  private async refreshReleaseLine(ns: string, name: string): Promise<void> {
+    const client = await this.createApiClient();
+    const ref = this.buildEntityRef('releaseline', ns, name);
+    const known = await this.findReleaseLineComponent(ns, name);
+    const candidates = known
+      ? [known]
+      : await this.listReleaseLineComponents(client, ns);
+
+    for (const componentName of candidates) {
+      const line = await this.fetchOne<NewReleaseLine>(
+        client.GET(
+          '/api/v1/namespaces/{namespaceName}/components/{componentName}/releaselines/{releaseLineName}',
+          {
+            params: {
+              path: {
+                namespaceName: ns,
+                componentName,
+                releaseLineName: name,
+              },
+            },
+          },
+        ) as any,
+        'releaseline',
+        `${ns}/${componentName}/${name}`,
+      );
+      if (line) {
+        const component = await this.fetchComponent(client, ns, componentName);
+        const owner = component
+          ? resolveComponentOwner(component, undefined, this.defaultOwner)
+          : this.defaultOwner;
+        await this.upsertEntities([
+          translateNewReleaseLineToEntity(
+            line,
+            ns,
+            owner,
+            this.translatorContext,
+          ),
+        ]);
+        return;
+      }
+    }
+    await this.removeEntityRefs([ref]);
+  }
+
+  private async fetchReleaseLines(
+    client: OpenChoreoApiClient,
+    ns: string,
+    componentName: string,
+  ): Promise<NewReleaseLine[]> {
+    const res = await client.GET(
+      '/api/v1/namespaces/{namespaceName}/components/{componentName}/releaselines',
+      {
+        params: {
+          path: { namespaceName: ns, componentName },
+          query: { limit: 100 },
+        },
+      },
+    );
+    if (res.error) {
+      throw new Error(
+        `Failed to fetch release lines for component ${ns}/${componentName}`,
+      );
+    }
+    return res.data?.items ?? [];
+  }
+
+  private async listReleaseLineComponents(
+    client: OpenChoreoApiClient,
+    ns: string,
+  ): Promise<string[]> {
+    const res = await client.GET(
+      '/api/v1/namespaces/{namespaceName}/components',
+      {
+        params: { path: { namespaceName: ns }, query: { limit: 100 } },
+      },
+    );
+    if (res.error) {
+      throw new Error(`Failed to fetch components for namespace ${ns}`);
+    }
+    return (res.data?.items ?? [])
+      .filter(component => component.spec?.releaseLinesEnabled)
+      .map(component => component.metadata.name);
+  }
+
+  /** The component a ReleaseLine entity in the catalog belongs to. */
+  private async findReleaseLineComponent(
+    ns: string,
+    name: string,
+  ): Promise<string | undefined> {
+    if (!this.catalogService || !this.auth) {
+      return undefined;
+    }
+    const credentials = await this.auth.getOwnServiceCredentials();
+    const entity = await this.catalogService.getEntityByRef(
+      this.buildEntityRef('releaseline', ns, name),
+      { credentials },
+    );
+    return entity?.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
+  }
+
+  /**
+   * Refs of the ReleaseLine entities in the catalog that belong to a component
+   * the catalog knows to have release lines enabled.
+   */
+  private async findReleaseLineRefs(
+    ns: string,
+    componentName: string,
+  ): Promise<string[]> {
+    if (!this.catalogService || !this.auth) {
+      return [];
+    }
+    try {
+      const credentials = await this.auth.getOwnServiceCredentials();
+      const component = await this.catalogService.getEntityByRef(
+        this.buildEntityRef('component', ns, componentName),
+        { credentials },
+      );
+      if (
+        component?.metadata.annotations?.[
+          CHOREO_ANNOTATIONS.RELEASE_LINES_ENABLED
+        ] !== 'true'
+      ) {
+        return [];
+      }
+      const { items } = await this.catalogService.getEntities(
+        {
+          filter: {
+            kind: 'ReleaseLine',
+            'metadata.namespace': ns,
+            [`metadata.annotations.${CHOREO_ANNOTATIONS.COMPONENT}`]:
+              componentName,
+          },
+          fields: ['metadata.name'],
+        },
+        { credentials },
+      );
+      return items.map(item =>
+        this.buildEntityRef('releaseline', ns, item.metadata.name),
+      );
+    } catch (err) {
+      this.logger.warn(
+        `Could not resolve release lines of component ${ns}/${componentName}: ${err}`,
+      );
+      return [];
+    }
   }
 
   private async refreshEnvironment(ns: string, name: string): Promise<void> {
@@ -1037,6 +1211,7 @@ export class EventDeltaApplier {
           displayName: getDisplayName(ct),
           description: getDescription(ct),
           workloadType: ct.spec?.workloadType ?? 'deployment',
+          releaseLines: ct.spec?.releaseLines,
           allowedWorkflows: ct.spec?.allowedWorkflows,
           allowedTraits: ct.spec?.allowedTraits,
           createdAt: getCreatedAt(ct) || '',
@@ -1112,6 +1287,7 @@ export class EventDeltaApplier {
           displayName: getDisplayName(cct),
           description: getDescription(cct),
           workloadType: cct.spec?.workloadType ?? 'deployment',
+          releaseLines: cct.spec?.releaseLines,
           allowedWorkflows: cct.spec?.allowedWorkflows?.map(w => w.name),
           allowedTraits: cct.spec?.allowedTraits?.map(t => ({
             kind: 'ClusterTrait' as const,
@@ -1724,6 +1900,9 @@ export class EventDeltaApplier {
         return;
       case 'resource':
         await this.refreshResource(ns, name);
+        return;
+      case 'releaseline':
+        await this.refreshReleaseLine(ns, name);
         return;
       case 'workflow':
         await this.refreshWorkflow(ns, name);

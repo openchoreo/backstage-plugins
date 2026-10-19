@@ -1,7 +1,19 @@
 export {
   isOpenChoreoManagedEntity,
   isOpenChoreoManagedOfKind,
+  isReleaseLinesEnabledComponent,
+  isOpenChoreoReleaseLine,
 } from './entityFilters';
+export {
+  mergeOverrides,
+  diffOverrides,
+  mergeTraits,
+  diffTraits,
+  isInheritedTrait,
+  traitKey,
+  type ReleaseLineTrait,
+} from './releaseLineOverrides';
+export { releaseLineNodeId, parseReleaseLineNodeId } from './releaseLineNode';
 
 export {
   CHOREO_ANNOTATIONS,
@@ -261,6 +273,10 @@ export type {
   DeployReleaseRequest,
   PatchReleaseBindingRequest,
   CreateComponentReleaseRequest,
+  ReleaseLineSummary,
+  ReleaseLineEnvironmentSummary,
+  ReleaseLineOverrides,
+  ReleaseLineResource,
 } from './types/bff-types';
 
 // Convenience aliases for backwards compatibility

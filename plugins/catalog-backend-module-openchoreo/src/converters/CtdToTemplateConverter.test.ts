@@ -484,6 +484,81 @@ describe('CtdToTemplateConverter', () => {
     });
   });
 
+  describe('release lines', () => {
+    const ctd = (releaseLines?: 'Allowed' | 'Disallowed'): ComponentType => ({
+      metadata: {
+        workloadType: 'deployment',
+        createdAt: '2025-01-01T00:00:00Z',
+        name: 'release-line-service',
+        releaseLines,
+      },
+      spec: { inputParametersSchema: { type: 'object', properties: {} } },
+    });
+
+    it('adds the Declare Release Line step last, before the review, when allowed', () => {
+      const result = converter.convertCtdToTemplateEntity(
+        ctd('Allowed'),
+        'test-org',
+      );
+      const parameters = result.spec?.parameters as any[];
+
+      expect(parameters.map(p => p.title)).toEqual([
+        'Component Metadata',
+        'Build & Deploy',
+        'Release Line Service Details',
+        'Declare Release Line',
+      ]);
+      expect(parameters[3].description).toMatch(
+        /overrides are configured later, on the release line's pages/,
+      );
+      expect(parameters[3].description).toMatch(
+        /More release lines can be created as needed/,
+      );
+      const releaseLines = parameters[3].properties.releaseLines;
+      expect(releaseLines.properties.enabled.default).toBe(true);
+      expect(
+        releaseLines.dependencies.enabled.oneOf[0].properties.releaseLineName
+          .default,
+      ).toBe('main');
+
+      const input = (result.spec?.steps as any[])[0].input;
+      expect(input.releaseLinesEnabled).toBe(
+        '${{ parameters.releaseLines.enabled }}',
+      );
+      expect(input.releaseLineName).toBe(
+        '${{ parameters.releaseLines.releaseLineName }}',
+      );
+    });
+
+    it.each([undefined, 'Disallowed' as const])(
+      'omits the step when release lines are %s',
+      releaseLines => {
+        const result = converter.convertCtdToTemplateEntity(
+          ctd(releaseLines),
+          'test-org',
+        );
+        const parameters = result.spec?.parameters as any[];
+
+        expect(parameters.map(p => p.title)).not.toContain(
+          'Declare Release Line',
+        );
+        const input = (result.spec?.steps as any[])[0].input;
+        expect(input).not.toHaveProperty('releaseLinesEnabled');
+      },
+    );
+
+    it('adds the step to cluster component type templates', () => {
+      const result = converter.convertClusterCtdToTemplateEntity(
+        ctd('Allowed'),
+      );
+      const parameters = result.spec?.parameters as any[];
+
+      expect(parameters[parameters.length - 1].title).toBe(
+        'Declare Release Line',
+      );
+    });
+  });
+
   describe('generateSteps', () => {
     it('should generate scaffolder steps with correct action', () => {
       const ctd: ComponentType = {

@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Box, Chip, Typography } from '@material-ui/core';
 import CategoryIcon from '@material-ui/icons/Category';
 import AccessTimeIcon from '@material-ui/icons/AccessTime';
+import CallSplitIcon from '@material-ui/icons/CallSplit';
 import { parseEntityRef } from '@backstage/catalog-model';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { Link } from '@backstage/core-components';
@@ -20,6 +21,7 @@ export const ComponentTypeOverviewCard = () => {
   const annotations = entity.metadata.annotations || {};
 
   const workloadType = spec?.workloadType || 'Unknown';
+  const releaseLinesAllowed = spec?.releaseLines === 'Allowed';
   const allowedWorkflows = (spec?.allowedWorkflows || [])
     .map((wf: any) => (typeof wf === 'string' ? wf : wf?.name))
     .filter(Boolean) as string[];
@@ -72,6 +74,20 @@ export const ComponentTypeOverviewCard = () => {
               Workload Type
             </Typography>
             <Chip label={workloadType} size="small" />
+          </Box>
+        </Box>
+
+        <Box className={classes.statusItem}>
+          <CallSplitIcon className={classes.statusIcon} />
+          <Box>
+            <Typography className={classes.statusLabel}>
+              Release Lines
+            </Typography>
+            <Chip
+              label={releaseLinesAllowed ? 'Allowed' : 'Not allowed'}
+              size="small"
+              color={releaseLinesAllowed ? 'primary' : 'default'}
+            />
           </Box>
         </Box>
 

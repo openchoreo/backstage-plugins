@@ -686,6 +686,141 @@ describe('CellDiagramInfoService', () => {
       expect(api!.connections!.some(c => c.type === 'http')).toBe(true);
       expect(api!.connections!.some(c => c.type === 'datastore')).toBe(true);
     });
+
+    describe('release lines', () => {
+      const releaseLineComponent = (name: string) => {
+        const comp = k8sComponent(name, 'deployment/service');
+        return { ...comp, spec: { ...comp.spec, releaseLinesEnabled: true } };
+      };
+      const lineWorkload = (
+        componentName: string,
+        releaseLine: string,
+        opts?: { endpoints?: Record<string, any>; dependencies?: any },
+      ) => {
+        const workload = k8sWorkload(componentName, opts);
+        return {
+          ...workload,
+          metadata: {
+            ...workload.metadata,
+            name: `${componentName}-${releaseLine}-workload`,
+          },
+          spec: {
+            ...workload.spec,
+            owner: { ...workload.spec.owner, releaseLine },
+          },
+        };
+      };
+
+      it('renders one node per release line', async () => {
+        mockGET
+          .mockResolvedValueOnce(
+            createOkResponse({
+              items: [releaseLineComponent('api')],
+              pagination: {},
+            }),
+          )
+          .mockResolvedValueOnce(
+            createOkResponse({
+              items: [lineWorkload('api', 'next'), lineWorkload('api', 'main')],
+              pagination: {},
+            }),
+          );
+
+        const result = await createService().fetchProjectInfo(
+          { projectName: 'my-project', namespaceName: 'test-ns' },
+          'token',
+        );
+
+        expect(result!.components.map(c => [c.id, c.label])).toEqual([
+          ['api@main', 'api:main'],
+          ['api@next', 'api:next'],
+        ]);
+      });
+
+      it('links a dependency to the release line it names', async () => {
+        mockGET
+          .mockResolvedValueOnce(
+            createOkResponse({
+              items: [
+                releaseLineComponent('api'),
+                k8sComponent('web', 'deployment/service'),
+              ],
+              pagination: {},
+            }),
+          )
+          .mockResolvedValueOnce(
+            createOkResponse({
+              items: [
+                lineWorkload('api', 'main'),
+                lineWorkload('api', 'next'),
+                k8sWorkload('web', {
+                  dependencies: {
+                    endpoints: [
+                      { component: 'api', releaseLine: 'next', name: 'http' },
+                    ],
+                  },
+                }),
+              ],
+              pagination: {},
+            }),
+          );
+
+        const result = await createService().fetchProjectInfo(
+          { projectName: 'my-project', namespaceName: 'test-ns' },
+          'token',
+        );
+
+        const web = result!.components.find(c => c.id === 'web');
+        expect(web!.connections).toEqual([
+          expect.objectContaining({
+            id: 'test-ns:my-project:api@next:http',
+            label: 'api:next/http',
+            onPlatform: true,
+          }),
+        ]);
+      });
+
+      it('scopes gateway metrics to the release line', async () => {
+        mockGET
+          .mockResolvedValueOnce(
+            createOkResponse({
+              items: [releaseLineComponent('api')],
+              pagination: {},
+            }),
+          )
+          .mockResolvedValueOnce(
+            createOkResponse({
+              items: [lineWorkload('api', 'main')],
+              pagination: {},
+            }),
+          );
+        mockResolveForEnvironment.mockResolvedValueOnce({
+          observerUrl: 'http://observer:8080',
+        });
+        mockObsPOST.mockResolvedValue(createOkResponse({ edges: [] }));
+
+        await createService().fetchProjectInfo(
+          {
+            projectName: 'my-project',
+            namespaceName: 'test-ns',
+            environmentName: 'dev',
+          },
+          'token',
+        );
+
+        expect(mockObsPOST).toHaveBeenCalledWith(
+          '/api/v1/metrics/query',
+          expect.objectContaining({
+            body: expect.objectContaining({
+              searchScope: expect.objectContaining({
+                component: 'api',
+                releaseLine: 'main',
+              }),
+            }),
+          }),
+        );
+      });
+    });
   });
 
   describe('fetchNamespaceInfo', () => {

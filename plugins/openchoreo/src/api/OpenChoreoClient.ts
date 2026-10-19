@@ -5,6 +5,9 @@ import {
   CHOREO_ANNOTATIONS,
   type WorkloadResource,
   type ReleaseBindingCondition,
+  type ReleaseLineSummary,
+  type ReleaseLineOverrides,
+  type ReleaseLineResource,
 } from '@openchoreo/backstage-plugin-common';
 import { CLUSTER_SCOPED_RESOURCE_KINDS } from './OpenChoreoClientApi';
 import type {
@@ -69,6 +72,7 @@ const API_ENDPOINTS = {
   COMPONENT_RELEASE: '/component-release',
   COMPONENT_RELEASE_SCHEMA: '/component-release-schema',
   RELEASE_BINDINGS: '/release-bindings',
+  RELEASE_LINES: '/release-lines',
   RESOURCE_RELEASE: '/resource-release',
   RESOURCE_RELEASE_BINDINGS: '/resource-release-bindings',
   RESOURCE_ENVIRONMENT_INFO: '/resource-environment-info',
@@ -98,6 +102,7 @@ const API_ENDPOINTS = {
   CLUSTER_RESOURCE_TYPE_OUTPUTS: '/cluster-resource-type-outputs',
   RESOURCE_RELEASE_SCHEMA: '/resource-release-schema',
   COMPONENT_TRAITS: '/component-traits',
+  RELEASE_LINE: '/release-line',
   COMPONENT_CONFIG: '/component-config',
   TRAITS: '/traits',
   TRAIT_SCHEMA: '/trait-schema',
@@ -148,6 +153,26 @@ function extractEntityMetadata(entity: Entity): EntityMetadata {
   return { component, project, namespace };
 }
 
+/** A release line resource with the given overrides, owned by the entity's component. */
+function buildReleaseLineResource(
+  metadata: EntityMetadata,
+  releaseLineName: string,
+  overrides: ReleaseLineOverrides,
+): ReleaseLineResource {
+  return {
+    apiVersion: 'openchoreo.dev/v1alpha1',
+    kind: 'ReleaseLine',
+    metadata: { name: releaseLineName, namespace: metadata.namespace },
+    spec: {
+      owner: {
+        projectName: metadata.project,
+        componentName: metadata.component,
+      },
+      ...overrides,
+    },
+  };
+}
+
 function tryExtractEntityMetadata(entity: Entity): EntityMetadata | null {
   const component = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
   const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
@@ -168,6 +193,14 @@ function entityMetadataToParams(
     projectName: metadata.project,
     namespaceName: metadata.namespace,
   };
+}
+
+/** Adds the `releaseLine` query parameter when a release line is selected. */
+function withReleaseLine(
+  params: Record<string, string>,
+  releaseLine?: string,
+): Record<string, string> {
+  return releaseLine ? { ...params, releaseLine } : params;
 }
 
 interface ResourceEntityMetadata {
@@ -281,14 +314,17 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   // Environment Operations
   // ============================================
 
-  async fetchEnvironmentInfo(entity: Entity): Promise<any> {
+  async fetchEnvironmentInfo(
+    entity: Entity,
+    releaseLine?: string,
+  ): Promise<any> {
     const metadata = tryExtractEntityMetadata(entity);
     if (!metadata) {
       return [];
     }
 
     return this.apiFetch(API_ENDPOINTS.ENVIRONMENT_INFO, {
-      params: entityMetadataToParams(metadata),
+      params: withReleaseLine(entityMetadataToParams(metadata), releaseLine),
     });
   }
 
@@ -314,6 +350,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   async deleteReleaseBinding(
     entity: Entity,
     environment: string,
+    releaseLine?: string,
   ): Promise<any> {
     const { component, project, namespace } = extractEntityMetadata(entity);
 
@@ -324,6 +361,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         projectName: project,
         componentName: component,
         environment,
+        ...(releaseLine ? { releaseLine } : {}),
       },
     });
   }
@@ -332,6 +370,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     entity: Entity,
     bindingName: string,
     releaseState: 'Active' | 'Suspend' | 'Undeploy',
+    releaseLine?: string,
   ): Promise<any> {
     const { component, project, namespace } = extractEntityMetadata(entity);
 
@@ -343,6 +382,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         componentName: component,
         bindingName,
         releaseState,
+        ...(releaseLine ? { releaseLine } : {}),
       },
     });
   }
@@ -350,6 +390,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   async rolloutRestartReleaseBinding(
     entity: Entity,
     bindingName: string,
+    releaseLine?: string,
   ): Promise<any> {
     const { component, project, namespace } = extractEntityMetadata(entity);
 
@@ -360,6 +401,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         projectName: project,
         componentName: component,
         bindingName,
+        ...(releaseLine ? { releaseLine } : {}),
       },
     });
   }
@@ -381,13 +423,14 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   async createComponentRelease(
     entity: Entity,
     releaseName?: string,
+    releaseLine?: string,
   ): Promise<CreateReleaseResponse> {
     const metadata = extractEntityMetadata(entity);
 
     return this.apiFetch<CreateReleaseResponse>(API_ENDPOINTS.CREATE_RELEASE, {
       method: 'POST',
       params: entityMetadataToParams(metadata),
-      body: { releaseName },
+      body: { releaseName, ...(releaseLine ? { releaseLine } : {}) },
     });
   }
 
@@ -432,13 +475,30 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     });
   }
 
-  async fetchReleaseBindings(entity: Entity): Promise<ReleaseBindingsResponse> {
+  async fetchReleaseLines(entity: Entity): Promise<ReleaseLineSummary[]> {
+    const metadata = extractEntityMetadata(entity);
+
+    const response = await this.apiFetch<{
+      data?: { items?: ReleaseLineSummary[] };
+    }>(API_ENDPOINTS.RELEASE_LINES, {
+      params: {
+        componentName: metadata.component,
+        namespaceName: metadata.namespace,
+      },
+    });
+    return response.data?.items ?? [];
+  }
+
+  async fetchReleaseBindings(
+    entity: Entity,
+    releaseLine?: string,
+  ): Promise<ReleaseBindingsResponse> {
     const metadata = extractEntityMetadata(entity);
 
     return this.apiFetch<ReleaseBindingsResponse>(
       API_ENDPOINTS.RELEASE_BINDINGS,
       {
-        params: entityMetadataToParams(metadata),
+        params: withReleaseLine(entityMetadataToParams(metadata), releaseLine),
       },
     );
   }
@@ -601,10 +661,11 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
 
   async listComponentReleases(
     entity: Entity,
+    releaseLine?: string,
   ): Promise<ComponentReleasesResponse> {
     const metadata = extractEntityMetadata(entity);
 
-    return this.apiFetch<ComponentReleasesResponse>(
+    const response = await this.apiFetch<ComponentReleasesResponse>(
       API_ENDPOINTS.COMPONENT_RELEASES,
       {
         params: {
@@ -613,6 +674,17 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         },
       },
     );
+    if (!releaseLine || !response.data) {
+      return response;
+    }
+    return {
+      ...response,
+      data: {
+        items: response.data.items.filter(
+          release => release.spec?.owner?.releaseLine === releaseLine,
+        ),
+      },
+    };
   }
 
   async updateReleaseBinding(
@@ -622,6 +694,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     componentTypeEnvironmentConfigs?: unknown,
     traitEnvironmentConfigs?: unknown,
     workloadOverrides?: any,
+    releaseLine?: string,
   ): Promise<any> {
     const { component, project, namespace } = extractEntityMetadata(entity);
 
@@ -632,6 +705,9 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       environment,
       releaseName,
     };
+    if (releaseLine) {
+      body.releaseLine = releaseLine;
+    }
 
     if (componentTypeEnvironmentConfigs !== undefined) {
       body.componentTypeEnvironmentConfigs = componentTypeEnvironmentConfigs;
@@ -656,6 +732,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     traitEnvironmentConfigs?: unknown,
     workloadOverrides?: any,
     releaseName?: string,
+    releaseLine?: string,
   ): Promise<any> {
     const { component, project, namespace } = extractEntityMetadata(entity);
 
@@ -678,6 +755,9 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     }
     if (releaseName !== undefined) {
       patchReq.releaseName = releaseName;
+    }
+    if (releaseLine) {
+      patchReq.releaseLine = releaseLine;
     }
 
     return this.apiFetch(API_ENDPOINTS.PATCH_RELEASE_BINDING, {
@@ -749,11 +829,14 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   // Workload Operations
   // ============================================
 
-  async fetchWorkloadInfo(entity: Entity): Promise<WorkloadResource> {
+  async fetchWorkloadInfo(
+    entity: Entity,
+    releaseLine?: string,
+  ): Promise<WorkloadResource> {
     const metadata = extractEntityMetadata(entity);
 
     return this.apiFetch<WorkloadResource>(API_ENDPOINTS.DEPLOYEMNT_WORKLOAD, {
-      params: entityMetadataToParams(metadata),
+      params: withReleaseLine(entityMetadataToParams(metadata), releaseLine),
     });
   }
 
@@ -761,13 +844,14 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     entity: Entity,
     workload: WorkloadResource,
     isNew: boolean,
+    releaseLine?: string,
   ): Promise<WorkloadResource> {
     const metadata = extractEntityMetadata(entity);
 
     return this.apiFetch<WorkloadResource>(API_ENDPOINTS.DEPLOYEMNT_WORKLOAD, {
       method: 'POST',
       params: {
-        ...entityMetadataToParams(metadata),
+        ...withReleaseLine(entityMetadataToParams(metadata), releaseLine),
         isNew: String(isNew),
       },
       body: workload,
@@ -1024,6 +1108,119 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         projectName: metadata.project,
         componentName: metadata.component,
         traits,
+      },
+    });
+  }
+
+  // ============================================
+  // Release Line Operations
+  // ============================================
+
+  async fetchReleaseLine(
+    entity: Entity,
+    releaseLineName: string,
+  ): Promise<ReleaseLineResource> {
+    const metadata = extractEntityMetadata(entity);
+    const response = await this.apiFetch<{ data: ReleaseLineResource }>(
+      API_ENDPOINTS.RELEASE_LINE,
+      {
+        params: {
+          namespaceName: metadata.namespace,
+          componentName: metadata.component,
+          releaseLineName,
+        },
+      },
+    );
+    return response.data;
+  }
+
+  async createReleaseLine(
+    entity: Entity,
+    releaseLineName: string,
+    overrides: ReleaseLineOverrides = {},
+    description?: string,
+  ): Promise<ReleaseLineResource> {
+    const metadata = extractEntityMetadata(entity);
+    const releaseLine = buildReleaseLineResource(
+      metadata,
+      releaseLineName,
+      overrides,
+    );
+    if (description) {
+      releaseLine.metadata.annotations = {
+        'openchoreo.dev/description': description,
+      };
+    }
+    const response = await this.apiFetch<{ data: ReleaseLineResource }>(
+      API_ENDPOINTS.RELEASE_LINES,
+      {
+        method: 'POST',
+        body: {
+          namespaceName: metadata.namespace,
+          componentName: metadata.component,
+          releaseLine,
+        },
+      },
+    );
+    return response.data;
+  }
+
+  async updateReleaseLine(
+    entity: Entity,
+    releaseLineName: string,
+    overrides: ReleaseLineOverrides,
+  ): Promise<ReleaseLineResource> {
+    const metadata = extractEntityMetadata(entity);
+    const response = await this.apiFetch<{ data: ReleaseLineResource }>(
+      API_ENDPOINTS.RELEASE_LINE,
+      {
+        method: 'PUT',
+        body: {
+          namespaceName: metadata.namespace,
+          componentName: metadata.component,
+          releaseLineName,
+          releaseLine: buildReleaseLineResource(
+            metadata,
+            releaseLineName,
+            overrides,
+          ),
+        },
+      },
+    );
+    return response.data;
+  }
+
+  async replaceReleaseLine(
+    entity: Entity,
+    releaseLine: ReleaseLineResource,
+  ): Promise<ReleaseLineResource> {
+    const metadata = extractEntityMetadata(entity);
+    const response = await this.apiFetch<{ data: ReleaseLineResource }>(
+      API_ENDPOINTS.RELEASE_LINE,
+      {
+        method: 'PUT',
+        body: {
+          namespaceName: metadata.namespace,
+          componentName: metadata.component,
+          releaseLineName: releaseLine.metadata.name,
+          releaseLine,
+        },
+      },
+    );
+    return response.data;
+  }
+
+  async deleteReleaseLine(
+    entity: Entity,
+    releaseLineName: string,
+  ): Promise<void> {
+    const metadata = extractEntityMetadata(entity);
+    await this.apiFetch(API_ENDPOINTS.RELEASE_LINE, {
+      method: 'DELETE',
+      params: {
+        namespaceName: metadata.namespace,
+        componentName: metadata.component,
+        releaseLineName,
       },
     });
   }
@@ -1769,6 +1966,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     environment: string;
     podName?: string;
     containerName?: string;
+    releaseLine?: string;
   }): Promise<{ sessionId: string; ttlSeconds: number }> {
     return this.apiFetch<{ sessionId: string; ttlSeconds: number }>(
       '/exec/init',

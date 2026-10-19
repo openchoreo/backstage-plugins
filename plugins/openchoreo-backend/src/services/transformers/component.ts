@@ -58,6 +58,7 @@ export function transformComponent(component: Component): ComponentResponse {
     createdAt: getCreatedAt(component) ?? '',
     status: deriveStatus(component),
     autoDeploy: component.spec?.autoDeploy,
+    releaseLinesEnabled: component.spec?.releaseLinesEnabled,
     conditions,
     hasError: readiness.hasError,
     errorReason: readiness.reason,

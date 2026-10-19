@@ -76,6 +76,7 @@ function readParams(): ParsedParams {
       environmentName: env,
       environmentDisplayName: p.get('envLabel') || env,
       entityRef,
+      releaseLine: p.get('releaseLine') ?? undefined,
     },
     entity,
     pod: p.get('pod') ?? undefined,

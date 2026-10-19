@@ -13,6 +13,7 @@ import {
   type ProjectOption,
   type ComponentOption,
   type EndpointOption,
+  type ReleaseLineOption,
 } from '../DependencyEditor';
 import {
   ResourceDependencyEditor,
@@ -52,6 +53,8 @@ export interface DependencyListProps {
   getComponents: (index: number) => ComponentOption[];
   /** Callback to get endpoints for a dependency */
   getEndpoints: (index: number) => EndpointOption[];
+  /** Release lines of a dependency's target; undefined when it has none */
+  getReleaseLines?: (index: number) => ReleaseLineOption[] | undefined;
   /** Callback when project changes */
   onProjectChange: (index: number, projectName: string) => void;
   /** Callback when component changes */
@@ -93,6 +96,7 @@ export const DependencyList: FC<DependencyListProps> = ({
   getProjects,
   getComponents,
   getEndpoints,
+  getReleaseLines,
   onProjectChange,
   onComponentChange,
   onEndpointChange,
@@ -215,6 +219,7 @@ export const DependencyList: FC<DependencyListProps> = ({
                 if (isCurrentlyEditing) {
                   editBuffer.updateBuffer('project', projectName);
                   editBuffer.updateBuffer('component', '');
+                  editBuffer.updateBuffer('releaseLine', undefined);
                   editBuffer.updateBuffer('name', '');
                   editBuffer.updateBuffer('visibility', '');
                 }
@@ -223,6 +228,7 @@ export const DependencyList: FC<DependencyListProps> = ({
               onComponentChange={componentName => {
                 if (isCurrentlyEditing) {
                   editBuffer.updateBuffer('component', componentName);
+                  editBuffer.updateBuffer('releaseLine', undefined);
                   editBuffer.updateBuffer('name', '');
                   editBuffer.updateBuffer('visibility', '');
                 }
@@ -235,6 +241,15 @@ export const DependencyList: FC<DependencyListProps> = ({
                   editBuffer.updateBuffer('visibility', '');
                 }
                 onEndpointChange(index, endpoint);
+              }}
+              releaseLines={getReleaseLines?.(index)}
+              onReleaseLineChange={releaseLine => {
+                if (isCurrentlyEditing) {
+                  editBuffer.updateBuffer('releaseLine', releaseLine);
+                  // Endpoints come from the line's Workload
+                  editBuffer.updateBuffer('name', '');
+                  editBuffer.updateBuffer('visibility', '');
+                }
               }}
               availableVisibilities={getAvailableVisibilities(index)}
               onVisibilityChange={visibility => {

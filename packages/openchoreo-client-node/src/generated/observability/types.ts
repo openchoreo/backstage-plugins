@@ -316,6 +316,8 @@ export interface components {
       project?: string;
       component?: string;
       environment?: string;
+      /** @description Restricts the result to one release line of the component. Requires component and environment. */
+      releaseLine?: string;
     };
     WorkflowSearchScope: {
       namespace: string;
@@ -1568,6 +1570,22 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse'];
         };
       };
+      /** @description Not Implemented */
+      501: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "title": "notImplemented",
+           *       "errorCode": "OBS-V1-M-06",
+           *       "message": "the adapter does not support filtering by release line: metrics adapter"
+           *     }
+           */
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
     };
   };
   queryRuntimeTopology: {
@@ -1688,6 +1706,22 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse'];
         };
       };
+      /** @description Not Implemented */
+      501: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "title": "notImplemented",
+           *       "errorCode": "OBS-V1-T-08",
+           *       "message": "the adapter does not support filtering by release line: tracing adapter"
+           *     }
+           */
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
     };
   };
   querySpansForTrace: {
@@ -1748,6 +1782,22 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Not Implemented */
+      501: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "title": "notImplemented",
+           *       "errorCode": "OBS-V1-T-08",
+           *       "message": "the adapter does not support filtering by release line: tracing adapter"
+           *     }
+           */
           'application/json': components['schemas']['ErrorResponse'];
         };
       };

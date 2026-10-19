@@ -85,4 +85,6 @@ export interface ExecContext {
    * full-window terminal (which renders outside the component entity page).
    */
   entityRef: string;
+  /** Release line the terminal execs into, for components with release lines. */
+  releaseLine?: string;
 }

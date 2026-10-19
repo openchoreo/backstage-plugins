@@ -85,19 +85,21 @@ export const openChoreoEntityPageOverride = createFrontendModule({
             (element as ReactElement).props as { node?: AppNode } | undefined
           )?.node?.spec.id;
           const id = nodeId ?? `content-${registrationIndex}`;
+          const group =
+            output.get(EntityContentBlueprint.dataRefs.group) ?? 'overview';
           return {
             route: {
               id,
               path: output.get(coreExtensionData.routePath),
               title: output.get(EntityContentBlueprint.dataRefs.title),
+              group,
               element,
               if: buildFilterFn(
                 output.get(EntityContentBlueprint.dataRefs.filterFunction),
                 output.get(EntityContentBlueprint.dataRefs.filterExpression),
               ),
             } satisfies OpenChoreoRoute,
-            group:
-              output.get(EntityContentBlueprint.dataRefs.group) ?? 'overview',
+            group,
             registrationIndex,
           };
         });

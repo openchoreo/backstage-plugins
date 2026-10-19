@@ -24,7 +24,11 @@ import {
   fetchAllPages,
   type ObservabilityComponents,
 } from '@openchoreo/openchoreo-client-node';
-import { ComponentTypeUtils } from '@openchoreo/backstage-plugin-common';
+import {
+  ComponentTypeUtils,
+  parseReleaseLineNodeId,
+  releaseLineNodeId,
+} from '@openchoreo/backstage-plugin-common';
 import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
 
 // Use generated OpenAPI schemas directly. CellDiagramInfoService previously
@@ -113,8 +117,14 @@ function adaptRuntimeTopologyMetrics(
 // than `ComponentResponse` so the workload field can use the generated
 // `WorkloadSpec` (which includes `dependencies.resources`) instead of the
 // hand-rolled bff-types `WorkloadResponse`.
+// A component with release lines yields one entry per line, each with its own
+// node id (see releaseLineNodeId) and the line's workload.
 interface CompleteComponent {
+  /** Diagram node id: the component name, or the line's node id. */
   name: string;
+  label: string;
+  componentName: string;
+  releaseLine?: string;
   type: string;
   workload?: WorkloadSpec;
 }
@@ -138,6 +148,17 @@ enum ConnectionType {
   WebSocket = 'web-socket',
   Connector = 'connector',
   Datastore = 'datastore',
+}
+
+// Metrics search scope for a diagram node, narrowed to its release line.
+function componentScope(nodeId: string): {
+  component: string;
+  releaseLine?: string;
+} {
+  const { componentName, releaseLine } = parseReleaseLineNodeId(nodeId);
+  return releaseLine
+    ? { component: componentName, releaseLine }
+    : { component: componentName };
 }
 
 /**
@@ -229,33 +250,61 @@ export class CellDiagramInfoService implements CellDiagramService {
         return this.buildProject(projectName, namespaceName, []);
       }
 
-      // Build a map from component name to workload spec
-      // Key by owner.componentName (not workload metadata name, which differs)
+      // Map component name to workload spec, keyed by owner.componentName
+      // (not workload metadata name, which differs). Release line workloads
+      // are grouped per component, keyed by owner.releaseLine.
       const workloadMap = new Map<string, WorkloadSpec>();
+      const lineWorkloadMap = new Map<string, Map<string, WorkloadSpec>>();
       for (const workload of workloadItems) {
-        const componentName = (
-          workload.spec?.owner as { componentName?: string } | undefined
-        )?.componentName;
-        if (componentName && workload.spec) {
-          workloadMap.set(componentName, workload.spec as WorkloadSpec);
+        const owner = workload.spec?.owner as
+          | { componentName?: string; releaseLine?: string }
+          | undefined;
+        const componentName = owner?.componentName;
+        if (!componentName || !workload.spec) continue;
+        const spec = workload.spec as WorkloadSpec;
+        if (owner?.releaseLine) {
+          const lines =
+            lineWorkloadMap.get(componentName) ??
+            new Map<string, WorkloadSpec>();
+          lines.set(owner.releaseLine, spec);
+          lineWorkloadMap.set(componentName, lines);
+        } else {
+          workloadMap.set(componentName, spec);
         }
       }
 
       const completeComponents: CompleteComponent[] = componentItems
-        .map(comp => {
+        .flatMap((comp): CompleteComponent[] => {
           const name = comp.metadata?.name ?? '';
           const componentTypeRef = comp.spec?.componentType;
           const componentType =
             typeof componentTypeRef === 'string'
               ? componentTypeRef
               : componentTypeRef?.name ?? '';
-          const workloadSpec = workloadMap.get(name);
 
-          return {
-            name,
-            type: componentType,
-            workload: workloadSpec,
-          } as CompleteComponent;
+          const lines = lineWorkloadMap.get(name);
+          if (comp.spec?.releaseLinesEnabled && lines?.size) {
+            return [...lines.entries()]
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(([releaseLine, workload]) => ({
+                name: releaseLineNodeId(name, releaseLine),
+                label: `${name}:${releaseLine}`,
+                componentName: name,
+                releaseLine,
+                type: componentType,
+                workload,
+              }));
+          }
+
+          return [
+            {
+              name,
+              label: name,
+              componentName: name,
+              type: componentType,
+              workload: workloadMap.get(name),
+            },
+          ];
         })
         .filter(comp => comp.name);
 
@@ -531,7 +580,7 @@ export class CellDiagramInfoService implements CellDiagramService {
                 searchScope: {
                   namespace: namespaceName,
                   project: projectName,
-                  component: component.id,
+                  ...componentScope(component.id),
                   environment: environmentName,
                 },
               },
@@ -703,6 +752,8 @@ export class CellDiagramInfoService implements CellDiagramService {
           continue;
         }
 
+        // Edges name components only, so release line nodes (whose ids add
+        // the line) don't match and their edges are skipped.
         const srcComponent = project.components.find(c => c.id === srcName);
         if (!srcComponent) {
           this.logger.info(
@@ -791,13 +842,13 @@ export class CellDiagramInfoService implements CellDiagramService {
         if (component.type!.startsWith('cronjob/')) {
           return {
             id: component.name || '',
-            label: component.name || '',
+            label: component.label,
             version: '1.0.0',
             type: ComponentType.SCHEDULED_TASK,
             services: {
               main: {
                 id: component.name || '',
-                label: component.name || '',
+                label: component.label,
                 type: 'ScheduledTask',
                 dependencyIds: [],
               },
@@ -810,13 +861,13 @@ export class CellDiagramInfoService implements CellDiagramService {
         if (component.type!.startsWith('proxy/')) {
           return {
             id: component.name || '',
-            label: component.name || '',
+            label: component.label,
             version: '1.0.0',
             type: ComponentType.API_PROXY,
             services: {
               main: {
                 id: component.name || '',
-                label: component.name || '',
+                label: component.label,
                 type: 'ApiProxy',
                 dependencyIds: [],
               },
@@ -841,7 +892,7 @@ export class CellDiagramInfoService implements CellDiagramService {
             }
             services[endpointName] = {
               id: component.name || '',
-              label: component.name || '',
+              label: component.label,
               type: endpoint.type || 'SERVICE',
               dependencyIds: [],
               deploymentMetadata: {
@@ -860,7 +911,7 @@ export class CellDiagramInfoService implements CellDiagramService {
           // Fallback: create a default service entry so the component renders
           services.main = {
             id: component.name || '',
-            label: component.name || '',
+            label: component.label,
             type: 'SERVICE',
             dependencyIds: [],
             deploymentMetadata: {
@@ -879,7 +930,7 @@ export class CellDiagramInfoService implements CellDiagramService {
 
         return {
           id: component.name || '',
-          label: component.name || '',
+          label: component.label,
           version: '1.0.0',
           type: isWebApp ? ComponentType.WEB_APP : ComponentType.SERVICE,
           services: services,
@@ -959,22 +1010,50 @@ export class CellDiagramInfoService implements CellDiagramService {
 
       // Check if dependent component is within the same project
       const isInternal = dependentProjectName === projectName;
-      const dependentComponent = completeComponents.find(
-        comp => comp.name === dependentComponentName,
-      );
+      const dependentComponent = isInternal
+        ? this.findDependencyTarget(dependency, completeComponents)
+        : undefined;
+
+      const targetNodeId = dependency.releaseLine
+        ? releaseLineNodeId(dependentComponentName, dependency.releaseLine)
+        : dependentComponentName;
+      const targetLabel = dependency.releaseLine
+        ? `${dependentComponentName}:${dependency.releaseLine}`
+        : dependentComponentName;
 
       const connectionId =
         isInternal && dependentComponent
           ? `${namespaceName}:${projectName}:${dependentComponent.name}:${dependency.name}`
-          : `${namespaceName}:${dependentProjectName}:${dependentComponentName}:${dependency.name}`;
+          : `${namespaceName}:${dependentProjectName}:${targetNodeId}:${dependency.name}`;
 
       return {
         id: connectionId,
-        label: `${dependentComponentName}/${dependency.name}`,
+        label: `${dependentComponent?.label ?? targetLabel}/${dependency.name}`,
         type: ConnectionType.HTTP, // TODO Infer based on api response
         onPlatform: isInternal,
         tooltip: `Dependency on ${dependentComponentName} in ${dependentProjectName}`,
       };
     });
+  }
+
+  /**
+   * The node a same-project dependency points at: the named release line, or
+   * the component itself. A dependency on a component with release lines
+   * that names no line resolves only when the component has a single line.
+   */
+  private findDependencyTarget(
+    dependency: EndpointDependency,
+    completeComponents: CompleteComponent[],
+  ): CompleteComponent | undefined {
+    const candidates = completeComponents.filter(
+      comp => comp.componentName === dependency.component,
+    );
+    if (dependency.releaseLine) {
+      return candidates.find(c => c.releaseLine === dependency.releaseLine);
+    }
+    return (
+      candidates.find(c => !c.releaseLine) ??
+      (candidates.length === 1 ? candidates[0] : undefined)
+    );
   }
 }

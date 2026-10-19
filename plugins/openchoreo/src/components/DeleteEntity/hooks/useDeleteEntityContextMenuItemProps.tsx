@@ -14,6 +14,7 @@ import { DeleteEntityDialog } from '../components';
 import {
   getEntityDeleteCascadeNote,
   getEntityDisplayType,
+  getPostDeletePath,
   isDeletableEntityKind,
   performEntityDelete,
 } from './deleteEntityDispatch';
@@ -59,7 +60,7 @@ function DeleteEntityBlueprintDialog({
         display: 'transient',
       });
       onClose();
-      navigate('/catalog');
+      navigate(getPostDeletePath(entity));
     } catch (err) {
       const errorMessage = isForbiddenError(err)
         ? 'You do not have permission to delete this resource. Contact your administrator.'

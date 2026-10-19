@@ -52,6 +52,8 @@ export interface ObservabilityApi {
     environmentName: string,
     componentName?: string,
     options?: {
+      /** Restricts the result to this release line of the component. */
+      releaseLine?: string;
       limit?: number;
       startTime?: string;
       endTime?: string;
@@ -94,6 +96,8 @@ export interface ObservabilityApi {
     environmentName: string,
     componentName?: string,
     options?: {
+      /** Restricts the result to this release line of the component. */
+      releaseLine?: string;
       limit?: number;
       startTime?: string;
       endTime?: string;
@@ -107,6 +111,8 @@ export interface ObservabilityApi {
     namespaceName: string,
     projectName: string,
     options?: {
+      /** Restricts the result to this release line of the component. */
+      releaseLine?: string;
       startTime?: string;
       endTime?: string;
       step?: string;
@@ -120,6 +126,8 @@ export interface ObservabilityApi {
     environmentName: string,
     componentName?: string,
     options?: {
+      /** Restricts the result to this release line of the component. */
+      releaseLine?: string;
       limit?: number;
       startTime?: string;
       endTime?: string;
@@ -138,6 +146,8 @@ export interface ObservabilityApi {
     environmentName: string,
     componentName?: string,
     options?: {
+      /** Restricts the result to this release line of the component. */
+      releaseLine?: string;
       startTime?: string;
       endTime?: string;
     },
@@ -354,6 +364,8 @@ export class ObservabilityClient implements ObservabilityApi {
     namespaceName: string,
     projectName: string,
     options?: {
+      /** Restricts the result to this release line of the component. */
+      releaseLine?: string;
       startTime?: string;
       endTime?: string;
       step?: string;
@@ -370,6 +382,9 @@ export class ObservabilityClient implements ObservabilityApi {
       project: projectName,
       environment: environmentName,
       ...(componentName ? { component: componentName } : {}),
+      ...(componentName && options?.releaseLine
+        ? { releaseLine: options.releaseLine }
+        : {}),
     };
 
     const baseBody = {
@@ -446,6 +461,8 @@ export class ObservabilityClient implements ObservabilityApi {
     environmentName: string,
     componentName?: string,
     options?: {
+      /** Restricts the result to this release line of the component. */
+      releaseLine?: string;
       limit?: number;
       startTime?: string;
       endTime?: string;
@@ -477,6 +494,9 @@ export class ObservabilityClient implements ObservabilityApi {
             project: projectName,
             ...(componentName ? { component: componentName } : {}),
             environment: environmentName,
+            ...(componentName && options?.releaseLine
+              ? { releaseLine: options.releaseLine }
+              : {}),
           },
         }),
       },
@@ -518,6 +538,8 @@ export class ObservabilityClient implements ObservabilityApi {
     environmentName: string,
     componentName?: string,
     options?: {
+      /** Restricts the result to this release line of the component. */
+      releaseLine?: string;
       startTime?: string;
       endTime?: string;
     },
@@ -549,6 +571,9 @@ export class ObservabilityClient implements ObservabilityApi {
             project: projectName,
             ...(componentName ? { component: componentName } : {}),
             environment: environmentName,
+            ...(componentName && options?.releaseLine
+              ? { releaseLine: options.releaseLine }
+              : {}),
           },
         }),
       },
@@ -900,6 +925,8 @@ export class ObservabilityClient implements ObservabilityApi {
     environmentName: string,
     componentName?: string,
     options?: {
+      /** Restricts the result to this release line of the component. */
+      releaseLine?: string;
       limit?: number;
       startTime?: string;
       endTime?: string;
@@ -935,6 +962,9 @@ export class ObservabilityClient implements ObservabilityApi {
             project: projectName,
             ...(componentName ? { component: componentName } : {}),
             environment: environmentName,
+            ...(componentName && options?.releaseLine
+              ? { releaseLine: options.releaseLine }
+              : {}),
           },
         }),
       },
@@ -1065,6 +1095,8 @@ export class ObservabilityClient implements ObservabilityApi {
     environmentName: string,
     componentName?: string,
     options?: {
+      /** Restricts the result to this release line of the component. */
+      releaseLine?: string;
       limit?: number;
       startTime?: string;
       endTime?: string;
@@ -1093,6 +1125,9 @@ export class ObservabilityClient implements ObservabilityApi {
             project: projectName,
             ...(componentName ? { component: componentName } : {}),
             environment: environmentName,
+            ...(componentName && options?.releaseLine
+              ? { releaseLine: options.releaseLine }
+              : {}),
           },
         }),
       },

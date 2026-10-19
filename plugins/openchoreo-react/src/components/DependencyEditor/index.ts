@@ -5,3 +5,8 @@ export type {
   ComponentOption,
   EndpointOption,
 } from './DependencyEditor';
+export { ReleaseLineSelect } from './ReleaseLineSelect';
+export type {
+  ReleaseLineOption,
+  ReleaseLineSelectProps,
+} from './ReleaseLineSelect';

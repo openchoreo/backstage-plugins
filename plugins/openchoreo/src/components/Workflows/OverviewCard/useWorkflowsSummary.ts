@@ -6,6 +6,8 @@ import {
   useComponentEntityDetails,
   useOpenChoreoQuery,
   useOpenChoreoMutation,
+  useReleaseLine,
+  triggerReleaseLineBuild,
 } from '@openchoreo/backstage-plugin-react';
 import type {
   ModelsBuild,
@@ -40,8 +42,13 @@ export function useWorkflowsSummary() {
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(openChoreoFetchApiRef);
   const { getEntityDetails } = useComponentEntityDetails();
+  const { releaseLine } = useReleaseLine();
 
-  const queryKey = ['workflows-summary', stringifyEntityRef(entity)];
+  const queryKey = [
+    'workflows-summary',
+    stringifyEntityRef(entity),
+    releaseLine ?? '',
+  ];
 
   const { data, loading, isRefetching, error, refetch } =
     useOpenChoreoQuery<WorkflowsSummaryData>(
@@ -88,18 +95,24 @@ export function useWorkflowsSummary() {
         }
 
         const result = await runsResponse.json();
-        const runs: ModelsBuild[] = (result.items || []).map((run: any) => ({
-          name: run.name,
-          uuid: run.uuid || '',
-          componentName:
-            run.labels?.[CHOREO_LABELS.WORKFLOW_COMPONENT] || componentName,
-          projectName:
-            run.labels?.[CHOREO_LABELS.WORKFLOW_PROJECT] || projectName,
-          namespaceName: run.namespaceName,
-          status: run.status,
-          createdAt: run.createdAt,
-          commit: run.commit,
-        }));
+        const runs: ModelsBuild[] = (result.items || [])
+          .filter(
+            (run: any) =>
+              !releaseLine ||
+              run.labels?.[CHOREO_LABELS.WORKFLOW_RELEASE_LINE] === releaseLine,
+          )
+          .map((run: any) => ({
+            name: run.name,
+            uuid: run.uuid || '',
+            componentName:
+              run.labels?.[CHOREO_LABELS.WORKFLOW_COMPONENT] || componentName,
+            projectName:
+              run.labels?.[CHOREO_LABELS.WORKFLOW_PROJECT] || projectName,
+            namespaceName: run.namespaceName,
+            status: run.status,
+            createdAt: run.createdAt,
+            commit: run.commit,
+          }));
         const sortedBuilds = [...runs].sort(
           (a, b) =>
             new Date(b.createdAt || 0).getTime() -
@@ -126,6 +139,17 @@ export function useWorkflowsSummary() {
       const workflow = data?.componentDetails?.componentWorkflow;
       if (!workflow?.name) {
         throw new Error('No workflow configured for this component');
+      }
+
+      // A release line build goes through the component's workflow-run API,
+      // which applies the line's workflow parameter overrides.
+      if (releaseLine) {
+        await triggerReleaseLineBuild(discoveryApi, fetchApi, {
+          componentName,
+          namespaceName,
+          releaseLine,
+        });
+        return;
       }
 
       const baseUrl = await discoveryApi.getBaseUrl(

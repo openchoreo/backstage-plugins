@@ -1245,6 +1245,78 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/namespaces/{namespaceName}/components/{componentName}/workflowruns': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Run a component workflow
+     * @description Starts a run of the component's configured workflow with the component's workflow parameters. For a component with release lines enabled, releaseLine is required and that line's workflow parameter overrides are applied.
+     */
+    post: operations['createComponentWorkflowRun'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/components/{componentName}/releaselines': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List component release lines
+     * @description Returns a paginated list of the release lines of a component. The list is empty for a component without release lines.
+     */
+    get: operations['listComponentReleaseLines'];
+    put?: never;
+    /**
+     * Create component release line
+     * @description Creates a release line for a component with release lines enabled. The owner is taken from the path.
+     */
+    post: operations['createComponentReleaseLine'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/components/{componentName}/releaselines/{releaseLineName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get component release line
+     * @description Returns a release line of a component, including its status per environment.
+     */
+    get: operations['getComponentReleaseLine'];
+    /**
+     * Update component release line
+     * @description Replaces the spec of a release line (full update). The owner cannot change.
+     */
+    put: operations['updateComponentReleaseLine'];
+    post?: never;
+    /**
+     * Delete component release line
+     * @description Deletes a release line. The line's bindings in every environment, its releases and its Workload are then removed.
+     */
+    delete: operations['deleteComponentReleaseLine'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/authz/actions': {
     parameters: {
       query?: never;
@@ -3047,6 +3119,8 @@ export interface components {
          */
         name: string;
       };
+      /** @description Deploys the component only through explicit ReleaseLines. Can only be set when the component is created. */
+      releaseLinesEnabled?: boolean;
       /**
        * @description Whether to automatically deploy to default environment when created
        * @default false
@@ -3758,6 +3832,11 @@ export interface components {
         /** @description Name of the ClusterTrait resource */
         name: string;
       }[];
+      /**
+       * @description Whether Components of this type can enable release lines. Allowed only when the resources name every component-scoped object per release line. Omitted means Disallowed.
+       * @enum {string}
+       */
+      releaseLines?: 'Allowed' | 'Disallowed';
       /** @description CEL-based validation rules evaluated during rendering */
       validations?: components['schemas']['ValidationRule'][];
       /** @description Templates that generate Kubernetes resources dynamically */
@@ -3942,6 +4021,11 @@ export interface components {
         /** @description Name of the Trait or ClusterTrait resource */
         name: string;
       }[];
+      /**
+       * @description Whether Components of this type can enable release lines. Allowed only when the resources name every component-scoped object per release line. Omitted means Disallowed.
+       * @enum {string}
+       */
+      releaseLines?: 'Allowed' | 'Disallowed';
       /** @description CEL-based validation rules evaluated during rendering */
       validations?: components['schemas']['ValidationRule'][];
       /** @description Templates that generate Kubernetes resources dynamically */
@@ -4494,6 +4578,103 @@ export interface components {
         [key: string]: unknown;
       };
     };
+    /** @description Paginated list of the release lines of a component */
+    ReleaseLineList: {
+      items: components['schemas']['ReleaseLine'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /**
+     * @description ReleaseLine resource.
+     *     A named series of releases of one component that is built and deployed independently of the component's other lines.
+     */
+    ReleaseLine: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example ReleaseLine
+       */
+      readonly kind?: string;
+      metadata: components['schemas']['ObjectMeta'];
+      spec?: components['schemas']['ReleaseLineSpec'];
+      readonly status?: components['schemas']['ReleaseLineStatus'];
+    };
+    /** @description Desired state of a ReleaseLine */
+    ReleaseLineSpec: {
+      /** @description Component this release line belongs to */
+      owner: {
+        /**
+         * @description Name of the project
+         * @example default
+         */
+        projectName: string;
+        /**
+         * @description Name of the component
+         * @example hello
+         */
+        componentName: string;
+      };
+      /** @description Overrides the component's autoDeploy for this line */
+      autoDeploy?: boolean;
+      /** @description Deep-merged onto the component's parameters for this line */
+      parameters?: {
+        [key: string]: unknown;
+      };
+      /** @description Merged onto the component's traits for this line, keyed by kind, name and instance name */
+      traits?: components['schemas']['ComponentTrait'][];
+      /** @description Build overrides for this line */
+      workflow?: {
+        /** @description Deep-merged onto the component's workflow parameters for this line */
+        parameters?: {
+          [key: string]: unknown;
+        };
+      };
+    };
+    /** @description Observed state of a ReleaseLine */
+    ReleaseLineStatus: {
+      /**
+       * Format: int64
+       * @description Most recent generation observed by the controller
+       */
+      observedGeneration?: number;
+      /** @description Current state conditions of the release line */
+      conditions?: components['schemas']['Condition'][];
+      /** @description Most recent ComponentRelease produced for this line */
+      latestRelease?: {
+        /**
+         * @description Name of the ComponentRelease
+         * @example hello-next-fc84488f9
+         */
+        name?: string;
+        /** @description Hash of the ComponentRelease spec */
+        releaseHash?: string;
+      };
+      /** @description The line's ReleaseBindings, one per environment it is deployed to */
+      environments?: components['schemas']['ReleaseLineEnvironment'][];
+    };
+    /** @description A release line's deployment in one environment */
+    ReleaseLineEnvironment: {
+      /**
+       * @description Name of the environment
+       * @example development
+       */
+      environment: string;
+      /**
+       * @description Name of the line's ReleaseBinding in the environment
+       * @example hello-next-development
+       */
+      releaseBinding: string;
+      /**
+       * @description Name of the ComponentRelease bound in the environment
+       * @example hello-next-fc84488f9
+       */
+      release?: string;
+      /** @description Whether the ReleaseBinding reports Ready */
+      ready?: boolean;
+    };
     /** @description Paginated list of component releases */
     ComponentReleaseList: {
       items: components['schemas']['ComponentRelease'][];
@@ -4533,6 +4714,11 @@ export interface components {
          * @example api-service
          */
         componentName: string;
+        /**
+         * @description Release line this release belongs to. Required when the component has release lines enabled.
+         * @example next
+         */
+        releaseLine?: string;
       };
       /** @description Frozen ComponentType spec at release time */
       componentType: {
@@ -4594,6 +4780,11 @@ export interface components {
          * @example api-service
          */
         componentName: string;
+        /**
+         * @description Release line this binding belongs to. Required when the component has release lines enabled.
+         * @example next
+         */
+        releaseLine?: string;
       };
       /**
        * @description Target environment name
@@ -5591,6 +5782,24 @@ export interface components {
        * @example v1.0.0
        */
       releaseName?: string;
+      /**
+       * @description Release line to release from. Required when the component has release lines enabled; the release is built from the line's Workload and overrides.
+       * @example next
+       */
+      releaseLine?: string;
+    };
+    /** @description Request to run a component's workflow */
+    CreateComponentWorkflowRunRequest: {
+      /**
+       * @description Release line to build. Required when the component has release lines enabled.
+       * @example api-service-v2
+       */
+      releaseLine?: string;
+      /**
+       * @description Optional commit SHA to build instead of the latest commit of the configured revision
+       * @example a1b2c3d
+       */
+      commit?: string;
     };
     /** @description Simple message response */
     MessageResponse: {
@@ -6247,6 +6456,11 @@ export interface components {
          * @example api-service
          */
         componentName: string;
+        /**
+         * @description Release line of the owning component. Required when the component has release lines enabled.
+         * @example api-service-v2
+         */
+        releaseLine?: string;
       };
       container?: components['schemas']['WorkloadContainer'];
       /** @description Named endpoint specifications */
@@ -6312,6 +6526,8 @@ export interface components {
       project?: string;
       /** @description Target component name */
       component: string;
+      /** @description Target component's release line. Required when the target has release lines enabled. */
+      releaseLine?: string;
       /** @description Target endpoint name on the target component */
       name: string;
       /**
@@ -6948,6 +7164,8 @@ export interface components {
     WorkflowNameParam: string;
     /** @description Component name */
     ComponentNameParam: string;
+    /** @description Release line name */
+    ReleaseLineNameParam: string;
     /** @description Workflow run name */
     WorkflowRunNameParam: string;
     /** @description Release binding name */
@@ -10225,6 +10443,219 @@ export interface operations {
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
       422: components['responses']['UnprocessableContent'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createComponentWorkflowRun: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Component name */
+        componentName: components['parameters']['ComponentNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['CreateComponentWorkflowRunRequest'];
+      };
+    };
+    responses: {
+      /** @description Workflow run created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WorkflowRun'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listComponentReleaseLines: {
+    parameters: {
+      query?: {
+        /**
+         * @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Component name */
+        componentName: components['parameters']['ComponentNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Release lines of the component */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReleaseLineList'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createComponentReleaseLine: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Component name */
+        componentName: components['parameters']['ComponentNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ReleaseLine'];
+      };
+    };
+    responses: {
+      /** @description Release line created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReleaseLine'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getComponentReleaseLine: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Component name */
+        componentName: components['parameters']['ComponentNameParam'];
+        /** @description Release line name */
+        releaseLineName: components['parameters']['ReleaseLineNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Release line details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReleaseLine'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateComponentReleaseLine: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Component name */
+        componentName: components['parameters']['ComponentNameParam'];
+        /** @description Release line name */
+        releaseLineName: components['parameters']['ReleaseLineNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ReleaseLine'];
+      };
+    };
+    responses: {
+      /** @description Release line updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReleaseLine'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      422: components['responses']['UnprocessableContent'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteComponentReleaseLine: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Component name */
+        componentName: components['parameters']['ComponentNameParam'];
+        /** @description Release line name */
+        releaseLineName: components['parameters']['ReleaseLineNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Release line deletion accepted */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
       500: components['responses']['InternalError'];
     };
   };

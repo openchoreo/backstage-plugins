@@ -20,6 +20,7 @@ import {
   type ImmediateCatalogService,
   type AnnotationStore,
   translateComponentToEntity,
+  translateReleaseLineToEntity,
 } from '@openchoreo/backstage-plugin-catalog-backend-module';
 import type { AuthService } from '@backstage/backend-plugin-api';
 
@@ -197,6 +198,20 @@ export const createComponentAction = (
           z
             .record(z.unknown(), {
               description: 'External CI configuration details',
+            })
+            .optional(),
+        releaseLinesEnabled: z =>
+          z
+            .boolean({
+              description:
+                'Deploy the component only through release lines (component types that allow them)',
+            })
+            .optional(),
+        releaseLineName: z =>
+          z
+            .string({
+              description:
+                'Name of the first release line, when release lines are enabled',
             })
             .optional(),
       },
@@ -384,6 +399,8 @@ export const createComponentAction = (
             'external_ci_info',
             'gitSecretRef',
             'workloadDetails',
+            'releaseLinesEnabled',
+            'releaseLineName',
           ]);
 
           for (const [key, value] of Object.entries(ctx.input)) {
@@ -452,6 +469,10 @@ export const createComponentAction = (
           }
         }
 
+        const releaseLine = ctx.input.releaseLinesEnabled
+          ? ctx.input.releaseLineName?.trim() || 'main'
+          : undefined;
+
         // Build the ComponentResource from form input
         const componentTypeKind =
           (ctx.input as any).component_type_kind || 'ComponentType';
@@ -469,6 +490,7 @@ export const createComponentAction = (
           ctdParameters: ctdParameters,
           deploymentSource: deploymentSource,
           autoDeploy: autoDeploy,
+          releaseLinesEnabled: Boolean(releaseLine),
           repoUrl: (ctx.input as any).repo_url,
           branch: (ctx.input as any).branch,
           componentPath: (ctx.input as any).component_path,
@@ -526,6 +548,35 @@ export const createComponentAction = (
           'create component',
         );
 
+        // A component with release lines deploys nothing until it has a line.
+        if (releaseLine) {
+          const { error: lineError, response: lineResponse } =
+            await client.POST(
+              '/api/v1/namespaces/{namespaceName}/components/{componentName}/releaselines',
+              {
+                params: {
+                  path: {
+                    namespaceName,
+                    componentName: ctx.input.componentName,
+                  },
+                },
+                body: {
+                  metadata: { name: releaseLine },
+                  spec: {
+                    owner: {
+                      projectName,
+                      componentName: ctx.input.componentName,
+                    },
+                  },
+                },
+              },
+            );
+          assertApiResponse(
+            { data: undefined, error: lineError, response: lineResponse },
+            'create release line',
+          );
+        }
+
         // Create Workload CR when there's workload data or when deploying from image.
         //
         // The Workload CRD requires `image` (Required, MinLength=1) on Container,
@@ -552,6 +603,7 @@ export const createComponentAction = (
             componentName: ctx.input.componentName,
             namespaceName: namespaceName,
             projectName: projectName,
+            releaseLine,
             containerImage: effectiveContainerImage,
             port: port,
             endpoints: workloadEndpoints,
@@ -660,6 +712,7 @@ export const createComponentAction = (
             status: 'Active', // New components are active by default
             createdAt: new Date().toISOString(),
             autoDeploy: autoDeploy,
+            releaseLinesEnabled: Boolean(releaseLine),
             // Build componentWorkflow in the BFF shape expected by the catalog entity translator.
             componentWorkflow: componentResource.spec.workflow
               ? {
@@ -695,6 +748,23 @@ export const createComponentAction = (
 
           // Insert into catalog immediately
           await immediateCatalog.insertEntity(entity);
+          if (releaseLine) {
+            await immediateCatalog.insertEntity(
+              translateReleaseLineToEntity(
+                {
+                  name: releaseLine,
+                  projectName,
+                  componentName: ctx.input.componentName,
+                  createdAt: new Date().toISOString(),
+                },
+                namespaceName,
+                {
+                  defaultOwner,
+                  locationKey: 'OpenChoreoEntityProvider',
+                },
+              ),
+            );
+          }
 
           ctx.logger.info(
             `Component '${ctx.input.componentName}' successfully added to catalog`,

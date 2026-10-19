@@ -19,6 +19,10 @@ export interface ClusterComponentTypeEntityV1alpha1 extends Entity {
    */
   spec: {
     /**
+     * Whether components of this type can enable release lines
+     */
+    releaseLines?: 'Allowed' | 'Disallowed';
+    /**
      * Workload type: deployment, statefulset, cronjob, job, proxy
      */
     workloadType: string;

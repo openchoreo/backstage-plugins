@@ -2,12 +2,12 @@ import { useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import {
-  buildEnvironmentsBasePath,
   buildOverridesPath,
   buildReleaseDetailsPath,
   buildWorkloadConfigPath,
   deserializePendingAction,
   type PendingAction,
+  useEntityPagePath,
 } from '@openchoreo/backstage-plugin-react';
 
 export type EnvironmentView =
@@ -47,8 +47,9 @@ export function useEnvironmentRouting() {
   const [searchParams] = useSearchParams();
   const { entity } = useEntity();
 
-  // Get absolute base path for environments
-  const basePath = useMemo(() => buildEnvironmentsBasePath(entity), [entity]);
+  // Absolute base path for environments; on a release line, its own page.
+  const pagePath = useEntityPagePath(entity);
+  const basePath = `${pagePath}/environments`;
 
   // Derive current state from URL
   const state = useMemo<EnvironmentRoutingState>(() => {

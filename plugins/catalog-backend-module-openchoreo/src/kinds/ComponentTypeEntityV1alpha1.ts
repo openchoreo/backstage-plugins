@@ -23,6 +23,10 @@ export interface ComponentTypeEntityV1alpha1 extends Entity {
      */
     domain?: string;
     /**
+     * Whether components of this type can enable release lines
+     */
+    releaseLines?: 'Allowed' | 'Disallowed';
+    /**
      * Workload type: deployment, statefulset, cronjob, job, proxy
      */
     workloadType: string;

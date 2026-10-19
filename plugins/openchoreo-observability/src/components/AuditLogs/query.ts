@@ -132,6 +132,9 @@ export function tokensToFilters(
       case 'resource.component':
         resource.component = take('resource.component', values);
         break;
+      case 'resource.release_line':
+        resource.release_line = take('resource.release_line', values);
+        break;
       case 'resource.resource':
         resource.resource = take('resource.resource', values);
         break;
