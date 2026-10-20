@@ -53,6 +53,10 @@ export const DeliveryInsightsPage = () => {
     ? searchParams.get('component') || undefined
     : undefined;
   const environment = searchParams.get('env') || '';
+  // A release line only narrows a component.
+  const releaseLine = component
+    ? searchParams.get('line') || undefined
+    : undefined;
 
   const rangeParam = Number(searchParams.get('range'));
   const rangeDays = INSIGHTS_TIME_RANGES.some(r => r.days === rangeParam)
@@ -65,8 +69,8 @@ export const DeliveryInsightsPage = () => {
     : DEFAULT_GRANULARITY;
 
   const scope: DoraSearchScope = useMemo(
-    () => ({ namespace, project, component }),
-    [namespace, project, component],
+    () => ({ namespace, project, component, releaseLine }),
+    [namespace, project, component, releaseLine],
   );
   const level = deriveLevel(scope);
 
@@ -89,12 +93,23 @@ export const DeliveryInsightsPage = () => {
         else params.delete('project');
         if (nextScope.component) params.set('component', nextScope.component);
         else params.delete('component');
+        // Release lines belong to a component.
+        if (nextScope.component !== component) params.delete('line');
         // Environments belong to a namespace, so drop the filter when the
         // namespace changes (the previous name may not exist in the new one).
         if (namespaceChanged) params.delete('env');
       });
     },
-    [update, namespace],
+    [update, namespace, component],
+  );
+
+  const onReleaseLineChange = useCallback(
+    (next: string) =>
+      update(params => {
+        if (next) params.set('line', next);
+        else params.delete('line');
+      }),
+    [update],
   );
 
   const onRangeDaysChange = useCallback(
@@ -153,6 +168,7 @@ export const DeliveryInsightsPage = () => {
             onRangeDaysChange={onRangeDaysChange}
             onGranularityChange={onGranularityChange}
             onEnvFilterChange={onEnvFilterChange}
+            onReleaseLineChange={onReleaseLineChange}
             onDrill={onDrill}
           />
         </Box>

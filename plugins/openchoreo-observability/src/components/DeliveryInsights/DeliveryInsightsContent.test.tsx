@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { renderInTestApp } from '@backstage/test-utils';
 import { DeliveryInsightsContent } from './DeliveryInsightsContent';
 import { InsightsLevel } from './useDoraBreakdown';
@@ -38,6 +38,11 @@ jest.mock('../CostInsights/useNamespaceEnvironments', () => ({
   useNamespaceEnvironments: () => ({ environments: [] }),
 }));
 
+let releaseLines: string[] = [];
+jest.mock('./useComponentReleaseLines', () => ({
+  useComponentReleaseLines: () => releaseLines,
+}));
+
 jest.mock('../ScopeFilters', () => ({
   ScopeFilters: () => <div data-testid="scope-filters" />,
 }));
@@ -45,6 +50,7 @@ jest.mock('../ScopeFilters', () => ({
 beforeEach(() => {
   insightsResult.error = null;
   breakdownResult.error = null;
+  releaseLines = [];
 });
 
 const render = (envFilter: string, level: InsightsLevel = 'domain') =>
@@ -59,6 +65,7 @@ const render = (envFilter: string, level: InsightsLevel = 'domain') =>
       onRangeDaysChange={() => {}}
       onGranularityChange={() => {}}
       onEnvFilterChange={() => {}}
+      onReleaseLineChange={() => {}}
     />,
   );
 
@@ -131,5 +138,39 @@ describe('DeliveryInsightsContent observability notice', () => {
     expect(
       screen.getByText('Nothing to break down in this scope yet.'),
     ).toBeInTheDocument();
+  });
+});
+
+describe('DeliveryInsightsContent release line filter', () => {
+  const renderComponent = (onReleaseLineChange = jest.fn()) =>
+    renderInTestApp(
+      <DeliveryInsightsContent
+        scope={{ namespace: 'default', project: 'p', component: 'hello' }}
+        level="component"
+        onScopeChange={() => {}}
+        rangeDays={30}
+        granularity="daily"
+        envFilter="development"
+        onRangeDaysChange={() => {}}
+        onGranularityChange={() => {}}
+        onEnvFilterChange={() => {}}
+        onReleaseLineChange={onReleaseLineChange}
+      />,
+    );
+
+  it('is hidden for a component without release lines', async () => {
+    await renderComponent();
+    expect(screen.queryByLabelText('Release line')).not.toBeInTheDocument();
+  });
+
+  it('lists the component release lines and reports a selection', async () => {
+    releaseLines = ['main', 'next'];
+    const onReleaseLineChange = jest.fn();
+    await renderComponent(onReleaseLineChange);
+
+    fireEvent.mouseDown(screen.getByLabelText('Release line'));
+    expect(screen.getByRole('option', { name: 'All lines' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('option', { name: 'next' }));
+    expect(onReleaseLineChange).toHaveBeenCalledWith('next');
   });
 });

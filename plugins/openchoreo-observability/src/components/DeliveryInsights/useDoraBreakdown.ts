@@ -61,7 +61,7 @@ export function useDoraBreakdown(
   const scopeKey = scope
     ? `${scope.namespace}/${scope.project ?? ''}/${scope.component ?? ''}/${
         scope.environment ?? ''
-      }`
+      }/${scope.releaseLine ?? ''}`
     : '';
 
   // The rows on screen belong to one query. Asking a different question --
