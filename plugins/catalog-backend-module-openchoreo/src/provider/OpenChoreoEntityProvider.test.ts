@@ -1189,4 +1189,92 @@ describe('OpenChoreoEntityProvider', () => {
       expect((comp?.spec as any).owner).toBe('group:default/test-owner');
     });
   });
+
+  describe('immediate writes', () => {
+    const locationKey = 'provider:OpenChoreoEntityProvider';
+
+    const portalEnvironment: Entity = {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'Environment',
+      metadata: { name: 'staging', namespace: 'test-ns' },
+      spec: {},
+    };
+
+    function newProvider() {
+      return new OpenChoreoEntityProvider(
+        taskRunner as any,
+        mkLogger(),
+        createConfig(),
+        undefined,
+      );
+    }
+
+    function mutations(type: 'full' | 'delta') {
+      return mockConnection.applyMutation.mock.calls
+        .map(([mutation]) => mutation)
+        .filter(mutation => mutation.type === type);
+    }
+
+    function addedNames(mutation: any): string[] {
+      const deferred =
+        mutation.type === 'full' ? mutation.entities : mutation.added;
+      return deferred.map((d: any) => d.entity.metadata.name);
+    }
+
+    it('rejects writes before the provider is connected', async () => {
+      const provider = newProvider();
+
+      await expect(provider.insertEntity(portalEnvironment)).rejects.toThrow(
+        'not connected',
+      );
+      await expect(
+        provider.removeEntity('environment:test-ns/staging'),
+      ).rejects.toThrow('not connected');
+    });
+
+    it('inserts through the same connection and location key as the full sync', async () => {
+      setupPathBasedMocks({
+        '/api/v1/namespaces': okData({ items: [k8sNamespace] }),
+      });
+      const provider = newProvider();
+      await provider.connect(mockConnection as any);
+
+      await provider.insertEntity(portalEnvironment);
+      await taskRunner.runTask();
+
+      expect(mutations('delta')[0]).toEqual({
+        type: 'delta',
+        added: [{ entity: portalEnvironment, locationKey }],
+        removed: [],
+      });
+      expect(mutations('full')[0].entities[0].locationKey).toBe(locationKey);
+    });
+
+    it('removes through the provider connection', async () => {
+      const provider = newProvider();
+      await provider.connect(mockConnection as any);
+
+      await provider.removeEntity('environment:test-ns/staging');
+
+      expect(mockConnection.applyMutation).toHaveBeenCalledWith({
+        type: 'delta',
+        added: [],
+        removed: [{ entityRef: 'environment:test-ns/staging', locationKey }],
+      });
+    });
+
+    it('lets the next full sync drop an inserted entity that is no longer in OpenChoreo', async () => {
+      setupPathBasedMocks({
+        '/api/v1/namespaces': okData({ items: [k8sNamespace] }),
+      });
+      const provider = newProvider();
+      await provider.connect(mockConnection as any);
+
+      await provider.insertEntity(portalEnvironment);
+      await taskRunner.runTask();
+
+      expect(addedNames(mutations('full')[0])).not.toContain('staging');
+      expect(mutations('delta')).toHaveLength(1);
+    });
+  });
 });
