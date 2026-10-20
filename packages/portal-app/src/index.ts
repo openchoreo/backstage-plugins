@@ -13,9 +13,8 @@
  * {@link createPortalApp} is the no-config alternative for hosts that would
  * rather call one function; both read the same loader.
  *
- * The package stays private until the migration cleans up the legacy-bridged
- * pieces; the PR that makes it publishable flips `private` and adds it to the
- * changeset linked group.
+ * Published in lockstep with the rest of `@openchoreo/*`, so one version number
+ * identifies a whole portal.
  *
  * @packageDocumentation
  */
