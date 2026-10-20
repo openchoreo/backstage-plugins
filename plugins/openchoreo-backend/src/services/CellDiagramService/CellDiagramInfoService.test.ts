@@ -731,9 +731,11 @@ describe('CellDiagramInfoService', () => {
           'token',
         );
 
-        expect(result!.components.map(c => [c.id, c.label])).toEqual([
-          ['api@main', 'api:main'],
-          ['api@next', 'api:next'],
+        expect(
+          result!.components.map(c => [c.id, c.label, c.badge]),
+        ).toEqual([
+          ['api@main', 'api', 'main'],
+          ['api@next', 'api', 'next'],
         ]);
       });
 

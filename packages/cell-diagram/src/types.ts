@@ -54,6 +54,8 @@ export type ExternalConsumerLinkSelectEvent = BaseEvent & {
 export interface Component {
   id: string;
   label?: string;
+  /** Short tag shown as a pill after the label, e.g. a release line. */
+  badge?: string;
   version: string;
   type: ComponentType;
   buildPack?: string; // Component implemented language

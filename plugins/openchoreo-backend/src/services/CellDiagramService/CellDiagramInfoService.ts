@@ -123,6 +123,8 @@ interface CompleteComponent {
   /** Diagram node id: the component name, or the line's node id. */
   name: string;
   label: string;
+  /** Release line, shown as a pill after the label. */
+  badge?: string;
   componentName: string;
   releaseLine?: string;
   type: string;
@@ -288,7 +290,8 @@ export class CellDiagramInfoService implements CellDiagramService {
               .sort(([a], [b]) => a.localeCompare(b))
               .map(([releaseLine, workload]) => ({
                 name: releaseLineNodeId(name, releaseLine),
-                label: `${name}:${releaseLine}`,
+                label: name,
+                badge: releaseLine,
                 componentName: name,
                 releaseLine,
                 type: componentType,
@@ -843,6 +846,7 @@ export class CellDiagramInfoService implements CellDiagramService {
           return {
             id: component.name || '',
             label: component.label,
+            badge: component.badge,
             version: '1.0.0',
             type: ComponentType.SCHEDULED_TASK,
             services: {
@@ -862,6 +866,7 @@ export class CellDiagramInfoService implements CellDiagramService {
           return {
             id: component.name || '',
             label: component.label,
+            badge: component.badge,
             version: '1.0.0',
             type: ComponentType.API_PROXY,
             services: {
@@ -931,6 +936,7 @@ export class CellDiagramInfoService implements CellDiagramService {
         return {
           id: component.name || '',
           label: component.label,
+          badge: component.badge,
           version: '1.0.0',
           type: isWebApp ? ComponentType.WEB_APP : ComponentType.SERVICE,
           services: services,
@@ -1017,8 +1023,9 @@ export class CellDiagramInfoService implements CellDiagramService {
       const targetNodeId = dependency.releaseLine
         ? releaseLineNodeId(dependentComponentName, dependency.releaseLine)
         : dependentComponentName;
-      const targetLabel = dependency.releaseLine
-        ? `${dependentComponentName}:${dependency.releaseLine}`
+      const targetLine = dependentComponent?.badge ?? dependency.releaseLine;
+      const targetLabel = targetLine
+        ? `${dependentComponentName}:${targetLine}`
         : dependentComponentName;
 
       const connectionId =
@@ -1028,7 +1035,7 @@ export class CellDiagramInfoService implements CellDiagramService {
 
       return {
         id: connectionId,
-        label: `${dependentComponent?.label ?? targetLabel}/${dependency.name}`,
+        label: `${targetLabel}/${dependency.name}`,
         type: ConnectionType.HTTP, // TODO Infer based on api response
         onPlatform: isInternal,
         tooltip: `Dependency on ${dependentComponentName} in ${dependentProjectName}`,
