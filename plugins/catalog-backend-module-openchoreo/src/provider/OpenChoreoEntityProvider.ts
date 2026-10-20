@@ -375,6 +375,41 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     }
   }
 
+  /**
+   * Immediately inserts an entity created outside the sync (e.g. by a
+   * scaffolder action) without waiting for the next scheduled run.
+   *
+   * The delta mutation goes through this provider's own connection, so the
+   * catalog records this provider as the owner and its delete events and
+   * full sync remove the entity once it is gone from OpenChoreo.
+   */
+  async insertEntity(entity: Entity): Promise<void> {
+    if (!this.connection) {
+      throw new Error('OpenChoreoEntityProvider not connected to catalog');
+    }
+
+    await this.connection.applyMutation({
+      type: 'delta',
+      added: [{ entity, locationKey: `provider:${this.getProviderName()}` }],
+      removed: [],
+    });
+  }
+
+  /** Immediately removes an entity owned by this provider. */
+  async removeEntity(entityRef: string): Promise<void> {
+    if (!this.connection) {
+      throw new Error('OpenChoreoEntityProvider not connected to catalog');
+    }
+
+    await this.connection.applyMutation({
+      type: 'delta',
+      added: [],
+      removed: [
+        { entityRef, locationKey: `provider:${this.getProviderName()}` },
+      ],
+    });
+  }
+
   async run(): Promise<void> {
     if (!this.connection) {
       throw new Error('Connection not initialized');

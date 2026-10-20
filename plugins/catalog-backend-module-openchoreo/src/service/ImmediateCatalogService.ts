@@ -5,6 +5,10 @@ import { createServiceRef } from '@backstage/backend-plugin-api';
  * Service interface for immediate catalog entity insertion.
  * This service is used by the scaffolder to immediately add newly created
  * components to the catalog without waiting for the scheduled sync.
+ *
+ * Writes are applied through the OpenChoreoEntityProvider's catalog
+ * connection, so the entities are owned by that provider and its delete
+ * events and full sync remove them like any other OpenChoreo entity.
  */
 export interface ImmediateCatalogService {
   /**
