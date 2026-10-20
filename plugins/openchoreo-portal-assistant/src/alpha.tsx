@@ -11,7 +11,10 @@ import {
 } from '@openchoreo/backstage-plugin-react';
 import { LogRowActionBlueprint } from '@openchoreo/backstage-plugin-openchoreo-observability/alpha';
 
-import { perchAgentApiRef, PerchAgentClient } from './api/PerchAgentApi';
+import {
+  portalAssistantApiRef,
+  PortalAssistantClient,
+} from './api/PortalAssistantApi';
 import { AssistantDrawerProvider } from './components/AssistantContext/AssistantDrawerContext';
 import { FailedBuildSnackbar } from './components/FailedBuildSnackbar/FailedBuildSnackbar';
 import { InvestigateLogButton } from './components/InvestigateLogButton/InvestigateLogButton';
@@ -24,7 +27,7 @@ const assistantDrawerWrapper = AppRootWrapperBlueprint.make({
   params: { component: AssistantDrawerProvider },
 });
 
-// NOTE: `perchAgentApiRef` is also declared on `openchoreoPerchPlugin.apis`
+// NOTE: `portalAssistantApiRef` is also declared on `openchoreoPortalAssistantPlugin.apis`
 // in ./plugin.ts. That declaration is NOT picked up at runtime because the
 // plugin only exports plain React components and never registers a routable
 // or component extension, so the plugin loader never visits its `apis` array.
@@ -33,7 +36,7 @@ const portalAssistantService = ApiBlueprint.make({
   name: 'portal-assistant-service',
   params: defineParams =>
     defineParams({
-      api: perchAgentApiRef,
+      api: portalAssistantApiRef,
       deps: {
         discoveryApi: discoveryApiRef,
         // The agent is reached in direct mode, so this must be the
@@ -41,7 +44,7 @@ const portalAssistantService = ApiBlueprint.make({
         fetchApi: openChoreoFetchApiRef,
       },
       factory: ({ discoveryApi, fetchApi }) =>
-        new PerchAgentClient({ discoveryApi, fetchApi }),
+        new PortalAssistantClient({ discoveryApi, fetchApi }),
     }),
 });
 
@@ -77,7 +80,7 @@ const investigateLogAction = LogRowActionBlueprint.make({
 });
 
 /**
- * Everything the Portal Assistant (Perch) contributes to a host app.
+ * Everything the Portal Assistant contributes to a host app.
  *
  * The assistant is a PRIVATE plugin, and keeping its wiring here rather than in
  * `@openchoreo/backstage-portal-app` means the published shell carries no

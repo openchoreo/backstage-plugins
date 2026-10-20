@@ -6,7 +6,7 @@ import request from 'supertest';
 import { createRouter } from './router';
 
 /**
- * Spin up a minimal Node http.Server as a mock upstream "perch-agent".
+ * Spin up a minimal Node http.Server as a mock upstream "portal-assistant".
  * Each test installs a per-call handler so we can assert on the inbound
  * forwarded request and shape the response (status, headers, streaming
  * chunks, latency).
@@ -358,7 +358,9 @@ describe('openchoreo-portal-assistant-backend router', () => {
       // leak the raw fetch error string into the user-bound response.
       expect(res.body.message).not.toMatch(/ECONNREFUSED|fetch failed/i);
       expect(logger.error).toHaveBeenCalledWith(
-        expect.stringMatching(/perch-backend: upstream fetch failed/),
+        expect.stringMatching(
+          /portal-assistant-backend: upstream fetch failed/,
+        ),
       );
 
       // Re-open so afterEach's close() doesn't blow up. Quick stub.
@@ -391,7 +393,9 @@ describe('openchoreo-portal-assistant-backend router', () => {
         request_id: expect.any(String),
       });
       expect(logger.error).toHaveBeenCalledWith(
-        expect.stringMatching(/perch-backend: upstream fetch failed/),
+        expect.stringMatching(
+          /portal-assistant-backend: upstream fetch failed/,
+        ),
       );
 
       upstream = { url: stalled, setHandler: () => {}, close: async () => {} };

@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { AssistantChatDrawer } from './AssistantChatDrawer';
-import type { StreamEvent } from '../../api/PerchAgentApi';
+import type { StreamEvent } from '../../api/PortalAssistantApi';
 
 // Hoisted spies — see InvestigateLogButton.test.tsx for the rationale.
 // Jest hoists jest.mock above imports, so factories cannot close over
@@ -31,7 +31,7 @@ const holder: {
 };
 
 jest.mock('@backstage/core-plugin-api', () => ({
-  // PerchAgentApi.ts calls createApiRef at module load — keep a real-ish
+  // PortalAssistantApi.ts calls createApiRef at module load — keep a real-ish
   // stub so the import doesn't blow up during test setup.
   createApiRef: (config: { id: string }) => ({ id: config.id }),
   useApi: () => ({

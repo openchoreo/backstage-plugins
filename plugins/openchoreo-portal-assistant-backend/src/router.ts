@@ -20,7 +20,7 @@ import { Agent, fetch as undiciFetch } from 'undici';
  *   - ``keepAliveMaxTimeout``: hard cap so a single socket can't be
  *     reused indefinitely (avoids accumulated TCP-level issues).
  *   - ``connections``: per-origin parallelism. Backstage backends do
- *     not usually run dozens of perch chats concurrently; 32 is
+ *     not usually run dozens of assistant chats concurrently; 32 is
  *     enough to absorb a small burst without sustaining a large pool.
  *   - ``bodyTimeout: 0``: disable undici's per-body inactivity
  *     timeout. Our /chat ndjson stream is silent during long LLM
@@ -79,7 +79,7 @@ interface ForwardCtx {
  *   POST  /api/v1alpha1/portal-assistant/chat       (streaming ndjson)
  *   POST  /api/v1alpha1/portal-assistant/warmup     (small JSON, 202)
  *
- * The frontend's ``PerchAgentClient`` calls
+ * The frontend's ``PortalAssistantClient`` calls
  * ``discoveryApi.getBaseUrl('openchoreo-portal-assistant-backend') + '/api/v1alpha1/portal-assistant/...'``;
  * the forwarder appends the same suffix to ``targetUrl`` (the upstream
  * portal-assistant service exposes its routes at the same prefix).
@@ -259,7 +259,7 @@ async function forwardStream(
   const onResClose = () => {
     if (!upstreamSettled && !res.writableEnded) {
       logger.info(
-        `perch-backend: client closed before stream end rid=${requestId} path=${upstreamPath}`,
+        `portal-assistant-backend: client closed before stream end rid=${requestId} path=${upstreamPath}`,
       );
       clientAbort.abort();
     }
@@ -290,7 +290,9 @@ async function forwardStream(
     res.off('close', onResClose);
     const timedOut = isTimeoutError(err);
     logger.error(
-      `perch-backend: upstream fetch ${timedOut ? 'timed out' : 'failed'} ` +
+      `portal-assistant-backend: upstream fetch ${
+        timedOut ? 'timed out' : 'failed'
+      } ` +
         `rid=${requestId} path=${upstreamPath} ` +
         `(streamTimeoutMs=${streamTimeoutMs}): ${(err as Error).message}`,
     );
@@ -332,7 +334,7 @@ async function forwardStream(
   //     each write goes out the wire immediately rather than waiting for
   //     a 40-200 ms coalesce window.
   // RCA's chat doesn't need any of this because the frontend calls the
-  // agent directly with ``x-openchoreo-direct``; perch goes through this
+  // agent directly with ``x-openchoreo-direct``; the assistant goes through this
   // forwarder, so the same protections it inherits from being in-cluster
   // we have to recreate by hand here.
   res.setHeader('Content-Encoding', 'identity');
@@ -379,12 +381,12 @@ async function forwardStream(
       // already logged in onResClose
     } else if (isTimeoutError(err)) {
       logger.warn(
-        `perch-backend: stream timed out rid=${requestId} path=${upstreamPath} ` +
+        `portal-assistant-backend: stream timed out rid=${requestId} path=${upstreamPath} ` +
           `(streamTimeoutMs=${streamTimeoutMs})`,
       );
     } else {
       logger.warn(
-        `perch-backend: stream error rid=${requestId} path=${upstreamPath}: ${
+        `portal-assistant-backend: stream error rid=${requestId} path=${upstreamPath}: ${
           (err as Error).message
         }`,
       );
@@ -430,7 +432,9 @@ async function forwardJson(
   } catch (err) {
     const timedOut = isTimeoutError(err);
     logger.error(
-      `perch-backend: upstream fetch ${timedOut ? 'timed out' : 'failed'} ` +
+      `portal-assistant-backend: upstream fetch ${
+        timedOut ? 'timed out' : 'failed'
+      } ` +
         `rid=${requestId} path=${upstreamPath} ` +
         `(upstreamTimeoutMs=${upstreamTimeoutMs}): ${(err as Error).message}`,
     );
@@ -462,7 +466,7 @@ async function forwardJson(
   } catch (err) {
     const timedOut = isTimeoutError(err);
     logger.error(
-      `perch-backend: upstream body read ${
+      `portal-assistant-backend: upstream body read ${
         timedOut ? 'timed out' : 'failed'
       } rid=${requestId} path=${upstreamPath}: ${(err as Error).message}`,
     );

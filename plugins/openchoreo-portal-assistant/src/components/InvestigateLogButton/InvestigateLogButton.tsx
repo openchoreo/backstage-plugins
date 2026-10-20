@@ -5,7 +5,10 @@ import { useAssistantEnabled } from '@openchoreo/backstage-plugin-react';
 import { IconButton, Tooltip, makeStyles } from '@material-ui/core';
 import ChatOutlinedIcon from '@material-ui/icons/ChatOutlined';
 import { useSearchParams } from 'react-router-dom';
-import { perchAgentApiRef, type ChatScope } from '../../api/PerchAgentApi';
+import {
+  portalAssistantApiRef,
+  type ChatScope,
+} from '../../api/PortalAssistantApi';
 import { useAssistantDrawer } from '../AssistantContext/AssistantDrawerContext';
 import {
   buildPrefetchedLogs,
@@ -84,7 +87,7 @@ function extractTraceId(text: string | undefined): string | undefined {
 
 /**
  * Compact "Investigate" icon button rendered inside each log row's
- * hover-action column. Click opens the Perch drawer with
+ * hover-action column. Click opens the assistant drawer with
  * ``caseType: 'runtime_debug'`` + ``runtimeAnchor: 'log'`` and the
  * pinned-log fields populated from this row, so the agent's first
  * tool call is targeted at *this specific log line* instead of the
@@ -102,7 +105,7 @@ export const InvestigateLogButton = ({
   const enabled = useAssistantEnabled();
   const { entity } = useEntity();
   const { openDrawer } = useAssistantDrawer();
-  const assistantApi = useApi(perchAgentApiRef);
+  const assistantApi = useApi(portalAssistantApiRef);
   const [searchParams] = useSearchParams();
 
   // Re-warm the per-user MCP tools cache on hover/focus. Mirrors the

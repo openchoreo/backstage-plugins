@@ -166,14 +166,14 @@ export type StreamEvent =
        * drawer renders a per-message "Copy as prompt" affordance iff
        * this is set — the frontend never synthesises the prompt; it
        * just exposes whatever the backend supplied. Snake_case to
-       * match the wire format emitted by perch-agent's DoneEvent
+       * match the wire format emitted by portal-assistant's DoneEvent
        * (``model_dump_json`` uses field names, not aliases).
        */
       fix_prompt?: string;
     }
   | { type: 'error'; message: string };
 
-export interface PerchAgentApi {
+export interface PortalAssistantApi {
   streamChat(
     request: ChatRequest,
     onEvent: (event: StreamEvent) => void,
@@ -188,12 +188,12 @@ export interface PerchAgentApi {
   warmup(): Promise<void>;
 }
 
-export const perchAgentApiRef = createApiRef<PerchAgentApi>({
+export const portalAssistantApiRef = createApiRef<PortalAssistantApi>({
   id: 'plugin.openchoreo-portal-assistant.service',
 });
 
 /**
- * PerchAgentClient calls the portal-assistant service via the
+ * PortalAssistantClient calls the portal-assistant service via the
  * ``openchoreo-portal-assistant-backend`` Backstage backend plugin (a
  * thin forwarder that streams ndjson upstream → response). The plugin
  * mounts at ``/api/openchoreo-portal-assistant-backend`` on the
@@ -215,7 +215,7 @@ export const perchAgentApiRef = createApiRef<PerchAgentApi>({
  * Discovery resolves to ``http://localhost:7007/api/openchoreo-portal-assistant-backend``
  * in dev or the in-cluster Backstage backend URL in deployment.
  */
-export class PerchAgentClient implements PerchAgentApi {
+export class PortalAssistantClient implements PortalAssistantApi {
   private readonly discoveryApi: DiscoveryApi;
   private readonly fetchApi: FetchApi;
 

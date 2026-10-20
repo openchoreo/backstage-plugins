@@ -32,7 +32,7 @@ export interface OpenChoreoFeatures {
   /**
    * OpenChoreo Assistant chat agent (FAB, drawer, contextual launchers).
    * Opt-in: defaults to false because the assistant requires the
-   * `perch-agent` service and an LLM API key Secret to be deployed.
+   * `portal-assistant` service and an LLM API key Secret to be deployed.
    */
   assistant: { enabled: boolean };
   /**

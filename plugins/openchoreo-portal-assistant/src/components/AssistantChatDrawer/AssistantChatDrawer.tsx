@@ -24,11 +24,11 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remend from 'remend';
 import {
-  perchAgentApiRef,
+  portalAssistantApiRef,
   type ChatMessage,
   type ChatScope,
   type StreamEvent,
-} from '../../api/PerchAgentApi';
+} from '../../api/PortalAssistantApi';
 import type { PinnedContext } from '../AssistantContext/AssistantDrawerContext';
 import { useStyles } from './styles';
 import { splitForCollapse, splitForStreaming } from './splitForCollapse';
@@ -132,7 +132,7 @@ export const AssistantChatDrawer = ({
   openSeq,
 }: Props) => {
   const classes = useStyles();
-  const api = useApi(perchAgentApiRef);
+  const api = useApi(portalAssistantApiRef);
   const location = useLocation();
 
   // Recompute scope on every navigation; old conversations stay readable

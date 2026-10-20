@@ -20,7 +20,7 @@ const row = (
 });
 
 describe('buildPrefetchedLogs — un-pinned path (regression coverage)', () => {
-  // The un-pinned path is what the floating "Ask Perch" pill uses on
+  // The un-pinned path is what the floating "Ask AI" pill uses on
   // the Logs tab. It must keep mirroring the visible page (no
   // severity filtering, no time-window filtering) so the agent's
   // first-turn picture matches what the user is staring at.

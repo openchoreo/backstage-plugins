@@ -3,7 +3,7 @@
   "include": ["src", "dev"],
   "exclude": ["node_modules"],
   "compilerOptions": {
-    "outDir": "../../dist-types/plugins/openchoreo-perch",
+    "outDir": "../../dist-types/plugins/openchoreo-portal-assistant",
     "rootDir": "."
   }
 }

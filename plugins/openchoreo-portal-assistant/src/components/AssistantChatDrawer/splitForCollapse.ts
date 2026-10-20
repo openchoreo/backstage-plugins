@@ -3,7 +3,7 @@
  * and a "details" block (evidence + trace bridge) so the drawer can
  * hide the latter behind a ``<details>`` expander.
  *
- * The perch-agent prompt today emits a few different shapes:
+ * The portal-assistant prompt today emits a few different shapes:
  *
  *   - runtime_debug:   diagnosis → Evidence → Trace bridge → Next action
  *   - build_failure:   What happened → Evidence → What to do
