@@ -259,7 +259,9 @@ export const CostAnalysisReportView = ({
                         )
                       }
                     >
-                      View component
+                      {report.releaseLine
+                        ? 'View release line'
+                        : 'View component'}
                     </Button>
                   )}
                 </Box>
@@ -281,6 +283,16 @@ export const CostAnalysisReportView = ({
                   {costAnalysis.component}
                 </Typography>
               </Box>
+              {report.releaseLine && (
+                <Box className={classes.metricRow}>
+                  <Typography className={classes.metricLabel}>
+                    Release Line
+                  </Typography>
+                  <Typography className={classes.metricValue}>
+                    {report.releaseLine}
+                  </Typography>
+                </Box>
+              )}
               <Box className={classes.metricRow}>
                 <Typography className={classes.metricLabel}>Project</Typography>
                 <Typography className={classes.metricValue}>
@@ -635,6 +647,8 @@ export const CostAnalysisReportView = ({
                         actionIndex={0}
                         action={action}
                         chatContext={chatContext}
+                        componentName={costAnalysis.component}
+                        releaseLine={report.releaseLine}
                         onApplied={onRecommendationApplied}
                       />
                     </Box>

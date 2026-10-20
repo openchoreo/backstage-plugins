@@ -26,5 +26,6 @@ Support components with release lines.
 - The Delivery Insights page shows a Release line filter when the selected component has release lines, narrowing the metrics and the per-environment breakdown to one line.
 
 - An RCA report's Incident Overview shows the release line the alert fired on, for components with release lines.
+- Cost analysis reports for a release line show the line in their overview and in the reports list, link to the line's page and metrics, and Apply Recommendation names the release binding it updates and refuses a binding that belongs to another line.
 - Workflow runs returned by the workflows backend include their labels, so a run can be matched to its release line.
 Components without release lines behave as before.

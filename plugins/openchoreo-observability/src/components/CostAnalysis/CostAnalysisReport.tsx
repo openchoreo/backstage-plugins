@@ -112,15 +112,16 @@ const CostAnalysisReportContent = () => {
   };
 
   const componentName = detailedReport.report?.component;
+  const releaseLine = detailedReport.releaseLine;
   const catalogNs = entity.metadata.namespace || 'default';
   const environmentName = environment?.name || detailedReport.environment;
-  const componentUrl = componentName
-    ? `/catalog/${catalogNs}/component/${componentName}`
-    : undefined;
-  const metricsUrl = componentName
-    ? `/catalog/${catalogNs}/component/${componentName}/metrics${
-        environmentName ? `?env=${environmentName}` : ''
-      }`
+  // A component with release lines has its tabs on each line's page.
+  const entityPath = releaseLine
+    ? `/catalog/${catalogNs}/releaseline/${releaseLine}`
+    : componentName && `/catalog/${catalogNs}/component/${componentName}`;
+  const componentUrl = entityPath || undefined;
+  const metricsUrl = entityPath
+    ? `${entityPath}/metrics${environmentName ? `?env=${environmentName}` : ''}`
     : undefined;
 
   const chatContext = {

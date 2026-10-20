@@ -88,9 +88,20 @@ export const CostAnalysisTable = ({
       render: (row: any) => {
         const report = row as FinOpsReportSummary;
         return (
-          <Typography variant="body2" className={classes.truncateSingleLine}>
-            {report.component || 'N/A'}
-          </Typography>
+          <>
+            <Typography variant="body2" className={classes.truncateSingleLine}>
+              {report.component || 'N/A'}
+            </Typography>
+            {report.releaseLine && (
+              <Typography
+                variant="caption"
+                color="textSecondary"
+                className={classes.truncateSingleLine}
+              >
+                {report.releaseLine}
+              </Typography>
+            )}
+          </>
         );
       },
     },

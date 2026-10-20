@@ -209,6 +209,8 @@ export interface FinOpsReportSummary {
   project: string;
   environment?: string | null;
   component?: string | null;
+  /** Release line the budget alert fired on, for components with lines. */
+  releaseLine?: string | null;
   timestamp: string;
   summary?: string | null;
   status: FinOpsReportStatus;
@@ -220,6 +222,8 @@ export interface FinOpsReportDetailed {
   project: string;
   environment?: string | null;
   component?: string | null;
+  /** Release line the budget alert fired on, for components with lines. */
+  releaseLine?: string | null;
   timestamp: string;
   status: FinOpsReportStatus;
   report?: FinOpsReport | null;
