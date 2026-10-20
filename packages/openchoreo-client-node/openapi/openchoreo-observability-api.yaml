@@ -825,7 +825,7 @@ components:
           type: string
         releaseLine:
           type: string
-          description: Restricts the result to one release line of the component. Requires component and environment.
+          description: Restricts the result to one release line of the component. Requires component. Logs, events, metrics and traces also require environment.
       required: [namespace]
 
     WorkflowSearchScope:
@@ -1901,6 +1901,13 @@ components:
                         type: string
                         description: The UID of the project
                         format: uuid
+                      releaseLineName:
+                        type: string
+                        description: The name of the component's release line. Absent for components without release lines.
+                      releaseLineUid:
+                        type: string
+                        description: The UID of the component's release line. Absent for components without release lines.
+                        format: uuid
         total:
           type: integer
           description: The total number of alerts
@@ -2010,6 +2017,13 @@ components:
                   projectUid:
                     type: string
                     description: The UID of the project
+                    format: uuid
+                  releaseLineName:
+                    type: string
+                    description: The name of the component's release line. Absent for components without release lines.
+                  releaseLineUid:
+                    type: string
+                    description: The UID of the component's release line. Absent for components without release lines.
                     format: uuid
         total:
           type: integer

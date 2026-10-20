@@ -316,7 +316,7 @@ export interface components {
       project?: string;
       component?: string;
       environment?: string;
-      /** @description Restricts the result to one release line of the component. Requires component and environment. */
+      /** @description Restricts the result to one release line of the component. Requires component. Logs, events, metrics and traces also require environment. */
       releaseLine?: string;
     };
     WorkflowSearchScope: {
@@ -1099,6 +1099,13 @@ export interface components {
              * @description The UID of the project
              */
             projectUid?: string;
+            /** @description The name of the component's release line. Absent for components without release lines. */
+            releaseLineName?: string;
+            /**
+             * Format: uuid
+             * @description The UID of the component's release line. Absent for components without release lines.
+             */
+            releaseLineUid?: string;
           };
         };
       }[];
@@ -1192,6 +1199,13 @@ export interface components {
            * @description The UID of the project
            */
           projectUid?: string;
+          /** @description The name of the component's release line. Absent for components without release lines. */
+          releaseLineName?: string;
+          /**
+           * Format: uuid
+           * @description The UID of the component's release line. Absent for components without release lines.
+           */
+          releaseLineUid?: string;
         };
       }[];
       /** @description The total number of incidents */
