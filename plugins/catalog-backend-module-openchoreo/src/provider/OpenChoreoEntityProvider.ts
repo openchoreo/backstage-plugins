@@ -2,8 +2,13 @@ import {
   CatalogService,
   EntityProvider,
   EntityProviderConnection,
+  EntityProviderMutation,
 } from '@backstage/plugin-catalog-node';
-import { Entity } from '@backstage/catalog-model';
+import {
+  Entity,
+  parseEntityRef,
+  stringifyEntityRef,
+} from '@backstage/catalog-model';
 import {
   AuthService,
   LoggerService,
@@ -137,6 +142,31 @@ export class OpenChoreoEntityProvider implements EntityProvider {
   private readonly eventApplier: EventDeltaApplier;
   /** Resolves custom templates; undefined disables the feature (no UrlReader). */
   private readonly remoteTemplateFetcher?: RemoteTemplateFetcher;
+  /**
+   * Serializes every catalog write this provider makes: the full mutation,
+   * event deltas and immediate writes. Writes then commit in the order they
+   * were made, and none can land while the full mutation is being applied.
+   */
+  private writeQueue: Promise<void> = Promise.resolve();
+  /** The connection the event applier writes through: the write queue. */
+  private readonly queuedConnection: EntityProviderConnection = {
+    applyMutation: mutation => this.applyWrite(mutation),
+    refresh: options => this.connection!.refresh(options),
+  };
+  /**
+   * The last write per normalized entity ref committed while a full sync is
+   * in flight, from {@link insertEntity}, {@link removeEntity} or an event:
+   * the entity for an insert or upsert, null for a removal. Undefined when
+   * no sync is running. The sync's API snapshot may predate these writes,
+   * so the full mutation keeps every recorded insert and drops every
+   * recorded removal.
+   *
+   * This guard is per process. The sync runs with global scope, on whichever
+   * replica holds the scheduler lock, so an insert on another replica during
+   * that sync is not protected and can be missing until the next sync or its
+   * event. A multi-replica fix needs state shared across replicas.
+   */
+  private writesDuringSync?: Map<string, Entity | null>;
 
   constructor(
     taskRunner: SchedulerServiceTaskRunner,
@@ -193,7 +223,8 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       tokenService: this.tokenService,
       defaultOwner: this.defaultOwner,
       translatorContext: this.translatorContext,
-      getConnection: () => this.connection,
+      getConnection: () =>
+        this.connection ? this.queuedConnection : undefined,
       ctdConverter: this.ctdConverter,
       rtdConverter: this.rtdConverter,
       ptdConverter: this.ptdConverter,
@@ -392,8 +423,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     if (!this.connection) {
       throw new Error('OpenChoreoEntityProvider not connected to catalog');
     }
-
-    await this.connection.applyMutation({
+    await this.applyWrite({
       type: 'delta',
       added: [{ entity, locationKey: `provider:${this.getProviderName()}` }],
       removed: [],
@@ -405,8 +435,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     if (!this.connection) {
       throw new Error('OpenChoreoEntityProvider not connected to catalog');
     }
-
-    await this.connection.applyMutation({
+    await this.applyWrite({
       type: 'delta',
       added: [],
       removed: [
@@ -420,7 +449,114 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       throw new Error('Connection not initialized');
     }
 
-    return this.runNew();
+    // Started before the snapshot is read, so a write still in flight now
+    // is recorded when it commits.
+    this.writesDuringSync = new Map();
+    try {
+      return await this.runNew();
+    } finally {
+      this.writesDuringSync = undefined;
+    }
+  }
+
+  /** Runs a catalog write once every write queued before it has settled. */
+  private enqueueWrite<T>(write: () => Promise<T>): Promise<T> {
+    const result = this.writeQueue.then(write);
+    this.writeQueue = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    return result;
+  }
+
+  /** Applies a delta through the write queue and records it for the sync. */
+  private applyWrite(mutation: EntityProviderMutation): Promise<void> {
+    return this.enqueueWrite(async () => {
+      if (mutation.type === 'delta') {
+        // Recorded even if the write fails: the resource is already gone
+        // from OpenChoreo, so a snapshot that read it must not restore it.
+        for (const removed of mutation.removed) {
+          this.recordWrite(
+            'entityRef' in removed
+              ? removed.entityRef
+              : stringifyEntityRef(removed.entity),
+            null,
+          );
+        }
+      }
+      await this.connection!.applyMutation(mutation);
+      if (mutation.type === 'delta') {
+        // Recorded only once the catalog accepted it, so a rejected entity
+        // never reaches the full mutation.
+        for (const { entity } of mutation.added) {
+          this.recordWrite(stringifyEntityRef(entity), entity);
+        }
+      }
+    });
+  }
+
+  private recordWrite(entityRef: string, entity: Entity | null): void {
+    this.writesDuringSync?.set(
+      stringifyEntityRef(parseEntityRef(entityRef)).toLocaleLowerCase('en-US'),
+      entity,
+    );
+  }
+
+  private entityKey(entity: Entity): string {
+    return stringifyEntityRef(entity).toLocaleLowerCase('en-US');
+  }
+
+  /**
+   * Applies the full mutation through the write queue. The snapshot is
+   * merged with the writes recorded during the sync inside the queue, so
+   * every write either committed before the merge and is in it, or commits
+   * after the full mutation and is not overwritten by it.
+   */
+  private commitFullSync(snapshot: Entity[]): Promise<Entity[]> {
+    return this.enqueueWrite(async () => {
+      const entities = this.mergeWritesIntoSnapshot(snapshot);
+      await this.connection!.applyMutation({
+        type: 'full',
+        entities: entities.map(entity => ({
+          entity,
+          locationKey: `provider:${this.getProviderName()}`,
+        })),
+      });
+      return entities;
+    });
+  }
+
+  /**
+   * Returns the snapshot without entities removed during the sync, plus
+   * every entity written during the sync that it does not contain. When the
+   * snapshot has its own copy of a written entity, that copy is kept: the
+   * snapshot may have been read before or after the write, and the
+   * resource's next event or sync settles which is current.
+   */
+  private mergeWritesIntoSnapshot(snapshot: Entity[]): Entity[] {
+    const writes = this.writesDuringSync;
+    if (!writes?.size) {
+      return snapshot;
+    }
+    const entities = snapshot.filter(
+      e => writes.get(this.entityKey(e)) !== null,
+    );
+    const dropped = snapshot.length - entities.length;
+
+    const inSnapshot = new Set(entities.map(e => this.entityKey(e)));
+    let merged = 0;
+    for (const [key, entity] of writes) {
+      if (entity && !inSnapshot.has(key)) {
+        entities.push(entity);
+        merged++;
+      }
+    }
+    if (merged > 0 || dropped > 0) {
+      this.logger.debug(
+        `Full sync snapshot: merged ${merged} entities written and dropped ${dropped} removed during the sync`,
+      );
+    }
+    return entities;
   }
 
   private async runNew(): Promise<void> {
@@ -1949,15 +2085,12 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         this.logger.warn(`Failed to fetch cluster workflow planes: ${error}`);
       }
 
-      await this.connection!.applyMutation({
-        type: 'full',
-        entities: allEntities.map(entity => ({
-          entity,
-          locationKey: `provider:${this.getProviderName()}`,
-        })),
-      });
+      const entities = await this.commitFullSync(allEntities);
 
-      this.logEntityCounts(allEntities, domainEntities.length);
+      this.logEntityCounts(
+        entities,
+        entities.filter(e => e.kind === 'Domain').length,
+      );
     } catch (error) {
       this.logger.error(`Failed to run OpenChoreoEntityProvider: ${error}`);
     }
