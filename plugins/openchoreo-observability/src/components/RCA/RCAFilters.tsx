@@ -21,6 +21,7 @@ interface RCAFiltersProps {
   environments: Environment[];
   environmentsLoading: boolean;
   disabled?: boolean;
+  searchPlaceholder?: string;
 }
 
 export const RCAFilters = ({
@@ -29,6 +30,7 @@ export const RCAFilters = ({
   environments,
   environmentsLoading,
   disabled = false,
+  searchPlaceholder = 'Search RCA reports...',
 }: RCAFiltersProps) => {
   const [searchInput, handleSearchChange] = useDebouncedSearch(
     filters.searchQuery,
@@ -56,7 +58,7 @@ export const RCAFilters = ({
       <Grid item xs={12} md={3}>
         <TextField
           fullWidth
-          placeholder="Search RCA reports..."
+          placeholder={searchPlaceholder}
           variant="outlined"
           value={searchInput}
           onChange={handleSearchChange}
