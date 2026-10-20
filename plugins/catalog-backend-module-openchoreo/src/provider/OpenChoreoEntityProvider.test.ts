@@ -1274,7 +1274,75 @@ describe('OpenChoreoEntityProvider', () => {
       await taskRunner.runTask();
 
       expect(addedNames(mutations('full')[0])).not.toContain('staging');
+      // Inserted before the sync started, so it is not re-applied.
       expect(mutations('delta')).toHaveLength(1);
+    });
+
+    it('re-applies an entity inserted while a sync is in flight that the snapshot missed', async () => {
+      const provider = newProvider();
+      let insert: Promise<void> | undefined;
+      setupPathBasedMocks({
+        '/api/v1/namespaces': () => {
+          // The create lands after the sync started reading the API.
+          insert = provider.insertEntity(portalEnvironment);
+          return okData({ items: [k8sNamespace] });
+        },
+      });
+      await provider.connect(mockConnection as any);
+
+      await taskRunner.runTask();
+      await insert;
+
+      const calls = mockConnection.applyMutation.mock.calls.map(
+        ([mutation]) => mutation,
+      );
+      const fullIndex = calls.findIndex(m => m.type === 'full');
+      expect(addedNames(calls[fullIndex])).not.toContain('staging');
+      expect(calls[fullIndex + 1]).toEqual({
+        type: 'delta',
+        added: [{ entity: portalEnvironment, locationKey }],
+        removed: [],
+      });
+    });
+
+    it('does not re-apply an entity the snapshot already contains', async () => {
+      const provider = newProvider();
+      setupPathBasedMocks({
+        '/api/v1/namespaces': () => {
+          void provider.insertEntity({
+            ...portalEnvironment,
+            metadata: { name: 'dev', namespace: 'test-ns' },
+          });
+          return okData({ items: [k8sNamespace] });
+        },
+        '/api/v1/namespaces/{namespaceName}/environments': okData({
+          items: [k8sEnvironment],
+        }),
+      });
+      await provider.connect(mockConnection as any);
+
+      await taskRunner.runTask();
+
+      expect(addedNames(mutations('full')[0])).toContain('dev');
+      expect(mutations('delta')).toHaveLength(1);
+    });
+
+    it('does not re-apply an entity removed while the sync is in flight', async () => {
+      const provider = newProvider();
+      setupPathBasedMocks({
+        '/api/v1/namespaces': async () => {
+          await provider.insertEntity(portalEnvironment);
+          await provider.removeEntity('Environment:test-ns/staging');
+          return okData({ items: [k8sNamespace] });
+        },
+      });
+      await provider.connect(mockConnection as any);
+
+      await taskRunner.runTask();
+
+      const deltas = mutations('delta');
+      expect(deltas).toHaveLength(2);
+      expect(deltas.flatMap(addedNames)).toEqual(['staging']);
     });
   });
 });

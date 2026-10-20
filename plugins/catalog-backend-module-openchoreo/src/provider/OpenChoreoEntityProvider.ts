@@ -3,7 +3,11 @@ import {
   EntityProvider,
   EntityProviderConnection,
 } from '@backstage/plugin-catalog-node';
-import { Entity } from '@backstage/catalog-model';
+import {
+  Entity,
+  parseEntityRef,
+  stringifyEntityRef,
+} from '@backstage/catalog-model';
 import {
   AuthService,
   LoggerService,
@@ -133,6 +137,13 @@ export class OpenChoreoEntityProvider implements EntityProvider {
   private readonly eventApplier: EventDeltaApplier;
   /** Resolves custom templates; undefined disables the feature (no UrlReader). */
   private readonly remoteTemplateFetcher?: RemoteTemplateFetcher;
+  /**
+   * Entities inserted through {@link insertEntity} while a full sync is in
+   * flight, keyed by normalized entity ref; undefined when no sync is running.
+   * The sync's API snapshot may predate them, so they are re-applied after
+   * its full mutation instead of being dropped until the next sync.
+   */
+  private insertedDuringSync?: Map<string, Entity>;
 
   constructor(
     taskRunner: SchedulerServiceTaskRunner,
@@ -190,6 +201,8 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       defaultOwner: this.defaultOwner,
       translatorContext: this.translatorContext,
       getConnection: () => this.connection,
+      onEntitiesRemoved: entityRefs =>
+        this.forgetInsertedDuringSync(entityRefs),
       ctdConverter: this.ctdConverter,
       rtdConverter: this.rtdConverter,
       ptdConverter: this.ptdConverter,
@@ -388,11 +401,21 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       throw new Error('OpenChoreoEntityProvider not connected to catalog');
     }
 
-    await this.connection.applyMutation({
-      type: 'delta',
-      added: [{ entity, locationKey: `provider:${this.getProviderName()}` }],
-      removed: [],
-    });
+    // Record before writing so a full mutation that lands while this write is
+    // in flight still sees the entity when it re-applies.
+    const pending = this.insertedDuringSync;
+    const key = this.entityKey(entity);
+    pending?.set(key, entity);
+    try {
+      await this.connection.applyMutation({
+        type: 'delta',
+        added: [{ entity, locationKey: `provider:${this.getProviderName()}` }],
+        removed: [],
+      });
+    } catch (error) {
+      pending?.delete(key);
+      throw error;
+    }
   }
 
   /** Immediately removes an entity owned by this provider. */
@@ -401,6 +424,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       throw new Error('OpenChoreoEntityProvider not connected to catalog');
     }
 
+    this.forgetInsertedDuringSync([entityRef]);
     await this.connection.applyMutation({
       type: 'delta',
       added: [],
@@ -415,7 +439,57 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       throw new Error('Connection not initialized');
     }
 
-    return this.runNew();
+    this.insertedDuringSync = new Map();
+    try {
+      return await this.runNew();
+    } finally {
+      this.insertedDuringSync = undefined;
+    }
+  }
+
+  private entityKey(entity: Entity): string {
+    return stringifyEntityRef(entity).toLocaleLowerCase('en-US');
+  }
+
+  private forgetInsertedDuringSync(entityRefs: string[]): void {
+    for (const entityRef of entityRefs) {
+      this.insertedDuringSync?.delete(
+        stringifyEntityRef(parseEntityRef(entityRef)).toLocaleLowerCase(
+          'en-US',
+        ),
+      );
+    }
+  }
+
+  /**
+   * Re-applies entities inserted while the sync was in flight that its API
+   * snapshot did not include. The full mutation has just removed them, but
+   * they were created after the snapshot was read, not deleted. Anything
+   * actually deleted in the meantime is removed by the next full sync.
+   */
+  private async reapplyInsertedDuringSync(snapshot: Entity[]): Promise<void> {
+    if (!this.insertedDuringSync?.size) {
+      return;
+    }
+    const inSnapshot = new Set(snapshot.map(e => this.entityKey(e)));
+    const missing = [...this.insertedDuringSync]
+      .filter(([key]) => !inSnapshot.has(key))
+      .map(([, entity]) => entity);
+    if (missing.length === 0) {
+      return;
+    }
+
+    await this.connection!.applyMutation({
+      type: 'delta',
+      added: missing.map(entity => ({
+        entity,
+        locationKey: `provider:${this.getProviderName()}`,
+      })),
+      removed: [],
+    });
+    this.logger.info(
+      `Re-applied ${missing.length} entities inserted during the full sync`,
+    );
   }
 
   private async runNew(): Promise<void> {
@@ -1941,6 +2015,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           locationKey: `provider:${this.getProviderName()}`,
         })),
       });
+      await this.reapplyInsertedDuringSync(allEntities);
 
       this.logEntityCounts(allEntities, domainEntities.length);
     } catch (error) {
