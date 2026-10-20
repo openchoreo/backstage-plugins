@@ -28,7 +28,8 @@
       "@openchoreo/backstage-plugin-thunder-idp-client-node",
       "@openchoreo/backstage-plugin-catalog-backend-module-openchoreo-users",
       "@openchoreo/cell-diagram",
-      "@openchoreo/backstage-portal-backend"
+      "@openchoreo/backstage-portal-backend",
+      "@openchoreo/backstage-portal-app"
     ]
   ],
   "access": "public",
