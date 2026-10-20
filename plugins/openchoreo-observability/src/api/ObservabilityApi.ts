@@ -191,6 +191,8 @@ export interface ObservabilityApi {
     environmentName: string,
     componentName?: string,
     options?: {
+      /** Restricts the result to this release line of the component. */
+      releaseLine?: string;
       startTime?: string;
       endTime?: string;
       limit?: number;
@@ -207,6 +209,8 @@ export interface ObservabilityApi {
     environmentName: string,
     componentName: string,
     options?: {
+      /** Restricts the result to this release line of the component. */
+      releaseLine?: string;
       startTime?: string;
       endTime?: string;
       limit?: number;
@@ -272,6 +276,8 @@ export interface ObservabilityApi {
     options?: {
       project?: string;
       component?: string;
+      /** Restricts the result to this release line; requires `component`. */
+      releaseLine?: string;
       startTime?: string;
       endTime?: string;
       granularity?: string;
@@ -284,6 +290,8 @@ export interface ObservabilityApi {
     options?: {
       project?: string;
       component?: string;
+      /** Restricts the result to this release line; requires `component`. */
+      releaseLine?: string;
       startTime?: string;
       endTime?: string;
     },
@@ -309,6 +317,28 @@ export const observabilityApiRef = createApiRef<ObservabilityApi>({
 });
 
 const DIRECT_HEADER = { 'x-openchoreo-direct': 'true' };
+
+/**
+ * The observer answered `501` to a cost query scoped to a release line: the
+ * installed FinOps module cannot filter costs by line.
+ */
+export class CostsReleaseLineNotSupportedError extends Error {
+  constructor() {
+    super(
+      'Cost data for a single release line is not supported by the installed FinOps module',
+    );
+    this.name = 'CostsReleaseLineNotSupportedError';
+  }
+}
+
+/** Drops a release line the observer would reject without a component. */
+function withReleaseLineScope(scope: DoraSearchScope): DoraSearchScope {
+  if (scope.releaseLine && !scope.component) {
+    const { releaseLine: _releaseLine, ...rest } = scope;
+    return rest;
+  }
+  return scope;
+}
 
 /**
  * Writes the filters shared by the platform logs record query and its filter values
@@ -768,6 +798,8 @@ export class ObservabilityClient implements ObservabilityApi {
     environmentName: string,
     componentName?: string,
     options?: {
+      /** Restricts the result to this release line of the component. */
+      releaseLine?: string;
       startTime?: string;
       endTime?: string;
       limit?: number;
@@ -797,6 +829,9 @@ export class ObservabilityClient implements ObservabilityApi {
             namespace: namespaceName,
             project: projectName,
             ...(componentName ? { component: componentName } : {}),
+            ...(componentName && options?.releaseLine
+              ? { releaseLine: options.releaseLine }
+              : {}),
             environment: environmentName,
           },
         }),
@@ -834,6 +869,7 @@ export class ObservabilityClient implements ObservabilityApi {
               i.incidentTriggerAiCostAnalysis ?? false,
             projectName: i.labels?.projectName,
             componentName: i.labels?.componentName,
+            releaseLineName: i.labels?.releaseLineName,
             environmentName: i.labels?.environmentName,
             namespaceName: i.labels?.namespaceName,
           }),
@@ -848,6 +884,8 @@ export class ObservabilityClient implements ObservabilityApi {
     environmentName: string,
     componentName: string,
     options?: {
+      /** Restricts the result to this release line of the component. */
+      releaseLine?: string;
       startTime?: string;
       endTime?: string;
       limit?: number;
@@ -877,6 +915,9 @@ export class ObservabilityClient implements ObservabilityApi {
             namespace: namespaceName,
             project: projectName,
             component: componentName,
+            ...(componentName && options?.releaseLine
+              ? { releaseLine: options.releaseLine }
+              : {}),
             environment: environmentName,
           },
         }),
@@ -909,6 +950,7 @@ export class ObservabilityClient implements ObservabilityApi {
           sourceMetric: a.metadata?.alertRule?.source?.metric,
           projectName: a.metadata?.labels?.projectName,
           componentName: a.metadata?.labels?.componentName,
+          releaseLineName: a.metadata?.labels?.releaseLineName,
           environmentName: a.metadata?.labels?.environmentName,
           namespaceName: a.metadata?.labels?.namespaceName,
           notificationChannels: a.notificationChannels ?? [],
@@ -1315,7 +1357,7 @@ export class ObservabilityClient implements ObservabilityApi {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...DIRECT_HEADER },
         body: JSON.stringify({
-          searchScope: scope,
+          searchScope: withReleaseLineScope(scope),
           startTime: options.startTime,
           endTime: options.endTime,
           granularity: options.granularity ?? 'daily',
@@ -1354,7 +1396,7 @@ export class ObservabilityClient implements ObservabilityApi {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...DIRECT_HEADER },
         body: JSON.stringify({
-          searchScope: scope,
+          searchScope: withReleaseLineScope(scope),
           startTime: options.startTime,
           endTime: options.endTime,
           limit: options.limit ?? 100,
@@ -1379,6 +1421,8 @@ export class ObservabilityClient implements ObservabilityApi {
     options?: {
       project?: string;
       component?: string;
+      /** Restricts the result to this release line; requires `component`. */
+      releaseLine?: string;
       startTime?: string;
       endTime?: string;
       granularity?: string;
@@ -1397,6 +1441,8 @@ export class ObservabilityClient implements ObservabilityApi {
     if (options?.project) url.searchParams.set('project', options.project);
     if (options?.component)
       url.searchParams.set('component', options.component);
+    if (options?.component && options.releaseLine)
+      url.searchParams.set('releaseLine', options.releaseLine);
     if (options?.startTime)
       url.searchParams.set('startTime', options.startTime);
     if (options?.endTime) url.searchParams.set('endTime', options.endTime);
@@ -1408,6 +1454,9 @@ export class ObservabilityClient implements ObservabilityApi {
     });
 
     if (!response.ok) {
+      if (response.status === 501 && url.searchParams.has('releaseLine')) {
+        throw new CostsReleaseLineNotSupportedError();
+      }
       const error = await this.parseError(response);
       if (error.includes('Observability is not configured for component')) {
         throw new Error('Observability is not enabled for this component');
@@ -1432,6 +1481,8 @@ export class ObservabilityClient implements ObservabilityApi {
     options?: {
       project?: string;
       component?: string;
+      /** Restricts the result to this release line; requires `component`. */
+      releaseLine?: string;
       startTime?: string;
       endTime?: string;
     },
@@ -1449,6 +1500,8 @@ export class ObservabilityClient implements ObservabilityApi {
     if (options?.project) url.searchParams.set('project', options.project);
     if (options?.component)
       url.searchParams.set('component', options.component);
+    if (options?.component && options.releaseLine)
+      url.searchParams.set('releaseLine', options.releaseLine);
     if (options?.startTime)
       url.searchParams.set('startTime', options.startTime);
     if (options?.endTime) url.searchParams.set('endTime', options.endTime);
@@ -1458,6 +1511,9 @@ export class ObservabilityClient implements ObservabilityApi {
     });
 
     if (!response.ok) {
+      if (response.status === 501 && url.searchParams.has('releaseLine')) {
+        throw new CostsReleaseLineNotSupportedError();
+      }
       const error = await this.parseError(response);
       if (error.includes('Observability is not configured for component')) {
         throw new Error('Observability is not enabled for this component');

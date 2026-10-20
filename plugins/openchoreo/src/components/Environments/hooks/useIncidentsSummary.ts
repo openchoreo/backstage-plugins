@@ -3,7 +3,10 @@ import { useEntity } from '@backstage/plugin-catalog-react';
 import { useApiHolder, createApiRef } from '@backstage/core-plugin-api';
 import { stringifyEntityRef } from '@backstage/catalog-model';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
-import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
+import {
+  useOpenChoreoQuery,
+  useReleaseLine,
+} from '@openchoreo/backstage-plugin-react';
 import type { Environment } from './useEnvironmentData';
 
 interface ObservabilityIncidentsApi {
@@ -13,6 +16,7 @@ interface ObservabilityIncidentsApi {
     environmentName: string,
     componentName: string,
     options?: {
+      releaseLine?: string;
       startTime?: string;
       endTime?: string;
       limit?: number;
@@ -49,6 +53,7 @@ export function useIncidentsSummary(
   // `useApi()` would throw NotImplementedError. `useApiHolder().get()` returns undefined
   // instead, letting the Deploy tab render without incident chips.
   const observabilityApi = useApiHolder().get(observabilityApiRef);
+  const { releaseLine } = useReleaseLine();
 
   const componentName =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
@@ -63,6 +68,7 @@ export function useIncidentsSummary(
       'incidents-summary',
       stringifyEntityRef(entity),
       componentName ?? null,
+      releaseLine ?? null,
       projectName ?? null,
       namespaceName ?? null,
       envNames,
@@ -82,6 +88,7 @@ export function useIncidentsSummary(
             env.resourceName ?? env.name,
             componentName!,
             {
+              releaseLine,
               startTime: oneHourAgo.toISOString(),
               endTime: now.toISOString(),
               limit: 100,

@@ -11,6 +11,12 @@ jest.mock('@backstage/core-plugin-api', () => {
   };
 });
 
+let mockReleaseLine: string | undefined;
+jest.mock('@openchoreo/backstage-plugin-react', () => ({
+  ...jest.requireActual('@openchoreo/backstage-plugin-react'),
+  useReleaseLine: () => ({ releaseLine: mockReleaseLine }),
+}));
+
 describe('useComponentAlerts', () => {
   const getAlerts = jest.fn();
 
@@ -41,7 +47,39 @@ describe('useComponentAlerts', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockReleaseLine = undefined;
     (useApi as jest.Mock).mockReturnValue({ getAlerts });
+  });
+
+  it('does not scope to a release line off a release line page', async () => {
+    getAlerts.mockResolvedValueOnce({ alerts: [], total: 0 });
+
+    const { result } = renderHook(
+      () => useComponentAlerts(entity as any, 'dev', 'project-a', options),
+      { wrapper: createQueryWrapper() },
+    );
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(getAlerts.mock.calls[0][4].releaseLine).toBeUndefined();
+  });
+
+  it('scopes the query to the page release line', async () => {
+    mockReleaseLine = 'main';
+    getAlerts.mockResolvedValueOnce({ alerts: [], total: 0 });
+
+    const { result } = renderHook(
+      () => useComponentAlerts(entity as any, 'dev', 'project-a', options),
+      { wrapper: createQueryWrapper() },
+    );
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(getAlerts).toHaveBeenCalledWith(
+      'dev',
+      'project-a',
+      'development',
+      'component-a',
+      expect.objectContaining({ releaseLine: 'main' }),
+    );
   });
 
   it('starts in loading state with empty data', () => {

@@ -171,6 +171,8 @@ export interface AlertSummary {
   sourceMetric?: string;
   projectName?: string;
   componentName?: string;
+  /** Release line of the component, absent for components without lines. */
+  releaseLineName?: string;
   environmentName?: string;
   namespaceName?: string;
   notificationChannels?: string[];
@@ -191,6 +193,8 @@ export interface IncidentSummary {
   incidentTriggerAiCostAnalysis?: boolean;
   projectName?: string;
   componentName?: string;
+  /** Release line of the component, absent for components without lines. */
+  releaseLineName?: string;
   environmentName?: string;
   namespaceName?: string;
 }
@@ -319,6 +323,8 @@ export interface DoraSearchScope {
   project?: string;
   component?: string;
   environment?: string;
+  /** Release line of the component; requires `component`. */
+  releaseLine?: string;
 }
 
 export interface DoraFrequencySummary {

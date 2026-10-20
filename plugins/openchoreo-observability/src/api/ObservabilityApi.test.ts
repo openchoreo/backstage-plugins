@@ -476,3 +476,131 @@ describe('ObservabilityClient.getSpanDetails', () => {
     expect(result.status).toEqual({ code: 'ok' });
   });
 });
+
+describe('ObservabilityClient release line scoping', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resolveUrls.mockResolvedValue({ observerUrl: 'http://observer' });
+  });
+
+  const lastBody = () =>
+    JSON.parse(mockFetchApi.fetch.mock.calls[0][1].body as string);
+
+  it('sends the release line on an alerts query and maps it back', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(
+      mockOkResponse({
+        alerts: [
+          {
+            alertId: 'a1',
+            metadata: {
+              labels: { componentName: 'comp', releaseLineName: 'main' },
+            },
+          },
+        ],
+        total: 1,
+      }),
+    );
+
+    const result = await createClient().getAlerts('ns', 'proj', 'dev', 'comp', {
+      releaseLine: 'main',
+    });
+
+    expect(lastBody().searchScope).toEqual({
+      namespace: 'ns',
+      project: 'proj',
+      component: 'comp',
+      releaseLine: 'main',
+      environment: 'dev',
+    });
+    expect(result.alerts[0].releaseLineName).toBe('main');
+  });
+
+  it('omits the release line on an alerts query without one', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(
+      mockOkResponse({ alerts: [], total: 0 }),
+    );
+
+    await createClient().getAlerts('ns', 'proj', 'dev', 'comp');
+
+    expect(lastBody().searchScope).not.toHaveProperty('releaseLine');
+  });
+
+  it('sends the release line on an incidents query and maps it back', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(
+      mockOkResponse({
+        incidents: [
+          {
+            incidentId: 'i1',
+            status: 'active',
+            labels: { componentName: 'comp', releaseLineName: 'main' },
+          },
+        ],
+        total: 1,
+      }),
+    );
+
+    const result = await createClient().getIncidents(
+      'ns',
+      'proj',
+      'dev',
+      'comp',
+      { releaseLine: 'main' },
+    );
+
+    expect(lastBody().searchScope.releaseLine).toBe('main');
+    expect(result.incidents[0].releaseLineName).toBe('main');
+  });
+
+  it('drops the release line on an incidents query without a component', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(
+      mockOkResponse({ incidents: [], total: 0 }),
+    );
+
+    await createClient().getIncidents('ns', 'proj', 'dev', undefined, {
+      releaseLine: 'main',
+    });
+
+    expect(lastBody().searchScope).not.toHaveProperty('releaseLine');
+  });
+
+  it.each(['getDoraMetrics', 'getDoraDeployments'] as const)(
+    '%s sends the release line with a component',
+    async method => {
+      mockFetchApi.fetch.mockResolvedValueOnce(mockOkResponse({}));
+
+      await createClient()[method](
+        {
+          namespace: 'ns',
+          project: 'proj',
+          component: 'comp',
+          releaseLine: 'main',
+        },
+        { startTime: 's', endTime: 'e' },
+      );
+
+      expect(lastBody().searchScope).toEqual({
+        namespace: 'ns',
+        project: 'proj',
+        component: 'comp',
+        releaseLine: 'main',
+      });
+    },
+  );
+
+  it.each(['getDoraMetrics', 'getDoraDeployments'] as const)(
+    '%s drops the release line without a component',
+    async method => {
+      mockFetchApi.fetch.mockResolvedValueOnce(mockOkResponse({}));
+
+      await createClient()[method](
+        { namespace: 'ns', project: 'proj', releaseLine: 'main' },
+        { startTime: 's', endTime: 'e' },
+      );
+
+      expect(lastBody().searchScope).toEqual({
+        namespace: 'ns',
+        project: 'proj',
+      });
+    },
+  );
+});
