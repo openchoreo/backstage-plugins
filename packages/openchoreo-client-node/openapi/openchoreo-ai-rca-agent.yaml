@@ -233,6 +233,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Report not found
           content:
@@ -283,6 +289,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Report not found
           content:
@@ -312,6 +324,10 @@ components:
           type: string
         environment:
           type: string
+        release_line:
+          type: string
+          nullable: true
+          description: Release line the alert rule belongs to, for components with release lines.
         alert:
           $ref: '#/components/schemas/AlertContext'
         meta:
@@ -621,6 +637,9 @@ components:
           $ref: '#/components/schemas/ReportAlertCondition'
         component:
           type: string
+        release_line:
+          type: string
+          nullable: true
         project:
           type: string
         environment:
