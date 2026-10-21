@@ -247,6 +247,45 @@ describe('SetupDetailPane', () => {
     ).toBeInTheDocument();
   });
 
+  it('enables Create release for an image-based component without a workload', async () => {
+    readinessOverride = {
+      loading: false,
+      canCreateRelease: false,
+      alertMessage: 'Configure your workload to enable deployment.',
+      alertSeverity: 'info',
+      hasWorkload: false,
+      isFromSource: false,
+    };
+
+    renderPane();
+
+    expect(
+      await screen.findByRole('button', { name: /create release/i }),
+    ).toBeEnabled();
+  });
+
+  it('enables Configure & deploy for an image-based component without a workload', async () => {
+    contextOverride = { autoDeploy: true };
+    readinessOverride = {
+      loading: false,
+      canCreateRelease: false,
+      alertMessage: 'Configure your workload to enable deployment.',
+      alertSeverity: 'info',
+      hasWorkload: false,
+      isFromSource: false,
+    };
+    const onConfigureWorkload = jest.fn();
+    const user = userEvent.setup();
+    renderPane({ onConfigureWorkload });
+
+    const button = await screen.findByRole('button', {
+      name: /configure & deploy/i,
+    });
+    expect(button).toBeEnabled();
+    await user.click(button);
+    expect(onConfigureWorkload).toHaveBeenCalledTimes(1);
+  });
+
   it('flips the toggle optimistically on Confirm — dialog closes before the PATCH resolves', async () => {
     const user = userEvent.setup();
     // Deferred PATCH so we can observe state mid-flight. `updateAutoDeploy`

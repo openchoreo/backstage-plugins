@@ -255,14 +255,24 @@ export const WorkloadConfigPage = ({
             );
           } else {
             setIsNewWorkload(true);
+            // On a release line page the entity is the line, so the component
+            // comes from its annotation and the workload is named per line.
+            const componentName =
+              entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT] ||
+              entity.metadata.name;
             const defaultResource: WorkloadResource = {
-              metadata: { name: entity.metadata.name },
+              metadata: {
+                name: releaseLine
+                  ? `${componentName}-${releaseLine}-workload`
+                  : entity.metadata.name,
+              },
               spec: {
                 owner: {
                   projectName:
                     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT] ||
                     '',
-                  componentName: entity.metadata.name,
+                  componentName,
+                  ...(releaseLine ? { releaseLine } : {}),
                 },
                 container: {
                   image: '',

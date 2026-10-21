@@ -571,10 +571,36 @@ export const createComponentAction = (
                 },
               },
             );
-          assertApiResponse(
-            { data: undefined, error: lineError, response: lineResponse },
-            'create release line',
-          );
+          if (lineError || !lineResponse.ok) {
+            // Without its first line the component can never deploy, so remove it
+            // and let the user retry with another line name.
+            const { response: deleteResponse } = await client.DELETE(
+              '/api/v1/namespaces/{namespaceName}/components/{componentName}',
+              {
+                params: {
+                  path: {
+                    namespaceName,
+                    componentName: ctx.input.componentName,
+                  },
+                },
+              },
+            );
+            if (!deleteResponse.ok) {
+              ctx.logger.warn(
+                `Failed to remove component ${ctx.input.componentName} after its release line could not be created: ${deleteResponse.status} ${deleteResponse.statusText}`,
+              );
+            }
+            if (lineResponse.status === 409) {
+              throw new Error(
+                `Release line name "${releaseLine}" is already used in namespace "${namespaceName}". ` +
+                  'Release line names are unique within a namespace, so choose another name for the first release line.',
+              );
+            }
+            assertApiResponse(
+              { data: undefined, error: lineError, response: lineResponse },
+              'create release line',
+            );
+          }
         }
 
         // Create Workload CR when there's workload data or when deploying from image.
