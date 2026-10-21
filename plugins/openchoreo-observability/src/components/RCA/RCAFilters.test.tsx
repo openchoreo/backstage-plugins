@@ -51,6 +51,14 @@ describe('RCAFilters', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders custom search placeholder', () => {
+    renderFilters({ searchPlaceholder: 'Search cost reports...' });
+
+    expect(
+      screen.getByPlaceholderText('Search cost reports...'),
+    ).toBeInTheDocument();
+  });
+
   it('renders environment selector', () => {
     renderFilters();
 

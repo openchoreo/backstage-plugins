@@ -127,6 +127,7 @@ const CostAnalysisListContent = () => {
             onFiltersChange={handleFiltersChange}
             environments={environments}
             environmentsLoading={environmentsLoading}
+            searchPlaceholder="Search cost reports..."
           />
 
           {reportsError && renderError(reportsError)}
