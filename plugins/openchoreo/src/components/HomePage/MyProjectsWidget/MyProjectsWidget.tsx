@@ -11,6 +11,17 @@ interface MyProjectsWidgetProps {
   disableCard?: boolean;
 }
 
+// One place for the metric labels, so the real widget and its preview match.
+const buildMetrics = (
+  projects: number,
+  components: number,
+  activeDeployments: number,
+) => [
+  { label: 'Projects:', value: projects },
+  { label: 'Components:', value: components },
+  { label: 'Active Deployments:', value: activeDeployments },
+];
+
 // Widget showing project/component/deployment metrics for developers.
 export const MyProjectsWidget = ({
   disableCard = false,
@@ -96,13 +107,26 @@ export const MyProjectsWidget = ({
       disableCard={disableCard}
       icon={<FolderIcon fontSize="inherit" />}
       title="My Projects"
-      metrics={[
-        { label: 'Projects:', value: projectsCount },
-        { label: 'Components:', value: componentsCount },
-        { label: 'Active Deployments:', value: componentBindingsCount },
-      ]}
+      metrics={buildMetrics(
+        projectsCount,
+        componentsCount,
+        componentBindingsCount,
+      )}
       loading={loading}
       errorMessage={error || undefined}
     />
   );
 };
+
+// Static preview for the home page "Add widget" gallery. It shows sample numbers
+// and never calls an API, so it is safe to render before the widget is added.
+export const MyProjectsWidgetPreview = ({
+  disableCard = false,
+}: MyProjectsWidgetProps = {}) => (
+  <SummaryWidgetWrapper
+    disableCard={disableCard}
+    icon={<FolderIcon fontSize="inherit" />}
+    title="My Projects"
+    metrics={buildMetrics(2, 6, 9)}
+  />
+);
