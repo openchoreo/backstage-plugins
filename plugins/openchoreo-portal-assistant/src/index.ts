@@ -1,17 +1,17 @@
 // Plugin shell + API factory (kept as a Backstage plugin so the
-// PerchAgentClient is registered idiomatically via apiRef).
-export { openchoreoPerchPlugin } from './plugin';
+// PortalAssistantClient is registered idiomatically via apiRef).
+export { openchoreoPortalAssistantPlugin } from './plugin';
 
 // API client + types
 export {
-  perchAgentApiRef,
-  PerchAgentClient,
-  type PerchAgentApi,
+  portalAssistantApiRef,
+  PortalAssistantClient,
+  type PortalAssistantApi,
   type ChatCaseType,
   type ChatMessage,
   type ChatScope,
   type StreamEvent,
-} from './api/PerchAgentApi';
+} from './api/PortalAssistantApi';
 
 // Drawer context (provider + consumer hook)
 export {
@@ -27,11 +27,11 @@ export {
 // future component grows large enough to warrant code-splitting, wrap
 // that one specifically.
 //
-// Note: the always-on global FAB was deliberately removed — Perch is
+// Note: the always-on global FAB was deliberately removed — the assistant is
 // surfaced by the contextual launchers below (build page, logs page,
 // failed-run snackbar) on the pages where it can do useful work.
 // Mounting a global FAB invited the user into a chat that had no scope
-// and degraded the UX on pages where Perch can't act. If we ever need a
+// and degraded the UX on pages where it can't act. If we ever need a
 // FAB again, prefer scoping it to specific routes rather than a global
 // "available everywhere" mount.
 export { FailedBuildSnackbar } from './components/FailedBuildSnackbar/FailedBuildSnackbar';

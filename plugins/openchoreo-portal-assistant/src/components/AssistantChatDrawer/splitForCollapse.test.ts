@@ -2,7 +2,7 @@ import { splitForCollapse, splitForStreaming } from './splitForCollapse';
 
 describe('splitForCollapse', () => {
   it('splits a runtime_debug response on Evidence … Next action', () => {
-    // Real-world shape captured from a perch chat; the diagnosis +
+    // Real-world shape captured from an assistant chat; the diagnosis +
     // next action are the actionable bits, evidence is supporting data.
     const msg = [
       'Root cause: lab-auth-service is intentionally injecting failures on /api/auth/verify, returning 500s that lab-api-service surfaces.',

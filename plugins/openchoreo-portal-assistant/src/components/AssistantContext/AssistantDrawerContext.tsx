@@ -11,7 +11,10 @@ import {
 import { identityApiRef, useApi } from '@backstage/core-plugin-api';
 import { useAssistantEnabled } from '@openchoreo/backstage-plugin-react';
 import { AssistantChatDrawer } from '../AssistantChatDrawer/AssistantChatDrawer';
-import { perchAgentApiRef, type ChatScope } from '../../api/PerchAgentApi';
+import {
+  portalAssistantApiRef,
+  type ChatScope,
+} from '../../api/PortalAssistantApi';
 
 /**
  * Pinned context attached to a chat session so the agent (and the user)
@@ -159,7 +162,7 @@ export const AssistantDrawerProvider = ({
   // failed warmup just means the first chat pays the cache miss as before.
   const enabled = useAssistantEnabled();
   const identityApi = useApi(identityApiRef);
-  const assistantApi = useApi(perchAgentApiRef);
+  const assistantApi = useApi(portalAssistantApiRef);
   useEffect(() => {
     if (!enabled) return undefined;
     let cancelled = false;

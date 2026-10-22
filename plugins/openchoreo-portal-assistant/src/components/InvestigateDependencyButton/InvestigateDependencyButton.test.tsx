@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { InvestigateDependencyButton } from './InvestigateDependencyButton';
-import type { ChatScope } from '../../api/PerchAgentApi';
+import type { ChatScope } from '../../api/PortalAssistantApi';
 
 // Hoisted shared spies — Jest hoists jest.mock above imports, so the
 // factories below cannot close over outer variables. We dereference the
@@ -16,7 +16,7 @@ const holder: {
 };
 
 jest.mock('@backstage/core-plugin-api', () => ({
-  // PerchAgentApi.ts calls createApiRef at module load — keep a real-ish
+  // PortalAssistantApi.ts calls createApiRef at module load — keep a real-ish
   // stub so the import doesn't blow up during test setup.
   createApiRef: (config: { id: string }) => ({ id: config.id }),
   useApi: () => ({ warmup: (...args: unknown[]) => holder.warmup(...args) }),

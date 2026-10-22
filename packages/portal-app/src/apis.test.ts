@@ -3,7 +3,7 @@
  *
  * OpenChoreo-specific fetch / permission / auth factories now ship from
  * `@openchoreo/backstage-plugin` as ApiBlueprints, so they're not in this
- * app-scoped `apis` array — covered by the plugin's own tests. The Perch agent
+ * app-scoped `apis` array — covered by the plugin's own tests. The assistant API
  * factory likewise moved to the assistant plugin's own alpha module, which the
  * app installs through feature discovery.
  */

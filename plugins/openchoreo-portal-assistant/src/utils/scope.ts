@@ -1,6 +1,6 @@
 import { parseEntityRef, type Entity } from '@backstage/catalog-model';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
-import type { PrefetchedLogEntry } from '../api/PerchAgentApi';
+import type { PrefetchedLogEntry } from '../api/PortalAssistantApi';
 
 /** Subset of a runtime log row the prefetched-logs helper reads. */
 export interface PrefetchableLogRow {
@@ -14,7 +14,7 @@ export interface PrefetchableLogRow {
 }
 
 /** Max rows we forward to the agent in ``scope.prefetchedLogs`` for the
- *  un-pinned "Ask Perch" path. Sized to mirror what the Logs tab
+ *  un-pinned "Ask AI" path. Sized to mirror what the Logs tab
  *  renders per page so the agent's first-turn picture matches what the
  *  user is staring at. */
 export const PREFETCHED_LOGS_MAX_ROWS = 50;
@@ -66,13 +66,13 @@ function _toMillis(ts: string | undefined): number | undefined {
 
 /**
  * Transform observability log rows into the wire shape consumed by the
- * perch-agent. Strips fields the agent doesn't read, trims each
+ * portal-assistant. Strips fields the agent doesn't read, trims each
  * message, and caps the list size so the resulting JSON stays under
  * the agent's per-request content limit.
  *
  * Two operating modes:
  *
- * 1. **Un-pinned** (``pin`` omitted) — for the floating "Ask Perch"
+ * 1. **Un-pinned** (``pin`` omitted) — for the floating "Ask AI"
  *    launcher on the Logs tab. Mirrors the visible page: up to
  *    ``PREFETCHED_LOGS_MAX_ROWS`` rows, no severity filtering, no
  *    time-window filtering. The user's level chips and time range

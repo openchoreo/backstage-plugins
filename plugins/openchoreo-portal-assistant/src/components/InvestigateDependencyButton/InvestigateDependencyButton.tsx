@@ -4,10 +4,10 @@ import { useAssistantEnabled } from '@openchoreo/backstage-plugin-react';
 import { Button, Tooltip, makeStyles } from '@material-ui/core';
 import ChatOutlinedIcon from '@material-ui/icons/ChatOutlined';
 import {
-  perchAgentApiRef,
+  portalAssistantApiRef,
   type ChatScope,
   type ChatCaseType,
-} from '../../api/PerchAgentApi';
+} from '../../api/PortalAssistantApi';
 import { useAssistantDrawer } from '../AssistantContext/AssistantDrawerContext';
 
 interface InvestigateDependencyButtonProps {
@@ -50,7 +50,7 @@ const useStyles = makeStyles(theme => ({
  * "Investigate" button shown in the K8s-artifacts header when a component
  * is stuck NotReady because an outbound endpoint connection can't resolve.
  *
- * Clicking opens the Perch drawer with ``caseType: 'dependency_pending'``
+ * Clicking opens the assistant drawer with ``caseType: 'dependency_pending'``
  * and the pending dependencies pinned, so the agent explains why the
  * depended-on component is down (undeployed / not ready) and how to
  * recover — the detail the static artifacts view can't infer.
@@ -69,7 +69,7 @@ export const InvestigateDependencyButton = ({
   const classes = useStyles();
   const enabled = useAssistantEnabled();
   const { openDrawer } = useAssistantDrawer();
-  const assistantApi = useApi(perchAgentApiRef);
+  const assistantApi = useApi(portalAssistantApiRef);
 
   // Re-warm the per-user MCP tools cache on hover/focus — same throttle as
   // InvestigateLogButton. The provider-level warmup at sign-in goes stale,

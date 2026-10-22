@@ -60,7 +60,7 @@ export const openchoreoPortalAssistantBackendPlugin = createBackendPlugin({
         );
 
         // Allow unauthenticated access at the Backstage backend layer —
-        // the perch-agent validates the Bearer JWT itself (against
+        // the portal-assistant service validates the Bearer JWT itself (against
         // Thunder JWKS) and runs its own authz check
         // (``assistant:invoke`` plus per-tool actions). Adding a second
         // gate here would be redundant AND would break service-account

@@ -8,7 +8,10 @@ import {
 import { Box, Button, makeStyles } from '@material-ui/core';
 import ChatOutlinedIcon from '@material-ui/icons/ChatOutlined';
 import { useSearchParams } from 'react-router-dom';
-import { perchAgentApiRef, type ChatScope } from '../../api/PerchAgentApi';
+import {
+  portalAssistantApiRef,
+  type ChatScope,
+} from '../../api/PortalAssistantApi';
 import { useAssistantDrawer } from '../AssistantContext/AssistantDrawerContext';
 import {
   buildPrefetchedLogs,
@@ -71,7 +74,7 @@ export const LogsPageDebugPrompt = ({
   const { entity } = useEntity();
   const { getEntityDetails } = useComponentEntityDetails();
   const { openDrawer } = useAssistantDrawer();
-  const assistantApi = useApi(perchAgentApiRef);
+  const assistantApi = useApi(portalAssistantApiRef);
   // The observability plugin keeps the selected env in the URL as ``?env=…``
   // (see useUrlFiltersForRuntimeLogs in plugins/openchoreo-observability).
   // Reading it here lets the launcher pre-populate ChatScope.environment so

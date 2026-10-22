@@ -1,4 +1,7 @@
-import { PerchAgentClient, perchAgentApiRef } from './api/PerchAgentApi';
+import {
+  PortalAssistantClient,
+  portalAssistantApiRef,
+} from './api/PortalAssistantApi';
 import assistantDefault, { assistantFeature } from './alpha';
 
 describe('assistant alpha module', () => {
@@ -17,12 +20,12 @@ describe('assistant alpha module', () => {
 
   // Replaces the factory coverage that lived in portal-app's apis.test.ts
   // before the assistant moved out of the published shell.
-  it('constructs the perch client the api factory registers', () => {
-    const client = new PerchAgentClient({
+  it('constructs the assistant client the api factory registers', () => {
+    const client = new PortalAssistantClient({
       discoveryApi: { getBaseUrl: async () => 'http://localhost' } as any,
       fetchApi: { fetch: (() => undefined) as any } as any,
     });
-    expect(client).toBeInstanceOf(PerchAgentClient);
-    expect(perchAgentApiRef.id).toBeTruthy();
+    expect(client).toBeInstanceOf(PortalAssistantClient);
+    expect(portalAssistantApiRef.id).toBeTruthy();
   });
 });

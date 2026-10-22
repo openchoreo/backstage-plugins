@@ -5,7 +5,7 @@ import type { OpenChoreoFeatures } from '@openchoreo/backstage-plugin-common';
 /**
  * Default feature configuration when no config is provided.
  * All features are enabled by default EXCEPT `assistant`, which is opt-in
- * because it requires the `perch-agent` service + LLM API key, and
+ * because it requires the `portal-assistant` service + LLM API key, and
  * `deliveryInsights` / `costInsights`, which are feature previews.
  */
 const defaultFeatures: OpenChoreoFeatures = {

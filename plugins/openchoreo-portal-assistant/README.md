@@ -1,6 +1,6 @@
 # @openchoreo/backstage-plugin-openchoreo-portal-assistant
 
-The Backstage frontend for **Perch** — the OpenChoreo AI assistant. Provides
+The Backstage frontend for the **Portal Assistant** — the OpenChoreo AI assistant. Provides
 the chat drawer and the contextual launchers mounted on component pages
 (failed-build snackbar, deploy-panel and log-row "investigate" actions). There
 is no global FAB — see "Status" below.
@@ -17,9 +17,9 @@ This plugin is part of the OpenChoreo Backstage app. It is **not** published
 as a standalone Backstage plugin and has no third-party consumers — there
 are no public extension points, no scaffolder actions, no permission rules.
 
-The plugin shell exists so consumers can do `useApi(perchAgentApiRef)`
+The plugin shell exists so consumers can do `useApi(portalAssistantApiRef)`
 instead of constructing the client by hand. Note that the `apis` array on
-`openchoreoPerchPlugin` (`src/plugin.ts`) is **never read at runtime** — the
+`openchoreoPortalAssistantPlugin` (`src/plugin.ts`) is **never read at runtime** — the
 plugin registers no routable or component extension, so the loader never
 visits it. The factory that actually gets wired lives in the alpha module
 (`src/alpha.tsx`); removing it there causes `NotImplementedError` in
@@ -33,11 +33,11 @@ already on the critical path of every entity page; the indirection
 costs more than it saves at this size. If a future component grows
 large enough that lazy-loading matters, wrap that one specifically.
 
-There is **no global "always-on" FAB**. Perch is surfaced by
+There is **no global "always-on" FAB**. The assistant is surfaced by
 contextual launchers on the pages where it can do useful work
 (component build tab, runtime logs tab, the failed-build snackbar).
 Mounting a global FAB invited the user into a chat that had no scope
-and degraded the UX on pages where Perch can't act. If we ever want
+and degraded the UX on pages where it can't act. If we ever want
 a FAB again, scope it to specific routes rather than mounting it at
 the app root.
 
@@ -45,7 +45,7 @@ the app root.
 
 Everything is wired by the package's **default export** from `./alpha` — a
 `createFrontendModule({ pluginId: 'app' })` carrying the drawer wrapper, the
-`perchAgentApiRef` factory, the `portalAssistantIntegrationApiRef` slots, and
+`portalAssistantApiRef` factory, the `portalAssistantIntegrationApiRef` slots, and
 the observability log-row action.
 
 Because that is the _default_ export, the dependency is the whole installation.
@@ -84,17 +84,17 @@ have no consumers — mount them yourself if you want those launchers.
 
 The plugin is feature-gated by `openchoreo.features.assistant.enabled`
 (env var `OPENCHOREO_FEATURES_ASSISTANT_ENABLED`); when disabled the
-launchers render `null`. The `ASSISTANT` spelling is current: #559 renamed
-this plugin _from_ Perch _to_ Portal Assistant, so the config key, plugin id
-and apiRef id all read `portal-assistant`. Only internal TypeScript symbols
-(`perchAgentApiRef`, `PerchAgentClient`, `PerchAgentApi`,
-`openchoreoPerchPlugin`) still carry the old name; renaming those is cosmetic
-and tracked separately. `perch-agent` in comments and config prose refers to
-the upstream _service_, not to this plugin.
+launchers render `null`. #559 renamed this plugin _from_ Perch _to_ Portal
+Assistant; the config key, plugin id and apiRef id read `portal-assistant`,
+and the TypeScript symbols now match it too (`portalAssistantApiRef`,
+`PortalAssistantClient`, `PortalAssistantApi`,
+`openchoreoPortalAssistantPlugin`). `portal-assistant` in comments and config
+prose refers to the upstream _service_ (`agents/portal-assistant` in the
+openchoreo repo), not to this plugin.
 
 ## Backend
 
-The frontend talks to the `perch-agent` service in the OpenChoreo
+The frontend talks to the `portal-assistant` service in the OpenChoreo
 control plane through the **`openchoreo-portal-assistant-backend`** Node plugin
 (see `plugins/openchoreo-portal-assistant-backend/`), which runs inside the
 Backstage backend Express process and forwards requests upstream.
@@ -127,12 +127,12 @@ slots that justify the plugin (vs. just a proxy entry) are:
 
 1. **Backstage permission framework gating** —
    `requirePermission()` middleware only works in backend plugins. To
-   layer "this user/role can use Perch" on top of the agent's own
+   layer "this user/role can use the assistant" on top of the agent's own
    `assistant:invoke` check, the rule lives here.
 2. **Server-side scope enrichment** — fetching the catalog entity,
    resolving the project annotation, looking up the selected
    environment, and injecting them into the request before forwarding.
-3. **Multi-backend routing** — selecting between Perch and a future
+3. **Multi-backend routing** — selecting between the portal-assistant agent and a future
    on-prem model (or a Claude variant) per-org / per-user.
 4. **Server-side rate limiting / quota** tied to Backstage identity.
 5. **Backstage-identity-correlated audit logs** distinct from the
