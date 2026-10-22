@@ -5,14 +5,15 @@ import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 
 /**
  * Release line names of a component, read from the ReleaseLine entities that
- * are part of it in the catalog. Empty for components without release lines.
+ * are part of it in the catalog, with whether they have loaded. The default line is not
+ * among them, and they are empty for components without release lines.
  */
-export function useComponentReleaseLines(
+export function useComponentReleaseLineState(
   namespace: string | undefined,
   component: string | undefined,
-): string[] {
+): { lines: string[]; loading: boolean } {
   const catalogApi = useApi(catalogApiRef);
-  const { data = [] } = useOpenChoreoQuery<string[]>(
+  const { data = [], loading } = useOpenChoreoQuery<string[]>(
     ['insights-release-lines', namespace ?? '', component ?? ''],
     async () => {
       const { items } = await catalogApi.getEntities({
@@ -33,5 +34,13 @@ export function useComponentReleaseLines(
     },
     { enabled: Boolean(namespace && component) },
   );
-  return data;
+  return { lines: data, loading };
+}
+
+/** Release line names of a component, as {@link useComponentReleaseLineState}. */
+export function useComponentReleaseLines(
+  namespace: string | undefined,
+  component: string | undefined,
+): string[] {
+  return useComponentReleaseLineState(namespace, component).lines;
 }

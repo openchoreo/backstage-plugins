@@ -4,12 +4,14 @@ import {
   assertApiResponse,
   getDescription,
 } from '@openchoreo/openchoreo-client-node';
-import type {
-  APIResponse,
-  ComponentResponse,
-  ComponentTraitRequest,
-  ReleaseLineSummary,
-  ReleaseLineResource,
+import {
+  isDefaultReleaseLine,
+  toStoredReleaseLine,
+  type APIResponse,
+  type ComponentResponse,
+  type ComponentTraitRequest,
+  type ReleaseLineSummary,
+  type ReleaseLineResource,
 } from '@openchoreo/backstage-plugin-common';
 import { transformComponent } from '../transformers';
 
@@ -74,8 +76,8 @@ export class ComponentInfoService {
   }
 
   /**
-   * Fetches the release lines of a component. A component without release lines
-   * returns an empty list.
+   * Fetches the lines of a component: its implicit default line first, then its
+   * release lines by name.
    */
   async fetchReleaseLines(
     namespaceName: string,
@@ -118,8 +120,13 @@ export class ComponentInfoService {
         ),
         workflowOverride:
           Object.keys(line.spec?.workflow?.parameters ?? {}).length > 0,
+        ...(isDefaultReleaseLine(line.metadata.name) && { isDefault: true }),
       }))
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .sort(
+        (a, b) =>
+          Number(Boolean(b.isDefault)) - Number(Boolean(a.isDefault)) ||
+          a.name.localeCompare(b.name),
+      );
   }
 
   /** Fetches one release line of a component. */
@@ -276,7 +283,7 @@ export class ComponentInfoService {
         params: {
           path: { namespaceName, componentName },
         },
-        body: { releaseLine },
+        body: { releaseLine: toStoredReleaseLine(releaseLine) },
       },
     );
 

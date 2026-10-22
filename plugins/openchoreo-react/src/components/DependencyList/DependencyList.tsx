@@ -3,10 +3,11 @@ import { Box, Button } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
 import type { Entity } from '@backstage/catalog-model';
-import type {
-  Dependency,
-  ResourceDependency,
-  ResourceTypeOutput,
+import {
+  toStoredReleaseLine,
+  type Dependency,
+  type ResourceDependency,
+  type ResourceTypeOutput,
 } from '@openchoreo/backstage-plugin-common';
 import {
   DependencyEditor,
@@ -245,7 +246,10 @@ export const DependencyList: FC<DependencyListProps> = ({
               releaseLines={getReleaseLines?.(index)}
               onReleaseLineChange={releaseLine => {
                 if (isCurrentlyEditing) {
-                  editBuffer.updateBuffer('releaseLine', releaseLine);
+                  editBuffer.updateBuffer(
+                    'releaseLine',
+                    toStoredReleaseLine(releaseLine),
+                  );
                   // Endpoints come from the line's Workload
                   editBuffer.updateBuffer('name', '');
                   editBuffer.updateBuffer('visibility', '');

@@ -3,6 +3,8 @@ import { ResponseError } from '@backstage/errors';
 import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import {
   CHOREO_ANNOTATIONS,
+  isSameReleaseLine,
+  toStoredReleaseLine,
   type WorkloadResource,
   type ReleaseBindingCondition,
   type ReleaseLineSummary,
@@ -195,12 +197,22 @@ function entityMetadataToParams(
   };
 }
 
-/** Adds the `releaseLine` query parameter when a release line is selected. */
+/**
+ * Adds the `releaseLine` query parameter for a release line. The default line is
+ * left out, so `default` is never sent to be written into a resource.
+ */
 function withReleaseLine(
   params: Record<string, string>,
   releaseLine?: string,
 ): Record<string, string> {
-  return releaseLine ? { ...params, releaseLine } : params;
+  const line = toStoredReleaseLine(releaseLine);
+  return line ? { ...params, releaseLine: line } : params;
+}
+
+/** The `releaseLine` body field for a release line, left out for the default line. */
+function releaseLineField(releaseLine?: string): { releaseLine?: string } {
+  const line = toStoredReleaseLine(releaseLine);
+  return line ? { releaseLine: line } : {};
 }
 
 interface ResourceEntityMetadata {
@@ -361,7 +373,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         projectName: project,
         componentName: component,
         environment,
-        ...(releaseLine ? { releaseLine } : {}),
+        ...releaseLineField(releaseLine),
       },
     });
   }
@@ -382,7 +394,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         componentName: component,
         bindingName,
         releaseState,
-        ...(releaseLine ? { releaseLine } : {}),
+        ...releaseLineField(releaseLine),
       },
     });
   }
@@ -401,7 +413,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         projectName: project,
         componentName: component,
         bindingName,
-        ...(releaseLine ? { releaseLine } : {}),
+        ...releaseLineField(releaseLine),
       },
     });
   }
@@ -430,7 +442,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     return this.apiFetch<CreateReleaseResponse>(API_ENDPOINTS.CREATE_RELEASE, {
       method: 'POST',
       params: entityMetadataToParams(metadata),
-      body: { releaseName, ...(releaseLine ? { releaseLine } : {}) },
+      body: { releaseName, ...releaseLineField(releaseLine) },
     });
   }
 
@@ -674,14 +686,14 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         },
       },
     );
-    if (!releaseLine || !response.data) {
+    if (!response.data) {
       return response;
     }
     return {
       ...response,
       data: {
-        items: response.data.items.filter(
-          release => release.spec?.owner?.releaseLine === releaseLine,
+        items: response.data.items.filter(release =>
+          isSameReleaseLine(release.spec?.owner?.releaseLine, releaseLine),
         ),
       },
     };
@@ -705,9 +717,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       environment,
       releaseName,
     };
-    if (releaseLine) {
-      body.releaseLine = releaseLine;
-    }
+    Object.assign(body, releaseLineField(releaseLine));
 
     if (componentTypeEnvironmentConfigs !== undefined) {
       body.componentTypeEnvironmentConfigs = componentTypeEnvironmentConfigs;
@@ -756,9 +766,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     if (releaseName !== undefined) {
       patchReq.releaseName = releaseName;
     }
-    if (releaseLine) {
-      patchReq.releaseLine = releaseLine;
-    }
+    Object.assign(patchReq, releaseLineField(releaseLine));
 
     return this.apiFetch(API_ENDPOINTS.PATCH_RELEASE_BINDING, {
       method: 'PATCH',

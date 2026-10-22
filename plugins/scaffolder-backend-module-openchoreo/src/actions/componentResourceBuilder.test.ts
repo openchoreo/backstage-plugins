@@ -309,23 +309,6 @@ describe('buildWorkloadResource', () => {
     expect(result.spec.endpoints).toBeUndefined();
   });
 
-  it('names the workload after its release line and owns it by the line', () => {
-    const result = buildWorkloadResource({
-      componentName: 'hello',
-      namespaceName: 'default',
-      projectName: 'default',
-      releaseLine: 'main',
-      containerImage: 'nginx:latest',
-    });
-
-    expect(result.metadata.name).toBe('hello-main-workload');
-    expect(result.spec.owner).toEqual({
-      projectName: 'default',
-      componentName: 'hello',
-      releaseLine: 'main',
-    });
-  });
-
   it('should add endpoint when port is provided', () => {
     const result = buildWorkloadResource({
       componentName: 'my-service',
@@ -453,16 +436,6 @@ describe('buildComponentResource – additional cases', () => {
     componentType: 'service',
     componentTypeWorkloadType: 'deployment',
   };
-
-  it('enables release lines only when asked', () => {
-    expect(
-      buildComponentResource({ ...minimalInput, releaseLinesEnabled: true })
-        .spec.releaseLinesEnabled,
-    ).toBe(true);
-    expect(buildComponentResource(minimalInput).spec).not.toHaveProperty(
-      'releaseLinesEnabled',
-    );
-  });
 
   it('should use ClusterComponentType kind when specified', () => {
     const result = buildComponentResource({

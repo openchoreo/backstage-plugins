@@ -1,7 +1,8 @@
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Dependency,
-  isReleaseLinesEnabledComponent,
+  hasReleaseLines,
+  toStoredReleaseLine,
   ResourceDependency,
   ResourceTypeOutput,
   WorkloadEndpoint,
@@ -94,20 +95,11 @@ export const DependencyContent: FC<DependencyContentProps> = ({
     [allComponents, currentProject],
   );
 
-  const requiresReleaseLine = useCallback(
-    (dependency: Dependency): boolean => {
-      const target = findTargetComponent(dependency);
-      return !!target && isReleaseLinesEnabledComponent(target);
-    },
-    [findTargetComponent],
-  );
-
   const editBuffer = useDependencyEditBuffer({
     dependencies,
     onDependencyReplace,
     onRemoveDependency,
     defaultProject: currentProject,
-    requiresReleaseLine,
   });
 
   // Report editing state to context
@@ -204,8 +196,8 @@ export const DependencyContent: FC<DependencyContentProps> = ({
     [allComponents],
   );
 
-  // Endpoint cache key for a dependency's target. A release-lines-enabled
-  // target has a Workload per line, so its endpoints are keyed by the line.
+  // Endpoint cache key for a dependency's target. Each line of the target has
+  // its own Workload, so its endpoints are keyed by the line, the default line's by none.
   const endpointCacheKey = useCallback(
     (dependency: Dependency | undefined): string | undefined => {
       const projectName = dependency?.project || currentProject;
@@ -213,12 +205,10 @@ export const DependencyContent: FC<DependencyContentProps> = ({
         return undefined;
       }
       const key = `${projectName}/${dependency.component}`;
-      if (!requiresReleaseLine(dependency)) return key;
-      return dependency.releaseLine
-        ? `${key}@${dependency.releaseLine}`
-        : undefined;
+      const line = toStoredReleaseLine(dependency.releaseLine);
+      return line ? `${key}@${line}` : key;
     },
-    [currentProject, requiresReleaseLine],
+    [currentProject],
   );
 
   // Fetch endpoints for a dependency's target (caches full endpoint data)
@@ -236,7 +226,7 @@ export const DependencyContent: FC<DependencyContentProps> = ({
       try {
         const workload: WorkloadResource = await client.fetchWorkloadInfo(
           component,
-          requiresReleaseLine(dependency) ? dependency.releaseLine : undefined,
+          toStoredReleaseLine(dependency.releaseLine),
         );
         const endpoints: EndpointMap = workload?.spec?.endpoints || {};
         setEndpointCache(prev => ({ ...prev, [cacheKey]: endpoints }));
@@ -245,13 +235,7 @@ export const DependencyContent: FC<DependencyContentProps> = ({
         return {};
       }
     },
-    [
-      endpointCacheKey,
-      endpointCache,
-      findTargetComponent,
-      client,
-      requiresReleaseLine,
-    ],
+    [endpointCacheKey, endpointCache, findTargetComponent, client],
   );
 
   /** Get the effective dependency for a given index (buffer if editing, else stored) */
@@ -319,11 +303,12 @@ export const DependencyContent: FC<DependencyContentProps> = ({
     [getEffectiveDependency, endpointCacheKey, endpointCache],
   );
 
-  // Release lines of the dependency's target; undefined when it has none
+  // Release lines of the dependency's target besides the default line; undefined when it
+  // has none, so the picker shows only for a target with release lines
   const getReleaseLines = useCallback(
     (index: number): ReleaseLineOption[] | undefined => {
       const target = findTargetComponent(getEffectiveDependency(index));
-      if (!target || !isReleaseLinesEnabledComponent(target)) return undefined;
+      if (!target || !hasReleaseLines(target)) return undefined;
       const annotations = target.metadata.annotations ?? {};
       return allReleaseLines
         .filter(line => {

@@ -11,6 +11,7 @@ import {
   RuntimeLogsFilters,
   LOG_LEVELS,
 } from '../components/RuntimeLogs/types';
+import { useSelectedReleaseLine } from './useSelectedReleaseLine';
 
 export interface ProjectRuntimeLogsFilters extends RuntimeLogsFilters {
   components?: string[];
@@ -67,6 +68,10 @@ export function useProjectRuntimeLogs(
     () => Array.from(new Set(filters.components || [])),
     [filters.components],
   );
+  // A release line narrows a single selected component.
+  const selectedLine = useSelectedReleaseLine();
+  const releaseLine =
+    selectedComponents.length === 1 ? selectedLine : undefined;
 
   const pageSize = options.limit || 50;
   const sortOrder = filters.sortOrder || 'asc';
@@ -94,6 +99,7 @@ export function useProjectRuntimeLogs(
       options.projectName,
       options.environmentName,
       selectedComponents.join(','),
+      releaseLine ?? null,
       filters.timeRange,
       filters.customStartTime,
       filters.customEndTime,
@@ -145,6 +151,7 @@ export function useProjectRuntimeLogs(
               logLevels,
               searchQuery: filters.searchQuery,
               sortOrder,
+              releaseLine,
             },
           );
           const logs = (response.logs || []).map(log => ({

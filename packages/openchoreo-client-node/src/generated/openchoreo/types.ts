@@ -1256,7 +1256,7 @@ export interface paths {
     put?: never;
     /**
      * Run a component workflow
-     * @description Starts a run of the component's configured workflow with the component's workflow parameters. For a component with release lines enabled, releaseLine is required and that line's workflow parameter overrides are applied.
+     * @description Starts a run of the component's configured workflow with the component's workflow parameters. With releaseLine set to one of the component's release lines, that line's workflow parameter overrides are applied. Omitted or default builds the default line.
      */
     post: operations['createComponentWorkflowRun'];
     delete?: never;
@@ -1274,13 +1274,13 @@ export interface paths {
     };
     /**
      * List component release lines
-     * @description Returns a paginated list of the release lines of a component. The list is empty for a component without release lines.
+     * @description Returns a paginated list of the release lines of a component. The first page of an unfiltered list starts with default, the implicit line every component has, described from its bindings without a release line.
      */
     get: operations['listComponentReleaseLines'];
     put?: never;
     /**
      * Create component release line
-     * @description Creates a release line for a component with release lines enabled. The owner is taken from the path.
+     * @description Creates a release line for a component whose type allows release lines. The owner is taken from the path. The name default is reserved for the implicit default line.
      */
     post: operations['createComponentReleaseLine'];
     delete?: never;
@@ -1298,18 +1298,18 @@ export interface paths {
     };
     /**
      * Get component release line
-     * @description Returns a release line of a component, including its status per environment.
+     * @description Returns a release line of a component, including its status per environment. The name default returns the implicit default line.
      */
     get: operations['getComponentReleaseLine'];
     /**
      * Update component release line
-     * @description Replaces the spec of a release line (full update). The owner cannot change.
+     * @description Replaces the spec of a release line (full update). The owner cannot change. The implicit default line cannot be updated.
      */
     put: operations['updateComponentReleaseLine'];
     post?: never;
     /**
      * Delete component release line
-     * @description Deletes a release line. The line's bindings in every environment, its releases and its Workload are then removed.
+     * @description Deletes a release line. The line's bindings in every environment, its releases and its Workload are then removed. The implicit default line cannot be deleted.
      */
     delete: operations['deleteComponentReleaseLine'];
     options?: never;
@@ -3119,8 +3119,6 @@ export interface components {
          */
         name: string;
       };
-      /** @description Deploys the component only through explicit ReleaseLines. Can only be set when the component is created. */
-      releaseLinesEnabled?: boolean;
       /**
        * @description Whether to automatically deploy to default environment when created
        * @default false
@@ -3833,7 +3831,7 @@ export interface components {
         name: string;
       }[];
       /**
-       * @description Whether Components of this type can enable release lines. Allowed only when the resources name every component-scoped object per release line. Omitted means Disallowed.
+       * @description Whether Components of this type can have release lines besides their default line. Allowed only when the resources name every component-scoped object per release line. Omitted means Disallowed.
        * @enum {string}
        */
       releaseLines?: 'Allowed' | 'Disallowed';
@@ -4022,7 +4020,7 @@ export interface components {
         name: string;
       }[];
       /**
-       * @description Whether Components of this type can enable release lines. Allowed only when the resources name every component-scoped object per release line. Omitted means Disallowed.
+       * @description Whether Components of this type can have release lines besides their default line. Allowed only when the resources name every component-scoped object per release line. Omitted means Disallowed.
        * @enum {string}
        */
       releaseLines?: 'Allowed' | 'Disallowed';
@@ -4715,7 +4713,7 @@ export interface components {
          */
         componentName: string;
         /**
-         * @description Release line this release belongs to. Required when the component has release lines enabled.
+         * @description Release line this release belongs to. Omitted for the default line.
          * @example next
          */
         releaseLine?: string;
@@ -4781,7 +4779,7 @@ export interface components {
          */
         componentName: string;
         /**
-         * @description Release line this binding belongs to. Required when the component has release lines enabled.
+         * @description Release line this binding belongs to. Omitted for the default line.
          * @example next
          */
         releaseLine?: string;
@@ -5783,7 +5781,7 @@ export interface components {
        */
       releaseName?: string;
       /**
-       * @description Release line to release from. Required when the component has release lines enabled; the release is built from the line's Workload and overrides.
+       * @description Release line to release from, built from the line's Workload and overrides. Omitted or default releases the default line.
        * @example next
        */
       releaseLine?: string;
@@ -5791,7 +5789,7 @@ export interface components {
     /** @description Request to run a component's workflow */
     CreateComponentWorkflowRunRequest: {
       /**
-       * @description Release line to build. Required when the component has release lines enabled.
+       * @description Release line to build. Omitted or default builds the default line.
        * @example api-service-v2
        */
       releaseLine?: string;
@@ -6457,7 +6455,7 @@ export interface components {
          */
         componentName: string;
         /**
-         * @description Release line of the owning component. Required when the component has release lines enabled.
+         * @description Release line of the owning component. Omitted for the default line.
          * @example api-service-v2
          */
         releaseLine?: string;
@@ -6526,7 +6524,7 @@ export interface components {
       project?: string;
       /** @description Target component name */
       component: string;
-      /** @description Target component's release line. Required when the target has release lines enabled. */
+      /** @description Target component's release line. Omitted targets its default line. */
       releaseLine?: string;
       /** @description Target endpoint name on the target component */
       name: string;
@@ -10653,6 +10651,7 @@ export interface operations {
         };
         content?: never;
       };
+      400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];

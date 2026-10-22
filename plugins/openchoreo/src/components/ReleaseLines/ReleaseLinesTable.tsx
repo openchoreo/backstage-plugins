@@ -13,10 +13,7 @@ import { RowDeleteButton } from '../DeleteEntity';
 import { useProjectContentsCardStyles } from '../Projects/ProjectContentsCard/styles';
 import { ReleaseLineEnvironmentsCell } from './ReleaseLineEnvironmentsCell';
 import { ReleaseLineNameCell } from './ReleaseLineNameCell';
-import {
-  releaseLineEntityPath,
-  releaseLineRowEntity,
-} from './releaseLineUtils';
+import { lineEntityPath, releaseLineRowEntity } from './releaseLineUtils';
 
 export const RELEASE_LINES_PAGE_SIZE = 10;
 
@@ -29,15 +26,15 @@ export interface ReleaseLinesTableProps {
 }
 
 /**
- * The release lines of a component, one row per line, in the same table and
- * pager as the project's contents. Clicking anywhere on a row opens the line.
+ * The lines of a component, default first, one row per line, in the same table
+ * and pager as the project's contents. Clicking anywhere on a row opens the
+ * line. The default line can't be deleted.
  */
 export function ReleaseLinesTable({
   component,
   releaseLines,
   onDelete,
 }: ReleaseLinesTableProps) {
-  const namespace = component.metadata.namespace ?? 'default';
   const listClasses = useProjectContentsCardStyles();
   const navigate = useNavigate();
   const [pageIndex, setPageIndex] = useState(0);
@@ -61,7 +58,10 @@ export function ReleaseLinesTable({
         width: '25%',
         highlight: true,
         render: line => (
-          <ReleaseLineNameCell namespace={namespace} name={line.name} />
+          <ReleaseLineNameCell
+            name={line.name}
+            to={lineEntityPath(component, line)}
+          />
         ),
       },
       {
@@ -74,11 +74,16 @@ export function ReleaseLinesTable({
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
         },
-        render: line => (
-          <Typography variant="body2" noWrap title={line.description}>
-            {line.description || '—'}
-          </Typography>
-        ),
+        render: line => {
+          const description =
+            line.description ||
+            (line.isDefault ? "The component's own workload and bindings" : '');
+          return (
+            <Typography variant="body2" noWrap title={description}>
+              {description || '—'}
+            </Typography>
+          );
+        },
       },
       {
         title: 'Deployment',
@@ -94,15 +99,16 @@ export function ReleaseLinesTable({
         sorting: false,
         cellStyle: { textAlign: 'right', paddingRight: 8 },
         headerStyle: { textAlign: 'right' },
-        render: line => (
-          <RowDeleteButton
-            entity={releaseLineRowEntity(component, line)}
-            onDelete={onDelete}
-          />
-        ),
+        render: line =>
+          line.isDefault ? null : (
+            <RowDeleteButton
+              entity={releaseLineRowEntity(component, line)}
+              onDelete={onDelete}
+            />
+          ),
       },
     ],
-    [namespace, component, onDelete],
+    [component, onDelete],
   );
 
   return (
@@ -113,7 +119,7 @@ export function ReleaseLinesTable({
           data={pageItems}
           onRowClick={(event, line) => {
             if (!line || !shouldNavigateOnRowClick(event)) return;
-            navigate(releaseLineEntityPath(namespace, line.name));
+            navigate(lineEntityPath(component, line));
           }}
           options={{
             paging: false,

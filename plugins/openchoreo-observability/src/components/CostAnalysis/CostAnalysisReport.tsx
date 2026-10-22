@@ -12,7 +12,10 @@ import {
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { useFinOpsReport, useFilters } from '../../hooks';
-import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import {
+  CHOREO_ANNOTATIONS,
+  toStoredReleaseLine,
+} from '@openchoreo/backstage-plugin-common';
 import { CostAnalysisReportView } from './CostAnalysisReportView';
 import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
 import { finopsAgentApiRef } from '../../api/FinOpsAgentApi';
@@ -112,10 +115,10 @@ const CostAnalysisReportContent = () => {
   };
 
   const componentName = detailedReport.report?.component;
-  const releaseLine = detailedReport.releaseLine;
+  // The default line's tabs are its component's own, and each release line has its page.
+  const releaseLine = toStoredReleaseLine(detailedReport.releaseLine);
   const catalogNs = entity.metadata.namespace || 'default';
   const environmentName = environment?.name || detailedReport.environment;
-  // A component with release lines has its tabs on each line's page.
   const entityPath = releaseLine
     ? `/catalog/${catalogNs}/releaseline/${releaseLine}`
     : componentName && `/catalog/${catalogNs}/component/${componentName}`;

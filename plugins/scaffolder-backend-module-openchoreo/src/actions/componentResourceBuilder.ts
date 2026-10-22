@@ -55,7 +55,6 @@ export interface ComponentResourceInput {
   // Section 3: Deployment Source & CI/CD Setup
   deploymentSource?: DeploymentSource;
   autoDeploy?: boolean;
-  releaseLinesEnabled?: boolean;
   repoUrl?: string;
   branch?: string;
   componentPath?: string;
@@ -102,7 +101,6 @@ export function buildComponentResource(
       },
       parameters: input.ctdParameters || {},
       autoDeploy: input.autoDeploy ?? false,
-      ...(input.releaseLinesEnabled && { releaseLinesEnabled: true }),
     },
   };
 
@@ -213,8 +211,6 @@ export interface WorkloadResourceInput {
   componentName: string;
   namespaceName: string;
   projectName: string;
-  /** Release line the workload belongs to, for components with release lines */
-  releaseLine?: string;
   containerImage?: string;
   port?: number;
   endpoints?: Record<string, WorkloadEndpoint>;
@@ -251,16 +247,13 @@ export function buildWorkloadResource(
     apiVersion: 'openchoreo.dev/v1alpha1',
     kind: 'Workload',
     metadata: {
-      name: input.releaseLine
-        ? `${input.componentName}-${input.releaseLine}-workload`
-        : `${input.componentName}-workload`,
+      name: `${input.componentName}-workload`,
       namespace: input.namespaceName,
     },
     spec: {
       owner: {
         projectName: input.projectName,
         componentName: input.componentName,
-        ...(input.releaseLine && { releaseLine: input.releaseLine }),
       },
     },
   };

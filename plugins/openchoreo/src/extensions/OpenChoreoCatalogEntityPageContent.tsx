@@ -31,6 +31,7 @@ import {
   type DeletePermissionInfo,
 } from '../components/DeleteEntity';
 import { useAnnotationEditorMenuItems } from '../components/AnnotationEditor';
+import { useCreateReleaseLineMenuItems } from '../components/ReleaseLines';
 
 const KIND_DISPLAY_NAMES: Record<string, string> = {
   system: 'Project',
@@ -185,7 +186,14 @@ function EntityChrome({ routes }: OpenChoreoCatalogEntityPageContentProps) {
     message,
   } = useEntityExistsCheck(entity);
 
-  const extraMenuItems = [...annotationMenuItems, ...deleteMenuItems];
+  const { extraMenuItems: releaseLineMenuItems, CreateReleaseLineMenuDialog } =
+    useCreateReleaseLineMenuItems(entity);
+
+  const extraMenuItems = [
+    ...releaseLineMenuItems,
+    ...annotationMenuItems,
+    ...deleteMenuItems,
+  ];
   const entityTypeLabel =
     KIND_DISPLAY_NAMES[entity.kind.toLowerCase()] ?? entity.kind;
 
@@ -258,6 +266,7 @@ function EntityChrome({ routes }: OpenChoreoCatalogEntityPageContentProps) {
       </OpenChoreoEntityLayout>
       <DeleteConfirmationDialog />
       <AnnotationEditorDialog />
+      <CreateReleaseLineMenuDialog />
     </>
   );
 }

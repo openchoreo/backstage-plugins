@@ -4,15 +4,15 @@ import { selectEntityRoutes } from './selectEntityRoutes';
 
 const managed = { 'openchoreo.io/managed': 'true' };
 
-const component = (releaseLinesEnabled = false): Entity => ({
+const component = (hasReleaseLines = false): Entity => ({
   apiVersion: 'backstage.io/v1alpha1',
   kind: 'Component',
   metadata: {
     name: 'hello',
     namespace: 'default',
     labels: managed,
-    annotations: releaseLinesEnabled
-      ? { 'openchoreo.io/release-lines-enabled': 'true' }
+    annotations: hasReleaseLines
+      ? { 'openchoreo.io/has-release-lines': 'true' }
       : {},
   },
   spec: { type: 'service' },
@@ -66,12 +66,10 @@ describe('selectEntityRoutes', () => {
     expect(ids(selectEntityRoutes(routes, component()))).toEqual(ids(routes));
   });
 
-  it('keeps only Overview and Definition for a component with release lines', () => {
-    expect(ids(selectEntityRoutes(routes, component(true)))).toEqual([
-      'overview',
-      'definition',
-      'release-line-definition',
-    ]);
+  it('keeps every tab of a component with release lines, for its default line', () => {
+    expect(ids(selectEntityRoutes(routes, component(true)))).toEqual(
+      ids(routes),
+    );
   });
 
   it('gives a release line its own tabs plus its component tabs', () => {

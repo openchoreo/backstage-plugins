@@ -265,11 +265,7 @@ export const DependencyEditor: FC<DependencyEditorProps> = ({
               value={dependency.name || ''}
               onChange={e => onEndpointChange(e.target.value as string)}
               label="Endpoint"
-              disabled={
-                disabled ||
-                !dependency.component ||
-                (!!releaseLines && !dependency.releaseLine)
-              }
+              disabled={disabled || !dependency.component}
             >
               {endpoints.map(endpoint => (
                 <MenuItem key={endpoint.name} value={endpoint.name}>

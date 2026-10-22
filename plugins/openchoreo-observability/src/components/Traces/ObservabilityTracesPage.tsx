@@ -23,7 +23,7 @@ import {
   calculateTimeRange,
   useProjectEnvironments,
 } from '@openchoreo/backstage-plugin-react';
-import { EnvironmentsStatusNotice } from '../common';
+import { EnvironmentsStatusNotice, ReleaseLineFilter } from '../common';
 
 const ObservabilityTracesContent = () => {
   const { entity } = useEntity();
@@ -159,6 +159,14 @@ const ObservabilityTracesContent = () => {
 
       {!tracesLoading && (
         <>
+          <ReleaseLineFilter
+            namespace={namespace}
+            component={
+              filters.components?.length === 1
+                ? filters.components[0]
+                : undefined
+            }
+          />
           <TracesFilters
             filters={filters}
             onFiltersChange={handleFiltersChange}

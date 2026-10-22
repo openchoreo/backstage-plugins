@@ -14,6 +14,7 @@ import {
   useOpenChoreoQuery,
 } from '@openchoreo/backstage-plugin-react';
 import { calculateStep } from '../components/Metrics/utils';
+import { useSelectedReleaseLine } from './useSelectedReleaseLine';
 
 interface UseProjectMetricsResult {
   metrics: ProjectMetrics | undefined;
@@ -61,6 +62,9 @@ export function useProjectMetrics(
     () => Array.from(new Set(components)).sort(),
     [components],
   );
+  // A release line narrows a single selected component.
+  const selectedLine = useSelectedReleaseLine();
+  const releaseLine = componentNames.length === 1 ? selectedLine : undefined;
 
   const { data, loading, isRefetching, error, refetch } =
     useOpenChoreoQuery<ProjectMetrics>(
@@ -70,6 +74,7 @@ export function useProjectMetrics(
         project,
         filters.environment?.name ?? null,
         componentNames.join(','),
+        releaseLine ?? null,
         filters.timeRange,
         filters.customStartTime,
         filters.customEndTime,
@@ -89,7 +94,7 @@ export function useProjectMetrics(
               componentName,
               namespaceName,
               project,
-              { startTime, endTime, step, type: metricType },
+              { startTime, endTime, step, type: metricType, releaseLine },
             ),
           ),
         );

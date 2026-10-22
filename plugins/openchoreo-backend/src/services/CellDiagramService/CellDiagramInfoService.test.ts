@@ -688,10 +688,6 @@ describe('CellDiagramInfoService', () => {
     });
 
     describe('release lines', () => {
-      const releaseLineComponent = (name: string) => {
-        const comp = k8sComponent(name, 'deployment/service');
-        return { ...comp, spec: { ...comp.spec, releaseLinesEnabled: true } };
-      };
       const lineWorkload = (
         componentName: string,
         releaseLine: string,
@@ -711,17 +707,21 @@ describe('CellDiagramInfoService', () => {
         };
       };
 
-      it('renders one node per release line', async () => {
+      it('renders default, then one node per release line', async () => {
         mockGET
           .mockResolvedValueOnce(
             createOkResponse({
-              items: [releaseLineComponent('api')],
+              items: [k8sComponent('api', 'deployment/service')],
               pagination: {},
             }),
           )
           .mockResolvedValueOnce(
             createOkResponse({
-              items: [lineWorkload('api', 'next'), lineWorkload('api', 'main')],
+              items: [
+                lineWorkload('api', 'next'),
+                k8sWorkload('api'),
+                lineWorkload('api', 'canary'),
+              ],
               pagination: {},
             }),
           );
@@ -731,40 +731,23 @@ describe('CellDiagramInfoService', () => {
           'token',
         );
 
-        expect(
-          result!.components.map(c => [c.id, c.label, c.badge]),
-        ).toEqual([
-          ['api@main', 'api', 'main'],
+        expect(result!.components.map(c => [c.id, c.label, c.badge])).toEqual([
+          ['api', 'api', 'default'],
+          ['api@canary', 'api', 'canary'],
           ['api@next', 'api', 'next'],
         ]);
       });
 
-      it('links a dependency to the release line it names', async () => {
+      it('renders a component without release lines without a badge', async () => {
         mockGET
           .mockResolvedValueOnce(
             createOkResponse({
-              items: [
-                releaseLineComponent('api'),
-                k8sComponent('web', 'deployment/service'),
-              ],
+              items: [k8sComponent('api', 'deployment/service')],
               pagination: {},
             }),
           )
           .mockResolvedValueOnce(
-            createOkResponse({
-              items: [
-                lineWorkload('api', 'main'),
-                lineWorkload('api', 'next'),
-                k8sWorkload('web', {
-                  dependencies: {
-                    endpoints: [
-                      { component: 'api', releaseLine: 'next', name: 'http' },
-                    ],
-                  },
-                }),
-              ],
-              pagination: {},
-            }),
+            createOkResponse({ items: [k8sWorkload('api')], pagination: {} }),
           );
 
         const result = await createService().fetchProjectInfo(
@@ -772,27 +755,70 @@ describe('CellDiagramInfoService', () => {
           'token',
         );
 
-        const web = result!.components.find(c => c.id === 'web');
-        expect(web!.connections).toEqual([
-          expect.objectContaining({
-            id: 'test-ns:my-project:api@next:http',
-            label: 'api:next/http',
-            onPlatform: true,
-          }),
+        expect(result!.components.map(c => [c.id, c.badge])).toEqual([
+          ['api', undefined],
         ]);
       });
 
-      it('scopes gateway metrics to the release line', async () => {
+      it.each([
+        [{ releaseLine: 'next' }, 'api@next', 'api:next/http'],
+        [{}, 'api', 'api:default/http'],
+        [{ releaseLine: 'default' }, 'api', 'api:default/http'],
+      ])(
+        'links a dependency on %j to its line',
+        async (line, targetId, label) => {
+          mockGET
+            .mockResolvedValueOnce(
+              createOkResponse({
+                items: [
+                  k8sComponent('api', 'deployment/service'),
+                  k8sComponent('web', 'deployment/service'),
+                ],
+                pagination: {},
+              }),
+            )
+            .mockResolvedValueOnce(
+              createOkResponse({
+                items: [
+                  k8sWorkload('api'),
+                  lineWorkload('api', 'next'),
+                  k8sWorkload('web', {
+                    dependencies: {
+                      endpoints: [{ component: 'api', name: 'http', ...line }],
+                    },
+                  }),
+                ],
+                pagination: {},
+              }),
+            );
+
+          const result = await createService().fetchProjectInfo(
+            { projectName: 'my-project', namespaceName: 'test-ns' },
+            'token',
+          );
+
+          const web = result!.components.find(c => c.id === 'web');
+          expect(web!.connections).toEqual([
+            expect.objectContaining({
+              id: `test-ns:my-project:${targetId}:http`,
+              label,
+              onPlatform: true,
+            }),
+          ]);
+        },
+      );
+
+      it('scopes gateway metrics to each line', async () => {
         mockGET
           .mockResolvedValueOnce(
             createOkResponse({
-              items: [releaseLineComponent('api')],
+              items: [k8sComponent('api', 'deployment/service')],
               pagination: {},
             }),
           )
           .mockResolvedValueOnce(
             createOkResponse({
-              items: [lineWorkload('api', 'main')],
+              items: [k8sWorkload('api'), lineWorkload('api', 'next')],
               pagination: {},
             }),
           );
@@ -810,16 +836,17 @@ describe('CellDiagramInfoService', () => {
           'token',
         );
 
-        expect(mockObsPOST).toHaveBeenCalledWith(
-          '/api/v1/metrics/query',
-          expect.objectContaining({
-            body: expect.objectContaining({
-              searchScope: expect.objectContaining({
-                component: 'api',
-                releaseLine: 'main',
-              }),
+        const scopes = mockObsPOST.mock.calls
+          .filter(([path]) => path === '/api/v1/metrics/query')
+          .map(([, req]) => req.body.searchScope);
+        expect(scopes).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              component: 'api',
+              releaseLine: 'default',
             }),
-          }),
+            expect.objectContaining({ component: 'api', releaseLine: 'next' }),
+          ]),
         );
       });
     });

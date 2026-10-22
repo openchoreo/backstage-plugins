@@ -106,8 +106,6 @@ export interface ComponentResponse {
   deletionTimestamp?: string | null;
   status?: string;
   autoDeploy?: boolean;
-  /** Deploys the component only through explicit release lines. */
-  releaseLinesEnabled?: boolean;
   /**
    * Raw Ready/other conditions from `Component.status.conditions`. Carries the
    * controller's reconcile outcome — notably the pre-binding auto-deploy
@@ -837,7 +835,7 @@ export interface Dependency {
   project?: string;
   /** Target component name */
   component: string;
-  /** Target component's release line. Required when the target has release lines enabled. */
+  /** Target component's release line. Omitted targets its default line. */
   releaseLine?: string;
   /** Target endpoint name on the target component */
   name: string;
@@ -1076,9 +1074,11 @@ export interface ReleaseLineEnvironmentSummary {
   ready?: boolean;
 }
 
-/** A release line of a component with release lines enabled. */
+/** A line of a component: its implicit default line, or a ReleaseLine. */
 export interface ReleaseLineSummary {
   name: string;
+  /** The component's implicit default line, which is not a ReleaseLine resource */
+  isDefault?: boolean;
   /** From the `openchoreo.dev/description` annotation, as for components */
   description?: string;
   latestRelease?: string;

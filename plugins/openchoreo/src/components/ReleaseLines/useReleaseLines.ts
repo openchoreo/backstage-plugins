@@ -16,14 +16,22 @@ export const releaseLinesQueryKey = (entity: Entity) => [
   stringifyEntityRef(entity),
 ];
 
-/** The release lines of a component, with a mutation that creates one. */
-export function useReleaseLines(entity: Entity) {
+/**
+ * The lines of a component, default first, with a mutation that creates a
+ * release line.
+ */
+export function useReleaseLines(
+  entity: Entity,
+  options: { enabled?: boolean } = {},
+) {
   const client = useApi(openChoreoClientApiRef);
   const queryKey = releaseLinesQueryKey(entity);
 
   const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery<
     ReleaseLineSummary[]
-  >(queryKey, () => client.fetchReleaseLines(entity));
+  >(queryKey, () => client.fetchReleaseLines(entity), {
+    enabled: options.enabled ?? true,
+  });
 
   const { mutate: createReleaseLine, isLoading: creating } =
     useOpenChoreoMutation(

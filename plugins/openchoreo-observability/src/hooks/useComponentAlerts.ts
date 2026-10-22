@@ -4,8 +4,8 @@ import { observabilityApiRef } from '../api/ObservabilityApi';
 import {
   calculateTimeRange,
   useOpenChoreoQuery,
-  useReleaseLine,
 } from '@openchoreo/backstage-plugin-react';
+import { useSelectedReleaseLine } from './useSelectedReleaseLine';
 import { AlertSummary } from '../types';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 
@@ -38,7 +38,7 @@ export function useComponentAlerts(
   options: UseComponentAlertsOptions,
 ): UseComponentAlertsResult {
   const observabilityApi = useApi(observabilityApiRef);
-  const { releaseLine } = useReleaseLine();
+  const releaseLine = useSelectedReleaseLine();
 
   const componentName =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];

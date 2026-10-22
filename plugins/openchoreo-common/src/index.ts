@@ -1,7 +1,7 @@
 export {
   isOpenChoreoManagedEntity,
   isOpenChoreoManagedOfKind,
-  isReleaseLinesEnabledComponent,
+  hasReleaseLines,
   isOpenChoreoReleaseLine,
 } from './entityFilters';
 export {
@@ -14,6 +14,12 @@ export {
   type ReleaseLineTrait,
 } from './releaseLineOverrides';
 export { releaseLineNodeId, parseReleaseLineNodeId } from './releaseLineNode';
+export {
+  DEFAULT_RELEASE_LINE,
+  isDefaultReleaseLine,
+  isSameReleaseLine,
+  toStoredReleaseLine,
+} from './defaultReleaseLine';
 
 export {
   CHOREO_ANNOTATIONS,

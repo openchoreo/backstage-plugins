@@ -55,15 +55,14 @@ export function isOpenChoreoManagedOfKind(
 }
 
 /**
- * True for an OpenChoreo Component that deploys only through release lines.
- * Its entity page shows the release lines instead of the build, deploy and
- * runtime tabs, which move to each ReleaseLine entity.
+ * True for an OpenChoreo Component with release lines besides its implicit
+ * default line. Its overview lists the lines, and its own tabs work on the default line.
  */
-export function isReleaseLinesEnabledComponent(entity: Entity): boolean {
+export function hasReleaseLines(entity: Entity): boolean {
   return (
     entity.kind.toLowerCase() === 'component' &&
     isOpenChoreoManagedEntity(entity) &&
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.RELEASE_LINES_ENABLED] ===
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.HAS_RELEASE_LINES] ===
       'true'
   );
 }

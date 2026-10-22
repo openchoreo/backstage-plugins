@@ -46,7 +46,13 @@ import {
 import { execSessionStore } from './ExecSessionStore';
 import type { AuthService, LoggerService } from '@backstage/backend-plugin-api';
 import type { CatalogService } from '@backstage/plugin-catalog-node';
-import type { ReleaseLineResource } from '@openchoreo/backstage-plugin-common';
+import {
+  CHOREO_ANNOTATIONS,
+  DEFAULT_RELEASE_LINE,
+  isDefaultReleaseLine,
+  toStoredReleaseLine,
+  type ReleaseLineResource,
+} from '@openchoreo/backstage-plugin-common';
 import {
   translateReleaseLineToEntity,
   type AnnotationStore,
@@ -92,10 +98,13 @@ const VALID_PLATFORM_RESOURCE_KINDS = [
 export type PlatformResourceKind =
   (typeof VALID_PLATFORM_RESOURCE_KINDS)[number];
 
-/** The release line a request names in its query or body, if any. */
+/**
+ * The release line a request names in its query or body. The default line, by
+ * name or omitted, is undefined, so `default` is never written into a resource.
+ */
 function requestReleaseLine(req: express.Request): string | undefined {
   const value = req.query.releaseLine ?? req.body?.releaseLine;
-  return typeof value === 'string' && value !== '' ? value : undefined;
+  return typeof value === 'string' ? toStoredReleaseLine(value) : undefined;
 }
 
 export async function createRouter({
@@ -1158,12 +1167,61 @@ export async function createRouter({
     }
   };
 
+  /**
+   * Updates the component's `has-release-lines` annotation in the catalog
+   * right away, so its overview follows a line created or deleted from the UI.
+   * Best effort: the next sync updates it otherwise.
+   */
+  const markComponentReleaseLines = async (
+    namespaceName: string,
+    componentName: string,
+    hasLines: boolean,
+  ) => {
+    try {
+      const credentials = await auth.getOwnServiceCredentials();
+      const component = await catalogService.getEntityByRef(
+        `component:${namespaceName}/${componentName}`,
+        { credentials },
+      );
+      if (!component) return;
+      const {
+        uid: _uid,
+        etag: _etag,
+        generation: _generation,
+        ...metadata
+      } = component.metadata as typeof component.metadata & {
+        generation?: number;
+      };
+      const annotations = { ...metadata.annotations };
+      if (hasLines) {
+        annotations[CHOREO_ANNOTATIONS.HAS_RELEASE_LINES] = 'true';
+      } else {
+        delete annotations[CHOREO_ANNOTATIONS.HAS_RELEASE_LINES];
+      }
+      await immediateCatalog.insertEntity({
+        apiVersion: component.apiVersion,
+        kind: component.kind,
+        metadata: { ...metadata, annotations },
+        spec: component.spec,
+      });
+    } catch (err) {
+      logger.warn(
+        `Failed to update release lines of component ${namespaceName}/${componentName} in the catalog; the next sync updates it: ${err}`,
+      );
+    }
+  };
+
   router.post('/release-lines', requireAuth, async (req, res) => {
     const { componentName, namespaceName, releaseLine } = req.body;
 
     if (!componentName || !namespaceName || !releaseLine?.metadata?.name) {
       throw new InputError(
         'componentName, namespaceName and releaseLine.metadata.name are required in request body',
+      );
+    }
+    if (isDefaultReleaseLine(releaseLine.metadata.name)) {
+      throw new InputError(
+        `${DEFAULT_RELEASE_LINE} is the implicit default line of every component and cannot be created`,
       );
     }
 
@@ -1176,6 +1234,7 @@ export async function createRouter({
       userToken,
     );
     await insertReleaseLineEntity(namespaceName, componentName, created);
+    await markComponentReleaseLines(namespaceName, componentName, true);
     res.status(201).json({ success: true, data: created });
   });
 
@@ -1246,6 +1305,22 @@ export async function createRouter({
     } catch (err) {
       logger.warn(
         `Failed to remove release line ${namespaceName}/${releaseLineName} from the catalog; the next sync removes it: ${err}`,
+      );
+    }
+    const remaining = await componentInfoService
+      .fetchReleaseLines(
+        namespaceName as string,
+        componentName as string,
+        userToken,
+      )
+      .catch(() => undefined);
+    if (remaining) {
+      await markComponentReleaseLines(
+        namespaceName as string,
+        componentName as string,
+        remaining.some(
+          line => !line.isDefault && line.name !== releaseLineName,
+        ),
       );
     }
     res.json({ success: true });

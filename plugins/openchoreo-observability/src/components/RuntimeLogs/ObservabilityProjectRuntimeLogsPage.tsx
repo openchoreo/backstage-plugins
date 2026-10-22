@@ -19,7 +19,7 @@ import {
   ForbiddenState,
   useProjectEnvironments,
 } from '@openchoreo/backstage-plugin-react';
-import { EnvironmentsStatusNotice } from '../common';
+import { EnvironmentsStatusNotice, ReleaseLineFilter } from '../common';
 import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { useRuntimeLogsStyles } from './styles';
 import { LogEntryField } from './types';
@@ -219,6 +219,12 @@ const ObservabilityProjectRuntimeLogsContent = ({
       <RefreshOverlay
         active={logsRefetching && !filters.isLive}
         label="Refreshing logs"
+      />
+      <ReleaseLineFilter
+        namespace={namespace}
+        component={
+          filters.components?.length === 1 ? filters.components[0] : undefined
+        }
       />
       <LogsFilter
         filters={filters}

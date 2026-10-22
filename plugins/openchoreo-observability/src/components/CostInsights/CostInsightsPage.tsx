@@ -44,6 +44,7 @@ import type {
   CostProjectRef,
   CostScopeSelection,
 } from './types';
+import { ReleaseLineFilter } from '../common';
 
 // Cost Analysis is a heavier feature (report views, FinOps chat). Load it lazily
 // so it only enters the bundle when the Cost Analysis tab is opened.
@@ -328,6 +329,10 @@ const CostInsightsInsightsTab = () => {
           onRefresh={refresh}
           refreshing={loading || isRefetching}
           disabled={noScope}
+        />
+        <ReleaseLineFilter
+          namespace={optimizeScope?.namespace}
+          component={optimizeScope?.component}
         />
       </Box>
 

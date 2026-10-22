@@ -1,4 +1,5 @@
 import type { FetchApi } from '@backstage/core-plugin-api';
+import { isSameReleaseLine } from '@openchoreo/backstage-plugin-common';
 
 type PrimitiveValue = string | number | boolean;
 
@@ -142,8 +143,9 @@ export interface ExpectedBindingOwner {
 }
 
 /**
- * Throws when the binding belongs to another component, or to another release
- * line than the one the change was recommended for.
+ * Throws when the binding belongs to another component, or to another line
+ * than the one the change was recommended for. The default line, named `default` in agent
+ * reports, is a binding without a release line.
  */
 export function assertBindingOwner(
   binding: { spec?: { owner?: Record<string, unknown> } },
@@ -160,10 +162,15 @@ export function assertBindingOwner(
       `Release binding '${bindingName}' belongs to component '${owner.componentName}', not '${expected.componentName}'`,
     );
   }
-  if (expected.releaseLine && owner.releaseLine !== expected.releaseLine) {
+  const ownerLine =
+    typeof owner.releaseLine === 'string' ? owner.releaseLine : undefined;
+  if (
+    expected.releaseLine &&
+    !isSameReleaseLine(ownerLine, expected.releaseLine)
+  ) {
     throw new Error(
-      owner.releaseLine
-        ? `Release binding '${bindingName}' belongs to release line '${owner.releaseLine}', not '${expected.releaseLine}'`
+      ownerLine
+        ? `Release binding '${bindingName}' belongs to release line '${ownerLine}', not '${expected.releaseLine}'`
         : `Release binding '${bindingName}' is not on release line '${expected.releaseLine}'`,
     );
   }

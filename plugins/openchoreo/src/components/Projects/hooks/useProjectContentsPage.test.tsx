@@ -231,7 +231,7 @@ describe('useProjectContentsPage', () => {
         labels: { 'openchoreo.io/managed': 'true' },
         annotations: {
           ...componentEntity.metadata.annotations,
-          [CHOREO_ANNOTATIONS.RELEASE_LINES_ENABLED]: 'true',
+          [CHOREO_ANNOTATIONS.HAS_RELEASE_LINES]: 'true',
         },
       },
     };

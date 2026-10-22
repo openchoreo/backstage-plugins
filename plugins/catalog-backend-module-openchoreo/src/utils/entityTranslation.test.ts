@@ -982,27 +982,36 @@ describe('translateNewComponentToEntity — spec.dependsOn', () => {
     expect((entity.spec as any).dependsOn).toBeUndefined();
   });
 
-  it('marks a component with release lines enabled', () => {
-    const entity = translateNewComponentToEntity(
-      {
-        apiVersion: 'openchoreo.dev/v1alpha1',
-        kind: 'Component',
-        metadata: { name: 'hello', namespace: 'default' } as any,
-        spec: {
-          componentType: { kind: 'ClusterComponentType', name: 'service' },
-          owner: { projectName: 'default' },
-          releaseLinesEnabled: true,
-        } as any,
+  it('marks a component with release lines besides the default line', () => {
+    const component = {
+      apiVersion: 'openchoreo.dev/v1alpha1',
+      kind: 'Component',
+      metadata: { name: 'hello', namespace: 'default' } as any,
+      spec: {
+        componentType: { kind: 'ClusterComponentType', name: 'service' },
+        owner: { projectName: 'default' },
       } as any,
-      'default',
-      'default',
-      'group:default/owner',
-      ctx as any,
-    );
+    } as any;
+    const translate = (hasReleaseLines?: boolean) =>
+      translateNewComponentToEntity(
+        component,
+        'default',
+        'default',
+        'group:default/owner',
+        ctx as any,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        hasReleaseLines,
+      );
 
     expect(
-      entity.metadata.annotations?.['openchoreo.io/release-lines-enabled'],
+      translate(true).metadata.annotations?.['openchoreo.io/has-release-lines'],
     ).toBe('true');
+    expect(
+      translate().metadata.annotations?.['openchoreo.io/has-release-lines'],
+    ).toBeUndefined();
   });
 });
 

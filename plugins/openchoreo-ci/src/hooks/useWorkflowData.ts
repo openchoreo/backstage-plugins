@@ -10,7 +10,10 @@ import type {
   ModelsBuild,
   ModelsCompleteComponent,
 } from '@openchoreo/backstage-plugin-common';
-import { CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
+import {
+  CHOREO_LABELS,
+  isSameReleaseLine,
+} from '@openchoreo/backstage-plugin-common';
 import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 
 const POLLING_INTERVAL = 5000; // 5 seconds
@@ -99,10 +102,11 @@ export function useWorkflowData() {
       const result = await response.json();
       // Map WorkflowRun items to ModelsBuild shape for UI compatibility.
       return (result.items || [])
-        .filter(
-          (run: any) =>
-            !releaseLine ||
-            run.labels?.[CHOREO_LABELS.WORKFLOW_RELEASE_LINE] === releaseLine,
+        .filter((run: any) =>
+          isSameReleaseLine(
+            run.labels?.[CHOREO_LABELS.WORKFLOW_RELEASE_LINE],
+            releaseLine,
+          ),
         )
         .map((run: any) => ({
           name: run.name,

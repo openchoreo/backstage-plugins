@@ -54,7 +54,7 @@ function releaseLine(componentName: string, line: string) {
 const consumer = component('frontend');
 const entities = [
   consumer,
-  component('orders', { [CHOREO_ANNOTATIONS.RELEASE_LINES_ENABLED]: 'true' }),
+  component('orders', { [CHOREO_ANNOTATIONS.HAS_RELEASE_LINES]: 'true' }),
   component('payments'),
   releaseLine('orders', 'v1'),
   releaseLine('orders', 'v2'),
@@ -143,19 +143,17 @@ async function selectEndpoint(endpoint: string) {
 }
 
 describe('DependencyContent release lines', () => {
-  it("requires a release line and lists that line's endpoints", async () => {
+  it("lists default and the target's lines, and that line's endpoints", async () => {
     const { onReplace, fetchWorkloadInfo } = await renderContent();
     await selectComponent('orders');
 
-    expect(screen.getByLabelText(/^Endpoint/)).toHaveAttribute(
-      'aria-disabled',
-      'true',
-    );
-    expect(saveButton()).toBeDisabled();
-
     fireEvent.mouseDown(screen.getByLabelText(/Release line/));
     const options = within(screen.getByRole('listbox'));
-    expect(options.getByText('v1')).toBeInTheDocument();
+    expect(options.getAllByRole('option').map(o => o.textContent)).toEqual([
+      'default',
+      'v1',
+      'v2',
+    ]);
     expect(options.queryByText('v9')).not.toBeInTheDocument();
     fireEvent.click(options.getByText('v2'));
 
@@ -176,6 +174,27 @@ describe('DependencyContent release lines', () => {
       }),
     );
     expect(screen.getByText('Release line: v2')).toBeInTheDocument();
+  });
+
+  it('targets the default line unless told otherwise, and never stores it', async () => {
+    const { onReplace, fetchWorkloadInfo } = await renderContent();
+    await selectComponent('orders');
+
+    expect(screen.getByLabelText(/Release line/)).toHaveTextContent('default');
+    await selectEndpoint('http');
+    fireEvent.click(saveButton());
+
+    expect(fetchWorkloadInfo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({ name: 'orders' }),
+      }),
+      undefined,
+    );
+    expect(onReplace.mock.calls[0][0]).toMatchObject({
+      component: 'orders',
+      name: 'http',
+    });
+    expect(onReplace.mock.calls[0][0].releaseLine).toBeUndefined();
   });
 
   it('leaves dependencies on other components unchanged', async () => {

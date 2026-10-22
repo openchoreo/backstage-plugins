@@ -16,6 +16,7 @@ import { FinOpsReportDetailed } from '../../types';
 import { FormattedText } from '../RCA/RCAReport/FormattedText';
 import { FinOpsApplyButton } from './FinOpsApplyButton';
 import type { FinOpsAgentApi } from '../../api/FinOpsAgentApi';
+import { toStoredReleaseLine } from '@openchoreo/backstage-plugin-common';
 
 const useStyles = makeStyles(theme => ({
   header: {
@@ -259,7 +260,7 @@ export const CostAnalysisReportView = ({
                         )
                       }
                     >
-                      {report.releaseLine
+                      {toStoredReleaseLine(report.releaseLine)
                         ? 'View release line'
                         : 'View component'}
                     </Button>

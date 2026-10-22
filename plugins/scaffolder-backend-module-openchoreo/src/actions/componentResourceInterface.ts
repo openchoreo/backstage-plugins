@@ -58,8 +58,6 @@ export interface ComponentSpec {
   parameters: Record<string, any>;
   /** Auto deploy flag - automatically deploy when build succeeds */
   autoDeploy?: boolean;
-  /** Deploys the component only through explicit release lines; set only at creation */
-  releaseLinesEnabled?: boolean;
   /** Workflow configuration (optional - only if Choreo CI is selected) */
   workflow?: ComponentWorkflow;
   /** Traits configuration (optional - only if addons are added) */
@@ -106,8 +104,6 @@ export interface ComponentResource {
 export interface WorkloadOwner {
   projectName: string;
   componentName: string;
-  /** Release line of the owning component, required when it has release lines enabled */
-  releaseLine?: string;
 }
 
 /**

@@ -26,8 +26,11 @@ import {
 } from '@openchoreo/openchoreo-client-node';
 import {
   ComponentTypeUtils,
+  DEFAULT_RELEASE_LINE,
+  isSameReleaseLine,
   parseReleaseLineNodeId,
   releaseLineNodeId,
+  toStoredReleaseLine,
 } from '@openchoreo/backstage-plugin-common';
 import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
 
@@ -117,8 +120,9 @@ function adaptRuntimeTopologyMetrics(
 // than `ComponentResponse` so the workload field can use the generated
 // `WorkloadSpec` (which includes `dependencies.resources`) instead of the
 // hand-rolled bff-types `WorkloadResponse`.
-// A component with release lines yields one entry per line, each with its own
-// node id (see releaseLineNodeId) and the line's workload.
+// A component with release lines yields one entry per line: the default line keeps the
+// component name as its node id, and each release line gets its own (see
+// releaseLineNodeId). Each entry carries its line's workload.
 interface CompleteComponent {
   /** Diagram node id: the component name, or the line's node id. */
   name: string;
@@ -152,14 +156,19 @@ enum ConnectionType {
   Datastore = 'datastore',
 }
 
-// Metrics search scope for a diagram node, narrowed to its release line.
-function componentScope(nodeId: string): {
+// Metrics search scope for a diagram node, narrowed to its line. The default
+// node of a component with release lines carries the default badge.
+function componentScope(
+  nodeId: string,
+  badge?: string,
+): {
   component: string;
   releaseLine?: string;
 } {
   const { componentName, releaseLine } = parseReleaseLineNodeId(nodeId);
-  return releaseLine
-    ? { component: componentName, releaseLine }
+  if (releaseLine) return { component: componentName, releaseLine };
+  return badge === DEFAULT_RELEASE_LINE
+    ? { component: componentName, releaseLine: DEFAULT_RELEASE_LINE }
     : { component: componentName };
 }
 
@@ -284,9 +293,21 @@ export class CellDiagramInfoService implements CellDiagramService {
               ? componentTypeRef
               : componentTypeRef?.name ?? '';
 
+          const defaultLine: CompleteComponent = {
+            name,
+            label: name,
+            componentName: name,
+            type: componentType,
+            workload: workloadMap.get(name),
+          };
           const lines = lineWorkloadMap.get(name);
-          if (comp.spec?.releaseLinesEnabled && lines?.size) {
-            return [...lines.entries()]
+          if (!lines?.size) {
+            return [defaultLine];
+          }
+
+          return [
+            { ...defaultLine, badge: DEFAULT_RELEASE_LINE },
+            ...[...lines.entries()]
               .sort(([a], [b]) => a.localeCompare(b))
               .map(([releaseLine, workload]) => ({
                 name: releaseLineNodeId(name, releaseLine),
@@ -296,17 +317,7 @@ export class CellDiagramInfoService implements CellDiagramService {
                 releaseLine,
                 type: componentType,
                 workload,
-              }));
-          }
-
-          return [
-            {
-              name,
-              label: name,
-              componentName: name,
-              type: componentType,
-              workload: workloadMap.get(name),
-            },
+              })),
           ];
         })
         .filter(comp => comp.name);
@@ -583,7 +594,7 @@ export class CellDiagramInfoService implements CellDiagramService {
                 searchScope: {
                   namespace: namespaceName,
                   project: projectName,
-                  ...componentScope(component.id),
+                  ...componentScope(component.id, component.badge),
                   environment: environmentName,
                 },
               },
@@ -1020,10 +1031,11 @@ export class CellDiagramInfoService implements CellDiagramService {
         ? this.findDependencyTarget(dependency, completeComponents)
         : undefined;
 
-      const targetNodeId = dependency.releaseLine
-        ? releaseLineNodeId(dependentComponentName, dependency.releaseLine)
+      const dependencyLine = toStoredReleaseLine(dependency.releaseLine);
+      const targetNodeId = dependencyLine
+        ? releaseLineNodeId(dependentComponentName, dependencyLine)
         : dependentComponentName;
-      const targetLine = dependentComponent?.badge ?? dependency.releaseLine;
+      const targetLine = dependentComponent?.badge ?? dependencyLine;
       const targetLabel = targetLine
         ? `${dependentComponentName}:${targetLine}`
         : dependentComponentName;
@@ -1045,22 +1057,16 @@ export class CellDiagramInfoService implements CellDiagramService {
 
   /**
    * The node a same-project dependency points at: the named release line, or
-   * the component itself. A dependency on a component with release lines
-   * that names no line resolves only when the component has a single line.
+   * the component's default line when it names none.
    */
   private findDependencyTarget(
     dependency: EndpointDependency,
     completeComponents: CompleteComponent[],
   ): CompleteComponent | undefined {
-    const candidates = completeComponents.filter(
-      comp => comp.componentName === dependency.component,
-    );
-    if (dependency.releaseLine) {
-      return candidates.find(c => c.releaseLine === dependency.releaseLine);
-    }
-    return (
-      candidates.find(c => !c.releaseLine) ??
-      (candidates.length === 1 ? candidates[0] : undefined)
+    return completeComponents.find(
+      comp =>
+        comp.componentName === dependency.component &&
+        isSameReleaseLine(comp.releaseLine, dependency.releaseLine),
     );
   }
 }

@@ -6,8 +6,8 @@ import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import {
   calculateTimeRange,
   useOpenChoreoQuery,
-  useReleaseLine,
 } from '@openchoreo/backstage-plugin-react';
+import { useSelectedReleaseLine } from './useSelectedReleaseLine';
 import { calculateStep } from '../components/Metrics/utils';
 
 export function useMetrics(
@@ -32,7 +32,7 @@ export function useMetrics(
   enabled: boolean = true,
 ) {
   const observabilityApi = useApi(observabilityApiRef);
-  const { releaseLine } = useReleaseLine();
+  const releaseLine = useSelectedReleaseLine();
 
   const componentName =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];

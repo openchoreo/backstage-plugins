@@ -261,9 +261,6 @@ export function translateComponentToEntity(
           [CHOREO_ANNOTATIONS.COMPONENT_TYPE_KIND]:
             component.componentType.kind,
         }),
-        ...(component.releaseLinesEnabled && {
-          [CHOREO_ANNOTATIONS.RELEASE_LINES_ENABLED]: 'true',
-        }),
         [CHOREO_ANNOTATIONS.PROJECT]: projectName,
         [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
         ...(component.createdAt && {
@@ -893,7 +890,7 @@ export function translateReleaseLineToEntity(
     metadata: {
       name: releaseLine.name,
       namespace: namespaceName,
-      // Line names alone (main, next) are ambiguous outside their component.
+      // Line names alone (canary, next) are ambiguous outside their component.
       title: `${releaseLine.componentName}:${releaseLine.name}`,
       description:
         releaseLine.description ||
@@ -1498,6 +1495,8 @@ export function translateNewComponentToEntity(
    * Resource refs use the form `resource:<namespace>/<name>`.
    */
   dependsOn?: string[],
+  /** Whether the component has release lines besides its default line. */
+  hasReleaseLines?: boolean,
 ): Entity {
   const componentName = getName(component)!;
   const componentTypeRef = component.spec?.componentType;
@@ -1520,7 +1519,6 @@ export function translateNewComponentToEntity(
       createdAt: getCreatedAt(component),
       description: getDescription(component),
       deletionTimestamp: getDeletionTimestamp(component),
-      releaseLinesEnabled: component.spec?.releaseLinesEnabled,
       componentWorkflow: component.spec?.workflow
         ? {
             name: component.spec.workflow.name ?? '',
@@ -1544,6 +1542,12 @@ export function translateNewComponentToEntity(
     entity.metadata.annotations = {
       ...(entity.metadata.annotations ?? {}),
       [CHOREO_ANNOTATIONS.WORKLOAD]: workloadName,
+    };
+  }
+  if (hasReleaseLines) {
+    entity.metadata.annotations = {
+      ...(entity.metadata.annotations ?? {}),
+      [CHOREO_ANNOTATIONS.HAS_RELEASE_LINES]: 'true',
     };
   }
   return entity;

@@ -46,8 +46,10 @@ import {
   extractWorkloadDependencies,
   extractWorkloadResourceDependencies,
   filterDependenciesWithSchema,
+  findDefaultWorkload,
   resolveComponentOwner,
   resolveProvidesAndConsumes,
+  withoutDefaultReleaseLine,
 } from '../utils/helpers';
 import {
   NewApiTranslatorContext,
@@ -761,7 +763,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                     );
                   }
 
-                  const workloadData = workloadListData?.items?.[0];
+                  const workloadData = findDefaultWorkload(
+                    workloadListData?.items,
+                  );
                   const allEndpoints = workloadData
                     ? extractAllWorkloadEndpoints(workloadData)
                     : {};
@@ -853,6 +857,13 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               nsName,
             );
 
+            const releaseLineEntities = await this.fetchReleaseLineEntities(
+              client,
+              nsName,
+              componentName,
+              resolvedOwner,
+            );
+
             const componentEntity = translateNewComponentToEntity(
               component,
               nsName,
@@ -863,19 +874,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               consumesApis,
               workloadName,
               dependsOn,
+              releaseLineEntities.length > 0,
             );
-            allEntities.push(componentEntity);
-
-            if (component.spec?.releaseLinesEnabled) {
-              allEntities.push(
-                ...(await this.fetchReleaseLineEntities(
-                  client,
-                  nsName,
-                  componentName,
-                  resolvedOwner,
-                )),
-              );
-            }
+            allEntities.push(componentEntity, ...releaseLineEntities);
 
             // Create API entities from schema endpoints. We only emit
             // API entities when there's a Workload (the schemas live on
@@ -1930,7 +1931,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
   }
 
   /**
-   * Translates the release lines of a component with release lines enabled.
+   * Translates the release lines of a component, leaving out its implicit default line.
    * A failure leaves the component's lines out of this sync instead of
    * failing the whole sync.
    */
@@ -1960,7 +1961,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             return res.data;
           }),
       );
-      return releaseLines.map(line =>
+      return withoutDefaultReleaseLine(releaseLines).map(line =>
         translateNewReleaseLineToEntity(
           line,
           namespaceName,

@@ -299,14 +299,8 @@ describe('useDependencyEditBuffer', () => {
     expect(result.current.editBuffer).toBeNull();
   });
 
-  it('requires a release line when the target needs one', () => {
-    const { result } = renderHook(() =>
-      useDependencyEditBuffer(
-        makeOptions({
-          requiresReleaseLine: dep => dep.component === 'rl-service',
-        }),
-      ),
-    );
+  it('accepts a dependency without a release line, which targets the default line', () => {
+    const { result } = renderHook(() => useDependencyEditBuffer(makeOptions()));
 
     act(() => {
       result.current.startNew(0, {
@@ -314,11 +308,6 @@ describe('useDependencyEditBuffer', () => {
         name: 'http',
         visibility: 'project',
       });
-    });
-    expect(result.current.isBufferValid).toBe(false);
-
-    act(() => {
-      result.current.updateBuffer('releaseLine', 'v1');
     });
     expect(result.current.isBufferValid).toBe(true);
   });

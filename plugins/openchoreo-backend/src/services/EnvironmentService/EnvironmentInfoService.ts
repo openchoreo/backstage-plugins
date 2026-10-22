@@ -14,9 +14,10 @@ import {
   fetchAllPages,
   type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
-import type {
-  EnvironmentResponse,
-  ReleaseBindingResponse,
+import {
+  isSameReleaseLine,
+  type EnvironmentResponse,
+  type ReleaseBindingResponse,
 } from '@openchoreo/backstage-plugin-common';
 import {
   transformEnvironment,
@@ -319,13 +320,12 @@ export class EnvironmentInfoService implements EnvironmentService {
       // Transform new K8s-style environments to legacy shape
       const environments = newEnvironments.map(transformEnvironment);
 
-      // Transform new K8s-style bindings to legacy shape
-      // Scoped to the release line when one is given.
+      // Transform new K8s-style bindings to legacy shape, scoped to the
+      // release line, or to the default line when none is given.
       const bindings: ReleaseBindingResponse[] = newBindings
         .map(transformReleaseBinding)
-        .filter(
-          binding =>
-            !request.releaseLine || binding.releaseLine === request.releaseLine,
+        .filter(binding =>
+          isSameReleaseLine(binding.releaseLine, request.releaseLine),
         );
 
       // Enrich with per-env project-deployment status: whether the owning
@@ -1476,13 +1476,13 @@ export class EnvironmentInfoService implements EnvironmentService {
         `Release bindings fetched for ${request.componentName}: Total: ${totalTime}ms`,
       );
 
-      if (!request.releaseLine) {
-        return data;
-      }
       return {
         ...data!,
-        items: (data!.items ?? []).filter(
-          binding => binding.spec?.owner?.releaseLine === request.releaseLine,
+        items: (data!.items ?? []).filter(binding =>
+          isSameReleaseLine(
+            binding.spec?.owner?.releaseLine,
+            request.releaseLine,
+          ),
         ),
       };
     } catch (error: unknown) {

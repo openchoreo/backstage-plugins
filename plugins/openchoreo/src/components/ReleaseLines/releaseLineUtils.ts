@@ -2,6 +2,7 @@ import type { Entity } from '@backstage/catalog-model';
 import {
   CHOREO_ANNOTATIONS,
   CHOREO_LABELS,
+  DEFAULT_RELEASE_LINE,
   type ReleaseLineOverrides,
   type ReleaseLineResource,
   type ReleaseLineSummary,
@@ -14,6 +15,9 @@ export const RELEASE_LINE_NAME_PATTERN = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/;
 export function validateReleaseLineName(name: string): string | undefined {
   if (!name) {
     return 'Name is required';
+  }
+  if (name === DEFAULT_RELEASE_LINE) {
+    return `${DEFAULT_RELEASE_LINE} is the implicit default line of every component`;
   }
   if (name.length > 63) {
     return 'Name must be at most 63 characters';
@@ -30,6 +34,22 @@ export function releaseLineEntityPath(
   releaseLineName: string,
 ): string {
   return `/catalog/${namespace}/releaseline/${releaseLineName}`;
+}
+
+/**
+ * Catalog path of a line's page. The default line's tabs are its component's own, so it
+ * opens the component's Deploy tab, while a release line has its own entity.
+ */
+export function lineEntityPath(
+  component: Entity,
+  line: Pick<ReleaseLineSummary, 'name' | 'isDefault'>,
+): string {
+  return line.isDefault
+    ? componentEntityPath(component, 'environments')
+    : releaseLineEntityPath(
+        component.metadata.namespace ?? 'default',
+        line.name,
+      );
 }
 
 /** Catalog path of a component entity's tab. */

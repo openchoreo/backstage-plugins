@@ -23,8 +23,10 @@ import {
   extractWorkloadDependencies,
   extractWorkloadResourceDependencies,
   filterDependenciesWithSchema,
+  findDefaultWorkload,
   resolveComponentOwner,
   resolveProvidesAndConsumes,
+  withoutDefaultReleaseLine,
 } from '../utils/helpers';
 import { WorkloadEndpoint } from '../utils/types';
 import {
@@ -376,7 +378,7 @@ export class EventDeltaApplier {
         )}`,
       );
     }
-    return res.data?.items?.[0] as NewWorkload | undefined;
+    return findDefaultWorkload(res.data?.items as NewWorkload[] | undefined);
   }
 
   private fetchEnvironment(
@@ -883,6 +885,17 @@ export class EventDeltaApplier {
 
     const workloadName = workload?.metadata?.name;
 
+    const releaseLineEntities = (
+      await this.fetchReleaseLines(client, ns, name)
+    ).map(line =>
+      translateNewReleaseLineToEntity(
+        line,
+        ns,
+        resolvedOwner,
+        this.translatorContext,
+      ),
+    );
+
     const componentEntity = translateNewComponentToEntity(
       component,
       ns,
@@ -893,6 +906,7 @@ export class EventDeltaApplier {
       consumesApis,
       workloadName,
       buildComponentDependsOnRefs(resourceDependencies, ns),
+      releaseLineEntities.length > 0,
     );
 
     // API entities exist only because a Workload exposes schema-bearing
@@ -912,17 +926,6 @@ export class EventDeltaApplier {
           })
         : [];
 
-    const releaseLineEntities = component.spec?.releaseLinesEnabled
-      ? (await this.fetchReleaseLines(client, ns, name)).map(line =>
-          translateNewReleaseLineToEntity(
-            line,
-            ns,
-            resolvedOwner,
-            this.translatorContext,
-          ),
-        )
-      : [];
-
     await this.upsertEntities([
       componentEntity,
       ...apiEntities,
@@ -931,10 +934,11 @@ export class EventDeltaApplier {
   }
 
   /**
-   * Refreshes a ReleaseLine entity. The API serves release lines under their
-   * component, so the owning component is read from the catalog entity, or,
-   * for a line the catalog has not seen yet, found among the namespace's
-   * components with release lines enabled.
+   * Refreshes a ReleaseLine entity, then its component, whose
+   * `has-release-lines` annotation follows its lines. The API serves release
+   * lines under their component, so the owning component is read from the
+   * catalog entity, or, for a line the catalog has not seen yet, found among
+   * the namespace's components.
    */
   private async refreshReleaseLine(ns: string, name: string): Promise<void> {
     const client = await this.createApiClient();
@@ -974,10 +978,16 @@ export class EventDeltaApplier {
             this.translatorContext,
           ),
         ]);
+        if (!known) {
+          await this.refreshComponent(ns, componentName);
+        }
         return;
       }
     }
     await this.removeEntityRefs([ref]);
+    if (known) {
+      await this.refreshComponent(ns, known);
+    }
   }
 
   private async fetchReleaseLines(
@@ -999,9 +1009,10 @@ export class EventDeltaApplier {
         `Failed to fetch release lines for component ${ns}/${componentName}`,
       );
     }
-    return res.data?.items ?? [];
+    return withoutDefaultReleaseLine(res.data?.items ?? []);
   }
 
+  /** The namespace's components, any of which may own a new release line. */
   private async listReleaseLineComponents(
     client: OpenChoreoApiClient,
     ns: string,
@@ -1015,9 +1026,7 @@ export class EventDeltaApplier {
     if (res.error) {
       throw new Error(`Failed to fetch components for namespace ${ns}`);
     }
-    return (res.data?.items ?? [])
-      .filter(component => component.spec?.releaseLinesEnabled)
-      .map(component => component.metadata.name);
+    return (res.data?.items ?? []).map(component => component.metadata.name);
   }
 
   /** The component a ReleaseLine entity in the catalog belongs to. */
@@ -1038,7 +1047,7 @@ export class EventDeltaApplier {
 
   /**
    * Refs of the ReleaseLine entities in the catalog that belong to a component
-   * the catalog knows to have release lines enabled.
+   * the catalog knows to have release lines.
    */
   private async findReleaseLineRefs(
     ns: string,
@@ -1055,7 +1064,7 @@ export class EventDeltaApplier {
       );
       if (
         component?.metadata.annotations?.[
-          CHOREO_ANNOTATIONS.RELEASE_LINES_ENABLED
+          CHOREO_ANNOTATIONS.HAS_RELEASE_LINES
         ] !== 'true'
       ) {
         return [];

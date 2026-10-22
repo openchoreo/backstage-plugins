@@ -1198,6 +1198,36 @@ describe('EventDeltaApplier release lines', () => {
     expect(added[0].spec.component).toBe('component:test-ns/hello');
   });
 
+  it("refreshes a deleted line's component, whose lines it marks", async () => {
+    const catalogService = {
+      getEntityByRef: jest.fn().mockResolvedValue({
+        kind: 'ReleaseLine',
+        metadata: {
+          name: 'next',
+          namespace: 'test-ns',
+          annotations: { 'openchoreo.io/component': 'hello' },
+        },
+      }),
+      getEntities: jest.fn().mockResolvedValue({ items: [] }),
+    };
+
+    await newApplierWithCatalog(catalogService).handleEvent(
+      'ReleaseLine',
+      'next',
+      'test-ns',
+      'deleted',
+    );
+
+    expect(mockGET).toHaveBeenCalledWith(
+      '/api/v1/namespaces/{namespaceName}/components/{componentName}',
+      expect.objectContaining({
+        params: expect.objectContaining({
+          path: { namespaceName: 'test-ns', componentName: 'hello' },
+        }),
+      }),
+    );
+  });
+
   it('removes the release lines of a deleted component with release lines', async () => {
     const catalogService = {
       getEntityByRef: jest.fn().mockResolvedValue({
@@ -1205,7 +1235,7 @@ describe('EventDeltaApplier release lines', () => {
         metadata: {
           name: 'hello',
           namespace: 'test-ns',
-          annotations: { 'openchoreo.io/release-lines-enabled': 'true' },
+          annotations: { 'openchoreo.io/has-release-lines': 'true' },
         },
         spec: { system: 'proj' },
       }),

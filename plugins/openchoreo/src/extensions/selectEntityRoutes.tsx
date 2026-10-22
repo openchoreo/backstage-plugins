@@ -1,15 +1,12 @@
 import type { Entity } from '@backstage/catalog-model';
 import { EntityProvider } from '@backstage/plugin-catalog-react';
-import {
-  isOpenChoreoReleaseLine,
-  isReleaseLinesEnabledComponent,
-} from '@openchoreo/backstage-plugin-common';
+import { isOpenChoreoReleaseLine } from '@openchoreo/backstage-plugin-common';
 import type { OpenChoreoRoute } from './OpenChoreoCatalogEntityPageContent';
 
 /**
- * The Overview and Definition tabs, which a ReleaseLine and a Component with
- * release lines keep as their own. The Overview is matched by path because
- * tabs registered without a group fall into the `overview` group.
+ * The Overview and Definition tabs, which a ReleaseLine keeps as its own. The
+ * Overview is matched by path because tabs registered without a group fall
+ * into the `overview` group.
  */
 const isOwnTab = (route: OpenChoreoRoute) =>
   route.path === '/' || route.group === 'definition';
@@ -17,8 +14,7 @@ const isOwnTab = (route: OpenChoreoRoute) =>
 /**
  * The tabs of an entity page.
  *
- * - A Component with release lines keeps only its Overview and Definition;
- *   building, deploying and observing happen per release line.
+ * - A Component keeps all its tabs, which work on its default line.
  * - A ReleaseLine gets its own Overview and Definition, plus the tabs of its
  *   component, rendered for the component so they work unchanged. The
  *   `ReleaseLineProvider` of the page scopes them to the line.
@@ -28,9 +24,6 @@ export function selectEntityRoutes(
   entity: Entity,
   componentEntity?: Entity,
 ): OpenChoreoRoute[] {
-  if (isReleaseLinesEnabledComponent(entity)) {
-    return routes.filter(isOwnTab);
-  }
   if (!isOpenChoreoReleaseLine(entity)) {
     return routes;
   }

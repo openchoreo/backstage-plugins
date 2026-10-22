@@ -4,7 +4,10 @@ import {
   createOpenChoreoApiClient,
   assertApiResponse,
 } from '@openchoreo/openchoreo-client-node';
-import type { WorkloadResource } from '@openchoreo/backstage-plugin-common';
+import {
+  isSameReleaseLine,
+  type WorkloadResource,
+} from '@openchoreo/backstage-plugin-common';
 
 export class WorkloadInfoService implements WorkloadService {
   private readonly logger: LoggerService;
@@ -54,9 +57,9 @@ export class WorkloadInfoService implements WorkloadService {
 
       assertApiResponse({ data, error, response }, 'fetch workloads');
 
-      // A release line has its own Workload; components without lines have one.
-      const workload = data!.items.find(
-        item => !releaseLine || item.spec?.owner?.releaseLine === releaseLine,
+      // Each release line has its own Workload; the default line's has none.
+      const workload = data!.items.find(item =>
+        isSameReleaseLine(item.spec?.owner?.releaseLine, releaseLine),
       );
       if (!workload) {
         this.logger.debug(`No workload found for component ${componentName}`);

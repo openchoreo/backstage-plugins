@@ -39,7 +39,7 @@ jest.mock('../CostInsights/useNamespaceEnvironments', () => ({
 }));
 
 let releaseLines: string[] = [];
-jest.mock('./useComponentReleaseLines', () => ({
+jest.mock('../../hooks/useComponentReleaseLines', () => ({
   useComponentReleaseLines: () => releaseLines,
 }));
 
@@ -169,7 +169,9 @@ describe('DeliveryInsightsContent release line filter', () => {
     await renderComponent(onReleaseLineChange);
 
     fireEvent.mouseDown(screen.getByLabelText('Release line'));
-    expect(screen.getByRole('option', { name: 'All lines' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', { name: 'All lines' }),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('option', { name: 'next' }));
     expect(onReleaseLineChange).toHaveBeenCalledWith('next');
   });

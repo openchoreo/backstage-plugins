@@ -44,6 +44,11 @@ import {
   calculateTimeRange,
 } from '@openchoreo/backstage-plugin-react';
 import { useCellEnvironments } from './useCellEnvironments';
+import { ReleaseLineSelect } from './ReleaseLineSelect';
+import {
+  diagramReleaseLines,
+  filterProjectByReleaseLine,
+} from './releaseLineFilter';
 
 const CellView = lazy(() =>
   import('@openchoreo/cell-diagram').then(module => ({
@@ -290,6 +295,18 @@ export const CellDiagram = () => {
   const hasNoComponents =
     !!cellDiagramData && (cellDiagramData.components?.length ?? 0) === 0;
 
+  const [releaseLine, setReleaseLine] = useState('');
+  const releaseLines = useMemo(
+    () => diagramReleaseLines(cellDiagramData),
+    [cellDiagramData],
+  );
+  const shownDiagramData = useMemo(
+    () =>
+      cellDiagramData &&
+      filterProjectByReleaseLine(cellDiagramData, releaseLine),
+    [cellDiagramData, releaseLine],
+  );
+
   return (
     <Box
       sx={{
@@ -317,6 +334,14 @@ export const CellDiagram = () => {
             gap: 12,
           }}
         >
+          {releaseLines.length > 0 && (
+            <ReleaseLineSelect
+              value={releaseLine}
+              lines={releaseLines}
+              onChange={setReleaseLine}
+            />
+          )}
+
           {toggleDisabled ? (
             <Tooltip title="Runtime network observability is unavailable in all environments. Configure the Cilium module to enable network observability.">
               <span>{toggleControl}</span>
@@ -444,7 +469,7 @@ export const CellDiagram = () => {
             return (
               <MemoCellView
                 key={targetLayer}
-                project={cellDiagramData}
+                project={shownDiagramData ?? cellDiagramData}
                 mode={mode}
                 defaultDiagramLayer={targetLayer}
                 componentMenu={componentMenu}

@@ -4,7 +4,7 @@ import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
 import {
   CHOREO_ANNOTATIONS,
-  isReleaseLinesEnabledComponent,
+  hasReleaseLines,
 } from '@openchoreo/backstage-plugin-common';
 import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
@@ -297,7 +297,7 @@ export function useProjectContentsPage(
       const entries = await Promise.all(
         baseItems.map(async (item): Promise<[string, RowDeployment]> => {
           try {
-            if (isReleaseLinesEnabledComponent(item.entity)) {
+            if (hasReleaseLines(item.entity)) {
               const lines = await client.fetchReleaseLines(item.entity);
               return [
                 rowKey(item),

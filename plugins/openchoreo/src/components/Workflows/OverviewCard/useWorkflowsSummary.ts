@@ -9,11 +9,12 @@ import {
   useReleaseLine,
   triggerReleaseLineBuild,
 } from '@openchoreo/backstage-plugin-react';
-import type {
-  ModelsBuild,
-  ModelsCompleteComponent,
+import {
+  CHOREO_LABELS,
+  isSameReleaseLine,
+  type ModelsBuild,
+  type ModelsCompleteComponent,
 } from '@openchoreo/backstage-plugin-common';
-import { CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
 
 interface WorkflowsSummaryData {
   latestBuild: ModelsBuild | null;
@@ -96,10 +97,11 @@ export function useWorkflowsSummary() {
 
         const result = await runsResponse.json();
         const runs: ModelsBuild[] = (result.items || [])
-          .filter(
-            (run: any) =>
-              !releaseLine ||
-              run.labels?.[CHOREO_LABELS.WORKFLOW_RELEASE_LINE] === releaseLine,
+          .filter((run: any) =>
+            isSameReleaseLine(
+              run.labels?.[CHOREO_LABELS.WORKFLOW_RELEASE_LINE],
+              releaseLine,
+            ),
           )
           .map((run: any) => ({
             name: run.name,
