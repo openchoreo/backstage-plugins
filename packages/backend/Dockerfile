@@ -6,7 +6,7 @@ ARG BUILD_IMAGE=docker.io/node:22-bookworm-slim@sha256:d649c27dae7ba0137b3cef5dd
 # This can be mitigated by looking at the image OCI annotations 
 # which can be used to pinpoint the exact version
 # e.g. docker inspect gcr.io/distroless/nodejs22-debian13:nonroot | jq '.[0].Annotations'
-ARG RUNTIME_IMAGE=gcr.io/distroless/nodejs22-debian13:nonroot@sha256:939d6f1671529d230f50b563578e9b5d206af58f038b10ebd7e1233023d4e167
+ARG RUNTIME_IMAGE=gcr.io/distroless/nodejs22-debian13:nonroot@sha256:b0b1352373f14fe86376d423e6d283ea6b85b912ff55ca89bed8d2fe11c257b8
 
 # ---------------------------------------------------------------------------
 # Stage 1 - Install all dependencies, compile TypeScript, build backend
