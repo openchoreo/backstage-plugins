@@ -103,6 +103,8 @@ export interface ReleaseBinding {
   status?: string;
   statusReason?: string;
   statusMessage?: string;
+  /** Raw K8s resource from the API, if available */
+  resource?: Record<string, unknown>;
 }
 
 /** Release bindings response */
