@@ -20,8 +20,6 @@ export interface ComponentType {
     workloadType: string;
     allowedWorkflows?: Array<string | { kind?: string; name: string }>;
     allowedTraits?: Array<{ kind?: string; name: string }>;
-    /** Whether components of this type can have release lines besides the default line */
-    releaseLines?: 'Allowed' | 'Disallowed';
     tags?: string[];
     createdAt?: string;
   };

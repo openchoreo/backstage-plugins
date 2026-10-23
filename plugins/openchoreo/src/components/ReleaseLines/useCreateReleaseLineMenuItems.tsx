@@ -6,11 +6,13 @@ import { useNavigate } from 'react-router-dom';
 import CallSplitIcon from '@material-ui/icons/CallSplit';
 import type { Entity } from '@backstage/catalog-model';
 import type { IconComponent } from '@backstage/core-plugin-api';
+import { isOpenChoreoManagedOfKind } from '@openchoreo/backstage-plugin-common';
 import { useComponentUpdatePermission } from '@openchoreo/backstage-plugin-react';
 import { CreateReleaseLineDialog } from './CreateReleaseLineDialog';
 import { componentEntityPath } from './releaseLineUtils';
 import { useReleaseLines } from './useReleaseLines';
-import { useReleaseLinesAllowed } from './useReleaseLinesAllowed';
+
+const isOpenChoreoComponent = isOpenChoreoManagedOfKind('component');
 
 interface CreateReleaseLineMenuItem {
   title: string;
@@ -21,9 +23,9 @@ interface CreateReleaseLineMenuItem {
 }
 
 /**
- * The component context menu's Create Release Line item, offered when the
- * component's type allows release lines. A created line opens the
- * component's Overview, which then lists its lines.
+ * The component context menu's Create Release Line item, offered on OpenChoreo
+ * components. A created line opens the component's Overview, which then lists
+ * its lines.
  */
 export function useCreateReleaseLineMenuItems(entity: Entity): {
   extraMenuItems: CreateReleaseLineMenuItem[];
@@ -31,14 +33,14 @@ export function useCreateReleaseLineMenuItems(entity: Entity): {
 } {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const { allowed } = useReleaseLinesAllowed(entity);
+  const managed = isOpenChoreoComponent(entity);
   const { canUpdateComponent, loading } = useComponentUpdatePermission();
   const { createReleaseLine, creating } = useReleaseLines(entity, {
     enabled: false,
   });
 
   const extraMenuItems = useMemo<CreateReleaseLineMenuItem[]>(() => {
-    if (!allowed || loading) return [];
+    if (!managed || loading) return [];
     return [
       {
         title: 'Create Release Line',
@@ -50,7 +52,7 @@ export function useCreateReleaseLineMenuItems(entity: Entity): {
           : 'You do not have permission to create release lines for this component',
       },
     ];
-  }, [allowed, loading, canUpdateComponent]);
+  }, [managed, loading, canUpdateComponent]);
 
   const handleCreate = useCallback(
     async (name: string, description?: string) => {

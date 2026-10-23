@@ -568,7 +568,6 @@ export function translateComponentTypeToEntity(
     workloadType?: string;
     allowedWorkflows?: Array<string | AllowedWorkflowRef>;
     allowedTraits?: Array<string | AllowedTraitRef>;
-    releaseLines?: 'Allowed' | 'Disallowed';
     createdAt?: string;
     deletionTimestamp?: string;
   },
@@ -610,7 +609,6 @@ export function translateComponentTypeToEntity(
         'Workflow',
       ),
       allowedTraits: normalizeAllowedTraits(ct.allowedTraits, 'Trait'),
-      ...(ct.releaseLines && { releaseLines: ct.releaseLines }),
     },
   } as ComponentTypeEntityV1alpha1;
 }
@@ -1004,7 +1002,6 @@ export function translateClusterComponentTypeToEntity(
     workloadType?: string;
     allowedWorkflows?: Array<string | AllowedWorkflowRef>;
     allowedTraits?: Array<string | AllowedTraitRef>;
-    releaseLines?: 'Allowed' | 'Disallowed';
     createdAt?: string;
     deletionTimestamp?: string;
   },
@@ -1043,7 +1040,6 @@ export function translateClusterComponentTypeToEntity(
         'ClusterWorkflow',
       ),
       allowedTraits: normalizeAllowedTraits(ct.allowedTraits, 'ClusterTrait'),
-      ...(ct.releaseLines && { releaseLines: ct.releaseLines }),
     },
   } as ClusterComponentTypeEntityV1alpha1;
 }
@@ -1916,7 +1912,6 @@ export function translateNewComponentTypeToEntity(
       workloadType: ct.spec?.workloadType,
       allowedWorkflows: ct.spec?.allowedWorkflows,
       allowedTraits: ct.spec?.allowedTraits,
-      releaseLines: ct.spec?.releaseLines,
       createdAt: getCreatedAt(ct),
       deletionTimestamp: getDeletionTimestamp(ct),
     },
@@ -1993,7 +1988,6 @@ export function translateNewClusterComponentTypeToEntity(
       workloadType: cct.spec?.workloadType,
       allowedWorkflows: cct.spec?.allowedWorkflows,
       allowedTraits: cct.spec?.allowedTraits,
-      releaseLines: cct.spec?.releaseLines,
       createdAt: getCreatedAt(cct),
       deletionTimestamp: getDeletionTimestamp(cct),
     },

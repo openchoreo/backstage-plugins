@@ -1280,7 +1280,7 @@ export interface paths {
     put?: never;
     /**
      * Create component release line
-     * @description Creates a release line for a component whose type allows release lines. The owner is taken from the path. The name default is reserved for the implicit default line.
+     * @description Creates a release line for a component. The owner is taken from the path. The name default is reserved for the implicit default line.
      */
     post: operations['createComponentReleaseLine'];
     delete?: never;
@@ -3830,11 +3830,6 @@ export interface components {
         /** @description Name of the ClusterTrait resource */
         name: string;
       }[];
-      /**
-       * @description Whether Components of this type can have release lines besides their default line. Allowed only when the resources name every component-scoped object per release line. Omitted means Disallowed.
-       * @enum {string}
-       */
-      releaseLines?: 'Allowed' | 'Disallowed';
       /** @description CEL-based validation rules evaluated during rendering */
       validations?: components['schemas']['ValidationRule'][];
       /** @description Templates that generate Kubernetes resources dynamically */
@@ -4019,11 +4014,6 @@ export interface components {
         /** @description Name of the Trait or ClusterTrait resource */
         name: string;
       }[];
-      /**
-       * @description Whether Components of this type can have release lines besides their default line. Allowed only when the resources name every component-scoped object per release line. Omitted means Disallowed.
-       * @enum {string}
-       */
-      releaseLines?: 'Allowed' | 'Disallowed';
       /** @description CEL-based validation rules evaluated during rendering */
       validations?: components['schemas']['ValidationRule'][];
       /** @description Templates that generate Kubernetes resources dynamically */

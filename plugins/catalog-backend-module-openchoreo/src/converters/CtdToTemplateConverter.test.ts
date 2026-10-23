@@ -485,35 +485,29 @@ describe('CtdToTemplateConverter', () => {
   });
 
   describe('release lines', () => {
-    const ctd = (releaseLines?: 'Allowed' | 'Disallowed'): ComponentType => ({
-      metadata: {
-        workloadType: 'deployment',
-        createdAt: '2025-01-01T00:00:00Z',
-        name: 'release-line-service',
-        releaseLines,
-      },
-      spec: { inputParametersSchema: { type: 'object', properties: {} } },
+    it('creates the component without release lines', () => {
+      const result = converter.convertCtdToTemplateEntity(
+        {
+          metadata: {
+            workloadType: 'deployment',
+            createdAt: '2025-01-01T00:00:00Z',
+            name: 'release-line-service',
+          },
+          spec: { inputParametersSchema: { type: 'object', properties: {} } },
+        },
+        'test-org',
+      );
+      const parameters = result.spec?.parameters as any[];
+
+      expect(parameters.map(p => p.title)).toEqual([
+        'Component Metadata',
+        'Build & Deploy',
+        'Release Line Service Details',
+      ]);
+      const input = (result.spec?.steps as any[])[0].input;
+      expect(input).not.toHaveProperty('releaseLinesEnabled');
+      expect(input).not.toHaveProperty('releaseLineName');
     });
-
-    it.each(['Allowed' as const, 'Disallowed' as const, undefined])(
-      'creates the component without release lines when they are %s',
-      releaseLines => {
-        const result = converter.convertCtdToTemplateEntity(
-          ctd(releaseLines),
-          'test-org',
-        );
-        const parameters = result.spec?.parameters as any[];
-
-        expect(parameters.map(p => p.title)).toEqual([
-          'Component Metadata',
-          'Build & Deploy',
-          'Release Line Service Details',
-        ]);
-        const input = (result.spec?.steps as any[])[0].input;
-        expect(input).not.toHaveProperty('releaseLinesEnabled');
-        expect(input).not.toHaveProperty('releaseLineName');
-      },
-    );
   });
 
   describe('generateSteps', () => {
