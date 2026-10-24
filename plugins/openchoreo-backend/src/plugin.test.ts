@@ -2,7 +2,10 @@ import { startTestBackend } from '@backstage/backend-test-utils';
 import { createServiceFactory } from '@backstage/backend-plugin-api';
 import { choreoPlugin } from './plugin';
 import { catalogServiceMock } from '@backstage/plugin-catalog-node/testUtils';
-import { annotationStoreRef } from '@openchoreo/backstage-plugin-catalog-backend-module';
+import {
+  annotationStoreRef,
+  immediateCatalogServiceRef,
+} from '@openchoreo/backstage-plugin-catalog-backend-module';
 
 // Mock AnnotationStore service factory for tests
 const mockAnnotationStore = createServiceFactory({
@@ -15,10 +18,20 @@ const mockAnnotationStore = createServiceFactory({
   }),
 });
 
+// Mock ImmediateCatalogService factory for tests
+const mockImmediateCatalog = createServiceFactory({
+  service: immediateCatalogServiceRef,
+  deps: {},
+  factory: () => ({
+    insertEntity: jest.fn().mockResolvedValue(undefined),
+    removeEntity: jest.fn().mockResolvedValue(undefined),
+  }),
+});
+
 describe('plugin', () => {
   it('should start the plugin without config', async () => {
     const { server } = await startTestBackend({
-      features: [choreoPlugin, mockAnnotationStore],
+      features: [choreoPlugin, mockAnnotationStore, mockImmediateCatalog],
     });
 
     expect(server).toBeDefined();
@@ -29,6 +42,7 @@ describe('plugin', () => {
       features: [
         choreoPlugin,
         mockAnnotationStore,
+        mockImmediateCatalog,
         catalogServiceMock.factory({
           entities: [
             {

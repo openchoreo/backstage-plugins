@@ -562,6 +562,8 @@ export interface ReleaseBindingResponse {
   namespaceName: string;
   environment: string;
   releaseName: string;
+  /** Release line the binding belongs to, absent for components without release lines */
+  releaseLine?: string;
   componentTypeEnvironmentConfigs?: {
     [key: string]: unknown;
   };
@@ -833,6 +835,8 @@ export interface Dependency {
   project?: string;
   /** Target component name */
   component: string;
+  /** Target component's release line. Omitted targets its default line. */
+  releaseLine?: string;
   /** Target endpoint name on the target component */
   name: string;
   /** Visibility level at which this dependency consumes the endpoint */
@@ -855,6 +859,7 @@ export interface DependencyEnvBindings {
 export interface WorkloadOwner {
   projectName: string;
   componentName: string;
+  releaseLine?: string;
 }
 
 export interface Schema {
@@ -984,6 +989,7 @@ export interface ReleaseStatus {
 export interface ReleaseOwner {
   projectName: string;
   componentName: string;
+  releaseLine?: string;
 }
 
 export interface Resource {
@@ -1058,4 +1064,62 @@ export interface PatchReleaseBindingRequest {
 
 export interface CreateComponentReleaseRequest {
   releaseName?: string;
+}
+
+/** An environment a release line is deployed to. */
+export interface ReleaseLineEnvironmentSummary {
+  environment: string;
+  releaseBinding: string;
+  release?: string;
+  ready?: boolean;
+}
+
+/** A line of a component: its implicit default line, or a ReleaseLine. */
+export interface ReleaseLineSummary {
+  name: string;
+  /** The component's implicit default line, which is not a ReleaseLine resource */
+  isDefault?: boolean;
+  /** From the `openchoreo.dev/description` annotation, as for components */
+  description?: string;
+  latestRelease?: string;
+  environments: ReleaseLineEnvironmentSummary[];
+  createdAt?: string;
+  /** Overrides the component's autoDeploy, when set */
+  autoDeploy?: boolean;
+  /** Top-level component parameters the line overrides */
+  parameterOverrides?: string[];
+  /** Instance names of the traits the line adds or overrides */
+  traitOverrides?: string[];
+  /** Whether the line overrides the component's workflow parameters */
+  workflowOverride?: boolean;
+}
+
+/** The overrides a release line applies to its component. */
+export interface ReleaseLineOverrides {
+  autoDeploy?: boolean;
+  parameters?: Record<string, unknown>;
+  traits?: Array<{
+    kind?: string;
+    name: string;
+    instanceName: string;
+    parameters?: Record<string, unknown>;
+  }>;
+  workflow?: { parameters?: Record<string, unknown> };
+}
+
+/** A release line resource, as the release line endpoints serve it. */
+export interface ReleaseLineResource {
+  apiVersion?: string;
+  kind?: string;
+  metadata: {
+    name: string;
+    namespace?: string;
+    creationTimestamp?: string;
+    annotations?: Record<string, string>;
+    [key: string]: unknown;
+  };
+  spec?: ReleaseLineOverrides & {
+    owner: { projectName: string; componentName: string };
+  };
+  status?: Record<string, unknown>;
 }

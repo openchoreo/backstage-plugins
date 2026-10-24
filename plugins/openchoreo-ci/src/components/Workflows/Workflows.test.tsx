@@ -28,6 +28,7 @@ jest.mock('../../hooks', () => ({
   useWorkflowData: () => mockUseWorkflowData(),
   useWorkflowRouting: () => mockUseWorkflowRouting(),
   useWorkflowRetention: () => undefined,
+  useReleaseLineWorkflowParameters: (parameters: unknown) => parameters,
 }));
 
 // Stable mock objects so useApi does not produce new references each call

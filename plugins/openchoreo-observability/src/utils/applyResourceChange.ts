@@ -1,4 +1,5 @@
 import type { FetchApi } from '@backstage/core-plugin-api';
+import { isSameReleaseLine } from '@openchoreo/backstage-plugin-common';
 
 type PrimitiveValue = string | number | boolean;
 
@@ -136,6 +137,45 @@ export function applyFileChange(
   }
 }
 
+export interface ExpectedBindingOwner {
+  componentName?: string | null;
+  releaseLine?: string | null;
+}
+
+/**
+ * Throws when the binding belongs to another component, or to another line
+ * than the one the change was recommended for. The default line, named `default` in agent
+ * reports, is a binding without a release line.
+ */
+export function assertBindingOwner(
+  binding: { spec?: { owner?: Record<string, unknown> } },
+  bindingName: string,
+  expected: ExpectedBindingOwner,
+): void {
+  const owner = binding.spec?.owner ?? {};
+  if (
+    expected.componentName &&
+    owner.componentName &&
+    owner.componentName !== expected.componentName
+  ) {
+    throw new Error(
+      `Release binding '${bindingName}' belongs to component '${owner.componentName}', not '${expected.componentName}'`,
+    );
+  }
+  const ownerLine =
+    typeof owner.releaseLine === 'string' ? owner.releaseLine : undefined;
+  if (
+    expected.releaseLine &&
+    !isSameReleaseLine(ownerLine, expected.releaseLine)
+  ) {
+    throw new Error(
+      ownerLine
+        ? `Release binding '${bindingName}' belongs to release line '${ownerLine}', not '${expected.releaseLine}'`
+        : `Release binding '${bindingName}' is not on release line '${expected.releaseLine}'`,
+    );
+  }
+}
+
 /**
  * GET a release binding, apply the given changes, and PUT it back.
  * Used by the finops apply button for deterministic field-only patches
@@ -146,8 +186,11 @@ export async function applyResourceChange(opts: {
   fetchApi: FetchApi;
   namespaceName: string;
   change: ResourceChangeDef;
+  /** Refuses a binding owned by another component or release line. */
+  expectedOwner?: ExpectedBindingOwner;
 }): Promise<void> {
-  const { backendBaseUrl, fetchApi, namespaceName, change } = opts;
+  const { backendBaseUrl, fetchApi, namespaceName, change, expectedOwner } =
+    opts;
 
   const targetKind = resolveTargetKind(change);
   const label = bindingLabel(targetKind);
@@ -177,6 +220,9 @@ export async function applyResourceChange(opts: {
   }
 
   const binding = await getResponse.json();
+  if (expectedOwner) {
+    assertBindingOwner(binding, change.release_binding, expectedOwner);
+  }
   const updated = structuredClone(binding);
 
   for (const e of change.env ?? []) {

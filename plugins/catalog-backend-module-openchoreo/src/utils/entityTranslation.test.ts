@@ -8,6 +8,7 @@ import {
   translateNewNotificationChannelToEntity,
   translateNewProjectToEntity,
   translateNewProjectTypeToEntity,
+  translateNewReleaseLineToEntity,
   translateNewResourceToEntity,
   translateNewResourceTypeToEntity,
   translateNotificationChannelToEntity,
@@ -979,5 +980,92 @@ describe('translateNewComponentToEntity — spec.dependsOn', () => {
     );
 
     expect((entity.spec as any).dependsOn).toBeUndefined();
+  });
+
+  it('marks a component with release lines besides the default line', () => {
+    const component = {
+      apiVersion: 'openchoreo.dev/v1alpha1',
+      kind: 'Component',
+      metadata: { name: 'hello', namespace: 'default' } as any,
+      spec: {
+        componentType: { kind: 'ClusterComponentType', name: 'service' },
+        owner: { projectName: 'default' },
+      } as any,
+    } as any;
+    const translate = (hasReleaseLines?: boolean) =>
+      translateNewComponentToEntity(
+        component,
+        'default',
+        'default',
+        'group:default/owner',
+        ctx as any,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        hasReleaseLines,
+      );
+
+    expect(
+      translate(true).metadata.annotations?.['openchoreo.io/has-release-lines'],
+    ).toBe('true');
+    expect(
+      translate().metadata.annotations?.['openchoreo.io/has-release-lines'],
+    ).toBeUndefined();
+  });
+});
+
+describe('translateNewReleaseLineToEntity', () => {
+  const ctx = { providerName: 'OpenChoreoEntityProvider' };
+
+  it('translates a release line under its component', () => {
+    const entity = translateNewReleaseLineToEntity(
+      {
+        apiVersion: 'openchoreo.dev/v1alpha1',
+        kind: 'ReleaseLine',
+        metadata: {
+          name: 'next',
+          namespace: 'default',
+          creationTimestamp: '2026-10-01T00:00:00Z',
+          annotations: { 'openchoreo.dev/description': 'Builds next' },
+        } as any,
+        spec: {
+          owner: { projectName: 'default', componentName: 'hello' },
+          parameters: { logLevel: 'warn' },
+          workflow: {
+            parameters: { repository: { revision: { branch: 'next' } } },
+          },
+          traits: [],
+        },
+      } as any,
+      'default',
+      'group:default/owner',
+      ctx as any,
+    );
+
+    expect(entity.kind).toBe('ReleaseLine');
+    expect(entity.metadata.name).toBe('next');
+    expect(entity.metadata.title).toBe('hello:next');
+    expect(entity.metadata.description).toBe('Builds next');
+    expect(entity.metadata.namespace).toBe('default');
+    expect(entity.metadata.labels).toEqual({ 'openchoreo.io/managed': 'true' });
+    expect(entity.metadata.annotations).toEqual(
+      expect.objectContaining({
+        'openchoreo.io/namespace': 'default',
+        'openchoreo.io/project': 'default',
+        'openchoreo.io/component': 'hello',
+        'openchoreo.io/release-line': 'next',
+        'backstage.io/managed-by-location': 'provider:OpenChoreoEntityProvider',
+      }),
+    );
+    expect(entity.spec).toEqual({
+      component: 'component:default/hello',
+      system: 'default',
+      owner: 'group:default/owner',
+      parameters: { logLevel: 'warn' },
+      workflow: {
+        parameters: { repository: { revision: { branch: 'next' } } },
+      },
+    });
   });
 });

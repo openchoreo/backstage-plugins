@@ -3,10 +3,16 @@ import { renderInTestApp } from '@backstage/test-utils';
 import { EntityProvider } from '@backstage/plugin-catalog-react';
 import { CostAnalysisPage } from './CostAnalysisPage';
 
+// The line filter is covered by its own tests.
+jest.mock('../common/ReleaseLineFilter', () => ({
+  ReleaseLineFilter: () => null,
+}));
+
 // Mock permissions
 const mockUseRcaPermission = jest.fn();
 const mockUseProjectEnvironments = jest.fn();
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
+  useReleaseLine: () => ({}),
   useRcaPermission: () => mockUseRcaPermission(),
   ForbiddenState: ({ message }: any) => (
     <div data-testid="forbidden-state">{message}</div>

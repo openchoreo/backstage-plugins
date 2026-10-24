@@ -30,6 +30,8 @@ export interface ExecSession {
   podName?: string;
   /** Target container within the pod. Defaults (upstream) to the primary container. */
   containerName?: string;
+  /** Release line whose pod to exec into, for components with release lines. */
+  releaseLine?: string;
   createdAt: number;
 }
 

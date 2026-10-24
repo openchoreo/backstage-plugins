@@ -189,9 +189,14 @@ export function useDependencyEditBuffer(
     setEditingRow(null);
   }, []);
 
-  // Update a single field in the buffer
+  // Update a single field in the buffer; undefined removes the field
   const updateBuffer = useCallback((field: keyof Dependency, value: any) => {
-    setEditBuffer(prev => (prev ? { ...prev, [field]: value } : null));
+    setEditBuffer(prev => {
+      if (!prev) return null;
+      const next: Partial<Dependency> = { ...prev, [field]: value };
+      if (value === undefined) delete next[field];
+      return next as Dependency;
+    });
   }, []);
 
   // Update a nested field in envBindings

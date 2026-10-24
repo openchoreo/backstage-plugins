@@ -220,6 +220,17 @@ export const AlertRow: FC<AlertRowProps> = ({
                       </span>
                     </Box>
 
+                    {alert.releaseLineName && (
+                      <Box className={classes.metadataItem}>
+                        <span className={classes.metadataKey}>
+                          Release Line:
+                        </span>
+                        <span className={classes.metadataValue}>
+                          {alert.releaseLineName}
+                        </span>
+                      </Box>
+                    )}
+
                     <Box className={classes.metadataItem}>
                       <span className={classes.metadataKey}>Environment:</span>
                       <span className={classes.metadataValue}>

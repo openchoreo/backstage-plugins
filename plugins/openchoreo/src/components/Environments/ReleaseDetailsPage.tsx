@@ -4,7 +4,10 @@ import { makeStyles } from '@material-ui/core/styles';
 import { useApi } from '@backstage/core-plugin-api';
 import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
-import { DetailPageLayout } from '@openchoreo/backstage-plugin-react';
+import {
+  DetailPageLayout,
+  useReleaseLine,
+} from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
 import { isForbiddenError, getErrorMessage } from '../../utils/errorUtils';
 import { useEnvironmentPolling } from './hooks';
@@ -54,6 +57,7 @@ export const ReleaseDetailsPage = ({
 }: ReleaseDetailsPageProps) => {
   const classes = useStyles();
   const client = useApi(openChoreoClientApiRef);
+  const { releaseLine } = useReleaseLine();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +87,7 @@ export const ReleaseDetailsPage = ({
           environmentName,
           environmentDisplayName: environment.name,
           entityRef: stringifyEntityRef(entity),
+          ...(releaseLine ? { releaseLine } : {}),
         }
       : undefined;
 
@@ -97,7 +102,7 @@ export const ReleaseDetailsPage = ({
 
       try {
         const releaseBindingsResult = await client
-          .fetchReleaseBindings(entity)
+          .fetchReleaseBindings(entity, releaseLine)
           .catch(err => {
             if (showLoadingState) {
               return {
@@ -147,7 +152,7 @@ export const ReleaseDetailsPage = ({
         }
       }
     },
-    [environmentName, namespaceName, entity, client],
+    [environmentName, namespaceName, entity, client, releaseLine],
   );
 
   useEffect(() => {

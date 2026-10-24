@@ -13,6 +13,7 @@ import {
 import { makeStyles, Theme } from '@material-ui/core/styles';
 import { EditRowActions } from '@openchoreo/backstage-design-system';
 import type { Dependency } from '@openchoreo/backstage-plugin-common';
+import { ReleaseLineSelect, type ReleaseLineOption } from './ReleaseLineSelect';
 
 const useStyles = makeStyles((theme: Theme) => ({
   container: {
@@ -106,6 +107,10 @@ export interface DependencyEditorProps {
   onComponentChange: (componentName: string) => void;
   /** Callback when endpoint changes */
   onEndpointChange: (endpoint: string) => void;
+  /** Release lines of the target component; undefined when it has none */
+  releaseLines?: ReleaseLineOption[];
+  /** Callback when release line changes */
+  onReleaseLineChange?: (releaseLine: string) => void;
   /** Available visibility options based on target endpoint and relationship */
   availableVisibilities: ('project' | 'namespace')[];
   /** Callback when visibility changes */
@@ -121,6 +126,7 @@ export interface DependencyEditorProps {
  * Has two visual states: read-only (displays values) and edit mode (input fields).
  */
 export const DependencyEditor: FC<DependencyEditorProps> = ({
+  index,
   dependency,
   disabled = false,
   className,
@@ -137,12 +143,15 @@ export const DependencyEditor: FC<DependencyEditorProps> = ({
   onProjectChange,
   onComponentChange,
   onEndpointChange,
+  releaseLines,
+  onReleaseLineChange,
   availableVisibilities,
   onVisibilityChange,
   onEnvBindingChange,
   onRemove,
 }) => {
   const classes = useStyles();
+  const labelId = (field: string) => `dependency-${index}-${field}-label`;
 
   const formatDependencySummary = () => {
     const parts = [];
@@ -171,6 +180,13 @@ export const DependencyEditor: FC<DependencyEditorProps> = ({
             variant="outlined"
             className={classes.typeChip}
           />
+          {dependency.releaseLine && (
+            <Chip
+              label={`Release line: ${dependency.releaseLine}`}
+              size="small"
+              className={classes.typeChip}
+            />
+          )}
           <Typography className={classes.readOnlyDetails}>
             {formatDependencySummary()}
           </Typography>
@@ -196,8 +212,9 @@ export const DependencyEditor: FC<DependencyEditorProps> = ({
       <Grid container spacing={1}>
         <Grid item xs={6}>
           <FormControl fullWidth variant="outlined" size="small">
-            <InputLabel>Project</InputLabel>
+            <InputLabel id={labelId('project')}>Project</InputLabel>
             <Select
+              labelId={labelId('project')}
               value={dependency.project || ''}
               onChange={e => onProjectChange(e.target.value as string)}
               label="Project"
@@ -213,8 +230,9 @@ export const DependencyEditor: FC<DependencyEditorProps> = ({
         </Grid>
         <Grid item xs={6}>
           <FormControl fullWidth variant="outlined" size="small">
-            <InputLabel>Component</InputLabel>
+            <InputLabel id={labelId('component')}>Component</InputLabel>
             <Select
+              labelId={labelId('component')}
               value={dependency.component || ''}
               onChange={e => onComponentChange(e.target.value as string)}
               label="Component"
@@ -228,10 +246,22 @@ export const DependencyEditor: FC<DependencyEditorProps> = ({
             </Select>
           </FormControl>
         </Grid>
+        {releaseLines && (
+          <Grid item xs={6}>
+            <ReleaseLineSelect
+              labelId={labelId('release-line')}
+              value={dependency.releaseLine}
+              releaseLines={releaseLines}
+              onChange={line => onReleaseLineChange?.(line)}
+              disabled={disabled}
+            />
+          </Grid>
+        )}
         <Grid item xs={6}>
           <FormControl fullWidth variant="outlined" size="small">
-            <InputLabel>Endpoint</InputLabel>
+            <InputLabel id={labelId('endpoint')}>Endpoint</InputLabel>
             <Select
+              labelId={labelId('endpoint')}
               value={dependency.name || ''}
               onChange={e => onEndpointChange(e.target.value as string)}
               label="Endpoint"
@@ -247,8 +277,9 @@ export const DependencyEditor: FC<DependencyEditorProps> = ({
         </Grid>
         <Grid item xs={6}>
           <FormControl fullWidth variant="outlined" size="small">
-            <InputLabel>Visibility</InputLabel>
+            <InputLabel id={labelId('visibility')}>Visibility</InputLabel>
             <Select
+              labelId={labelId('visibility')}
               value={
                 dependency.visibility &&
                 availableVisibilities.includes(dependency.visibility)

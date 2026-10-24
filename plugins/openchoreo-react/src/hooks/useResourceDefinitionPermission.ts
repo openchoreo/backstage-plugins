@@ -102,6 +102,12 @@ export const KIND_TO_PERMISSIONS: Record<string, PermissionEntry> = {
     delete: openchoreoComponentUpdatePermission, // Components use update permission only; delete is not exposed in the UI
     isResourceScoped: true,
   },
+  // Release lines are changed and deleted with their component's update permission.
+  releaseline: {
+    update: openchoreoComponentUpdatePermission,
+    delete: openchoreoComponentUpdatePermission,
+    isResourceScoped: true,
+  },
   resource: {
     update: openchoreoResourceUpdatePermission,
     delete: openchoreoResourceDeletePermission,

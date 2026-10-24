@@ -37,6 +37,7 @@ const KIND_DISPLAY_NAMES: Record<string, string> = {
   workflow: 'Workflow',
   clusterworkflow: 'Cluster Workflow',
   componentworkflow: 'Component Workflow',
+  releaseline: 'Release Line',
 };
 
 /** Display label for an entity kind, e.g. "system" -> "Project". */
@@ -53,6 +54,7 @@ export function isDeletableEntityKind(kind: string): boolean {
   const kindLower = kind.toLowerCase();
   return (
     kindLower === 'component' ||
+    kindLower === 'releaseline' ||
     kindLower === 'system' ||
     kindLower === 'domain' ||
     isSupportedKind(kindLower)
@@ -74,6 +76,14 @@ export async function performEntityDelete(
 
   if (entityKind === 'component') {
     await client.deleteComponent(entity);
+    return;
+  }
+  if (entityKind === 'releaseline') {
+    await client.deleteReleaseLine(
+      entity,
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.RELEASE_LINE] ??
+        entityName,
+    );
     return;
   }
   if (entityKind === 'system') {
@@ -104,6 +114,20 @@ export async function performEntityDelete(
 }
 
 /**
+ * Where to go once an entity is deleted: a release line returns to its
+ * component, anything else to the catalog.
+ */
+export function getPostDeletePath(entity: Entity): string {
+  const component = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
+  if (entity.kind.toLowerCase() === 'releaseline' && component) {
+    return `/catalog/${
+      entity.metadata.namespace ?? 'default'
+    }/component/${component}`;
+  }
+  return '/catalog';
+}
+
+/**
  * Extra warning line for deletes that cascade to child entities, shown inside
  * the confirmation dialog. Undefined for kinds without a cascade.
  */
@@ -121,6 +145,14 @@ export function getEntityDeleteCascadeNote(kind: string): ReactNode {
       <Typography variant="body2" color="error">
         Note: All projects and components within this namespace will also be
         deleted.
+      </Typography>
+    );
+  }
+  if (kindLower === 'releaseline') {
+    return (
+      <Typography variant="body2" color="error">
+        Note: The release line will be undeployed from every environment, and
+        its releases and workload will be removed.
       </Typography>
     );
   }

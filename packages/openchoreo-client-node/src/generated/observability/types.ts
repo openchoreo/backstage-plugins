@@ -316,6 +316,8 @@ export interface components {
       project?: string;
       component?: string;
       environment?: string;
+      /** @description Restricts the result to one release line of the component, and default to its default line. Omitted covers every line of the component. Requires component. Logs, events, metrics and traces also require environment. */
+      releaseLine?: string;
     };
     WorkflowSearchScope: {
       namespace: string;
@@ -1097,6 +1099,13 @@ export interface components {
              * @description The UID of the project
              */
             projectUid?: string;
+            /** @description The name of the component's release line. Absent for its default line. */
+            releaseLineName?: string;
+            /**
+             * Format: uuid
+             * @description The UID of the component's release line. Absent for its default line.
+             */
+            releaseLineUid?: string;
           };
         };
       }[];
@@ -1190,6 +1199,13 @@ export interface components {
            * @description The UID of the project
            */
           projectUid?: string;
+          /** @description The name of the component's release line. Absent for its default line. */
+          releaseLineName?: string;
+          /**
+           * Format: uuid
+           * @description The UID of the component's release line. Absent for its default line.
+           */
+          releaseLineUid?: string;
         };
       }[];
       /** @description The total number of incidents */
@@ -1568,6 +1584,22 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse'];
         };
       };
+      /** @description Not Implemented */
+      501: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "title": "notImplemented",
+           *       "errorCode": "OBS-V1-M-06",
+           *       "message": "the adapter does not support filtering by release line: metrics adapter"
+           *     }
+           */
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
     };
   };
   queryRuntimeTopology: {
@@ -1688,6 +1720,22 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse'];
         };
       };
+      /** @description Not Implemented */
+      501: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "title": "notImplemented",
+           *       "errorCode": "OBS-V1-T-08",
+           *       "message": "the adapter does not support filtering by release line: tracing adapter"
+           *     }
+           */
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
     };
   };
   querySpansForTrace: {
@@ -1748,6 +1796,22 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Not Implemented */
+      501: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "title": "notImplemented",
+           *       "errorCode": "OBS-V1-T-08",
+           *       "message": "the adapter does not support filtering by release line: tracing adapter"
+           *     }
+           */
           'application/json': components['schemas']['ErrorResponse'];
         };
       };

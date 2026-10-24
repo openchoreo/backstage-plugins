@@ -16,6 +16,10 @@ export const CHOREO_ANNOTATIONS = {
   PROJECT_UID: 'openchoreo.io/project-uid',
   COMPONENT_TYPE: 'openchoreo.io/component-type',
   COMPONENT_TYPE_KIND: 'openchoreo.io/component-type-kind',
+  // Release lines: set on components with release lines besides the default line, and on
+  // ReleaseLine entities to name the line.
+  HAS_RELEASE_LINES: 'openchoreo.io/has-release-lines',
+  RELEASE_LINE: 'openchoreo.io/release-line',
   RESOURCE: 'openchoreo.io/resource',
   RESOURCE_UID: 'openchoreo.io/resource-uid',
   RESOURCE_TYPE: 'openchoreo.io/resource-type',
@@ -78,6 +82,7 @@ export const CHOREO_LABELS = {
   SYSTEM: 'openchoreo.io/system',
   WORKFLOW_PROJECT: 'openchoreo.dev/project',
   WORKFLOW_COMPONENT: 'openchoreo.dev/component',
+  WORKFLOW_RELEASE_LINE: 'openchoreo.dev/release-line',
   WORKFLOW_TYPE: 'openchoreo.dev/workflow-type',
   // Marks a SecretReference's category (e.g. git credentials).
   SECRET_TYPE: 'openchoreo.dev/secret-type',

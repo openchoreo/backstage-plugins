@@ -49,7 +49,7 @@ export function useDoraInsights(
   const scopeKey = scope
     ? `${scope.namespace}/${scope.project ?? ''}/${scope.component ?? ''}/${
         scope.environment ?? ''
-      }`
+      }/${scope.releaseLine ?? ''}`
     : '';
   const queryKey = `${scopeKey}|${rangeDays}|${granularity}`;
 

@@ -6,9 +6,14 @@ import { RCAFilters } from '../RCA/RCAFilters';
 import { RCAActions } from '../RCA/RCAActions';
 import { CostAnalysisTable } from './CostAnalysisTable';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import {
+  CHOREO_ANNOTATIONS,
+  isSameReleaseLine,
+  toStoredReleaseLine,
+} from '@openchoreo/backstage-plugin-common';
 import type { FinOpsReportSummary } from '../../types';
 import { useUrlFilters, useFinOpsReports } from '../../hooks';
+import { useSelectedReleaseLine } from '../../hooks/useSelectedReleaseLine';
 
 import { Alert } from '@material-ui/lab';
 import {
@@ -16,7 +21,7 @@ import {
   ForbiddenState,
   useProjectEnvironments,
 } from '@openchoreo/backstage-plugin-react';
-import { EnvironmentsStatusNotice } from '../common';
+import { EnvironmentsStatusNotice, ReleaseLineFilter } from '../common';
 import { CostAnalysisReport } from './CostAnalysisReport';
 import { EntityLinkContext } from '../RCA/RCAReport/EntityLinkContext';
 
@@ -42,17 +47,35 @@ const CostAnalysisListContent = () => {
     refresh,
   } = useFinOpsReports(filters, entity);
 
+  // The reports of every component share one list, so the line filter offers
+  // the release lines the reports name and matches them by line.
+  const reportLines = useMemo(
+    () =>
+      [
+        ...new Set(
+          reports
+            .map(r => toStoredReleaseLine(r.releaseLine))
+            .filter((line): line is string => Boolean(line)),
+        ),
+      ].sort((a, b) => a.localeCompare(b)),
+    [reports],
+  );
+  const releaseLine = useSelectedReleaseLine();
+
   const filteredReports = useMemo((): FinOpsReportSummary[] => {
-    if (!filters.searchQuery) return reports;
+    const inLine = releaseLine
+      ? reports.filter(r => isSameReleaseLine(r.releaseLine, releaseLine))
+      : reports;
+    if (!filters.searchQuery) return inLine;
     const q = filters.searchQuery.toLowerCase();
-    return reports.filter(
+    return inLine.filter(
       r =>
         (r.reportId || '').toLowerCase().includes(q) ||
         (r.component || '').toLowerCase().includes(q) ||
         (r.summary || '').toLowerCase().includes(q) ||
         (r.status || '').toLowerCase().includes(q),
     );
-  }, [reports, filters.searchQuery]);
+  }, [reports, releaseLine, filters.searchQuery]);
 
   const handleFiltersChange = useCallback(
     (newFilters: Partial<typeof filters>) => {
@@ -129,6 +152,8 @@ const CostAnalysisListContent = () => {
             environmentsLoading={environmentsLoading}
             searchPlaceholder="Search cost reports..."
           />
+
+          <ReleaseLineFilter lines={reportLines} />
 
           {reportsError && renderError(reportsError)}
 

@@ -21,3 +21,4 @@ export {
   useWorkflowRetention,
   formatRetentionDuration,
 } from './useWorkflowRetention';
+export { useReleaseLineWorkflowParameters } from './useReleaseLineWorkflowParameters';

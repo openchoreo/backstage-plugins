@@ -14,9 +14,10 @@ import {
   fetchAllPages,
   type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
-import type {
-  EnvironmentResponse,
-  ReleaseBindingResponse,
+import {
+  isSameReleaseLine,
+  type EnvironmentResponse,
+  type ReleaseBindingResponse,
 } from '@openchoreo/backstage-plugin-common';
 import {
   transformEnvironment,
@@ -87,6 +88,20 @@ function getSourceEnvName(ref: unknown): string {
 }
 
 /**
+ * Name of a component's ReleaseBinding in an environment: `{component}-{env}`, or
+ * `{component}-{line}-{env}` for a release line.
+ */
+function releaseBindingName(
+  componentName: string,
+  environment: string,
+  releaseLine?: string,
+): string {
+  return releaseLine
+    ? `${componentName}-${releaseLine}-${environment}`
+    : `${componentName}-${environment}`;
+}
+
+/**
  * Service for managing and retrieving environment-related information for deployments.
  * This service handles fetching environment details from the OpenChoreo API.
  * All methods require a user token to be passed for authentication.
@@ -125,6 +140,7 @@ export class EnvironmentInfoService implements EnvironmentService {
       projectName: string;
       componentName: string;
       namespaceName: string;
+      releaseLine?: string;
     },
     token?: string,
   ): Promise<Environment[]> {
@@ -304,10 +320,13 @@ export class EnvironmentInfoService implements EnvironmentService {
       // Transform new K8s-style environments to legacy shape
       const environments = newEnvironments.map(transformEnvironment);
 
-      // Transform new K8s-style bindings to legacy shape
-      const bindings: ReleaseBindingResponse[] = newBindings.map(
-        transformReleaseBinding,
-      );
+      // Transform new K8s-style bindings to legacy shape, scoped to the
+      // release line, or to the default line when none is given.
+      const bindings: ReleaseBindingResponse[] = newBindings
+        .map(transformReleaseBinding)
+        .filter(binding =>
+          isSameReleaseLine(binding.releaseLine, request.releaseLine),
+        );
 
       // Enrich with per-env project-deployment status: whether the owning
       // project is deployed in each environment (its cell namespace exists),
@@ -730,6 +749,7 @@ export class EnvironmentInfoService implements EnvironmentService {
       componentName: string;
       projectName: string;
       namespaceName: string;
+      releaseLine?: string;
     },
     token?: string,
   ): Promise<Environment[]> {
@@ -774,6 +794,7 @@ export class EnvironmentInfoService implements EnvironmentService {
           componentName: request.componentName,
           projectName: request.projectName,
           namespaceName: request.namespaceName,
+          releaseLine: request.releaseLine,
         },
         token,
       );
@@ -811,6 +832,7 @@ export class EnvironmentInfoService implements EnvironmentService {
       componentName: string;
       projectName: string;
       namespaceName: string;
+      releaseLine?: string;
       environment: string;
     },
     token?: string,
@@ -827,7 +849,11 @@ export class EnvironmentInfoService implements EnvironmentService {
         logger: this.logger,
       });
 
-      const bindingName = `${request.componentName}-${request.environment}`;
+      const bindingName = releaseBindingName(
+        request.componentName,
+        request.environment,
+        request.releaseLine,
+      );
 
       const { error, response } = await client.DELETE(
         '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}',
@@ -856,6 +882,7 @@ export class EnvironmentInfoService implements EnvironmentService {
           componentName: request.componentName,
           projectName: request.projectName,
           namespaceName: request.namespaceName,
+          releaseLine: request.releaseLine,
         },
         token,
       );
@@ -894,6 +921,7 @@ export class EnvironmentInfoService implements EnvironmentService {
       componentName: string;
       projectName: string;
       namespaceName: string;
+      releaseLine?: string;
       bindingName: string;
       releaseState: 'Active' | 'Suspend' | 'Undeploy';
     },
@@ -973,6 +1001,7 @@ export class EnvironmentInfoService implements EnvironmentService {
           componentName: request.componentName,
           projectName: request.projectName,
           namespaceName: request.namespaceName,
+          releaseLine: request.releaseLine,
         },
         token,
       );
@@ -1017,6 +1046,7 @@ export class EnvironmentInfoService implements EnvironmentService {
       componentName: string;
       projectName: string;
       namespaceName: string;
+      releaseLine?: string;
       bindingName: string;
     },
     token?: string,
@@ -1093,6 +1123,7 @@ export class EnvironmentInfoService implements EnvironmentService {
           componentName: request.componentName,
           projectName: request.projectName,
           namespaceName: request.namespaceName,
+          releaseLine: request.releaseLine,
         },
         token,
       );
@@ -1129,6 +1160,7 @@ export class EnvironmentInfoService implements EnvironmentService {
       componentName: string;
       projectName: string;
       namespaceName: string;
+      releaseLine?: string;
       releaseName?: string;
     },
     token?: string,
@@ -1156,6 +1188,9 @@ export class EnvironmentInfoService implements EnvironmentService {
           },
           body: {
             releaseName: request.releaseName,
+            ...(request.releaseLine
+              ? { releaseLine: request.releaseLine }
+              : {}),
           },
         },
       );
@@ -1207,6 +1242,7 @@ export class EnvironmentInfoService implements EnvironmentService {
       componentName: string;
       projectName: string;
       namespaceName: string;
+      releaseLine?: string;
       releaseName: string;
     },
     token?: string,
@@ -1250,6 +1286,7 @@ export class EnvironmentInfoService implements EnvironmentService {
           componentName: request.componentName,
           projectName: request.projectName,
           namespaceName: request.namespaceName,
+          releaseLine: request.releaseLine,
         },
         token,
       );
@@ -1406,6 +1443,7 @@ export class EnvironmentInfoService implements EnvironmentService {
       componentName: string;
       projectName: string;
       namespaceName: string;
+      releaseLine?: string;
     },
     token?: string,
   ) {
@@ -1438,7 +1476,15 @@ export class EnvironmentInfoService implements EnvironmentService {
         `Release bindings fetched for ${request.componentName}: Total: ${totalTime}ms`,
       );
 
-      return data;
+      return {
+        ...data!,
+        items: (data!.items ?? []).filter(binding =>
+          isSameReleaseLine(
+            binding.spec?.owner?.releaseLine,
+            request.releaseLine,
+          ),
+        ),
+      };
     } catch (error: unknown) {
       const totalTime = Date.now() - startTime;
       this.logger.error(
@@ -3075,6 +3121,7 @@ export class EnvironmentInfoService implements EnvironmentService {
       componentName: string;
       projectName: string;
       namespaceName: string;
+      releaseLine?: string;
       environment: string;
       componentTypeEnvironmentConfigs?: any;
       traitEnvironmentConfigs?: any;
@@ -3095,7 +3142,11 @@ export class EnvironmentInfoService implements EnvironmentService {
         logger: this.logger,
       });
 
-      const bindingName = `${request.componentName}-${request.environment}`;
+      const bindingName = releaseBindingName(
+        request.componentName,
+        request.environment,
+        request.releaseLine,
+      );
 
       // Try to GET the existing binding
       const {
@@ -3180,6 +3231,9 @@ export class EnvironmentInfoService implements EnvironmentService {
           owner: {
             projectName: request.projectName,
             componentName: request.componentName,
+            ...(request.releaseLine
+              ? { releaseLine: request.releaseLine }
+              : {}),
           },
           environment: request.environment,
           releaseName: request.releaseName,
@@ -3288,6 +3342,7 @@ export class EnvironmentInfoService implements EnvironmentService {
       componentName: string;
       projectName: string;
       namespaceName: string;
+      releaseLine?: string;
       environment: string;
       componentTypeEnvironmentConfigs: any;
       traitEnvironmentConfigs?: any;
@@ -3308,7 +3363,11 @@ export class EnvironmentInfoService implements EnvironmentService {
         logger: this.logger,
       });
 
-      const bindingName = `${request.componentName}-${request.environment}`;
+      const bindingName = releaseBindingName(
+        request.componentName,
+        request.environment,
+        request.releaseLine,
+      );
 
       // New API uses PUT (full update): GET existing, merge overrides, PUT back
       const {

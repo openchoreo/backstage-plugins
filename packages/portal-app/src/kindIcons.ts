@@ -11,6 +11,7 @@ import StorageIcon from '@material-ui/icons/Storage';
 import ExtensionIcon from '@material-ui/icons/Extension';
 import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
 import SettingsApplicationsIcon from '@material-ui/icons/SettingsApplications';
+import CallSplitIcon from '@material-ui/icons/CallSplit';
 
 // Single source of truth for OpenChoreo platform kind icons. Consumed
 // twice: `IconBundleBlueprint` (kind:x-keyed shape via LEGACY_KIND_ICONS)
@@ -33,6 +34,7 @@ export const KIND_ICONS: Record<string, IconComponent> = {
   projecttype: CategoryIcon,
   clusterprojecttype: CategoryIcon,
   resource: StorageIcon,
+  releaseline: CallSplitIcon,
   traittype: ExtensionIcon,
   clustertraittype: ExtensionIcon,
   workflow: PlayCircleOutlineIcon,

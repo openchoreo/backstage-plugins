@@ -4,6 +4,7 @@ import { stringifyEntityRef, type Entity } from '@backstage/catalog-model';
 import {
   useOpenChoreoCache,
   useOpenChoreoQuery,
+  useReleaseLine,
 } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 
@@ -22,9 +23,10 @@ interface AutoDeployState {
   componentError: ComponentError | null;
 }
 
-const autoDeployKey = (entity: Entity) => [
+const autoDeployKey = (entity: Entity, releaseLine?: string) => [
   'auto-deploy',
   stringifyEntityRef(entity),
+  releaseLine ?? '',
 ];
 
 /**
@@ -48,20 +50,34 @@ const autoDeployKey = (entity: Entity) => [
 export const useAutoDeploy = (entity: Entity) => {
   const client = useApi(openChoreoClientApiRef);
   const cache = useOpenChoreoCache();
-  const queryKey = autoDeployKey(entity);
+  const { releaseLine } = useReleaseLine();
+  const queryKey = autoDeployKey(entity, releaseLine);
 
   const { data, loading, isRefetching, refetch } =
     useOpenChoreoQuery<AutoDeployState>(queryKey, async () => {
       const componentData = await client.getComponentDetails(entity);
+      const componentError = componentData?.hasError
+        ? {
+            reason: componentData.errorReason,
+            message: componentData.errorMessage,
+          }
+        : null;
+      if (!releaseLine) {
+        return {
+          autoDeploy: !!componentData?.autoDeploy,
+          latestReleaseName: componentData?.latestRelease?.name ?? null,
+          componentError,
+        };
+      }
+      // A release line has its own latest release, and its autoDeploy
+      // override, when set, wins over the component's.
+      const line = (await client.fetchReleaseLines(entity)).find(
+        l => l.name === releaseLine,
+      );
       return {
-        autoDeploy: !!componentData?.autoDeploy,
-        latestReleaseName: componentData?.latestRelease?.name ?? null,
-        componentError: componentData?.hasError
-          ? {
-              reason: componentData.errorReason,
-              message: componentData.errorMessage,
-            }
-          : null,
+        autoDeploy: line?.autoDeploy ?? !!componentData?.autoDeploy,
+        latestReleaseName: line?.latestRelease ?? null,
+        componentError,
       };
     });
 
@@ -82,10 +98,10 @@ export const useAutoDeploy = (entity: Entity) => {
             },
       );
     },
-    // queryKey is derived from the entity ref; depend on its serialised form so
-    // the callback identity is stable across renders for the same entity.
+    // queryKey is derived from the entity ref and line; depend on their
+    // serialised form so the callback identity is stable across renders.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [cache, stringifyEntityRef(entity)],
+    [cache, stringifyEntityRef(entity), releaseLine],
   );
 
   return {

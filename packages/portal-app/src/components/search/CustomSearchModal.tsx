@@ -36,7 +36,10 @@ import {
 import { CatalogIcon } from '@backstage/core-components';
 import { useApp } from '@backstage/core-plugin-api';
 import type { CatalogEntityDocument } from '@backstage/plugin-catalog-common';
-import { catalogPageEntries } from '../../utils/kindUtils';
+import {
+  catalogPageEntries,
+  isHiddenSearchResult,
+} from '../../utils/kindUtils';
 import { SearchResultItem } from './SearchResultItem';
 
 const TEMPLATE_TYPE_ICONS: Record<string, React.ReactElement> = {
@@ -178,10 +181,13 @@ export const CustomSearchModal = ({ toggleModal }: CustomSearchModalProps) => {
         )}
         <SearchResult query={searchQuery}>
           {resultSet => {
-            const templates = resultSet.results
+            const results = resultSet.results.filter(
+              r => !isHiddenSearchResult(r.document),
+            );
+            const templates = results
               .filter(r => (r.document as any).kind === 'Template')
               .slice(0, 2);
-            const others = resultSet.results.filter(
+            const others = results.filter(
               r => (r.document as any).kind !== 'Template',
             );
             return (

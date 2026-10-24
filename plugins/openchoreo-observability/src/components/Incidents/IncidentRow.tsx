@@ -152,6 +152,16 @@ export const IncidentRow: FC<IncidentRowProps> = ({
         </TableCell>
         <TableCell style={{ fontSize: '0.75rem' }}>
           {effectiveComponent}
+          {incident.releaseLineName && (
+            <Tooltip title="Release line">
+              <Chip
+                size="small"
+                variant="outlined"
+                label={incident.releaseLineName}
+                style={{ marginLeft: 4, height: 18, fontSize: '0.65rem' }}
+              />
+            </Tooltip>
+          )}
         </TableCell>
         <TableCell>
           <Box display="flex" style={{ gap: 8 }}>
@@ -299,6 +309,17 @@ export const IncidentRow: FC<IncidentRowProps> = ({
                         {effectiveComponent}
                       </span>
                     </Box>
+
+                    {incident.releaseLineName && (
+                      <Box className={classes.metadataItem}>
+                        <span className={classes.metadataKey}>
+                          Release Line:
+                        </span>
+                        <span className={classes.metadataValue}>
+                          {incident.releaseLineName}
+                        </span>
+                      </Box>
+                    )}
 
                     <Box className={classes.metadataItem}>
                       <span className={classes.metadataKey}>Environment:</span>

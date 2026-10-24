@@ -8,6 +8,7 @@ import {
 } from '@openchoreo/backstage-plugin-react';
 import { IncidentSummary } from '../types';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import { useSelectedReleaseLine } from './useSelectedReleaseLine';
 
 export interface UseProjectIncidentsFilters {
   environment: string;
@@ -45,6 +46,10 @@ export function useProjectIncidents(
     () => Array.from(new Set(filters.components || [])),
     [filters.components],
   );
+  // A release line narrows a single selected component.
+  const selectedLine = useSelectedReleaseLine();
+  const releaseLine =
+    selectedComponents.length === 1 ? selectedLine : undefined;
 
   // Filters (including the component set) are folded into the key, so a change
   // starts a fresh query and superseded responses are dropped — replacing the
@@ -63,6 +68,7 @@ export function useProjectIncidents(
       filters.customEndTime,
       filters.sortOrder ?? 'desc',
       selectedComponents.join(','),
+      releaseLine ?? null,
     ],
     async () => {
       const { startTime, endTime } = calculateTimeRange(filters.timeRange, {
@@ -70,7 +76,13 @@ export function useProjectIncidents(
         endTime: filters.customEndTime,
       });
       const sortOrder = filters.sortOrder ?? 'desc';
-      const queryOptions = { limit: 100, startTime, endTime, sortOrder };
+      const queryOptions = {
+        limit: 100,
+        startTime,
+        endTime,
+        sortOrder,
+        releaseLine,
+      };
 
       if (selectedComponents.length > 0) {
         const responses = await Promise.all(

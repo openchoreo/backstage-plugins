@@ -1,4 +1,4 @@
-import { useEffect, type ReactElement } from 'react';
+import { useEffect, useMemo, type ReactElement } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAsyncRetry from 'react-use/esm/useAsyncRetry';
 import type { Entity } from '@backstage/catalog-model';
@@ -20,14 +20,18 @@ import {
 import { VisuallyHidden } from '@openchoreo/backstage-design-system';
 import {
   OpenChoreoEntityLayout,
+  useReleaseLineComponentEntity,
   useResourceDefinitionPermission,
 } from '@openchoreo/backstage-plugin-react';
+import { isOpenChoreoReleaseLine } from '@openchoreo/backstage-plugin-common';
+import { selectEntityRoutes } from './selectEntityRoutes';
 import {
   useDeleteEntityMenuItems,
   useEntityExistsCheck,
   type DeletePermissionInfo,
 } from '../components/DeleteEntity';
 import { useAnnotationEditorMenuItems } from '../components/AnnotationEditor';
+import { useCreateReleaseLineMenuItems } from '../components/ReleaseLines';
 
 const KIND_DISPLAY_NAMES: Record<string, string> = {
   system: 'Project',
@@ -52,6 +56,7 @@ const KIND_DISPLAY_NAMES: Record<string, string> = {
   workflow: 'Workflow',
   clusterworkflow: 'Cluster Workflow',
   componentworkflow: 'Component Workflow',
+  releaseline: 'Release Line',
 };
 
 /**
@@ -130,6 +135,8 @@ export interface OpenChoreoRoute {
   id: string;
   path: string;
   title: string;
+  /** Tab group, e.g. `overview`, `definition`, `build`, `deploy`. */
+  group?: string;
   element: ReactElement;
   if?: (entity: Entity) => boolean;
 }
@@ -179,11 +186,26 @@ function EntityChrome({ routes }: OpenChoreoCatalogEntityPageContentProps) {
     message,
   } = useEntityExistsCheck(entity);
 
-  const extraMenuItems = [...annotationMenuItems, ...deleteMenuItems];
+  const { extraMenuItems: releaseLineMenuItems, CreateReleaseLineMenuDialog } =
+    useCreateReleaseLineMenuItems(entity);
+
+  const extraMenuItems = [
+    ...releaseLineMenuItems,
+    ...annotationMenuItems,
+    ...deleteMenuItems,
+  ];
   const entityTypeLabel =
     KIND_DISPLAY_NAMES[entity.kind.toLowerCase()] ?? entity.kind;
 
-  if (existsLoading) return <Progress />;
+  const isReleaseLine = isOpenChoreoReleaseLine(entity);
+  const { componentEntity, loading: componentLoading } =
+    useReleaseLineComponentEntity(isReleaseLine ? entity : undefined);
+  const pageRoutes = useMemo(
+    () => selectEntityRoutes(routes, entity, componentEntity),
+    [routes, entity, componentEntity],
+  );
+
+  if (existsLoading || componentLoading) return <Progress />;
 
   if (status === 'not-found' || status === 'marked-for-deletion') {
     const isMarked = status === 'marked-for-deletion';
@@ -231,7 +253,7 @@ function EntityChrome({ routes }: OpenChoreoCatalogEntityPageContentProps) {
         parentEntityRelations={['partOf']}
         kindDisplayNames={KIND_DISPLAY_NAMES}
       >
-        {routes.map(r => (
+        {pageRoutes.map(r => (
           <OpenChoreoEntityLayout.Route
             key={r.id}
             path={r.path}
@@ -244,6 +266,7 @@ function EntityChrome({ routes }: OpenChoreoCatalogEntityPageContentProps) {
       </OpenChoreoEntityLayout>
       <DeleteConfirmationDialog />
       <AnnotationEditorDialog />
+      <CreateReleaseLineMenuDialog />
     </>
   );
 }

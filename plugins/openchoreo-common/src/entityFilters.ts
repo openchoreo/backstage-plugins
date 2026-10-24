@@ -1,5 +1,5 @@
 import type { Entity } from '@backstage/catalog-model';
-import { CHOREO_LABELS } from './constants';
+import { CHOREO_ANNOTATIONS, CHOREO_LABELS } from './constants';
 
 /**
  * True when an entity carries the `openchoreo.io/managed=true` label — the
@@ -52,4 +52,25 @@ export function isOpenChoreoManagedOfKind(
   const lc = new Set(kinds.map(k => k.toLowerCase()));
   return entity =>
     lc.has(entity.kind.toLowerCase()) && isOpenChoreoManagedEntity(entity);
+}
+
+/**
+ * True for an OpenChoreo Component with release lines besides its implicit
+ * default line. Its overview lists the lines, and its own tabs work on the default line.
+ */
+export function hasReleaseLines(entity: Entity): boolean {
+  return (
+    entity.kind.toLowerCase() === 'component' &&
+    isOpenChoreoManagedEntity(entity) &&
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.HAS_RELEASE_LINES] ===
+      'true'
+  );
+}
+
+/** True for an OpenChoreo ReleaseLine entity. */
+export function isOpenChoreoReleaseLine(entity: Entity): boolean {
+  return (
+    entity.kind.toLowerCase() === 'releaseline' &&
+    isOpenChoreoManagedEntity(entity)
+  );
 }

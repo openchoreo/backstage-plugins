@@ -31,6 +31,7 @@ import { type TabProps } from '@material-ui/core/Tab';
 import useAsync from 'react-use/esm/useAsync';
 import { useSearchParams } from 'react-router-dom';
 import { CompactEntityHeader } from './CompactEntityHeader';
+import { ReleaseLineProvider } from '../ReleaseLine/ReleaseLineProvider';
 import { EntityContextMenu } from './EntityContextMenu';
 
 // ----- Route sub-component (same data key as upstream EntityLayout.Route) -----
@@ -163,6 +164,18 @@ export const OpenChoreoEntityLayout = (props: OpenChoreoEntityLayoutProps) => {
     return null;
   }, [parentEntity]);
 
+  // A third level for entities nested under a component (release lines), so
+  // their trail still starts at the namespace.
+  const { value: rootAncestorEntity } = useAsync(async () => {
+    if (ancestorEntity && entity?.kind.toLowerCase() === 'releaseline') {
+      return findParentRelation(
+        (await catalogApi.getEntityByRef(ancestorEntity.targetRef))?.relations,
+        parentEntityRelations,
+      );
+    }
+    return null;
+  }, [ancestorEntity, entity?.kind]);
+
   // Inspect dialog state
   const selectedInspectTab = searchParams.get('inspect');
   const showInspectTab = typeof selectedInspectTab === 'string';
@@ -184,72 +197,75 @@ export const OpenChoreoEntityLayout = (props: OpenChoreoEntityLayoutProps) => {
     ) : null);
 
   return (
-    <Page themeId={entity?.spec?.type?.toString() ?? 'home'}>
-      {entity && (
-        <CompactEntityHeader
-          entity={entity}
-          headerTitle={headerTitle}
-          kind={kind ?? entity.kind}
-          // Drive the current entity's identity from the URL params so it is
-          // correct immediately during navigation (while `entity` may still be
-          // the stale previous one from stale-while-revalidate).
-          entityName={name ?? entity.metadata.name}
-          kindDisplayNames={kindDisplayNames}
-          parentEntity={parentEntity}
-          ancestorEntity={ancestorEntity}
-          contextMenu={contextMenuNode}
-          loading={loading}
-        />
-      )}
+    <ReleaseLineProvider entity={entity}>
+      <Page themeId={entity?.spec?.type?.toString() ?? 'home'}>
+        {entity && (
+          <CompactEntityHeader
+            entity={entity}
+            headerTitle={headerTitle}
+            kind={kind ?? entity.kind}
+            // Drive the current entity's identity from the URL params so it is
+            // correct immediately during navigation (while `entity` may still be
+            // the stale previous one from stale-while-revalidate).
+            entityName={name ?? entity.metadata.name}
+            kindDisplayNames={kindDisplayNames}
+            parentEntity={parentEntity}
+            ancestorEntity={ancestorEntity}
+            rootAncestorEntity={rootAncestorEntity}
+            contextMenu={contextMenuNode}
+            loading={loading}
+          />
+        )}
 
-      {entity && <RoutedTabs routes={routes} />}
+        {entity && <RoutedTabs routes={routes} />}
 
-      {error && (
-        <Content>
-          <Alert severity="error">{error.toString()}</Alert>
-        </Content>
-      )}
+        {error && (
+          <Content>
+            <Alert severity="error">{error.toString()}</Alert>
+          </Content>
+        )}
 
-      {!loading && !error && !entity && (
-        <Content>
-          {NotFoundComponent ?? (
-            <WarningPanel title="Entity not found">
-              There is no {kind} with the requested{' '}
-              <Link to="https://backstage.io/docs/features/software-catalog/references">
-                kind, namespace, and name
-              </Link>
-              .
-            </WarningPanel>
-          )}
-        </Content>
-      )}
+        {!loading && !error && !entity && (
+          <Content>
+            {NotFoundComponent ?? (
+              <WarningPanel title="Entity not found">
+                There is no {kind} with the requested{' '}
+                <Link to="https://backstage.io/docs/features/software-catalog/references">
+                  kind, namespace, and name
+                </Link>
+                .
+              </WarningPanel>
+            )}
+          </Content>
+        )}
 
-      {showInspectTab && entity && (
-        <InspectEntityDialog
-          entity={entity}
-          initialTab={
-            (selectedInspectTab as ComponentProps<
-              typeof InspectEntityDialog
-            >['initialTab']) || undefined
-          }
-          onSelect={newTab =>
-            setSearchParams(prev => {
-              const newParams = new URLSearchParams(prev);
-              newParams.set('inspect', newTab);
-              return newParams;
-            })
-          }
-          open
-          onClose={() =>
-            setSearchParams(prev => {
-              const newParams = new URLSearchParams(prev);
-              newParams.delete('inspect');
-              return newParams;
-            })
-          }
-        />
-      )}
-    </Page>
+        {showInspectTab && entity && (
+          <InspectEntityDialog
+            entity={entity}
+            initialTab={
+              (selectedInspectTab as ComponentProps<
+                typeof InspectEntityDialog
+              >['initialTab']) || undefined
+            }
+            onSelect={newTab =>
+              setSearchParams(prev => {
+                const newParams = new URLSearchParams(prev);
+                newParams.set('inspect', newTab);
+                return newParams;
+              })
+            }
+            open
+            onClose={() =>
+              setSearchParams(prev => {
+                const newParams = new URLSearchParams(prev);
+                newParams.delete('inspect');
+                return newParams;
+              })
+            }
+          />
+        )}
+      </Page>
+    </ReleaseLineProvider>
   );
 };
 

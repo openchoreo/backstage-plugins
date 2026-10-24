@@ -4,7 +4,10 @@ import {
   createOpenChoreoApiClient,
   assertApiResponse,
 } from '@openchoreo/openchoreo-client-node';
-import type { WorkloadResource } from '@openchoreo/backstage-plugin-common';
+import {
+  isSameReleaseLine,
+  type WorkloadResource,
+} from '@openchoreo/backstage-plugin-common';
 
 export class WorkloadInfoService implements WorkloadService {
   private readonly logger: LoggerService;
@@ -24,10 +27,11 @@ export class WorkloadInfoService implements WorkloadService {
       projectName: string;
       componentName: string;
       namespaceName: string;
+      releaseLine?: string;
     },
     token?: string,
   ): Promise<WorkloadResource | null> {
-    const { projectName, componentName, namespaceName } = request;
+    const { projectName, componentName, namespaceName, releaseLine } = request;
 
     try {
       this.logger.info(
@@ -53,7 +57,10 @@ export class WorkloadInfoService implements WorkloadService {
 
       assertApiResponse({ data, error, response }, 'fetch workloads');
 
-      const workload = data!.items[0];
+      // Each release line has its own Workload; the default line's has none.
+      const workload = data!.items.find(item =>
+        isSameReleaseLine(item.spec?.owner?.releaseLine, releaseLine),
+      );
       if (!workload) {
         this.logger.debug(`No workload found for component ${componentName}`);
         return null;
@@ -72,13 +79,20 @@ export class WorkloadInfoService implements WorkloadService {
       projectName: string;
       componentName: string;
       namespaceName: string;
+      releaseLine?: string;
       workload: WorkloadResource;
       isNew: boolean;
     },
     token?: string,
   ): Promise<WorkloadResource> {
-    const { projectName, componentName, namespaceName, workload, isNew } =
-      request;
+    const {
+      projectName,
+      componentName,
+      namespaceName,
+      releaseLine,
+      workload,
+      isNew,
+    } = request;
 
     try {
       this.logger.info(
@@ -122,13 +136,18 @@ export class WorkloadInfoService implements WorkloadService {
         ...workload,
         metadata: {
           ...workload.metadata,
-          name: workload.metadata?.name || `${componentName}-workload`,
+          name:
+            workload.metadata?.name ||
+            (releaseLine
+              ? `${componentName}-${releaseLine}-workload`
+              : `${componentName}-workload`),
         },
         spec: {
           ...(workload.spec as { [key: string]: unknown }),
           owner: {
             projectName,
             componentName,
+            ...(releaseLine ? { releaseLine } : {}),
           },
         },
       };

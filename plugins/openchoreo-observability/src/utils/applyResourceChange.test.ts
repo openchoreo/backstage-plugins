@@ -9,6 +9,7 @@ import {
   applyEnvChange,
   applyFileChange,
   applyResourceChange,
+  assertBindingOwner,
   resolveTargetKind,
   tryResolveTargetKind,
 } from './applyResourceChange';
@@ -203,6 +204,58 @@ describe('applyFileChange', () => {
 // applyResourceChange (integration: GET → mutate → PUT)
 // ---------------------------------------------------------------------------
 
+describe('assertBindingOwner', () => {
+  const binding = {
+    spec: { owner: { componentName: 'checkout', releaseLine: 'canary' } },
+  };
+
+  it('accepts a binding on the expected component and line', () => {
+    expect(() =>
+      assertBindingOwner(binding, 'b', {
+        componentName: 'checkout',
+        releaseLine: 'canary',
+      }),
+    ).not.toThrow();
+  });
+
+  it('rejects a binding on another release line', () => {
+    expect(() =>
+      assertBindingOwner(binding, 'b', { releaseLine: 'stable' }),
+    ).toThrow("belongs to release line 'canary', not 'stable'");
+  });
+
+  it('rejects a binding with no release line when one is expected', () => {
+    expect(() =>
+      assertBindingOwner({ spec: { owner: {} } }, 'b', {
+        releaseLine: 'canary',
+      }),
+    ).toThrow("is not on release line 'canary'");
+  });
+
+  it('rejects a binding of another component', () => {
+    expect(() =>
+      assertBindingOwner(binding, 'b', { componentName: 'cart' }),
+    ).toThrow("belongs to component 'checkout', not 'cart'");
+  });
+
+  it('matches default to a binding without a release line', () => {
+    expect(() =>
+      assertBindingOwner({ spec: { owner: {} } }, 'b', {
+        releaseLine: 'default',
+      }),
+    ).not.toThrow();
+    expect(() =>
+      assertBindingOwner(binding, 'b', { releaseLine: 'default' }),
+    ).toThrow("belongs to release line 'canary', not 'default'");
+  });
+
+  it('skips the line check when no line is expected', () => {
+    expect(() =>
+      assertBindingOwner(binding, 'b', { componentName: 'checkout' }),
+    ).not.toThrow();
+  });
+});
+
 describe('applyResourceChange', () => {
   const mockFetchApi = { fetch: jest.fn() };
   const baseUrl = 'http://backend';
@@ -225,6 +278,26 @@ describe('applyResourceChange', () => {
       statusText: ok ? 'OK' : 'Internal Server Error',
     } as Response);
   }
+
+  it('does not PUT a binding that belongs to another release line', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(
+      makeGetResponse({
+        metadata: { name: 'checkout-stable-development' },
+        spec: { owner: { componentName: 'checkout', releaseLine: 'stable' } },
+      }),
+    );
+
+    await expect(
+      applyResourceChange({
+        backendBaseUrl: baseUrl,
+        fetchApi: mockFetchApi as any,
+        namespaceName,
+        change: { release_binding: 'checkout-stable-development', fields: [] },
+        expectedOwner: { componentName: 'checkout', releaseLine: 'canary' },
+      }),
+    ).rejects.toThrow("not 'canary'");
+    expect(mockFetchApi.fetch).toHaveBeenCalledTimes(1);
+  });
 
   it('GETs, applies field changes, and PUTs the updated binding', async () => {
     const binding = {

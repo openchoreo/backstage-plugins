@@ -19,7 +19,7 @@ import {
   pickRangeForAge,
   useProjectEnvironments,
 } from '@openchoreo/backstage-plugin-react';
-import { EnvironmentsStatusNotice } from '../common';
+import { EnvironmentsStatusNotice, ReleaseLineFilter } from '../common';
 import { useRuntimeLogsStyles } from '../RuntimeLogs/styles';
 import type { AlertSummary } from '../../types';
 
@@ -234,6 +234,11 @@ const ObservabilityAlertsContent = () => {
   return (
     <Box position="relative">
       <RefreshOverlay active={isRefetching} label="Refreshing alerts" />
+      <ReleaseLineFilter
+        namespace={namespace}
+        component={componentName}
+        disabled={alertsLoading}
+      />
       <AlertsFilter
         filters={filters}
         onFiltersChange={handleFiltersChange}

@@ -138,6 +138,10 @@ export const useProjectContentsCardStyles = makeStyles(theme => {
     notDeployed: {
       color: theme.palette.text.secondary,
     },
+    releaseLinesSummary: {
+      display: 'inline-block',
+      color: theme.palette.text.primary,
+    },
     // Pill-shaped placeholder matching an environment chip's footprint.
     skeletonChip: {
       borderRadius: 11,

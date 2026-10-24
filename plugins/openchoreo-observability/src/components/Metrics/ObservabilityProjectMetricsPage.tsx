@@ -37,7 +37,7 @@ import {
   useProjectMetrics,
   useUrlFilters,
 } from '../../hooks';
-import { EnvironmentsStatusNotice } from '../common';
+import { EnvironmentsStatusNotice, ReleaseLineFilter } from '../common';
 import {
   CpuUsageMetrics,
   MemoryUsageMetrics,
@@ -273,6 +273,12 @@ const ObservabilityProjectMetricsContent = () => {
     <Box position="relative">
       <RefreshOverlay active={isRefetching} label="Refreshing metrics" />
 
+      <ReleaseLineFilter
+        namespace={namespace}
+        component={
+          filters.components?.length === 1 ? filters.components[0] : undefined
+        }
+      />
       <MetricsFilters
         filters={filters}
         onFiltersChange={handleFiltersChange}
