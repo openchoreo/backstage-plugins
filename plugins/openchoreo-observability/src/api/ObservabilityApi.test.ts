@@ -63,6 +63,7 @@ describe('ObservabilityClient.getMetrics', () => {
       project: 'project-a',
       component: 'component-a',
       environment: 'dev',
+      allReleaseLines: true,
     });
     expect(result).toEqual({
       cpuUsage: {
@@ -351,11 +352,25 @@ describe('ObservabilityClient.getRuntimeEvents', () => {
       project: 'project-a',
       component: 'component-a',
       environment: 'dev',
+      allReleaseLines: true,
     });
     expect(result).toEqual({
       events: [{ timestamp: 't1', message: 'm1' }],
       total: 1,
     });
+  });
+
+  it('sends a chosen release line instead of every line', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(mockOkResponse({ events: [] }));
+
+    const client = createClient();
+    await client.getRuntimeEvents('ns1', 'project-a', 'dev', 'component-a', {
+      releaseLine: 'next',
+    });
+
+    const payload = JSON.parse(mockFetchApi.fetch.mock.calls[0][1].body);
+    expect(payload.searchScope.releaseLine).toBe('next');
+    expect(payload.searchScope.allReleaseLines).toBeUndefined();
   });
 
   it('omits the component from scope when not provided and defaults options', async () => {
@@ -366,6 +381,7 @@ describe('ObservabilityClient.getRuntimeEvents', () => {
 
     const payload = JSON.parse(mockFetchApi.fetch.mock.calls[0][1].body);
     expect(payload.searchScope.component).toBeUndefined();
+    expect(payload.searchScope.allReleaseLines).toBeUndefined();
     expect(payload.limit).toBe(100);
     expect(payload.sortOrder).toBe('desc');
   });

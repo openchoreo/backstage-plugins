@@ -329,6 +329,8 @@ export interface DoraSearchScope {
   environment?: string;
   /** Release line of the component; requires `component`. */
   releaseLine?: string;
+  /** Covers every line of the component; without it, a component covers its default line. */
+  allReleaseLines?: boolean;
 }
 
 export interface DoraFrequencySummary {

@@ -252,7 +252,31 @@ describe('ObservabilityClient cost APIs with a release line', () => {
 
     const parsed = new URL(mockFetchApi.fetch.mock.calls[0][0]);
     expect(parsed.searchParams.has('releaseLine')).toBe(false);
+    expect(parsed.searchParams.has('allReleaseLines')).toBe(false);
   });
+
+  it.each([
+    [
+      'getCosts',
+      (c: ObservabilityClient, o: any) => c.getCosts('ns1', 'dev', o),
+    ],
+    [
+      'getCostRecommendations',
+      (c: ObservabilityClient, o: any) =>
+        c.getCostRecommendations('ns1', 'dev', o),
+    ],
+  ])(
+    '%s asks for every line of a component without a line',
+    async (_name, call) => {
+      mockFetchApi.fetch.mockResolvedValueOnce(okResponse({ items: [] }));
+
+      await call(createClient(), { project: 'proj', component: 'comp' });
+
+      const parsed = new URL(mockFetchApi.fetch.mock.calls[0][0]);
+      expect(parsed.searchParams.has('releaseLine')).toBe(false);
+      expect(parsed.searchParams.get('allReleaseLines')).toBe('true');
+    },
+  );
 
   it.each([
     [

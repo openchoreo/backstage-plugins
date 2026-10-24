@@ -331,13 +331,23 @@ export class CostsReleaseLineNotSupportedError extends Error {
   }
 }
 
-/** Drops a release line the observer would reject without a component. */
+/**
+ * The release line part of a component search scope. Without a line, the portal
+ * covers every line of the component, which the observer does only when asked:
+ * on its own, a component scope covers the component's default line.
+ */
+function releaseLineScope(
+  component: string | undefined,
+  releaseLine: string | undefined,
+): { releaseLine?: string; allReleaseLines?: boolean } {
+  if (!component) return {};
+  return releaseLine ? { releaseLine } : { allReleaseLines: true };
+}
+
+/** Scopes a DORA query to its release line, or to every line of its component. */
 function withReleaseLineScope(scope: DoraSearchScope): DoraSearchScope {
-  if (scope.releaseLine && !scope.component) {
-    const { releaseLine: _releaseLine, ...rest } = scope;
-    return rest;
-  }
-  return scope;
+  const { releaseLine, ...rest } = scope;
+  return { ...rest, ...releaseLineScope(scope.component, releaseLine) };
 }
 
 /**
@@ -412,9 +422,7 @@ export class ObservabilityClient implements ObservabilityApi {
       project: projectName,
       environment: environmentName,
       ...(componentName ? { component: componentName } : {}),
-      ...(componentName && options?.releaseLine
-        ? { releaseLine: options.releaseLine }
-        : {}),
+      ...releaseLineScope(componentName, options?.releaseLine),
     };
 
     const baseBody = {
@@ -524,9 +532,7 @@ export class ObservabilityClient implements ObservabilityApi {
             project: projectName,
             ...(componentName ? { component: componentName } : {}),
             environment: environmentName,
-            ...(componentName && options?.releaseLine
-              ? { releaseLine: options.releaseLine }
-              : {}),
+            ...releaseLineScope(componentName, options?.releaseLine),
           },
         }),
       },
@@ -601,9 +607,7 @@ export class ObservabilityClient implements ObservabilityApi {
             project: projectName,
             ...(componentName ? { component: componentName } : {}),
             environment: environmentName,
-            ...(componentName && options?.releaseLine
-              ? { releaseLine: options.releaseLine }
-              : {}),
+            ...releaseLineScope(componentName, options?.releaseLine),
           },
         }),
       },
@@ -829,9 +833,7 @@ export class ObservabilityClient implements ObservabilityApi {
             namespace: namespaceName,
             project: projectName,
             ...(componentName ? { component: componentName } : {}),
-            ...(componentName && options?.releaseLine
-              ? { releaseLine: options.releaseLine }
-              : {}),
+            ...releaseLineScope(componentName, options?.releaseLine),
             environment: environmentName,
           },
         }),
@@ -915,9 +917,7 @@ export class ObservabilityClient implements ObservabilityApi {
             namespace: namespaceName,
             project: projectName,
             component: componentName,
-            ...(componentName && options?.releaseLine
-              ? { releaseLine: options.releaseLine }
-              : {}),
+            ...releaseLineScope(componentName, options?.releaseLine),
             environment: environmentName,
           },
         }),
@@ -1004,9 +1004,7 @@ export class ObservabilityClient implements ObservabilityApi {
             project: projectName,
             ...(componentName ? { component: componentName } : {}),
             environment: environmentName,
-            ...(componentName && options?.releaseLine
-              ? { releaseLine: options.releaseLine }
-              : {}),
+            ...releaseLineScope(componentName, options?.releaseLine),
           },
         }),
       },
@@ -1167,9 +1165,7 @@ export class ObservabilityClient implements ObservabilityApi {
             project: projectName,
             ...(componentName ? { component: componentName } : {}),
             environment: environmentName,
-            ...(componentName && options?.releaseLine
-              ? { releaseLine: options.releaseLine }
-              : {}),
+            ...releaseLineScope(componentName, options?.releaseLine),
           },
         }),
       },
@@ -1441,8 +1437,14 @@ export class ObservabilityClient implements ObservabilityApi {
     if (options?.project) url.searchParams.set('project', options.project);
     if (options?.component)
       url.searchParams.set('component', options.component);
-    if (options?.component && options.releaseLine)
-      url.searchParams.set('releaseLine', options.releaseLine);
+    const lineParams = releaseLineScope(
+      options?.component,
+      options?.releaseLine,
+    );
+    if (lineParams.releaseLine)
+      url.searchParams.set('releaseLine', lineParams.releaseLine);
+    if (lineParams.allReleaseLines)
+      url.searchParams.set('allReleaseLines', 'true');
     if (options?.startTime)
       url.searchParams.set('startTime', options.startTime);
     if (options?.endTime) url.searchParams.set('endTime', options.endTime);
@@ -1500,8 +1502,14 @@ export class ObservabilityClient implements ObservabilityApi {
     if (options?.project) url.searchParams.set('project', options.project);
     if (options?.component)
       url.searchParams.set('component', options.component);
-    if (options?.component && options.releaseLine)
-      url.searchParams.set('releaseLine', options.releaseLine);
+    const lineParams = releaseLineScope(
+      options?.component,
+      options?.releaseLine,
+    );
+    if (lineParams.releaseLine)
+      url.searchParams.set('releaseLine', lineParams.releaseLine);
+    if (lineParams.allReleaseLines)
+      url.searchParams.set('allReleaseLines', 'true');
     if (options?.startTime)
       url.searchParams.set('startTime', options.startTime);
     if (options?.endTime) url.searchParams.set('endTime', options.endTime);
