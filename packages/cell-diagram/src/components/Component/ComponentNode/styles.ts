@@ -127,8 +127,9 @@ export const ComponentBadge = styled.span<ComponentNameStyleProps>`
   padding: 1px 8px;
   border-radius: 999px;
   background-color: ${({ theme }) => theme.colors.PRIMARY_CONTAINER};
-  border: 1px solid ${({ theme, disabled }) =>
-    disabled ? theme.colors.SURFACE_DIM : theme.colors.PRIMARY};
+  border: 1px solid
+    ${({ theme, disabled }) =>
+      disabled ? theme.colors.SURFACE_DIM : theme.colors.PRIMARY};
   color: ${({ theme, disabled }) =>
     disabled ? theme.colors.SURFACE_DIM : theme.colors.PRIMARY};
 `;
