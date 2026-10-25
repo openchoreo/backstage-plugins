@@ -4,6 +4,7 @@ import {
   isInheritedTrait,
   mergeOverrides,
   mergeTraits,
+  type ReleaseLineTrait,
 } from './releaseLineOverrides';
 
 describe('mergeOverrides', () => {
@@ -85,5 +86,29 @@ describe('traits', () => {
   it('tells inherited traits apart', () => {
     expect(isInheritedTrait(health, [health])).toBe(true);
     expect(isInheritedTrait(hpa, [health])).toBe(false);
+  });
+
+  const scaling: ReleaseLineTrait = {
+    kind: 'ClusterTrait',
+    name: 'hpa',
+    instanceName: 'autoscale',
+    parameters: { min: 2, max: 10 },
+  };
+
+  it('deep-merges an overridden trait onto the inherited one', () => {
+    expect(
+      mergeTraits([scaling], [{ ...scaling, parameters: { max: 3 } }]),
+    ).toEqual([{ ...scaling, parameters: { min: 2, max: 3 } }]);
+  });
+
+  it('declares only the changed parameters of an inherited trait', () => {
+    expect(
+      diffTraits([{ ...scaling, parameters: { min: 2, max: 3 } }], [scaling]),
+    ).toEqual([{ ...scaling, parameters: { max: 3 } }]);
+  });
+
+  it('round-trips an overridden trait', () => {
+    const line = [{ ...scaling, parameters: { max: 3 } }];
+    expect(diffTraits(mergeTraits([scaling], line), [scaling])).toEqual(line);
   });
 });

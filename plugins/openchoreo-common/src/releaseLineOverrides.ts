@@ -82,29 +82,37 @@ export function mergeTraits<T extends ReleaseLineTrait>(
 ): T[] {
   const overrides = new Map((override ?? []).map(t => [traitKey(t), t]));
   const merged = (base ?? []).map(trait => {
-    const replacement = overrides.get(traitKey(trait));
+    const lineTrait = overrides.get(traitKey(trait));
     overrides.delete(traitKey(trait));
-    return replacement
-      ? { ...trait, ...replacement, parameters: replacement.parameters }
-      : trait;
+    if (!lineTrait) {
+      return trait;
+    }
+    return {
+      ...trait,
+      ...lineTrait,
+      parameters: mergeOverrides(trait.parameters, lineTrait.parameters),
+    };
   });
   return [...merged, ...overrides.values()];
 }
 
 /**
  * The traits a release line must declare so that, merged onto `base`, they
- * yield `value`: new traits, and inherited traits whose configuration changed.
+ * yield `value`: new traits whole, and inherited traits with only the
+ * parameters that differ.
  */
 export function diffTraits<T extends ReleaseLineTrait>(
   value: T[] | undefined,
   base: T[] | undefined,
 ): T[] {
   const inherited = new Map((base ?? []).map(t => [traitKey(t), t]));
-  return (value ?? []).filter(trait => {
+  return (value ?? []).flatMap(trait => {
     const original = inherited.get(traitKey(trait));
-    return (
-      !original || !isEqual(trait.parameters ?? {}, original.parameters ?? {})
-    );
+    if (!original) {
+      return [trait];
+    }
+    const parameters = diffOverrides(trait.parameters, original.parameters);
+    return Object.keys(parameters).length > 0 ? [{ ...trait, parameters }] : [];
   });
 }
 
