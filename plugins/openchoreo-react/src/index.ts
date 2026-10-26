@@ -241,7 +241,9 @@ export {
 } from './hooks/useComponentEntityDetails';
 export {
   useSecretReferences,
+  useNamespaceSecretReferences,
   filterSecretReferencesForEnvDataPlane,
+  filterSecretReferencesForObservabilityPlane,
   type UseSecretReferencesResult,
   type SecretReference,
   type SecretDataSourceInfo,

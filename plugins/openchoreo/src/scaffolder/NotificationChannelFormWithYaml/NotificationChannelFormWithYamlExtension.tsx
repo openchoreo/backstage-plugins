@@ -8,11 +8,24 @@ import {
   Switch,
   Box,
   Typography,
+  Button,
+  IconButton,
 } from '@material-ui/core';
+import AddIcon from '@material-ui/icons/Add';
+import DeleteIcon from '@material-ui/icons/Delete';
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
-import { YamlEditor } from '@openchoreo/backstage-plugin-react';
-import { FormYamlToggle, RjsfForm } from '@openchoreo/backstage-design-system';
+import {
+  YamlEditor,
+  useNamespaceSecretReferences,
+  filterSecretReferencesForObservabilityPlane,
+  type SecretReference,
+} from '@openchoreo/backstage-plugin-react';
+import {
+  FormYamlToggle,
+  SecretSelector,
+  type SecretOption,
+} from '@openchoreo/backstage-design-system';
 import YAML from 'yaml';
 import { useStyles } from './styles';
 import {
@@ -46,36 +59,6 @@ export interface NotificationChannelWebhookConfigFormData {
   headers: WebhookHeaderFormData[];
   payloadTemplate: string;
 }
-
-// Sub-schema for the webhook headers array, rendered via RjsfForm
-const HEADERS_SCHEMA = {
-  type: 'object',
-  properties: {
-    headers: {
-      type: 'array',
-      title: 'Headers',
-      description: 'Optional HTTP headers to send with the webhook request',
-      items: {
-        type: 'object',
-        properties: {
-          name: { type: 'string', title: 'Header Name' },
-          value: {
-            type: 'string',
-            title: 'Inline Value',
-            description: 'Leave empty if sourcing from a secret',
-          },
-          secretName: {
-            type: 'string',
-            title: 'Secret Name',
-            description:
-              'Kubernetes Secret name (used instead of an inline value)',
-          },
-          secretKey: { type: 'string', title: 'Secret Key' },
-        },
-      },
-    },
-  },
-} as const;
 
 export interface NotificationChannelFormData {
   namespace_name: string;
@@ -115,9 +98,9 @@ const DEFAULT_FORM_DATA: NotificationChannelWorkingData = {
     smtpHost: '',
     smtpPort: 587,
     smtpUsernameSecretName: '',
-    smtpUsernameSecretKey: 'username',
+    smtpUsernameSecretKey: '',
     smtpPasswordSecretName: '',
-    smtpPasswordSecretKey: 'password',
+    smtpPasswordSecretKey: '',
     insecureSkipVerify: false,
     subjectTemplate: '',
     bodyTemplate: '',
@@ -133,6 +116,52 @@ const DEFAULT_FORM_DATA: NotificationChannelWorkingData = {
 function extractName(entityRef: string): string {
   const parts = entityRef.split('/');
   return parts[parts.length - 1];
+}
+
+/**
+ * Options for the secret reference pickers: the namespace's SecretReferences that a notification
+ * channel can use, plus any name and key already in the form that isn't among them (for example
+ * a Kubernetes Secret name loaded from YAML), so an existing value is shown instead of dropped.
+ */
+export function buildSecretOptions(
+  secretReferences: SecretReference[],
+  selected: Array<{ name: string; key: string }>,
+): SecretOption[] {
+  const options: SecretOption[] = filterSecretReferencesForObservabilityPlane(
+    secretReferences,
+  ).map(ref => ({
+    name: ref.name,
+    displayName: ref.displayName,
+    keys: ref.data?.map(item => item.secretKey) ?? [],
+  }));
+  for (const { name, key } of selected) {
+    if (!name) continue;
+    const option = options.find(o => o.name === name);
+    if (!option) {
+      options.push({
+        name,
+        displayName: `${name} (not a SecretReference for notification channels)`,
+        keys: key ? [key] : [],
+      });
+    } else if (key && !option.keys.includes(key)) {
+      option.keys = [...option.keys, key];
+    }
+  }
+  return options;
+}
+
+/**
+ * Key to select after a secret reference is picked: the preferred key if the reference has it,
+ * otherwise its only key, otherwise none.
+ */
+export function pickSecretKey(
+  options: SecretOption[],
+  name: string,
+  preferredKey: string,
+): string {
+  const keys = options.find(o => o.name === name)?.keys ?? [];
+  if (preferredKey && keys.includes(preferredKey)) return preferredKey;
+  return keys.length === 1 ? keys[0] : '';
 }
 
 /** Kubernetes name validation: lowercase alphanumeric and hyphens, must start/end with alphanumeric */
@@ -269,11 +298,11 @@ function yamlToForm(
       smtpUsernameSecretName:
         emailSpec.smtp?.auth?.username?.secretKeyRef?.name || '',
       smtpUsernameSecretKey:
-        emailSpec.smtp?.auth?.username?.secretKeyRef?.key || 'username',
+        emailSpec.smtp?.auth?.username?.secretKeyRef?.key || '',
       smtpPasswordSecretName:
         emailSpec.smtp?.auth?.password?.secretKeyRef?.name || '',
       smtpPasswordSecretKey:
-        emailSpec.smtp?.auth?.password?.secretKeyRef?.key || 'password',
+        emailSpec.smtp?.auth?.password?.secretKeyRef?.key || '',
       insecureSkipVerify: emailSpec.smtp?.tls?.insecureSkipVerify ?? false,
       subjectTemplate: emailSpec.template?.subject || '',
       bodyTemplate: emailSpec.template?.body || '',
@@ -333,6 +362,34 @@ export const NotificationChannelFormWithYamlExtension = ({
     formDataRef.current = formData;
     dataRef.current = data;
   });
+
+  const namespaceName = data.namespace_name
+    ? extractName(data.namespace_name)
+    : '';
+  const { secretReferences, isLoading: secretReferencesLoading } =
+    useNamespaceSecretReferences(namespaceName || undefined);
+  const secretOptions = useMemo(
+    () =>
+      buildSecretOptions(secretReferences, [
+        {
+          name: data.emailConfig.smtpUsernameSecretName,
+          key: data.emailConfig.smtpUsernameSecretKey,
+        },
+        {
+          name: data.emailConfig.smtpPasswordSecretName,
+          key: data.emailConfig.smtpPasswordSecretKey,
+        },
+        ...data.webhookConfig.headers.map(header => ({
+          name: header.secretName,
+          key: header.secretKey,
+        })),
+      ]),
+    [secretReferences, data.emailConfig, data.webhookConfig.headers],
+  );
+  const secretReferencesHelpText = !namespaceName
+    ? 'Select a namespace to list its secret references.'
+    : 'Secret references in this namespace that target an observability plane or no plane. ' +
+      "Create one on the Secrets page with the environment's observability plane as the target plane.";
 
   // Only the config matching the currently selected `type` is submitted
   const commit = useCallback(
@@ -427,6 +484,36 @@ export const NotificationChannelFormWithYamlExtension = ({
       });
     },
     [data, commit],
+  );
+
+  /** Sets an SMTP credential's secret reference and picks a matching key in one update. */
+  const updateSmtpSecret = useCallback(
+    (credential: 'Username' | 'Password', name: string) => {
+      const preferredKey = credential === 'Username' ? 'username' : 'password';
+      commit({
+        ...data,
+        emailConfig: {
+          ...data.emailConfig,
+          [`smtp${credential}SecretName`]: name,
+          [`smtp${credential}SecretKey`]: pickSecretKey(
+            secretOptions,
+            name,
+            preferredKey,
+          ),
+        },
+      });
+    },
+    [data, commit, secretOptions],
+  );
+
+  const updateHeader = useCallback(
+    (index: number, changes: Partial<WebhookHeaderFormData>) => {
+      const headers = data.webhookConfig.headers.map((header, i) =>
+        i === index ? { ...header, ...changes } : header,
+      );
+      updateWebhookField('headers', headers);
+    },
+    [data.webhookConfig.headers, updateWebhookField],
   );
 
   const handleModeChange = useCallback(
@@ -631,53 +718,40 @@ export const NotificationChannelFormWithYamlExtension = ({
                     required
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    label="SMTP Username Secret Name"
-                    value={data.emailConfig.smtpUsernameSecretName}
-                    onChange={e =>
-                      updateEmailField('smtpUsernameSecretName', e.target.value)
+                <Grid item xs={12}>
+                  <SecretSelector
+                    nameLabel="SMTP Username Secret Reference"
+                    keyLabel="SMTP Username Key"
+                    secretName={data.emailConfig.smtpUsernameSecretName}
+                    secretKey={data.emailConfig.smtpUsernameSecretKey}
+                    secrets={secretOptions}
+                    disabled={!namespaceName || secretReferencesLoading}
+                    onSecretNameChange={name =>
+                      updateSmtpSecret('Username', name)
                     }
-                    fullWidth
-                    variant="outlined"
-                    required
+                    onSecretKeyChange={key =>
+                      updateEmailField('smtpUsernameSecretKey', key)
+                    }
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    label="SMTP Username Secret Key"
-                    value={data.emailConfig.smtpUsernameSecretKey}
-                    onChange={e =>
-                      updateEmailField('smtpUsernameSecretKey', e.target.value)
+                <Grid item xs={12}>
+                  <SecretSelector
+                    nameLabel="SMTP Password Secret Reference"
+                    keyLabel="SMTP Password Key"
+                    secretName={data.emailConfig.smtpPasswordSecretName}
+                    secretKey={data.emailConfig.smtpPasswordSecretKey}
+                    secrets={secretOptions}
+                    disabled={!namespaceName || secretReferencesLoading}
+                    onSecretNameChange={name =>
+                      updateSmtpSecret('Password', name)
                     }
-                    fullWidth
-                    variant="outlined"
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    label="SMTP Password Secret Name"
-                    value={data.emailConfig.smtpPasswordSecretName}
-                    onChange={e =>
-                      updateEmailField('smtpPasswordSecretName', e.target.value)
+                    onSecretKeyChange={key =>
+                      updateEmailField('smtpPasswordSecretKey', key)
                     }
-                    fullWidth
-                    variant="outlined"
-                    required
                   />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    label="SMTP Password Secret Key"
-                    value={data.emailConfig.smtpPasswordSecretKey}
-                    onChange={e =>
-                      updateEmailField('smtpPasswordSecretKey', e.target.value)
-                    }
-                    fullWidth
-                    variant="outlined"
-                    required
-                  />
+                  <Typography variant="caption" color="textSecondary">
+                    {secretReferencesHelpText}
+                  </Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Box display="flex" alignItems="center" height="100%">
@@ -740,14 +814,96 @@ export const NotificationChannelFormWithYamlExtension = ({
                   />
                 </Grid>
                 <Grid item xs={12}>
-                  <RjsfForm
-                    schema={HEADERS_SCHEMA}
-                    formData={{ headers: data.webhookConfig.headers }}
-                    onChange={e =>
-                      updateWebhookField('headers', e.formData?.headers ?? [])
+                  <Typography variant="subtitle2">Headers</Typography>
+                  <Typography variant="caption" color="textSecondary">
+                    Optional HTTP headers to send with the webhook request. Give
+                    each header an inline value or a secret reference.{' '}
+                    {secretReferencesHelpText}
+                  </Typography>
+                </Grid>
+                {data.webhookConfig.headers.map((header, index) => (
+                  <Grid item xs={12} key={index}>
+                    <Grid container spacing={1} alignItems="center">
+                      <Grid item xs={12} sm={3}>
+                        <TextField
+                          label="Header Name"
+                          value={header.name}
+                          onChange={e =>
+                            updateHeader(index, { name: e.target.value })
+                          }
+                          fullWidth
+                          variant="outlined"
+                          size="small"
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={3}>
+                        <TextField
+                          label="Inline Value"
+                          value={header.value}
+                          onChange={e =>
+                            updateHeader(index, { value: e.target.value })
+                          }
+                          disabled={Boolean(header.secretName)}
+                          fullWidth
+                          variant="outlined"
+                          size="small"
+                        />
+                      </Grid>
+                      <Grid item xs={11} sm={5}>
+                        <SecretSelector
+                          nameLabel="Secret Reference"
+                          keyLabel="Key"
+                          secretName={header.secretName}
+                          secretKey={header.secretKey}
+                          secrets={secretOptions}
+                          disabled={
+                            !namespaceName ||
+                            secretReferencesLoading ||
+                            Boolean(header.value)
+                          }
+                          onSecretNameChange={name =>
+                            updateHeader(index, {
+                              secretName: name,
+                              secretKey: pickSecretKey(secretOptions, name, ''),
+                            })
+                          }
+                          onSecretKeyChange={key =>
+                            updateHeader(index, { secretKey: key })
+                          }
+                        />
+                      </Grid>
+                      <Grid item xs={1}>
+                        <IconButton
+                          aria-label={`Remove header ${index + 1}`}
+                          size="small"
+                          onClick={() =>
+                            updateWebhookField(
+                              'headers',
+                              data.webhookConfig.headers.filter(
+                                (_, i) => i !== index,
+                              ),
+                            )
+                          }
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Grid>
+                    </Grid>
+                  </Grid>
+                ))}
+                <Grid item xs={12}>
+                  <Button
+                    startIcon={<AddIcon />}
+                    size="small"
+                    onClick={() =>
+                      updateWebhookField('headers', [
+                        ...data.webhookConfig.headers,
+                        { name: '', value: '', secretName: '', secretKey: '' },
+                      ])
                     }
-                    tagName="div"
-                  />
+                  >
+                    Add Header
+                  </Button>
                 </Grid>
                 <Grid item xs={12}>
                   <TextField
@@ -841,16 +997,16 @@ export const notificationChannelFormWithYamlValidation = (
       validation.addError('SMTP port must be between 1 and 65535');
     }
     if (!value.emailConfig?.smtpUsernameSecretName) {
-      validation.addError('SMTP username secret name is required');
+      validation.addError('SMTP username secret reference is required');
     }
     if (!value.emailConfig?.smtpUsernameSecretKey) {
-      validation.addError('SMTP username secret key is required');
+      validation.addError('SMTP username secret reference key is required');
     }
     if (!value.emailConfig?.smtpPasswordSecretName) {
-      validation.addError('SMTP password secret name is required');
+      validation.addError('SMTP password secret reference is required');
     }
     if (!value.emailConfig?.smtpPasswordSecretKey) {
-      validation.addError('SMTP password secret key is required');
+      validation.addError('SMTP password secret reference key is required');
     }
     if (!value.emailConfig?.subjectTemplate) {
       validation.addError('Subject template is required');
@@ -885,7 +1041,7 @@ export const notificationChannelFormWithYamlValidation = (
       })
     ) {
       validation.addError(
-        'Each webhook header must provide either "value" or both "secretName" and "secretKey"',
+        'Each webhook header must provide either an inline value or a secret reference and key',
       );
     }
   }

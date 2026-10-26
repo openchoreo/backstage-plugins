@@ -24,7 +24,9 @@ export type TargetPlaneKind =
   | 'WorkflowPlane'
   | 'ClusterWorkflowPlane'
   | 'DataPlane'
-  | 'ClusterDataPlane';
+  | 'ClusterDataPlane'
+  | 'ObservabilityPlane'
+  | 'ClusterObservabilityPlane';
 
 /** Reference to the plane that hosts the secret data */
 export interface TargetPlaneRef {

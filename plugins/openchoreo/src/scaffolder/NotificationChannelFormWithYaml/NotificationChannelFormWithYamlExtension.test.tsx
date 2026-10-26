@@ -11,6 +11,8 @@ import type { FieldExtensionComponentProps } from '@backstage/plugin-scaffolder-
 import {
   NotificationChannelFormWithYamlExtension,
   notificationChannelFormWithYamlValidation,
+  buildSecretOptions,
+  pickSecretKey,
   type NotificationChannelFormData,
 } from './NotificationChannelFormWithYamlExtension';
 
@@ -45,14 +47,28 @@ jest.mock('../NamespaceEntityPicker', () => ({
 }));
 
 let yamlEditorProps: any;
+let mockSecretReferences: any[] = [];
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
   YamlEditor: (props: any) => {
     yamlEditorProps = props;
     return <div data-testid="yaml-editor" />;
   },
+  useNamespaceSecretReferences: (namespaceName: string | undefined) => ({
+    secretReferences: namespaceName ? mockSecretReferences : [],
+    isLoading: false,
+    isRefetching: false,
+    error: null,
+  }),
+  filterSecretReferencesForObservabilityPlane: (refs: any[]) =>
+    refs.filter(
+      ref =>
+        !ref.targetPlane ||
+        ['ObservabilityPlane', 'ClusterObservabilityPlane'].includes(
+          ref.targetPlane.kind,
+        ),
+    ),
 }));
 
-let headersFormProps: any;
 jest.mock('@openchoreo/backstage-design-system', () => ({
   FormYamlToggle: ({
     value,
@@ -67,11 +83,56 @@ jest.mock('@openchoreo/backstage-design-system', () => ({
       <button onClick={() => onChange('yaml')}>switch-to-yaml</button>
     </div>
   ),
-  RjsfForm: (props: any) => {
-    headersFormProps = props;
-    return <div data-testid="headers-form" />;
-  },
+  // Plain selects in place of the MUI dropdowns, labeled like the real ones.
+  SecretSelector: (props: any) => (
+    <div>
+      <select
+        aria-label={props.nameLabel}
+        value={props.secretName}
+        disabled={props.disabled}
+        onChange={e => props.onSecretNameChange(e.target.value)}
+      >
+        <option value="" />
+        {props.secrets.map((secret: any) => (
+          <option key={secret.name} value={secret.name}>
+            {secret.displayName || secret.name}
+          </option>
+        ))}
+      </select>
+      <select
+        aria-label={props.keyLabel}
+        value={props.secretKey}
+        disabled={props.disabled}
+        onChange={e => props.onSecretKeyChange(e.target.value)}
+      >
+        <option value="" />
+        {(
+          props.secrets.find((secret: any) => secret.name === props.secretName)
+            ?.keys ?? []
+        ).map((key: string) => (
+          <option key={key} value={key}>
+            {key}
+          </option>
+        ))}
+      </select>
+    </div>
+  ),
 }));
+
+function secretReference(
+  name: string,
+  keys: string[],
+  targetPlane?: { kind: string; name: string },
+) {
+  return {
+    name,
+    namespace: 'team-a',
+    data: keys.map(key => ({ secretKey: key, remoteRef: { key: name } })),
+    targetPlane,
+    createdAt: '2026-01-01T00:00:00Z',
+    status: 'Ready',
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Test harness — mimics RJSF holding formData in parent state so the
@@ -152,7 +213,7 @@ beforeEach(() => {
   latestFormData = undefined;
   namespaceFieldProps = undefined;
   yamlEditorProps = undefined;
-  headersFormProps = undefined;
+  mockSecretReferences = [];
   mockGetEntities.mockResolvedValue({ items: [] });
 });
 
@@ -462,7 +523,29 @@ describe('NotificationChannelFormWithYamlExtension — email fields', () => {
     });
     await waitFor(() => expect(latestFormData!.emailConfig!.smtpPort).toBe(25));
 
-    fireEvent.change(getFieldByLabel('SMTP Username Secret Name'), {
+    mockSecretReferences = [
+      secretReference('smtp-auth', ['username', 'password'], {
+        kind: 'ClusterObservabilityPlane',
+        name: 'default',
+      }),
+      secretReference('dp-only', ['token'], {
+        kind: 'DataPlane',
+        name: 'default',
+      }),
+    ];
+    act(() => {
+      namespaceFieldProps.onChange('domain:default/team-a');
+    });
+    await waitFor(() =>
+      expect(
+        screen.getByLabelText('SMTP Username Secret Reference'),
+      ).not.toBeDisabled(),
+    );
+    expect(screen.queryAllByRole('option', { name: 'dp-only' })).toHaveLength(
+      0,
+    );
+
+    fireEvent.change(screen.getByLabelText('SMTP Username Secret Reference'), {
       target: { value: 'smtp-auth' },
     });
     await waitFor(() =>
@@ -470,15 +553,9 @@ describe('NotificationChannelFormWithYamlExtension — email fields', () => {
         'smtp-auth',
       ),
     );
+    expect(latestFormData!.emailConfig!.smtpUsernameSecretKey).toBe('username');
 
-    fireEvent.change(getFieldByLabel('SMTP Username Secret Key'), {
-      target: { value: 'user' },
-    });
-    await waitFor(() =>
-      expect(latestFormData!.emailConfig!.smtpUsernameSecretKey).toBe('user'),
-    );
-
-    fireEvent.change(getFieldByLabel('SMTP Password Secret Name'), {
+    fireEvent.change(screen.getByLabelText('SMTP Password Secret Reference'), {
       target: { value: 'smtp-auth' },
     });
     await waitFor(() =>
@@ -486,12 +563,15 @@ describe('NotificationChannelFormWithYamlExtension — email fields', () => {
         'smtp-auth',
       ),
     );
+    expect(latestFormData!.emailConfig!.smtpPasswordSecretKey).toBe('password');
 
-    fireEvent.change(getFieldByLabel('SMTP Password Secret Key'), {
-      target: { value: 'pass' },
+    fireEvent.change(screen.getByLabelText('SMTP Username Key'), {
+      target: { value: 'password' },
     });
     await waitFor(() =>
-      expect(latestFormData!.emailConfig!.smtpPasswordSecretKey).toBe('pass'),
+      expect(latestFormData!.emailConfig!.smtpUsernameSecretKey).toBe(
+        'password',
+      ),
     );
 
     const tlsSwitch = screen
@@ -555,48 +635,138 @@ describe('NotificationChannelFormWithYamlExtension — webhook fields', () => {
     );
   });
 
-  it('updates headers via the embedded RjsfForm', async () => {
+  it('adds, edits, and removes headers', async () => {
+    mockSecretReferences = [
+      secretReference('webhook-auth', ['api-key'], {
+        kind: 'ObservabilityPlane',
+        name: 'default',
+      }),
+    ];
     await switchToWebhook();
-    expect(headersFormProps).toBeDefined();
-    expect(headersFormProps.schema.properties.headers.title).toBe('Headers');
-
     act(() => {
-      headersFormProps.onChange({
-        formData: {
-          headers: [
-            {
-              name: 'X-Api-Key',
-              value: '',
-              secretName: 'webhook-auth',
-              secretKey: 'key',
-            },
-          ],
-        },
-      });
+      namespaceFieldProps.onChange('domain:default/team-a');
     });
 
+    fireEvent.click(screen.getByText('Add Header'));
+    await waitFor(() =>
+      expect(latestFormData!.webhookConfig!.headers).toEqual([
+        { name: '', value: '', secretName: '', secretKey: '' },
+      ]),
+    );
+
+    fireEvent.change(getFieldByLabel('Header Name'), {
+      target: { value: 'X-Api-Key' },
+    });
+    await waitFor(() =>
+      expect(latestFormData!.webhookConfig!.headers[0].name).toBe('X-Api-Key'),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByLabelText('Secret Reference')).not.toBeDisabled(),
+    );
+    fireEvent.change(screen.getByLabelText('Secret Reference'), {
+      target: { value: 'webhook-auth' },
+    });
+    // A reference with a single key gets that key picked.
     await waitFor(() =>
       expect(latestFormData!.webhookConfig!.headers).toEqual([
         {
           name: 'X-Api-Key',
           value: '',
           secretName: 'webhook-auth',
-          secretKey: 'key',
+          secretKey: 'api-key',
         },
       ]),
     );
-  });
+    expect(getFieldByLabel('Inline Value')).toBeDisabled();
 
-  it('defaults to an empty headers array when the embedded form reports none', async () => {
-    await switchToWebhook();
-
-    act(() => {
-      headersFormProps.onChange({ formData: {} });
-    });
-
+    fireEvent.click(screen.getByLabelText('Remove header 1'));
     await waitFor(() =>
       expect(latestFormData!.webhookConfig!.headers).toEqual([]),
     );
+  });
+
+  it('disables the secret reference for a header with an inline value', async () => {
+    await switchToWebhook();
+    act(() => {
+      namespaceFieldProps.onChange('domain:default/team-a');
+    });
+    fireEvent.click(screen.getByText('Add Header'));
+
+    fireEvent.change(await waitFor(() => getFieldByLabel('Inline Value')), {
+      target: { value: 'application/json' },
+    });
+    await waitFor(() =>
+      expect(latestFormData!.webhookConfig!.headers[0].value).toBe(
+        'application/json',
+      ),
+    );
+    expect(screen.getByLabelText('Secret Reference')).toBeDisabled();
+  });
+});
+
+describe('buildSecretOptions', () => {
+  it('lists references without a target plane or targeting an observability plane', () => {
+    const options = buildSecretOptions(
+      [
+        secretReference('unscoped', ['a']) as any,
+        secretReference('op', ['b'], {
+          kind: 'ObservabilityPlane',
+          name: 'default',
+        }) as any,
+        secretReference('dp', ['c'], {
+          kind: 'DataPlane',
+          name: 'default',
+        }) as any,
+      ],
+      [],
+    );
+    expect(options.map(o => o.name)).toEqual(['unscoped', 'op']);
+    expect(options[1].keys).toEqual(['b']);
+  });
+
+  it('keeps a selected name that is not among the references, with its key', () => {
+    const options = buildSecretOptions(
+      [secretReference('smtp-auth', ['username']) as any],
+      [
+        { name: 'legacy-k8s-secret', key: 'password' },
+        { name: 'smtp-auth', key: 'other' },
+        { name: '', key: '' },
+      ],
+    );
+    expect(options).toEqual([
+      {
+        name: 'smtp-auth',
+        displayName: undefined,
+        keys: ['username', 'other'],
+      },
+      {
+        name: 'legacy-k8s-secret',
+        displayName:
+          'legacy-k8s-secret (not a SecretReference for notification channels)',
+        keys: ['password'],
+      },
+    ]);
+  });
+});
+
+describe('pickSecretKey', () => {
+  const options = [
+    { name: 'smtp-auth', keys: ['username', 'password'] },
+    { name: 'single', keys: ['token'] },
+  ];
+
+  it('picks the preferred key when the reference has it', () => {
+    expect(pickSecretKey(options, 'smtp-auth', 'password')).toBe('password');
+  });
+
+  it('picks the only key of a single-key reference', () => {
+    expect(pickSecretKey(options, 'single', 'password')).toBe('token');
+  });
+
+  it('picks nothing when the choice is ambiguous or the reference is unknown', () => {
+    expect(pickSecretKey(options, 'smtp-auth', '')).toBe('');
+    expect(pickSecretKey(options, 'missing', 'password')).toBe('');
   });
 });
 
@@ -937,10 +1107,10 @@ describe('notificationChannelFormWithYamlValidation', () => {
       } as any,
     });
     expect(errors).toContain('SMTP port must be between 1 and 65535');
-    expect(errors).toContain('SMTP username secret name is required');
-    expect(errors).toContain('SMTP username secret key is required');
-    expect(errors).toContain('SMTP password secret name is required');
-    expect(errors).toContain('SMTP password secret key is required');
+    expect(errors).toContain('SMTP username secret reference is required');
+    expect(errors).toContain('SMTP username secret reference key is required');
+    expect(errors).toContain('SMTP password secret reference is required');
+    expect(errors).toContain('SMTP password secret reference key is required');
     expect(errors).toContain('Subject template is required');
     expect(errors).toContain('Body template is required');
   });
@@ -1027,7 +1197,7 @@ describe('notificationChannelFormWithYamlValidation', () => {
       } as any,
     });
     expect(errors).toContain(
-      'Each webhook header must provide either "value" or both "secretName" and "secretKey"',
+      'Each webhook header must provide either an inline value or a secret reference and key',
     );
   });
 
@@ -1043,7 +1213,7 @@ describe('notificationChannelFormWithYamlValidation', () => {
       } as any,
     });
     expect(errors).toContain(
-      'Each webhook header must provide either "value" or both "secretName" and "secretKey"',
+      'Each webhook header must provide either an inline value or a secret reference and key',
     );
   });
 
@@ -1066,7 +1236,7 @@ describe('notificationChannelFormWithYamlValidation', () => {
       } as any,
     });
     expect(errors).not.toContain(
-      'Each webhook header must provide either "value" or both "secretName" and "secretKey"',
+      'Each webhook header must provide either an inline value or a secret reference and key',
     );
   });
 

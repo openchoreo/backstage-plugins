@@ -3490,6 +3490,7 @@ export interface components {
        * @example http://finops-agent.observability-plane.svc:8080
        */
       finOpsAgentURL?: string;
+      secretStoreRef?: components['schemas']['SecretStoreRef'];
     };
     /** @description Observed state of an ObservabilityPlane */
     ObservabilityPlaneStatus: {
@@ -3659,6 +3660,7 @@ export interface components {
        * @example http://finops-agent.observability-plane.svc:8080
        */
       finOpsAgentURL?: string;
+      secretStoreRef?: components['schemas']['SecretStoreRef'];
     };
     /** @description Observed state of a ClusterObservabilityPlane */
     ClusterObservabilityPlaneStatus: {
@@ -6483,7 +6485,20 @@ export interface components {
         }
     );
     /** @description Observed state of an ObservabilityAlertsNotificationChannel */
-    ObservabilityAlertsNotificationChannelStatus: Record<string, never>;
+    ObservabilityAlertsNotificationChannelStatus: {
+      /**
+       * Format: int64
+       * @description Generation of the most recently observed ObservabilityAlertsNotificationChannel
+       */
+      observedGeneration?: number;
+      /**
+       * @description Current state conditions of the ObservabilityAlertsNotificationChannel.
+       *     Ready reports whether the channel is applied to the observability plane, and SecretsReady
+       *     whether its secret values are available there. A SecretsReady reason of
+       *     DeprecatedKubernetesSecret means the channel still references Kubernetes Secrets.
+       */
+      conditions?: components['schemas']['Condition'][];
+    };
     /** @description Configuration for email notification channels */
     NotificationEmailConfig: {
       /**
@@ -6567,15 +6582,20 @@ export interface components {
     NotificationSecretValueFrom: {
       secretKeyRef?: components['schemas']['NotificationSecretKeyRef'];
     };
-    /** @description Reference to a specific key in a Kubernetes secret */
+    /**
+     * @description Reference to a secret value. The name refers to a SecretReference in the channel's namespace,
+     *     such as one created with the secrets API targeting the channel's observability plane, and the key
+     *     to one of its data entries. If no SecretReference has that name, a Kubernetes Secret with that
+     *     name and key is used instead; referencing Kubernetes Secrets is deprecated.
+     */
     NotificationSecretKeyRef: {
       /**
-       * @description Name of the Kubernetes secret
+       * @description Name of the SecretReference (or, deprecated, of the Kubernetes Secret)
        * @example smtp-credentials
        */
       name?: string;
       /**
-       * @description Key within the secret
+       * @description Secret key of a SecretReference data entry (or, deprecated, key within the Kubernetes Secret)
        * @example password
        */
       key?: string;
@@ -6658,7 +6678,9 @@ export interface components {
         | 'WorkflowPlane'
         | 'ClusterWorkflowPlane'
         | 'DataPlane'
-        | 'ClusterDataPlane';
+        | 'ClusterDataPlane'
+        | 'ObservabilityPlane'
+        | 'ClusterObservabilityPlane';
       /**
        * @description Name of the target plane resource
        * @example default
