@@ -4462,6 +4462,48 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /api/v1alpha1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}/trigger:
+    post:
+      operationId: triggerReleaseBindingCronJob
+      summary: Manually trigger the cronjob of a release binding
+      description: >-
+        Creates a Job from the deployed CronJob's spec.jobTemplate with an owner reference back to the
+        CronJob, the same behaviour as `kubectl create job --from=cronjob/<name>`. Only allowed when the
+        component's workload type is cronjob. The triggered Job (and its pods) appear in the resource tree
+        and logs like any other CronJob-owned Job.
+
+
+        An optional request body can override the container args for this run only. The override applies
+        to the created Job and does not change the CronJob, so scheduled runs are unaffected.
+      tags: [ReleaseBindings]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/ReleaseBindingNameParam'
+      requestBody:
+        required: false
+        description: Optional per-run overrides applied to the created Job
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CronJobTriggerRequest'
+      responses:
+        '200':
+          description: The Job created from the CronJob
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CronJobTriggerResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   # =============================================================================
   # ClusterResourceType Endpoints (Cluster-Scoped)
   # =============================================================================
@@ -6796,6 +6838,41 @@ components:
     # -------------------------------------------------------------------------
     # Error Response
     # -------------------------------------------------------------------------
+    CronJobTriggerRequest:
+      type: object
+      description: Optional per-run overrides applied to the Job created from a manual cronjob trigger
+      properties:
+        args:
+          type: array
+          nullable: true
+          description: >-
+            Replaces the container args for this run only. An empty array clears the args inherited from
+            the CronJob's jobTemplate; omitting the field or sending null keeps them. Applies to the
+            container named `main`, or to the only container if the pod has exactly one.
+          items:
+            type: string
+          example: ['--mode', 'backfill', '--date', '2026-08-25']
+
+    CronJobTriggerResponse:
+      type: object
+      description: Response describing the Job created from a manual cronjob trigger
+      required:
+        - jobName
+        - namespace
+        - cronJobName
+      properties:
+        jobName:
+          type: string
+          description: Name of the Job that was created from the CronJob's jobTemplate
+          example: 'my-task-1721563200'
+        namespace:
+          type: string
+          description: Data plane namespace where the Job was created
+          example: 'dp-my-project-my-component-dev'
+        cronJobName:
+          type: string
+          description: Name of the CronJob the Job was created from
+          example: 'my-task'
     ErrorResponse:
       type: object
       description: Standard error response format

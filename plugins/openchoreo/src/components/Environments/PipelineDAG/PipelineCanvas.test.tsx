@@ -137,6 +137,7 @@ const mockHandleRefreshEnvironment = jest.fn().mockResolvedValue(undefined);
 const mockHandleUndeploy = jest.fn().mockResolvedValue(undefined);
 const mockHandleRedeploy = jest.fn().mockResolvedValue(undefined);
 const mockHandleRolloutRestart = jest.fn().mockResolvedValue(undefined);
+const mockHandleRunNow = jest.fn().mockResolvedValue(undefined);
 const mockHandleRemoveDeployment = jest.fn().mockResolvedValue(undefined);
 const mockShowError = jest.fn();
 
@@ -155,6 +156,7 @@ jest.mock('../hooks', () => ({
     handleUndeploy: mockHandleUndeploy,
     handleRedeploy: mockHandleRedeploy,
     handleRolloutRestart: mockHandleRolloutRestart,
+    handleRunNow: mockHandleRunNow,
     handleRemoveDeployment: mockHandleRemoveDeployment,
   }),
   isAlreadyPromoted: () => false,
@@ -449,6 +451,39 @@ describe('PipelineCanvas (deploy split view)', () => {
     // re-render captures fresh detail-panel props once selection mounts
     await capturedDetailPanelProps?.onRolloutRestart?.();
     expect(mockHandleRolloutRestart).toHaveBeenCalledWith('prod-binding');
+  });
+
+  it('offers Run now instead of Rollout restart for cronjob components', async () => {
+    const envs = [
+      makeEnv({
+        name: 'production',
+        bindingName: 'prod-binding',
+        deployment: { status: 'Ready' },
+      }),
+    ];
+    mockContextValue.environments = envs;
+    mockContextValue.displayEnvironments = envs;
+
+    render(
+      <MemoryRouter>
+        <EntityProvider
+          entity={mockComponentEntity({
+            annotations: {
+              'openchoreo.io/component-type': 'cronjob/scheduled-task',
+            },
+          })}
+        >
+          <PipelineCanvas />
+        </EntityProvider>
+      </MemoryRouter>,
+    );
+
+    act(() => {
+      capturedFlowCanvasProps?.onSelectEnv('production');
+    });
+    expect(capturedDetailPanelProps?.onRolloutRestart).toBeUndefined();
+    await capturedDetailPanelProps?.onRunNow?.();
+    expect(mockHandleRunNow).toHaveBeenCalledWith('prod-binding');
   });
 
   it('routes onOpenOverrides through navigateToOverrides', () => {
