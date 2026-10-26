@@ -19,6 +19,7 @@ import validator from '@rjsf/validator-ajv8';
 import { TraitConfigToggle } from '@openchoreo/backstage-plugin-react';
 import { useTraitsStyles } from './styles';
 import { generateUiSchemaWithTitles } from './uiSchema';
+import { withoutFilledDefaults } from './traitDefaults';
 import { ComponentTrait } from '../../api/OpenChoreoClientApi';
 import { ResponseError } from '@backstage/errors';
 import { extractEntityMetadata } from '../../utils/entityUtils';
@@ -217,11 +218,15 @@ export const EditTraitDialog: React.FC<EditTraitDialogProps> = ({
       return;
     }
 
+    // Keep only what the trait had or the user changed, not the defaults the
+    // form filled in, so a release line doesn't pin them as overrides.
     const updatedTrait: ComponentTrait = {
       kind: trait.kind,
       name: trait.name,
       instanceName: instanceName.trim(),
-      parameters,
+      parameters: traitSchema
+        ? withoutFilledDefaults(traitSchema, parameters, trait.parameters)
+        : parameters,
     };
 
     onSave(updatedTrait);
