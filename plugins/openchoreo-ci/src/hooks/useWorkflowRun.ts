@@ -5,6 +5,14 @@ import {
   useOpenChoreoQuery,
 } from '@openchoreo/backstage-plugin-react';
 
+export interface WorkflowRunCondition {
+  type: string;
+  status: string;
+  reason?: string;
+  message?: string;
+  lastTransitionTime?: string;
+}
+
 export interface WorkflowRunDetails {
   name: string;
   uuid: string;
@@ -20,6 +28,7 @@ export interface WorkflowRunDetails {
   workloadFromSource?: string;
   startedAt?: string;
   completedAt?: string;
+  conditions?: WorkflowRunCondition[];
 }
 
 interface UseWorkflowRunResult {
