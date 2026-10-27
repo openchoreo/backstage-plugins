@@ -109,7 +109,7 @@ describe('useReleaseReadiness', () => {
     expect(url.searchParams.get('releaseLine')).toBe('next');
   });
 
-  it('asks for the default line builds outside a release line', async () => {
+  it('asks for the main line builds outside a release line', async () => {
     const client = {
       fetchWorkloadInfo: jest.fn().mockResolvedValue({}),
     };

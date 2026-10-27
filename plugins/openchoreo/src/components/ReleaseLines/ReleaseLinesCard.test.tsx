@@ -7,7 +7,7 @@ import { ReleaseLinesCard } from './ReleaseLinesCard';
 jest.mock('./useReleaseLines', () => ({
   useReleaseLines: () => ({
     releaseLines: [
-      { name: 'default', isDefault: true, environments: [] },
+      { name: 'main', isMain: true, environments: [] },
       { name: 'next', environments: [] },
       { name: 'next-hotfix', environments: [] },
     ],
@@ -60,12 +60,12 @@ const lineNames = () =>
   screen
     .queryAllByRole('link')
     .map(link => link.textContent)
-    .filter(name => name && /^(default|next)/.test(name));
+    .filter(name => name && /^(main|next)/.test(name));
 
 describe('ReleaseLinesCard', () => {
   it('filters the release lines by name', async () => {
     await renderCard();
-    expect(lineNames()).toEqual(['default', 'next', 'next-hotfix']);
+    expect(lineNames()).toEqual(['main', 'next', 'next-hotfix']);
 
     fireEvent.change(screen.getByRole('textbox', { name: 'Search by name' }), {
       target: { value: 'NEXT' },

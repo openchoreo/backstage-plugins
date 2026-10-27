@@ -14,7 +14,7 @@ const isOwnTab = (route: OpenChoreoRoute) =>
 /**
  * The tabs of an entity page.
  *
- * - A Component keeps all its tabs, which work on its default line.
+ * - A Component keeps all its tabs, which work on its main line.
  * - A ReleaseLine gets its own Overview and Definition, plus the tabs of its
  *   component, rendered for the component so they work unchanged. The
  *   `ReleaseLineProvider` of the page scopes them to the line.

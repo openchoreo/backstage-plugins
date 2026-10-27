@@ -4,7 +4,7 @@
 import { componentLineName, scopedName } from './releaseLineNames';
 
 describe('componentLineName', () => {
-  it('keeps the component name for the default line', () => {
+  it('keeps the component name for the main line', () => {
     expect(componentLineName('hello')).toBe('hello');
     expect(componentLineName('hello', '')).toBe('hello');
   });
@@ -35,7 +35,7 @@ describe('componentLineName', () => {
 });
 
 describe('scopedName', () => {
-  it('names the default line as {component}-{suffix}', () => {
+  it('names the main line as {component}-{suffix}', () => {
     expect(scopedName('hello', undefined, 'workload')).toBe('hello-workload');
     expect(scopedName('hello', '', 'development')).toBe('hello-development');
   });

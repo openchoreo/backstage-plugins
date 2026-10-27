@@ -4,7 +4,7 @@
 import { useEffect } from 'react';
 import MenuItem from '@material-ui/core/MenuItem';
 import TextField from '@material-ui/core/TextField';
-import { DEFAULT_RELEASE_LINE } from '@openchoreo/backstage-plugin-common';
+import { MAIN_RELEASE_LINE } from '@openchoreo/backstage-plugin-common';
 import { useReleaseLine } from '@openchoreo/backstage-plugin-react';
 import { useComponentReleaseLineState } from '../../hooks/useComponentReleaseLines';
 import { useReleaseLineParam } from '../../hooks/useSelectedReleaseLine';
@@ -25,7 +25,7 @@ export interface ReleaseLineFilterProps {
 }
 
 /**
- * Release line filter of an observability view: every line, the default line, or one
+ * Release line filter of an observability view: every line, the main line, or one
  * release line of the component. Shown only for a component with release
  * lines, and not on a ReleaseLine page, which is scoped to its own line. The
  * choice lives in the URL, where `useSelectedReleaseLine` reads it.
@@ -54,7 +54,7 @@ export function ReleaseLineFilter({
     (!scoped ||
       (!loading &&
         (lines.length === 0 ||
-          (value !== DEFAULT_RELEASE_LINE && !lines.includes(value)))));
+          (value !== MAIN_RELEASE_LINE && !lines.includes(value)))));
 
   // A line left over from another component no longer applies.
   useEffect(() => {
@@ -78,7 +78,7 @@ export function ReleaseLineFilter({
       disabled={disabled}
     >
       <MenuItem value="">All lines</MenuItem>
-      <MenuItem value={DEFAULT_RELEASE_LINE}>{DEFAULT_RELEASE_LINE}</MenuItem>
+      <MenuItem value={MAIN_RELEASE_LINE}>{MAIN_RELEASE_LINE}</MenuItem>
       {lines.map(line => (
         <MenuItem key={line} value={line}>
           {line}

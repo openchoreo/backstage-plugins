@@ -15,11 +15,12 @@ export {
 } from './releaseLineOverrides';
 export { releaseLineNodeId, parseReleaseLineNodeId } from './releaseLineNode';
 export {
-  DEFAULT_RELEASE_LINE,
-  isDefaultReleaseLine,
+  MAIN_RELEASE_LINE,
+  isMainReleaseLine,
   isSameReleaseLine,
+  reservedReleaseLineNameError,
   toStoredReleaseLine,
-} from './defaultReleaseLine';
+} from './mainReleaseLine';
 
 export {
   CHOREO_ANNOTATIONS,

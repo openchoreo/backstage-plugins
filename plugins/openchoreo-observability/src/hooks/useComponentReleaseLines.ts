@@ -5,7 +5,7 @@ import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 
 /**
  * Release line names of a component, read from the ReleaseLine entities that
- * are part of it in the catalog, with whether they have loaded. The default line is not
+ * are part of it in the catalog, with whether they have loaded. The main line is not
  * among them, and they are empty for components without release lines.
  */
 export function useComponentReleaseLineState(

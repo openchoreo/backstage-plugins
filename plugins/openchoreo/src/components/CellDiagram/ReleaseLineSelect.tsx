@@ -3,18 +3,18 @@
 
 import MenuItem from '@material-ui/core/MenuItem';
 import TextField from '@material-ui/core/TextField';
-import { DEFAULT_RELEASE_LINE } from '@openchoreo/backstage-plugin-common';
+import { MAIN_RELEASE_LINE } from '@openchoreo/backstage-plugin-common';
 import { useReleaseLineSelectStyles } from './styles';
 
 export interface ReleaseLineSelectProps {
   /** The selected line; empty shows every line. */
   value: string;
-  /** The release lines on the diagram, besides the default line. */
+  /** The release lines on the diagram, besides the main line. */
   lines: string[];
   onChange: (line: string) => void;
 }
 
-/** Narrows the cell diagram to every line, the default line, or one release line. */
+/** Narrows the cell diagram to every line, the main line, or one release line. */
 export function ReleaseLineSelect({
   value,
   lines,
@@ -35,7 +35,7 @@ export function ReleaseLineSelect({
       InputLabelProps={{ shrink: true }}
     >
       <MenuItem value="">All lines</MenuItem>
-      <MenuItem value={DEFAULT_RELEASE_LINE}>{DEFAULT_RELEASE_LINE}</MenuItem>
+      <MenuItem value={MAIN_RELEASE_LINE}>{MAIN_RELEASE_LINE}</MenuItem>
       {lines.map(line => (
         <MenuItem key={line} value={line}>
           {line}

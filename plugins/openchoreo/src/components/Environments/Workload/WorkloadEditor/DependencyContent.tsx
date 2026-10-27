@@ -197,7 +197,7 @@ export const DependencyContent: FC<DependencyContentProps> = ({
   );
 
   // Endpoint cache key for a dependency's target. Each line of the target has
-  // its own Workload, so its endpoints are keyed by the line, the default line's by none.
+  // its own Workload, so its endpoints are keyed by the line, the main line's by none.
   const endpointCacheKey = useCallback(
     (dependency: Dependency | undefined): string | undefined => {
       const projectName = dependency?.project || currentProject;
@@ -303,7 +303,7 @@ export const DependencyContent: FC<DependencyContentProps> = ({
     [getEffectiveDependency, endpointCacheKey, endpointCache],
   );
 
-  // Release lines of the dependency's target besides the default line; undefined when it
+  // Release lines of the dependency's target besides the main line; undefined when it
   // has none, so the picker shows only for a target with release lines
   const getReleaseLines = useCallback(
     (index: number): ReleaseLineOption[] | undefined => {

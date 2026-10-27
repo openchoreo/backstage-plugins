@@ -50,9 +50,9 @@ function renderRow(
 describe('IncidentRow', () => {
   it('shows the release line next to the component when present', async () => {
     const user = userEvent.setup();
-    renderRow({ incident: { ...sampleIncident, releaseLineName: 'main' } });
+    renderRow({ incident: { ...sampleIncident, releaseLineName: 'next' } });
 
-    expect(screen.getByText('main')).toBeInTheDocument();
+    expect(screen.getByText('next')).toBeInTheDocument();
 
     await user.click(screen.getByText('High CPU usage on api-service'));
     expect(screen.getByText('Release Line:')).toBeInTheDocument();

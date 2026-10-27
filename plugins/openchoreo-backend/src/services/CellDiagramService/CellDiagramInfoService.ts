@@ -26,7 +26,7 @@ import {
 } from '@openchoreo/openchoreo-client-node';
 import {
   ComponentTypeUtils,
-  DEFAULT_RELEASE_LINE,
+  MAIN_RELEASE_LINE,
   isSameReleaseLine,
   parseReleaseLineNodeId,
   releaseLineNodeId,
@@ -120,7 +120,7 @@ function adaptRuntimeTopologyMetrics(
 // than `ComponentResponse` so the workload field can use the generated
 // `WorkloadSpec` (which includes `dependencies.resources`) instead of the
 // hand-rolled bff-types `WorkloadResponse`.
-// A component with release lines yields one entry per line: the default line keeps the
+// A component with release lines yields one entry per line: the main line keeps the
 // component name as its node id, and each release line gets its own (see
 // releaseLineNodeId). Each entry carries its line's workload.
 interface CompleteComponent {
@@ -156,8 +156,8 @@ enum ConnectionType {
   Datastore = 'datastore',
 }
 
-// Metrics search scope for a diagram node, narrowed to its line. The default
-// node of a component with release lines carries the default badge.
+// Metrics search scope for a diagram node, narrowed to its line. The main
+// node of a component with release lines carries the main badge.
 function componentScope(
   nodeId: string,
   badge?: string,
@@ -167,8 +167,8 @@ function componentScope(
 } {
   const { componentName, releaseLine } = parseReleaseLineNodeId(nodeId);
   if (releaseLine) return { component: componentName, releaseLine };
-  return badge === DEFAULT_RELEASE_LINE
-    ? { component: componentName, releaseLine: DEFAULT_RELEASE_LINE }
+  return badge === MAIN_RELEASE_LINE
+    ? { component: componentName, releaseLine: MAIN_RELEASE_LINE }
     : { component: componentName };
 }
 
@@ -293,7 +293,7 @@ export class CellDiagramInfoService implements CellDiagramService {
               ? componentTypeRef
               : componentTypeRef?.name ?? '';
 
-          const defaultLine: CompleteComponent = {
+          const mainLine: CompleteComponent = {
             name,
             label: name,
             componentName: name,
@@ -302,11 +302,11 @@ export class CellDiagramInfoService implements CellDiagramService {
           };
           const lines = lineWorkloadMap.get(name);
           if (!lines?.size) {
-            return [defaultLine];
+            return [mainLine];
           }
 
           return [
-            { ...defaultLine, badge: DEFAULT_RELEASE_LINE },
+            { ...mainLine, badge: MAIN_RELEASE_LINE },
             ...[...lines.entries()]
               .sort(([a], [b]) => a.localeCompare(b))
               .map(([releaseLine, workload]) => ({
@@ -1057,7 +1057,7 @@ export class CellDiagramInfoService implements CellDiagramService {
 
   /**
    * The node a same-project dependency points at: the named release line, or
-   * the component's default line when it names none.
+   * the component's main line when it names none.
    */
   private findDependencyTarget(
     dependency: EndpointDependency,

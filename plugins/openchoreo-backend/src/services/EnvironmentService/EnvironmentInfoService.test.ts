@@ -656,7 +656,7 @@ describe('EnvironmentInfoService', () => {
       },
     };
 
-    it('keeps the default line without a release line', async () => {
+    it('keeps the main line without a release line', async () => {
       mockGET.mockResolvedValueOnce(
         createOkResponse({ items: [k8sReleaseBinding, lineBinding] }),
       );

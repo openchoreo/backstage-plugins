@@ -16,7 +16,7 @@ export const CHOREO_ANNOTATIONS = {
   PROJECT_UID: 'openchoreo.io/project-uid',
   COMPONENT_TYPE: 'openchoreo.io/component-type',
   COMPONENT_TYPE_KIND: 'openchoreo.io/component-type-kind',
-  // Release lines: set on components with release lines besides the default line, and on
+  // Release lines: set on components with release lines besides the main line, and on
   // ReleaseLine entities to name the line.
   HAS_RELEASE_LINES: 'openchoreo.io/has-release-lines',
   RELEASE_LINE: 'openchoreo.io/release-line',

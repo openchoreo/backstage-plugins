@@ -65,7 +65,7 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
 
 jest.mock('@openchoreo/backstage-plugin-common', () => ({
   CHOREO_ANNOTATIONS: { NAMESPACE: 'ns', PROJECT: 'proj' },
-  DEFAULT_RELEASE_LINE: 'default',
+  MAIN_RELEASE_LINE: 'main',
   openchoreoReleaseBindingUpdatePermission: { name: 'releasebinding.update' },
 }));
 
@@ -208,8 +208,8 @@ describe('CostOptimizeButton', () => {
         expect.objectContaining({
           namespaceName: 'default',
           change: { release_binding: 'ad-dev', fields: [expect.anything()] },
-          // A component without release lines applies to its default line.
-          expectedOwner: { componentName: 'ad', releaseLine: 'default' },
+          // A component without release lines applies to its main line.
+          expectedOwner: { componentName: 'ad', releaseLine: 'main' },
         }),
       ),
     );

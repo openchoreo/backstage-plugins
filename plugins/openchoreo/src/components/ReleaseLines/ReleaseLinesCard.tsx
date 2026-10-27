@@ -15,7 +15,7 @@ import { ReleaseLinesTable } from './ReleaseLinesTable';
 import { useReleaseLines } from './useReleaseLines';
 
 /**
- * The lines of a component with release lines, default first, in the same card
+ * The lines of a component with release lines, main first, in the same card
  * and table as the project's contents, with a button that creates a release
  * line. Shown on the component's Overview.
  */

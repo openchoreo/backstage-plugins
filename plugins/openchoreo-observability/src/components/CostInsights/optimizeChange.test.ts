@@ -63,13 +63,13 @@ describe('resolveReleaseBindingName', () => {
     expect(url.searchParams.get('releaseLine')).toBe('next');
   });
 
-  it('asks for the default line without a line or with default', async () => {
+  it('asks for the main line without a line or with main', async () => {
     const fetch = jest.fn().mockResolvedValue(
       okResponse({
         data: { items: [{ name: 'ad-dev', environment: 'dev' }] },
       }),
     );
-    for (const releaseLine of [undefined, 'default']) {
+    for (const releaseLine of [undefined, 'main']) {
       await resolveReleaseBindingName({
         ...base,
         fetchApi: makeFetchApi(fetch),

@@ -33,7 +33,7 @@ export class BuildInfoService {
     this.resolver = new ObservabilityUrlResolver({ baseUrl, logger });
   }
 
-  /** The component's builds of one release line, the default line when none is given. */
+  /** The component's builds of one release line, the main line when none is given. */
   async fetchBuilds(
     namespaceName: string,
     _projectName: string,

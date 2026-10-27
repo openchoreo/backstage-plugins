@@ -11,7 +11,7 @@ export const RELEASE_LINE_PARAM = 'releaseLine';
 /**
  * The release line an observability view is scoped to: the page's line on a
  * ReleaseLine page, else the line filter's choice. Undefined covers every
- * line of the component, and `default` its default line.
+ * line of the component, and `main` its main line.
  */
 export function useSelectedReleaseLine(): string | undefined {
   const { releaseLine } = useReleaseLine();

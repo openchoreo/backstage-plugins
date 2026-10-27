@@ -238,15 +238,15 @@ describe('assertBindingOwner', () => {
     ).toThrow("belongs to component 'checkout', not 'cart'");
   });
 
-  it('matches default to a binding without a release line', () => {
+  it('matches main to a binding without a release line', () => {
     expect(() =>
       assertBindingOwner({ spec: { owner: {} } }, 'b', {
-        releaseLine: 'default',
+        releaseLine: 'main',
       }),
     ).not.toThrow();
     expect(() =>
-      assertBindingOwner(binding, 'b', { releaseLine: 'default' }),
-    ).toThrow("belongs to release line 'canary', not 'default'");
+      assertBindingOwner(binding, 'b', { releaseLine: 'main' }),
+    ).toThrow("belongs to release line 'canary', not 'main'");
   });
 
   it('skips the line check when no line is expected', () => {

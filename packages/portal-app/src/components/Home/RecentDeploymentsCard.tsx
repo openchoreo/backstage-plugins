@@ -234,7 +234,7 @@ export const RecentDeploymentsContent = () => {
     // for which components are worth the environment-info fan-out; true
     // recency ordering would need a backend endpoint listing recent releases.
     // Release lines are fetched too, since a component's environment info
-    // covers only its default line.
+    // covers only its main line.
     const { items: components } = await catalogApi.queryEntities({
       filter: { kind: ['Component', 'ReleaseLine'] },
       limit: MAX_COMPONENTS,

@@ -73,7 +73,7 @@ describe('useIncidentsSummary', () => {
 
   it.each([
     ['without a release line', undefined],
-    ['on a release line page', 'main'],
+    ['on a release line page', 'next'],
   ])('passes the page release line %s', async (_label, line) => {
     mockReleaseLine = line;
     const observabilityApi = {

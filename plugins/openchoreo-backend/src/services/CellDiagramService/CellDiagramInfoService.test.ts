@@ -707,7 +707,7 @@ describe('CellDiagramInfoService', () => {
         };
       };
 
-      it('renders default, then one node per release line', async () => {
+      it('renders main, then one node per release line', async () => {
         mockGET
           .mockResolvedValueOnce(
             createOkResponse({
@@ -732,7 +732,7 @@ describe('CellDiagramInfoService', () => {
         );
 
         expect(result!.components.map(c => [c.id, c.label, c.badge])).toEqual([
-          ['api', 'api', 'default'],
+          ['api', 'api', 'main'],
           ['api@canary', 'api', 'canary'],
           ['api@next', 'api', 'next'],
         ]);
@@ -762,8 +762,8 @@ describe('CellDiagramInfoService', () => {
 
       it.each([
         [{ releaseLine: 'next' }, 'api@next', 'api:next/http'],
-        [{}, 'api', 'api:default/http'],
-        [{ releaseLine: 'default' }, 'api', 'api:default/http'],
+        [{}, 'api', 'api:main/http'],
+        [{ releaseLine: 'main' }, 'api', 'api:main/http'],
       ])(
         'links a dependency on %j to its line',
         async (line, targetId, label) => {
@@ -843,7 +843,7 @@ describe('CellDiagramInfoService', () => {
           expect.arrayContaining([
             expect.objectContaining({
               component: 'api',
-              releaseLine: 'default',
+              releaseLine: 'main',
             }),
             expect.objectContaining({ component: 'api', releaseLine: 'next' }),
           ]),

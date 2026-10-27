@@ -197,8 +197,8 @@ function entityMetadataToParams(
 }
 
 /**
- * Adds the `releaseLine` query parameter for a release line. The default line is
- * left out, so `default` is never sent to be written into a resource.
+ * Adds the `releaseLine` query parameter for a release line. The main line is
+ * left out, so `main` is never sent to be written into a resource.
  */
 function withReleaseLine(
   params: Record<string, string>,
@@ -208,7 +208,7 @@ function withReleaseLine(
   return line ? { ...params, releaseLine: line } : params;
 }
 
-/** The `releaseLine` body field for a release line, left out for the default line. */
+/** The `releaseLine` body field for a release line, left out for the main line. */
 function releaseLineField(releaseLine?: string): { releaseLine?: string } {
   const line = toStoredReleaseLine(releaseLine);
   return line ? { releaseLine: line } : {};

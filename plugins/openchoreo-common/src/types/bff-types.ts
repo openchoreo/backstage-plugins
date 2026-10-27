@@ -835,7 +835,7 @@ export interface Dependency {
   project?: string;
   /** Target component name */
   component: string;
-  /** Target component's release line. Omitted targets its default line. */
+  /** Target component's release line. Omitted targets its main line. */
   releaseLine?: string;
   /** Target endpoint name on the target component */
   name: string;
@@ -1074,11 +1074,11 @@ export interface ReleaseLineEnvironmentSummary {
   ready?: boolean;
 }
 
-/** A line of a component: its implicit default line, or a ReleaseLine. */
+/** A line of a component: its implicit main line, or a ReleaseLine. */
 export interface ReleaseLineSummary {
   name: string;
-  /** The component's implicit default line, which is not a ReleaseLine resource */
-  isDefault?: boolean;
+  /** The component's implicit main line, which is not a ReleaseLine resource */
+  isMain?: boolean;
   /** From the `openchoreo.dev/description` annotation, as for components */
   description?: string;
   latestRelease?: string;

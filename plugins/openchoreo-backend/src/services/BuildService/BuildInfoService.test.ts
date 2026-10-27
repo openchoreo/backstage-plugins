@@ -147,7 +147,7 @@ describe('BuildInfoService', () => {
         'next',
         'token',
       );
-      const onDefault = await service.fetchBuilds(
+      const onMain = await service.fetchBuilds(
         'test-ns',
         'my-project',
         'api-service',
@@ -156,9 +156,7 @@ describe('BuildInfoService', () => {
       );
 
       expect(onLine.map(b => b.name)).toEqual(['line-run']);
-      expect(onDefault.map(b => b.name)).toEqual([
-        k8sWorkflowRun.metadata.name,
-      ]);
+      expect(onMain.map(b => b.name)).toEqual([k8sWorkflowRun.metadata.name]);
     });
 
     it('throws on API error', async () => {

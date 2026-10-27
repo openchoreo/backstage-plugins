@@ -18,7 +18,7 @@ import { DoraTrendChart } from './DoraTrendChart';
 import { DoraBreakdownTable } from './DoraBreakdownTable';
 import { DoraEnvironmentCards } from './DoraEnvironmentCards';
 import { useComponentReleaseLines } from '../../hooks/useComponentReleaseLines';
-import { DEFAULT_RELEASE_LINE } from '@openchoreo/backstage-plugin-common';
+import { MAIN_RELEASE_LINE } from '@openchoreo/backstage-plugin-common';
 import { ScopeFilters, type ScopeSelection } from '../ScopeFilters';
 import { useNamespaceEnvironments } from '../CostInsights/useNamespaceEnvironments';
 import {
@@ -274,9 +274,7 @@ export const DeliveryInsightsContent = ({
             style={{ minWidth: 150 }}
           >
             <MenuItem value="">All lines</MenuItem>
-            <MenuItem value={DEFAULT_RELEASE_LINE}>
-              {DEFAULT_RELEASE_LINE}
-            </MenuItem>
+            <MenuItem value={MAIN_RELEASE_LINE}>{MAIN_RELEASE_LINE}</MenuItem>
             {releaseLines.map(line => (
               <MenuItem key={line} value={line}>
                 {line}

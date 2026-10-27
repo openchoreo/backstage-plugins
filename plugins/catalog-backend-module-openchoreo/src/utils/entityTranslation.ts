@@ -1491,7 +1491,7 @@ export function translateNewComponentToEntity(
    * Resource refs use the form `resource:<namespace>/<name>`.
    */
   dependsOn?: string[],
-  /** Whether the component has release lines besides its default line. */
+  /** Whether the component has release lines besides its main line. */
   hasReleaseLines?: boolean,
 ): Entity {
   const componentName = getName(component)!;

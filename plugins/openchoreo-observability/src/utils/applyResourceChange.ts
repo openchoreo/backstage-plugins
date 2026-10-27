@@ -144,7 +144,7 @@ export interface ExpectedBindingOwner {
 
 /**
  * Throws when the binding belongs to another component, or to another line
- * than the one the change was recommended for. The default line, named `default` in agent
+ * than the one the change was recommended for. The main line, named `main` in agent
  * reports, is a binding without a release line.
  */
 export function assertBindingOwner(

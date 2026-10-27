@@ -26,9 +26,9 @@ export interface ReleaseLinesTableProps {
 }
 
 /**
- * The lines of a component, default first, one row per line, in the same table
+ * The lines of a component, main first, one row per line, in the same table
  * and pager as the project's contents. Clicking anywhere on a row opens the
- * line. The default line can't be deleted.
+ * line. The main line can't be deleted.
  */
 export function ReleaseLinesTable({
   component,
@@ -77,7 +77,7 @@ export function ReleaseLinesTable({
         render: line => {
           const description =
             line.description ||
-            (line.isDefault ? "The component's own workload and bindings" : '');
+            (line.isMain ? "The component's own workload and bindings" : '');
           return (
             <Typography variant="body2" noWrap title={description}>
               {description || '—'}
@@ -100,7 +100,7 @@ export function ReleaseLinesTable({
         cellStyle: { textAlign: 'right', paddingRight: 8 },
         headerStyle: { textAlign: 'right' },
         render: line =>
-          line.isDefault ? null : (
+          line.isMain ? null : (
             <RowDeleteButton
               entity={releaseLineRowEntity(component, line)}
               onDelete={onDelete}

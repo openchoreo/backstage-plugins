@@ -982,7 +982,7 @@ describe('translateNewComponentToEntity — spec.dependsOn', () => {
     expect((entity.spec as any).dependsOn).toBeUndefined();
   });
 
-  it('marks a component with release lines besides the default line', () => {
+  it('marks a component with release lines besides the main line', () => {
     const component = {
       apiVersion: 'openchoreo.dev/v1alpha1',
       kind: 'Component',

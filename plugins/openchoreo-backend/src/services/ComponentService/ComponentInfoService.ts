@@ -6,7 +6,7 @@ import {
   getDescription,
 } from '@openchoreo/openchoreo-client-node';
 import {
-  isDefaultReleaseLine,
+  isMainReleaseLine,
   toStoredReleaseLine,
   type APIResponse,
   type ComponentResponse,
@@ -77,7 +77,7 @@ export class ComponentInfoService {
   }
 
   /**
-   * Fetches the lines of a component: its implicit default line first, then its
+   * Fetches the lines of a component: its implicit main line first, then its
    * release lines by name.
    */
   async fetchReleaseLines(
@@ -127,11 +127,11 @@ export class ComponentInfoService {
         ),
         workflowOverride:
           Object.keys(line.spec?.workflow?.parameters ?? {}).length > 0,
-        ...(isDefaultReleaseLine(line.metadata.name) && { isDefault: true }),
+        ...(isMainReleaseLine(line.metadata.name) && { isMain: true }),
       }))
       .sort(
         (a, b) =>
-          Number(Boolean(b.isDefault)) - Number(Boolean(a.isDefault)) ||
+          Number(Boolean(b.isMain)) - Number(Boolean(a.isMain)) ||
           a.name.localeCompare(b.name),
       );
   }

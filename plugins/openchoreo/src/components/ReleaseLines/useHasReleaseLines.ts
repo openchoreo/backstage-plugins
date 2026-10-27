@@ -11,7 +11,7 @@ import { useReleaseLines } from './useReleaseLines';
 const isOpenChoreoComponent = isOpenChoreoManagedOfKind('component');
 
 /**
- * Whether a component has release lines besides the default line. The catalog annotation
+ * Whether a component has release lines besides the main line. The catalog annotation
  * answers at once, and the line list catches a line created or deleted since the
  * catalog last synced the component.
  */
@@ -32,7 +32,7 @@ export function useHasReleaseLines(entity: Entity): {
     return { hasLines: annotated, loading: !annotated };
   }
   return {
-    hasLines: releaseLines.some(line => !line.isDefault),
+    hasLines: releaseLines.some(line => !line.isMain),
     loading: false,
   };
 }

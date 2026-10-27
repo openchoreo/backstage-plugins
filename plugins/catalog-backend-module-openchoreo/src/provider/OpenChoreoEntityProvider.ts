@@ -46,10 +46,10 @@ import {
   extractWorkloadDependencies,
   extractWorkloadResourceDependencies,
   filterDependenciesWithSchema,
-  findDefaultWorkload,
+  findMainWorkload,
   resolveComponentOwner,
   resolveProvidesAndConsumes,
-  withoutDefaultReleaseLine,
+  withoutMainReleaseLine,
 } from '../utils/helpers';
 import {
   NewApiTranslatorContext,
@@ -763,7 +763,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                     );
                   }
 
-                  const workloadData = findDefaultWorkload(
+                  const workloadData = findMainWorkload(
                     workloadListData?.items,
                   );
                   const allEndpoints = workloadData
@@ -1929,7 +1929,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
   }
 
   /**
-   * Translates the release lines of a component, leaving out its implicit default line.
+   * Translates the release lines of a component, leaving out its implicit main line.
    * A failure leaves the component's lines out of this sync instead of
    * failing the whole sync.
    */
@@ -1959,7 +1959,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             return res.data;
           }),
       );
-      return withoutDefaultReleaseLine(releaseLines).map(line =>
+      return withoutMainReleaseLine(releaseLines).map(line =>
         translateNewReleaseLineToEntity(
           line,
           namespaceName,

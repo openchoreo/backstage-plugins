@@ -299,7 +299,7 @@ describe('useDependencyEditBuffer', () => {
     expect(result.current.editBuffer).toBeNull();
   });
 
-  it('accepts a dependency without a release line, which targets the default line', () => {
+  it('accepts a dependency without a release line, which targets the main line', () => {
     const { result } = renderHook(() => useDependencyEditBuffer(makeOptions()));
 
     act(() => {

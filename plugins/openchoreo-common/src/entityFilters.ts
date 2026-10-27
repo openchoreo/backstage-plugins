@@ -56,7 +56,7 @@ export function isOpenChoreoManagedOfKind(
 
 /**
  * True for an OpenChoreo Component with release lines besides its implicit
- * default line. Its overview lists the lines, and its own tabs work on the default line.
+ * main line. Its overview lists the lines, and its own tabs work on the main line.
  */
 export function hasReleaseLines(entity: Entity): boolean {
   return (

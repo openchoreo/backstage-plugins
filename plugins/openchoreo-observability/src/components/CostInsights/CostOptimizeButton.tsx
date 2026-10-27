@@ -22,7 +22,7 @@ import {
 } from '@openchoreo/backstage-plugin-react';
 import {
   CHOREO_ANNOTATIONS,
-  DEFAULT_RELEASE_LINE,
+  MAIN_RELEASE_LINE,
   openchoreoReleaseBindingUpdatePermission,
 } from '@openchoreo/backstage-plugin-common';
 import { applyResourceChange } from '../../utils/applyResourceChange';
@@ -136,7 +136,7 @@ export const CostOptimizeButton = ({
         change: buildOptimizeChange(releaseBinding, recommendation),
         expectedOwner: {
           componentName: scope.component,
-          releaseLine: releaseLine ?? DEFAULT_RELEASE_LINE,
+          releaseLine: releaseLine ?? MAIN_RELEASE_LINE,
         },
       });
 

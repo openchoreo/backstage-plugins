@@ -115,7 +115,7 @@ const CostAnalysisReportContent = () => {
   };
 
   const componentName = detailedReport.report?.component;
-  // The default line's tabs are its component's own, and each release line has its page.
+  // The main line's tabs are its component's own, and each release line has its page.
   const releaseLine = toStoredReleaseLine(detailedReport.releaseLine);
   const catalogNs = entity.metadata.namespace || 'default';
   const environmentName = environment?.name || detailedReport.environment;

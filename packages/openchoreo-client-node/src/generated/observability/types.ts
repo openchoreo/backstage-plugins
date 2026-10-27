@@ -316,7 +316,7 @@ export interface components {
       project?: string;
       component?: string;
       environment?: string;
-      /** @description Restricts the result to one release line of the component, and default to its default line. Omitted covers every line of the component. Requires component. Logs, events, metrics and traces also require environment. */
+      /** @description Restricts the result to one release line of the component, and main to its main line. Omitted covers every line of the component. Requires component. Logs, events, metrics and traces also require environment. */
       releaseLine?: string;
     };
     WorkflowSearchScope: {
@@ -1099,11 +1099,11 @@ export interface components {
              * @description The UID of the project
              */
             projectUid?: string;
-            /** @description The name of the component's release line. Absent for its default line. */
+            /** @description The name of the component's release line. Absent for its main line. */
             releaseLineName?: string;
             /**
              * Format: uuid
-             * @description The UID of the component's release line. Absent for its default line.
+             * @description The UID of the component's release line. Absent for its main line.
              */
             releaseLineUid?: string;
           };
@@ -1199,11 +1199,11 @@ export interface components {
            * @description The UID of the project
            */
           projectUid?: string;
-          /** @description The name of the component's release line. Absent for its default line. */
+          /** @description The name of the component's release line. Absent for its main line. */
           releaseLineName?: string;
           /**
            * Format: uuid
-           * @description The UID of the component's release line. Absent for its default line.
+           * @description The UID of the component's release line. Absent for its main line.
            */
           releaseLineUid?: string;
         };

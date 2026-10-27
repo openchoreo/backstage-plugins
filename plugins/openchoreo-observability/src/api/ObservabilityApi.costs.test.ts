@@ -228,11 +228,11 @@ describe('ObservabilityClient cost APIs with a release line', () => {
     await call(createClient(), {
       project: 'proj',
       component: 'comp',
-      releaseLine: 'main',
+      releaseLine: 'next',
     });
 
     const parsed = new URL(mockFetchApi.fetch.mock.calls[0][0]);
-    expect(parsed.searchParams.get('releaseLine')).toBe('main');
+    expect(parsed.searchParams.get('releaseLine')).toBe('next');
   });
 
   it.each([
@@ -248,7 +248,7 @@ describe('ObservabilityClient cost APIs with a release line', () => {
   ])('%s drops the release line without a component', async (_name, call) => {
     mockFetchApi.fetch.mockResolvedValueOnce(okResponse({ items: [] }));
 
-    await call(createClient(), { project: 'proj', releaseLine: 'main' });
+    await call(createClient(), { project: 'proj', releaseLine: 'next' });
 
     const parsed = new URL(mockFetchApi.fetch.mock.calls[0][0]);
     expect(parsed.searchParams.has('releaseLine')).toBe(false);
@@ -296,7 +296,7 @@ describe('ObservabilityClient cost APIs with a release line', () => {
       const result = call(createClient(), {
         project: 'proj',
         component: 'comp',
-        releaseLine: 'main',
+        releaseLine: 'next',
       });
       await expect(result).rejects.toBeInstanceOf(
         CostsReleaseLineNotSupportedError,

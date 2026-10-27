@@ -6,12 +6,23 @@ import {
 } from './releaseLineUtils';
 
 describe('validateReleaseLineName', () => {
-  it.each(['next', 'v2', 'release-1-2', 'main-2'])('accepts %s', name => {
-    expect(validateReleaseLineName(name)).toBeUndefined();
+  it.each(['next', 'v2', 'release-1-2', 'main-2', 'default-2'])(
+    'accepts %s',
+    name => {
+      expect(validateReleaseLineName(name)).toBeUndefined();
+    },
+  );
+
+  it('rejects main, the implicit line of every component', () => {
+    expect(validateReleaseLineName('main')).toMatch(
+      /implicit line of every component/,
+    );
   });
 
-  it('rejects default, the implicit line of every component', () => {
-    expect(validateReleaseLineName('default')).toMatch(/implicit default line/);
+  it('rejects default, which is reserved, pointing to main', () => {
+    expect(validateReleaseLineName('default')).toBe(
+      "default is reserved, the component's implicit line is main",
+    );
   });
 
   it.each(['', 'Default', '-next', 'next-', 'feature/x', 'a'.repeat(64)])(

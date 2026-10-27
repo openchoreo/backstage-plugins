@@ -143,14 +143,14 @@ async function selectEndpoint(endpoint: string) {
 }
 
 describe('DependencyContent release lines', () => {
-  it("lists default and the target's lines, and that line's endpoints", async () => {
+  it("lists main and the target's lines, and that line's endpoints", async () => {
     const { onReplace, fetchWorkloadInfo } = await renderContent();
     await selectComponent('orders');
 
     fireEvent.mouseDown(screen.getByLabelText(/Release line/));
     const options = within(screen.getByRole('listbox'));
     expect(options.getAllByRole('option').map(o => o.textContent)).toEqual([
-      'default',
+      'main',
       'v1',
       'v2',
     ]);
@@ -176,11 +176,11 @@ describe('DependencyContent release lines', () => {
     expect(screen.getByText('Release line: v2')).toBeInTheDocument();
   });
 
-  it('targets the default line unless told otherwise, and never stores it', async () => {
+  it('targets the main line unless told otherwise, and never stores it', async () => {
     const { onReplace, fetchWorkloadInfo } = await renderContent();
     await selectComponent('orders');
 
-    expect(screen.getByLabelText(/Release line/)).toHaveTextContent('default');
+    expect(screen.getByLabelText(/Release line/)).toHaveTextContent('main');
     await selectEndpoint('http');
     fireEvent.click(saveButton());
 

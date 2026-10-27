@@ -17,7 +17,7 @@ export const releaseLinesQueryKey = (entity: Entity) => [
 ];
 
 /**
- * The lines of a component, default first, with a mutation that creates a
+ * The lines of a component, main first, with a mutation that creates a
  * release line.
  */
 export function useReleaseLines(

@@ -5,7 +5,7 @@ import {
 } from '@openchoreo/openchoreo-client-node';
 import {
   CHOREO_ANNOTATIONS,
-  DEFAULT_RELEASE_LINE,
+  MAIN_RELEASE_LINE,
 } from '@openchoreo/backstage-plugin-common';
 import {
   WorkloadDependency,
@@ -23,10 +23,10 @@ type NewReleaseLine = OpenChoreoComponents['schemas']['ReleaseLine'];
 // ────────────────────────────────────────────────────────────────────────
 
 /**
- * The Workload of a component's default line. A component's workload list also
+ * The Workload of a component's main line. A component's workload list also
  * holds the Workloads of its release lines, which set `owner.releaseLine`.
  */
-export function findDefaultWorkload<
+export function findMainWorkload<
   W extends { spec?: { owner?: { releaseLine?: string } } },
 >(workloads: W[] | undefined): W | undefined {
   return workloads?.find(w => !w.spec?.owner?.releaseLine);
@@ -34,12 +34,12 @@ export function findDefaultWorkload<
 
 /**
  * The ReleaseLine resources of a component's line list, which the API starts
- * with its implicit default line.
+ * with its implicit main line.
  */
-export function withoutDefaultReleaseLine(
+export function withoutMainReleaseLine(
   lines: NewReleaseLine[],
 ): NewReleaseLine[] {
-  return lines.filter(line => line.metadata?.name !== DEFAULT_RELEASE_LINE);
+  return lines.filter(line => line.metadata?.name !== MAIN_RELEASE_LINE);
 }
 
 // ────────────────────────────────────────────────────────────────────────

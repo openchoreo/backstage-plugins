@@ -47,7 +47,7 @@ function releaseBindingsUrl(
   return `${openchoreoBaseUrl}/release-bindings?${params}`;
 }
 
-/** The `releaseLine` parameter of a line, left out for the default line. */
+/** The `releaseLine` parameter of a line, left out for the main line. */
 function releaseLineParam(releaseLine?: string): Record<string, string> {
   const line = toStoredReleaseLine(releaseLine);
   return line ? { releaseLine: line } : {};
@@ -75,7 +75,7 @@ export interface ReleaseBindingInfo {
  * requests as the source of truth for the displayed `current` value.
  *
  * `releaseLine` is the line the recommendations cover: a release line, the
- * default line, or undefined for every line. With every line, an environment
+ * main line, or undefined for every line. With every line, an environment
  * running several lines is left out, since no single binding matches its
  * recommendation.
  *
@@ -141,7 +141,7 @@ export async function fetchBindingInfoByEnv(opts: {
  *
  * The observability recommendation API does not carry a binding name, so we
  * look it up via the existing openchoreo backend route (no new backend needed).
- * The binding is the one of `releaseLine`, or of the default line without one.
+ * The binding is the one of `releaseLine`, or of the main line without one.
  */
 export async function resolveReleaseBindingName(opts: {
   openchoreoBaseUrl: string;

@@ -21,7 +21,7 @@ jest.mock('@backstage/core-components', () => ({
 }));
 
 const defaultLines: ReleaseLineSummary[] = [
-  { name: 'default', isDefault: true, environments: [] },
+  { name: 'main', isMain: true, environments: [] },
   {
     name: 'next',
     description: 'Builds the next branch',
@@ -83,14 +83,15 @@ describe('ReleaseLinesTable', () => {
       ['Name', 'Description', 'Deployment', ''],
     );
 
-    const mainRow = rowOf('default');
-    expect(
-      within(mainRow).getByRole('link', { name: 'default' }),
-    ).toHaveAttribute('href', '/catalog/default/component/hello/environments');
+    const mainRow = rowOf('main');
+    expect(within(mainRow).getByRole('link', { name: 'main' })).toHaveAttribute(
+      'href',
+      '/catalog/default/component/hello/environments',
+    );
     expect(
       within(mainRow).getByText("The component's own workload and bindings"),
     ).toBeInTheDocument();
-    // Not deployed, and the default line can't be deleted.
+    // Not deployed, and the main line can't be deleted.
     expect(within(mainRow).getAllByText('—')).toHaveLength(1);
     expect(within(mainRow).queryByRole('button')).toBeNull();
 
@@ -118,11 +119,11 @@ describe('ReleaseLinesTable', () => {
     );
   });
 
-  it("opens default's deploy tab on its component when its row is clicked", async () => {
+  it("opens main's deploy tab on its component when its row is clicked", async () => {
     await renderTable();
 
     fireEvent.click(
-      within(rowOf('default')).getByText(
+      within(rowOf('main')).getByText(
         "The component's own workload and bindings",
       ),
     );

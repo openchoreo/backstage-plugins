@@ -334,7 +334,7 @@ export class CostsReleaseLineNotSupportedError extends Error {
 /**
  * The release line part of a component search scope. Without a line, the portal
  * covers every line of the component, which the observer does only when asked:
- * on its own, a component scope covers the component's default line.
+ * on its own, a component scope covers the component's main line.
  */
 function releaseLineScope(
   component: string | undefined,

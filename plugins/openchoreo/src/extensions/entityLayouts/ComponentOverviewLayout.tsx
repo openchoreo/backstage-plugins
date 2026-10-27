@@ -21,7 +21,7 @@ import {
 
 /**
  * The Component-kind Overview layout. A component with release lines lists
- * its lines first, and its summary cards work on the default line, as its tabs do.
+ * its lines first, and its summary cards work on the main line, as its tabs do.
  * `BuildFailureNotifierSlot` renders the host app's assistant prompt for a
  * failed build run (nothing when no assistant integration is registered — the
  * stock portal's is private and not shipped to adopters).

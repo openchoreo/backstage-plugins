@@ -106,7 +106,7 @@ export interface ReleaseBinding {
   status?: string;
   statusReason?: string;
   statusMessage?: string;
-  /** The binding's release line, absent for the default line */
+  /** The binding's release line, absent for the main line */
   releaseLine?: string;
 }
 
@@ -715,7 +715,7 @@ export interface OpenChoreoClientApi {
   fetchReleaseLines(entity: Entity): Promise<ReleaseLineSummary[]>;
 
   /**
-   * Fetch the release bindings of a release line, the default line when none
+   * Fetch the release bindings of a release line, the main line when none
    * is given, or of every line with `allReleaseLines`.
    */
   fetchReleaseBindings(

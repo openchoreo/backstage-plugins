@@ -110,12 +110,12 @@ describe('AlertRow', () => {
 
   it('shows the release line in the details when the alert has one', async () => {
     const user = userEvent.setup();
-    renderRow({ alert: { ...sampleAlert, releaseLineName: 'main' } });
+    renderRow({ alert: { ...sampleAlert, releaseLineName: 'next' } });
 
     await user.click(screen.getByText('High CPU Alert'));
 
     expect(screen.getByText('Release Line:')).toBeInTheDocument();
-    expect(screen.getByText('main')).toBeInTheDocument();
+    expect(screen.getByText('next')).toBeInTheDocument();
   });
 
   it('omits the release line from the details without one', async () => {

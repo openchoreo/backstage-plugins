@@ -23,10 +23,10 @@ import {
   extractWorkloadDependencies,
   extractWorkloadResourceDependencies,
   filterDependenciesWithSchema,
-  findDefaultWorkload,
+  findMainWorkload,
   resolveComponentOwner,
   resolveProvidesAndConsumes,
-  withoutDefaultReleaseLine,
+  withoutMainReleaseLine,
 } from '../utils/helpers';
 import { WorkloadEndpoint } from '../utils/types';
 import {
@@ -378,7 +378,7 @@ export class EventDeltaApplier {
         )}`,
       );
     }
-    return findDefaultWorkload(res.data?.items as NewWorkload[] | undefined);
+    return findMainWorkload(res.data?.items as NewWorkload[] | undefined);
   }
 
   private fetchEnvironment(
@@ -1009,7 +1009,7 @@ export class EventDeltaApplier {
         `Failed to fetch release lines for component ${ns}/${componentName}`,
       );
     }
-    return withoutDefaultReleaseLine(res.data?.items ?? []);
+    return withoutMainReleaseLine(res.data?.items ?? []);
   }
 
   /** The namespace's components, any of which may own a new release line. */

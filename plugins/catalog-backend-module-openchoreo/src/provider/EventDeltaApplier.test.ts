@@ -1240,7 +1240,10 @@ describe('EventDeltaApplier release lines', () => {
         spec: { system: 'proj' },
       }),
       getEntities: jest.fn().mockResolvedValue({
-        items: [{ metadata: { name: 'main' } }, { metadata: { name: 'next' } }],
+        items: [
+          { metadata: { name: 'canary' } },
+          { metadata: { name: 'next' } },
+        ],
       }),
       refreshEntity: jest.fn().mockResolvedValue(undefined),
     };
@@ -1257,7 +1260,7 @@ describe('EventDeltaApplier release lines', () => {
     );
     expect(removed.sort()).toEqual([
       'component:test-ns/hello',
-      'releaseline:test-ns/main',
+      'releaseline:test-ns/canary',
       'releaseline:test-ns/next',
     ]);
   });

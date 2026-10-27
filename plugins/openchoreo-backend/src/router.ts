@@ -48,8 +48,7 @@ import type { AuthService, LoggerService } from '@backstage/backend-plugin-api';
 import type { CatalogService } from '@backstage/plugin-catalog-node';
 import {
   CHOREO_ANNOTATIONS,
-  DEFAULT_RELEASE_LINE,
-  isDefaultReleaseLine,
+  reservedReleaseLineNameError,
   toStoredReleaseLine,
   type ReleaseLineResource,
 } from '@openchoreo/backstage-plugin-common';
@@ -99,8 +98,8 @@ export type PlatformResourceKind =
   (typeof VALID_PLATFORM_RESOURCE_KINDS)[number];
 
 /**
- * The release line a request names in its query or body. The default line, by
- * name or omitted, is undefined, so `default` is never written into a resource.
+ * The release line a request names in its query or body. The main line, by
+ * name or omitted, is undefined, so `main` is never written into a resource.
  */
 function requestReleaseLine(req: express.Request): string | undefined {
   const value = req.query.releaseLine ?? req.body?.releaseLine;
@@ -1188,10 +1187,11 @@ export async function createRouter({
         'componentName, namespaceName and releaseLine.metadata.name are required in request body',
       );
     }
-    if (isDefaultReleaseLine(releaseLine.metadata.name)) {
-      throw new InputError(
-        `${DEFAULT_RELEASE_LINE} is the implicit default line of every component and cannot be created`,
-      );
+    const reservedNameError = reservedReleaseLineNameError(
+      releaseLine.metadata.name,
+    );
+    if (reservedNameError) {
+      throw new InputError(reservedNameError);
     }
 
     const userToken = getUserTokenFromRequest(req);
@@ -1287,9 +1287,7 @@ export async function createRouter({
       await markComponentReleaseLines(
         namespaceName as string,
         componentName as string,
-        remaining.some(
-          line => !line.isDefault && line.name !== releaseLineName,
-        ),
+        remaining.some(line => !line.isMain && line.name !== releaseLineName),
       );
     }
     res.json({ success: true });

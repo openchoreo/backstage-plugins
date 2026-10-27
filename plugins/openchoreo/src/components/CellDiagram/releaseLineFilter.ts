@@ -2,16 +2,16 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import type { Project } from '@openchoreo/cell-diagram';
-import { DEFAULT_RELEASE_LINE } from '@openchoreo/backstage-plugin-common';
+import { MAIN_RELEASE_LINE } from '@openchoreo/backstage-plugin-common';
 
 /**
- * The release lines a diagram shows, besides the default line: the pills of the nodes of
+ * The release lines a diagram shows, besides the main line: the pills of the nodes of
  * components with release lines.
  */
 export function diagramReleaseLines(project?: Project): string[] {
   const lines = new Set<string>();
   for (const component of project?.components ?? []) {
-    if (component.badge && component.badge !== DEFAULT_RELEASE_LINE) {
+    if (component.badge && component.badge !== MAIN_RELEASE_LINE) {
       lines.add(component.badge);
     }
   }

@@ -64,7 +64,7 @@ describe('useComponentAlerts', () => {
   });
 
   it('scopes the query to the page release line', async () => {
-    mockReleaseLine = 'main';
+    mockReleaseLine = 'next';
     getAlerts.mockResolvedValueOnce({ alerts: [], total: 0 });
 
     const { result } = renderHook(
@@ -78,7 +78,7 @@ describe('useComponentAlerts', () => {
       'project-a',
       'development',
       'component-a',
-      expect.objectContaining({ releaseLine: 'main' }),
+      expect.objectContaining({ releaseLine: 'next' }),
     );
   });
 

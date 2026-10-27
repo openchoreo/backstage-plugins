@@ -66,7 +66,7 @@ describe('selectEntityRoutes', () => {
     expect(ids(selectEntityRoutes(routes, component()))).toEqual(ids(routes));
   });
 
-  it('keeps every tab of a component with release lines, for its default line', () => {
+  it('keeps every tab of a component with release lines, for its main line', () => {
     expect(ids(selectEntityRoutes(routes, component(true)))).toEqual(
       ids(routes),
     );

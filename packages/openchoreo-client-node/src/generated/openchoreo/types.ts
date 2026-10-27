@@ -1256,7 +1256,7 @@ export interface paths {
     put?: never;
     /**
      * Run a component workflow
-     * @description Starts a run of the component's configured workflow with the component's workflow parameters. With releaseLine set to one of the component's release lines, that line's workflow parameter overrides are applied. Omitted or default builds the default line.
+     * @description Starts a run of the component's configured workflow with the component's workflow parameters. With releaseLine set to one of the component's release lines, that line's workflow parameter overrides are applied. Omitted or main builds the main line.
      */
     post: operations['createComponentWorkflowRun'];
     delete?: never;
@@ -1274,13 +1274,13 @@ export interface paths {
     };
     /**
      * List component release lines
-     * @description Returns a paginated list of the release lines of a component. The first page of an unfiltered list starts with default, the implicit line every component has, described from its bindings without a release line.
+     * @description Returns a paginated list of the release lines of a component. The first page of an unfiltered list starts with main, the implicit line every component has, described from its bindings without a release line.
      */
     get: operations['listComponentReleaseLines'];
     put?: never;
     /**
      * Create component release line
-     * @description Creates a release line for a component. The owner is taken from the path. The name default is reserved for the implicit default line.
+     * @description Creates a release line for a component. The owner is taken from the path. The name main is the implicit line, and default is reserved.
      */
     post: operations['createComponentReleaseLine'];
     delete?: never;
@@ -1298,18 +1298,18 @@ export interface paths {
     };
     /**
      * Get component release line
-     * @description Returns a release line of a component, including its status per environment. The name default returns the implicit default line.
+     * @description Returns a release line of a component, including its status per environment. The name main returns the implicit line.
      */
     get: operations['getComponentReleaseLine'];
     /**
      * Update component release line
-     * @description Replaces the spec of a release line (full update). The owner cannot change. The implicit default line cannot be updated.
+     * @description Replaces the spec of a release line (full update). The owner cannot change. The implicit main line cannot be updated.
      */
     put: operations['updateComponentReleaseLine'];
     post?: never;
     /**
      * Delete component release line
-     * @description Deletes a release line. The line's bindings in every environment, its releases and its Workload are then removed. The implicit default line cannot be deleted.
+     * @description Deletes a release line. The line's bindings in every environment, its releases and its Workload are then removed. The implicit main line cannot be deleted.
      */
     delete: operations['deleteComponentReleaseLine'];
     options?: never;
@@ -4703,7 +4703,7 @@ export interface components {
          */
         componentName: string;
         /**
-         * @description Release line this release belongs to. Omitted for the default line.
+         * @description Release line this release belongs to. Omitted for the main line.
          * @example next
          */
         releaseLine?: string;
@@ -4769,7 +4769,7 @@ export interface components {
          */
         componentName: string;
         /**
-         * @description Release line this binding belongs to. Omitted for the default line.
+         * @description Release line this binding belongs to. Omitted for the main line.
          * @example next
          */
         releaseLine?: string;
@@ -5771,7 +5771,7 @@ export interface components {
        */
       releaseName?: string;
       /**
-       * @description Release line to release from, built from the line's Workload and overrides. Omitted or default releases the default line.
+       * @description Release line to release from, built from the line's Workload and overrides. Omitted or main releases the main line.
        * @example next
        */
       releaseLine?: string;
@@ -5779,7 +5779,7 @@ export interface components {
     /** @description Request to run a component's workflow */
     CreateComponentWorkflowRunRequest: {
       /**
-       * @description Release line to build. Omitted or default builds the default line.
+       * @description Release line to build. Omitted or main builds the main line.
        * @example api-service-v2
        */
       releaseLine?: string;
@@ -6445,7 +6445,7 @@ export interface components {
          */
         componentName: string;
         /**
-         * @description Release line of the owning component. Omitted for the default line.
+         * @description Release line of the owning component. Omitted for the main line.
          * @example api-service-v2
          */
         releaseLine?: string;
@@ -6514,7 +6514,7 @@ export interface components {
       project?: string;
       /** @description Target component name */
       component: string;
-      /** @description Target component's release line. Omitted targets its default line. */
+      /** @description Target component's release line. Omitted targets its main line. */
       releaseLine?: string;
       /** @description Target endpoint name on the target component */
       name: string;

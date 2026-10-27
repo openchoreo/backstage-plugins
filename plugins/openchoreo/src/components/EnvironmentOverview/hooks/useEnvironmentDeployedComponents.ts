@@ -16,7 +16,7 @@ export interface DeployedComponent {
   displayName?: string;
   /** The component, or the ReleaseLine entity for a release line's deployment */
   entityRef: string;
-  /** The release line deployed, absent for the default line */
+  /** The release line deployed, absent for the main line */
   releaseLine?: string;
   projectName: string;
   releaseVersion?: string;

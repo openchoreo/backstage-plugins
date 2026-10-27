@@ -509,7 +509,7 @@ describe('ObservabilityClient release line scoping', () => {
           {
             alertId: 'a1',
             metadata: {
-              labels: { componentName: 'comp', releaseLineName: 'main' },
+              labels: { componentName: 'comp', releaseLineName: 'next' },
             },
           },
         ],
@@ -518,17 +518,17 @@ describe('ObservabilityClient release line scoping', () => {
     );
 
     const result = await createClient().getAlerts('ns', 'proj', 'dev', 'comp', {
-      releaseLine: 'main',
+      releaseLine: 'next',
     });
 
     expect(lastBody().searchScope).toEqual({
       namespace: 'ns',
       project: 'proj',
       component: 'comp',
-      releaseLine: 'main',
+      releaseLine: 'next',
       environment: 'dev',
     });
-    expect(result.alerts[0].releaseLineName).toBe('main');
+    expect(result.alerts[0].releaseLineName).toBe('next');
   });
 
   it('omits the release line on an alerts query without one', async () => {
@@ -548,7 +548,7 @@ describe('ObservabilityClient release line scoping', () => {
           {
             incidentId: 'i1',
             status: 'active',
-            labels: { componentName: 'comp', releaseLineName: 'main' },
+            labels: { componentName: 'comp', releaseLineName: 'next' },
           },
         ],
         total: 1,
@@ -560,11 +560,11 @@ describe('ObservabilityClient release line scoping', () => {
       'proj',
       'dev',
       'comp',
-      { releaseLine: 'main' },
+      { releaseLine: 'next' },
     );
 
-    expect(lastBody().searchScope.releaseLine).toBe('main');
-    expect(result.incidents[0].releaseLineName).toBe('main');
+    expect(lastBody().searchScope.releaseLine).toBe('next');
+    expect(result.incidents[0].releaseLineName).toBe('next');
   });
 
   it('drops the release line on an incidents query without a component', async () => {
@@ -573,7 +573,7 @@ describe('ObservabilityClient release line scoping', () => {
     );
 
     await createClient().getIncidents('ns', 'proj', 'dev', undefined, {
-      releaseLine: 'main',
+      releaseLine: 'next',
     });
 
     expect(lastBody().searchScope).not.toHaveProperty('releaseLine');
@@ -589,7 +589,7 @@ describe('ObservabilityClient release line scoping', () => {
           namespace: 'ns',
           project: 'proj',
           component: 'comp',
-          releaseLine: 'main',
+          releaseLine: 'next',
         },
         { startTime: 's', endTime: 'e' },
       );
@@ -598,7 +598,7 @@ describe('ObservabilityClient release line scoping', () => {
         namespace: 'ns',
         project: 'proj',
         component: 'comp',
-        releaseLine: 'main',
+        releaseLine: 'next',
       });
     },
   );
@@ -609,7 +609,7 @@ describe('ObservabilityClient release line scoping', () => {
       mockFetchApi.fetch.mockResolvedValueOnce(mockOkResponse({}));
 
       await createClient()[method](
-        { namespace: 'ns', project: 'proj', releaseLine: 'main' },
+        { namespace: 'ns', project: 'proj', releaseLine: 'next' },
         { startTime: 's', endTime: 'e' },
       );
 

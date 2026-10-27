@@ -33,7 +33,7 @@ describe('ReleaseLineFilter', () => {
     mockLines.loading = false;
   });
 
-  it('offers every line, the default line, then each release line', () => {
+  it('offers every line, the main line, then each release line', () => {
     renderFilter();
 
     fireEvent.mouseDown(screen.getByRole('button', { name: /All lines/ }));
@@ -41,18 +41,16 @@ describe('ReleaseLineFilter', () => {
       within(screen.getByRole('listbox'))
         .getAllByRole('option')
         .map(o => o.textContent),
-    ).toEqual(['All lines', 'default', 'canary', 'next']);
+    ).toEqual(['All lines', 'main', 'canary', 'next']);
   });
 
   it('keeps the choice in the URL', () => {
     renderFilter();
 
     fireEvent.mouseDown(screen.getByRole('button', { name: /All lines/ }));
-    fireEvent.click(screen.getByRole('option', { name: 'default' }));
+    fireEvent.click(screen.getByRole('option', { name: 'main' }));
 
-    expect(screen.getByTestId('search')).toHaveTextContent(
-      '?releaseLine=default',
-    );
+    expect(screen.getByTestId('search')).toHaveTextContent('?releaseLine=main');
   });
 
   it('is hidden for a component without release lines, and clears a stale line', () => {
@@ -82,6 +80,16 @@ describe('ReleaseLineFilter', () => {
       </MemoryRouter>,
     );
 
+    expect(screen.getByTestId('search')).toHaveTextContent('');
+  });
+
+  it('keeps main in the URL', () => {
+    renderFilter('/?releaseLine=main');
+    expect(screen.getByTestId('search')).toHaveTextContent('?releaseLine=main');
+  });
+
+  it('clears default from the URL, which names no line', () => {
+    renderFilter('/?releaseLine=default');
     expect(screen.getByTestId('search')).toHaveTextContent('');
   });
 

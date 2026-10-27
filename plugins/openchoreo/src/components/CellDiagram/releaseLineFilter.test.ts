@@ -28,14 +28,14 @@ const project = {
   name: 'shop',
   modelVersion: '0.4.0',
   components: [
-    node('api', 'default'),
+    node('api', 'main'),
     node('api@next', 'next'),
     node('web', undefined, ['api', 'api@next']),
   ],
 } as unknown as Project;
 
 describe('releaseLineFilter', () => {
-  it('lists the release lines besides the default line', () => {
+  it('lists the release lines besides the main line', () => {
     expect(diagramReleaseLines(project)).toEqual(['next']);
   });
 
@@ -44,7 +44,7 @@ describe('releaseLineFilter', () => {
   });
 
   it("keeps one line's nodes, components without lines, and their links", () => {
-    const filtered = filterProjectByReleaseLine(project, 'default');
+    const filtered = filterProjectByReleaseLine(project, 'main');
 
     expect(filtered.components.map(c => c.id)).toEqual(['api', 'web']);
     expect(filtered.components[1].connections.map(c => c.id)).toEqual([

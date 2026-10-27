@@ -66,7 +66,7 @@ export class WorkloadInfoService implements WorkloadService {
           }),
       );
 
-      // Each release line has its own Workload; the default line's has none.
+      // Each release line has its own Workload; the main line's has none.
       const workload = items.find(item =>
         isSameReleaseLine(item.spec?.owner?.releaseLine, releaseLine),
       );

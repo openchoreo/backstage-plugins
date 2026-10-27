@@ -294,6 +294,25 @@ describe('createRouter', () => {
       );
     });
 
+    it('leaves the main line out of the request', async () => {
+      services.buildInfoService.fetchBuilds.mockResolvedValue([]);
+
+      await request(app).get('/builds').query({
+        componentName: 'my-component',
+        projectName: 'my-project',
+        namespaceName: 'my-namespace',
+        releaseLine: 'main',
+      });
+
+      expect(services.buildInfoService.fetchBuilds).toHaveBeenCalledWith(
+        'my-namespace',
+        'my-project',
+        'my-component',
+        undefined,
+        'mock-user-token',
+      );
+    });
+
     it('should return 400 when required query parameters are missing', async () => {
       const response = await request(app).get('/builds').query({
         componentName: 'my-component',
@@ -345,6 +364,26 @@ describe('createRouter', () => {
             'componentName, projectName and namespaceName are required',
           ),
         }),
+      });
+    });
+  });
+
+  describe('POST /release-lines', () => {
+    it.each([
+      ['main', 'main is the implicit line of every component'],
+      ['default', "default is reserved, the component's implicit line is main"],
+    ])('rejects a line named %s', async (name, message) => {
+      const response = await request(app)
+        .post('/release-lines')
+        .send({
+          componentName: 'my-component',
+          namespaceName: 'my-namespace',
+          releaseLine: { metadata: { name } },
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toMatchObject({
+        error: expect.objectContaining({ message }),
       });
     });
   });

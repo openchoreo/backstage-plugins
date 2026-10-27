@@ -825,7 +825,7 @@ components:
           type: string
         releaseLine:
           type: string
-          description: Restricts the result to one release line of the component, and default to its default line. Omitted covers every line of the component. Requires component. Logs, events, metrics and traces also require environment.
+          description: Restricts the result to one release line of the component, and main to its main line. Omitted covers every line of the component. Requires component. Logs, events, metrics and traces also require environment.
       required: [namespace]
 
     WorkflowSearchScope:
@@ -1903,10 +1903,10 @@ components:
                         format: uuid
                       releaseLineName:
                         type: string
-                        description: The name of the component's release line. Absent for its default line.
+                        description: The name of the component's release line. Absent for its main line.
                       releaseLineUid:
                         type: string
-                        description: The UID of the component's release line. Absent for its default line.
+                        description: The UID of the component's release line. Absent for its main line.
                         format: uuid
         total:
           type: integer
@@ -2020,10 +2020,10 @@ components:
                     format: uuid
                   releaseLineName:
                     type: string
-                    description: The name of the component's release line. Absent for its default line.
+                    description: The name of the component's release line. Absent for its main line.
                   releaseLineUid:
                     type: string
-                    description: The UID of the component's release line. Absent for its default line.
+                    description: The UID of the component's release line. Absent for its main line.
                     format: uuid
         total:
           type: integer

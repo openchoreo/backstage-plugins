@@ -164,14 +164,14 @@ describe('DeliveryInsightsContent release line filter', () => {
   });
 
   it('lists the component release lines and reports a selection', async () => {
-    releaseLines = ['main', 'next'];
+    releaseLines = ['canary', 'next'];
     const onReleaseLineChange = jest.fn();
     await renderComponent(onReleaseLineChange);
 
     fireEvent.mouseDown(screen.getByLabelText('Release line'));
     expect(
-      screen.getByRole('option', { name: 'All lines' }),
-    ).toBeInTheDocument();
+      screen.getAllByRole('option').map(option => option.textContent),
+    ).toEqual(['All lines', 'main', 'canary', 'next']);
     fireEvent.click(screen.getByRole('option', { name: 'next' }));
     expect(onReleaseLineChange).toHaveBeenCalledWith('next');
   });

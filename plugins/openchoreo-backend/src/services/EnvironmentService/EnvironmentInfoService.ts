@@ -329,7 +329,7 @@ export class EnvironmentInfoService implements EnvironmentService {
       const environments = newEnvironments.map(transformEnvironment);
 
       // Transform new K8s-style bindings to legacy shape, scoped to the
-      // release line, or to the default line when none is given.
+      // release line, or to the main line when none is given.
       const bindings: ReleaseBindingResponse[] = newBindings
         .map(transformReleaseBinding)
         .filter(binding =>
@@ -738,7 +738,7 @@ export class EnvironmentInfoService implements EnvironmentService {
   }
 
   /**
-   * Finds the ReleaseBinding of a component's release line, the default line
+   * Finds the ReleaseBinding of a component's release line, the main line
    * without one, in an environment by its owner rather than its name.
    */
   private async findReleaseBinding(
@@ -1404,7 +1404,7 @@ export class EnvironmentInfoService implements EnvironmentService {
   }
 
   /**
-   * Fetches the release bindings of a component's release line, its default
+   * Fetches the release bindings of a component's release line, its main
    * line when none is given, or of every line with `allReleaseLines`.
    *
    * @param {Object} request - The request parameters

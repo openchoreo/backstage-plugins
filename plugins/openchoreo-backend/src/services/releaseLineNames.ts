@@ -8,7 +8,7 @@ const MAX_NAME_LENGTH = 63;
 
 /**
  * The name OpenChoreo gives a line's component-level objects
- * (`releaseline.ComponentLineName`): the component name for the default line,
+ * (`releaseline.ComponentLineName`): the component name for the main line,
  * and `{component}-{line}-{hash}`, bounded to 63 characters, for a release line.
  */
 export function componentLineName(
