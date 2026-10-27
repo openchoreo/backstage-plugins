@@ -466,6 +466,36 @@ export const NotificationChannelFormWithYamlExtension = ({
     [data, commit],
   );
 
+  /**
+   * Changes the namespace. Secret references name SecretReferences in the channel's namespace, so
+   * selections made for the previous namespace are cleared; header names and inline values stay.
+   */
+  const updateNamespace = useCallback(
+    (namespace: string) => {
+      if (namespace === data.namespace_name) return;
+      commit({
+        ...data,
+        namespace_name: namespace,
+        emailConfig: {
+          ...data.emailConfig,
+          smtpUsernameSecretName: '',
+          smtpUsernameSecretKey: '',
+          smtpPasswordSecretName: '',
+          smtpPasswordSecretKey: '',
+        },
+        webhookConfig: {
+          ...data.webhookConfig,
+          headers: data.webhookConfig.headers.map(header => ({
+            ...header,
+            secretName: '',
+            secretKey: '',
+          })),
+        },
+      });
+    },
+    [data, commit],
+  );
+
   const updateEmailField = useCallback(
     (field: keyof NotificationChannelEmailConfigFormData, value: unknown) => {
       commit({
@@ -564,7 +594,7 @@ export const NotificationChannelFormWithYamlExtension = ({
             <Grid item xs={12} sm={6}>
               <NamespaceSelectField
                 value={data.namespace_name}
-                onChange={v => updateField('namespace_name', v)}
+                onChange={updateNamespace}
                 label="Namespace"
                 helperText="Namespace where the notification channel will be created"
                 required

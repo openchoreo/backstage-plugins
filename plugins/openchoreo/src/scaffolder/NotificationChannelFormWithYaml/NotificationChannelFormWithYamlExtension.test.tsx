@@ -705,6 +705,106 @@ describe('NotificationChannelFormWithYamlExtension — webhook fields', () => {
   });
 });
 
+describe('NotificationChannelFormWithYamlExtension — namespace change', () => {
+  const withSecrets = (
+    type: 'email' | 'webhook',
+  ): NotificationChannelFormData => ({
+    namespace_name: 'domain:default/team-a',
+    channel_name: 'ch',
+    environment: '',
+    isEnvDefault: false,
+    type,
+    ...(type === 'email'
+      ? {
+          emailConfig: {
+            from: 'a@example.com',
+            to: ['b@example.com'],
+            smtpHost: 'smtp.example.com',
+            smtpPort: 587,
+            smtpUsernameSecretName: 'smtp-auth',
+            smtpUsernameSecretKey: 'username',
+            smtpPasswordSecretName: 'smtp-auth',
+            smtpPasswordSecretKey: 'password',
+            insecureSkipVerify: false,
+            subjectTemplate: 's',
+            bodyTemplate: 'b',
+          },
+        }
+      : {
+          webhookConfig: {
+            url: 'https://hooks.example.com',
+            headers: [
+              {
+                name: 'X-Api-Key',
+                value: '',
+                secretName: 'webhook-auth',
+                secretKey: 'api-key',
+              },
+              {
+                name: 'Content-Type',
+                value: 'application/json',
+                secretName: '',
+                secretKey: '',
+              },
+            ],
+            payloadTemplate: '',
+          },
+        }),
+  });
+
+  it('clears SMTP secret selections when the namespace changes', async () => {
+    render(<Harness initialFormData={withSecrets('email')} />);
+    await waitFor(() => expect(namespaceFieldProps).toBeDefined());
+
+    act(() => {
+      namespaceFieldProps.onChange('domain:default/team-b');
+    });
+
+    await waitFor(() =>
+      expect(latestFormData!.namespace_name).toBe('domain:default/team-b'),
+    );
+    expect(latestFormData!.emailConfig).toMatchObject({
+      smtpUsernameSecretName: '',
+      smtpUsernameSecretKey: '',
+      smtpPasswordSecretName: '',
+      smtpPasswordSecretKey: '',
+      smtpHost: 'smtp.example.com',
+    });
+  });
+
+  it('clears header secret selections but keeps header names and inline values', async () => {
+    render(<Harness initialFormData={withSecrets('webhook')} />);
+    await waitFor(() => expect(namespaceFieldProps).toBeDefined());
+
+    act(() => {
+      namespaceFieldProps.onChange('domain:default/team-b');
+    });
+
+    await waitFor(() =>
+      expect(latestFormData!.webhookConfig!.headers).toEqual([
+        { name: 'X-Api-Key', value: '', secretName: '', secretKey: '' },
+        {
+          name: 'Content-Type',
+          value: 'application/json',
+          secretName: '',
+          secretKey: '',
+        },
+      ]),
+    );
+  });
+
+  it('keeps secret selections when the same namespace is selected again', async () => {
+    render(<Harness initialFormData={withSecrets('email')} />);
+    await waitFor(() => expect(namespaceFieldProps).toBeDefined());
+
+    act(() => {
+      namespaceFieldProps.onChange('domain:default/team-a');
+    });
+
+    expect(latestFormData).toBeUndefined();
+  });
+});
+
 describe('buildSecretOptions', () => {
   it('lists references without a target plane or targeting an observability plane', () => {
     const options = buildSecretOptions(
