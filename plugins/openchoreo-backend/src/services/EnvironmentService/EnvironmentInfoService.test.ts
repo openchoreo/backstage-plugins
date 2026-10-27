@@ -497,7 +497,7 @@ describe('EnvironmentInfoService', () => {
       );
 
       expect(mockPOST.mock.calls[0][1].body).toMatchObject({
-        metadata: { name: 'hello-next-production' },
+        metadata: { name: 'hello-next-4833a175-production' },
         spec: {
           owner: { componentName: 'hello', releaseLine: 'next' },
           environment: 'production',

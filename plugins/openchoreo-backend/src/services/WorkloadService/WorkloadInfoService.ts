@@ -9,6 +9,7 @@ import {
   isSameReleaseLine,
   type WorkloadResource,
 } from '@openchoreo/backstage-plugin-common';
+import { scopedName } from '../releaseLineNames';
 
 export class WorkloadInfoService implements WorkloadService {
   private readonly logger: LoggerService;
@@ -146,9 +147,7 @@ export class WorkloadInfoService implements WorkloadService {
           ...workload.metadata,
           name:
             workload.metadata?.name ||
-            (releaseLine
-              ? `${componentName}-${releaseLine}-workload`
-              : `${componentName}-workload`),
+            scopedName(componentName, releaseLine, 'workload'),
         },
         spec: {
           ...(workload.spec as { [key: string]: unknown }),

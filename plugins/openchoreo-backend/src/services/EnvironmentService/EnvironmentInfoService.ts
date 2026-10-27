@@ -29,6 +29,7 @@ import {
   deriveProjectDeploymentStatus,
   type ProjectDeploymentStatus,
 } from '../transformers/project-release-binding';
+import { scopedName } from '../releaseLineNames';
 
 type ModelsEnvironment = EnvironmentResponse;
 
@@ -88,19 +89,16 @@ function getSourceEnvName(ref: unknown): string {
 }
 
 /**
- * Name a new ReleaseBinding of a component gets in an environment: `{component}-{env}`,
- * or `{component}-{line}-{env}` for a release line. Existing bindings are found by
- * owner instead: line `b-c` of `a` and component `a-b-c` compute the same name,
- * and bindings created elsewhere may be named otherwise.
+ * Name a new ReleaseBinding of a component gets in an environment, as OpenChoreo
+ * names it. Existing bindings are found by owner instead, since bindings created
+ * elsewhere may be named otherwise.
  */
 function releaseBindingName(
   componentName: string,
   environment: string,
   releaseLine?: string,
 ): string {
-  return releaseLine
-    ? `${componentName}-${releaseLine}-${environment}`
-    : `${componentName}-${environment}`;
+  return scopedName(componentName, releaseLine, environment);
 }
 
 /** The owner of a component's bindings on a line, for messages. */
