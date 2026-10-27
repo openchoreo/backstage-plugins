@@ -60,6 +60,10 @@ const CostAnalysisListContent = () => {
       ].sort((a, b) => a.localeCompare(b)),
     [reports],
   );
+  // The report lines are unknown until the reports of a selected environment
+  // load. The reports query is disabled until then, so it isn't "loading".
+  const reportLinesLoading =
+    environmentsLoading || !filters.environment || reportsLoading;
   const releaseLine = useSelectedReleaseLine();
 
   const filteredReports = useMemo((): FinOpsReportSummary[] => {
@@ -153,7 +157,10 @@ const CostAnalysisListContent = () => {
             searchPlaceholder="Search cost reports..."
           />
 
-          <ReleaseLineFilter lines={reportLines} />
+          <ReleaseLineFilter
+            lines={reportLines}
+            linesLoading={reportLinesLoading}
+          />
 
           {reportsError && renderError(reportsError)}
 

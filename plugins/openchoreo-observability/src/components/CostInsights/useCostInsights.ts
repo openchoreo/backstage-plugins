@@ -256,6 +256,7 @@ export function useCostInsights(
             namespaceName: singleComponent.namespace!,
             projectName: singleComponent.project!,
             componentName: singleComponent.component!,
+            releaseLine,
           });
           const windowStartMs = new Date(startTime).getTime();
           // Buffer so the settling period right after a spec change (pods rolling

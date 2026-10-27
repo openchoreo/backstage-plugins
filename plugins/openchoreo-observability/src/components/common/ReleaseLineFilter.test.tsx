@@ -63,6 +63,28 @@ describe('ReleaseLineFilter', () => {
     expect(screen.getByTestId('search')).toHaveTextContent('');
   });
 
+  it('keeps a URL line while the given lines are loading', () => {
+    render(
+      <MemoryRouter initialEntries={['/?releaseLine=next']}>
+        <ReleaseLineFilter lines={[]} linesLoading />
+        <Search />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId('search')).toHaveTextContent('?releaseLine=next');
+  });
+
+  it('clears a URL line the loaded lines no longer offer', () => {
+    render(
+      <MemoryRouter initialEntries={['/?releaseLine=next']}>
+        <ReleaseLineFilter lines={['canary']} linesLoading={false} />
+        <Search />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId('search')).toHaveTextContent('');
+  });
+
   it('is hidden on a release line page, which is scoped to its line', () => {
     mockPageLine = 'next';
     renderFilter('/?releaseLine=canary');

@@ -59,7 +59,7 @@ export const useReleaseReadiness = (
     loading: buildsLoading,
     isRefetching: buildsRefetching,
   } = useOpenChoreoQuery<ModelsBuild[]>(
-    ['release-readiness', 'builds', entityRef],
+    ['release-readiness', 'builds', entityRef, releaseLine ?? ''],
     async () => {
       const componentName = entity.metadata.name;
       const projectName =
@@ -70,14 +70,15 @@ export const useReleaseReadiness = (
         return [];
       }
       const baseUrl = await discovery.getBaseUrl('openchoreo');
+      // Only this line's builds count: a line's workload comes from its own builds.
+      const params = new URLSearchParams({
+        componentName,
+        projectName,
+        namespaceName,
+      });
+      if (releaseLine) params.set('releaseLine', releaseLine);
       try {
-        const response = await fetchApi.fetch(
-          `${baseUrl}/builds?componentName=${encodeURIComponent(
-            componentName,
-          )}&projectName=${encodeURIComponent(
-            projectName,
-          )}&namespaceName=${encodeURIComponent(namespaceName)}`,
-        );
+        const response = await fetchApi.fetch(`${baseUrl}/builds?${params}`);
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }

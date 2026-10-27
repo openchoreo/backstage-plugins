@@ -25,6 +25,10 @@ Support components with release lines.
 - The Delivery Insights page shows a Release line filter when the selected component has release lines, narrowing the metrics and the per-environment breakdown to `default` or one line.
 - An RCA report's Incident Overview shows the release line the alert fired on.
 - Cost analysis reports show their line in their overview and in the reports list, and link to the line's page and metrics, or the component's for the default line. Apply Recommendation names the release binding it updates and refuses a binding that belongs to another line.
+- Cost Insights applies a recommendation to the binding of the selected release line, and refuses a binding of another line. For a component with release lines, Apply is disabled until a line is chosen, since a recommendation for all lines matches no single binding.
 - Workflow runs returned by the workflows backend include their labels, so a run can be matched to its release line.
+- The environment overview lists each release line deployed in an environment as its own row, linked to the line's page, and Recent Deployments shows release lines next to components. `GET /release-bindings` returns the default line's bindings without a line, and every line's with `allReleaseLines=true`.
+- The unused `promoteToEnvironment` client method and the backend `/promote-deployment` route are removed. The OpenChoreo API no longer has the promote endpoint they called, and the Promote action deploys through the release binding instead.
+- Deploy, promote, saving overrides and removing a deployment find a release line's binding by its owner (component, line and environment) instead of a computed name. Line `b-c` of component `a` and component `a-b-c` compute the same binding name, so a binding of another component or line is never changed or deleted, and bindings with other names are found.
 
 Components without release lines behave as before.

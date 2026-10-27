@@ -49,7 +49,10 @@ interface EnvDeployment {
   lastDeployed: number;
 }
 
-/** One row per component; all deployed environments collapse into it. */
+/**
+ * One row per component or release line; all deployed environments collapse
+ * into it.
+ */
 interface DeploymentRow {
   entityRef: string;
   /** Component type (entity spec.type), e.g. 'service', 'api-proxy'. */
@@ -230,8 +233,10 @@ export const RecentDeploymentsContent = () => {
     // no "last deployed" field, so created-at is the best server-side proxy
     // for which components are worth the environment-info fan-out; true
     // recency ordering would need a backend endpoint listing recent releases.
+    // Release lines are fetched too, since a component's environment info
+    // covers only its default line.
     const { items: components } = await catalogApi.queryEntities({
-      filter: { kind: 'Component' },
+      filter: { kind: ['Component', 'ReleaseLine'] },
       limit: MAX_COMPONENTS,
       orderFields: [
         {
@@ -251,8 +256,14 @@ export const RecentDeploymentsContent = () => {
 
     const results = await Promise.allSettled(
       components.map(async (entity): Promise<DeploymentRow | null> => {
+        const releaseLine =
+          entity.kind === 'ReleaseLine'
+            ? entity.metadata.annotations?.[CHOREO_ANNOTATIONS.RELEASE_LINE] ??
+              entity.metadata.name
+            : undefined;
         const environments = (await client.fetchEnvironmentInfo(
           entity as Entity,
+          releaseLine,
         )) as EnvironmentInfo[];
 
         const envDeployments = (environments ?? [])
@@ -275,7 +286,9 @@ export const RecentDeploymentsContent = () => {
           typeof entity.spec?.type === 'string' ? entity.spec.type : undefined;
         return {
           entityRef: stringifyEntityRef(entity),
-          componentType: rawType?.split('/').pop() || undefined,
+          componentType: releaseLine
+            ? 'release line'
+            : rawType?.split('/').pop() || undefined,
           environments: envDeployments,
           latestDeployed: envDeployments[0].lastDeployed,
         };

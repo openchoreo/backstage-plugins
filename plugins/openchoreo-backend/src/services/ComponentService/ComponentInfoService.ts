@@ -2,6 +2,7 @@ import { LoggerService } from '@backstage/backend-plugin-api';
 import {
   createOpenChoreoApiClient,
   assertApiResponse,
+  fetchAllPages,
   getDescription,
 } from '@openchoreo/openchoreo-client-node';
 import {
@@ -90,18 +91,24 @@ export class ComponentInfoService {
       logger: this.logger,
     });
 
-    const { data, error, response } = await client.GET(
-      '/api/v1/namespaces/{namespaceName}/components/{componentName}/releaselines',
-      {
-        params: {
-          path: { namespaceName, componentName },
-        },
-      },
+    const items = await fetchAllPages(cursor =>
+      client
+        .GET(
+          '/api/v1/namespaces/{namespaceName}/components/{componentName}/releaselines',
+          {
+            params: {
+              path: { namespaceName, componentName },
+              query: { limit: 100, cursor },
+            },
+          },
+        )
+        .then(res => {
+          assertApiResponse(res, 'fetch release lines');
+          return res.data;
+        }),
     );
 
-    assertApiResponse({ data, error, response }, 'fetch release lines');
-
-    return (data?.items ?? [])
+    return items
       .map(line => ({
         name: line.metadata.name,
         description: getDescription(line),

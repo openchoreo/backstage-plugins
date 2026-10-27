@@ -1,7 +1,7 @@
 // Copyright 2026 The OpenChoreo Authors
 // SPDX-License-Identifier: Apache-2.0
 
-import { useCallback, useMemo, useState, type FC } from 'react';
+import { useCallback, useMemo, useState, type ReactElement } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CallSplitIcon from '@material-ui/icons/CallSplit';
 import type { Entity } from '@backstage/catalog-model';
@@ -29,7 +29,7 @@ interface CreateReleaseLineMenuItem {
  */
 export function useCreateReleaseLineMenuItems(entity: Entity): {
   extraMenuItems: CreateReleaseLineMenuItem[];
-  CreateReleaseLineMenuDialog: FC;
+  createReleaseLineDialog: ReactElement;
 } {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -62,18 +62,17 @@ export function useCreateReleaseLineMenuItems(entity: Entity): {
     [createReleaseLine, navigate, entity],
   );
 
-  const CreateReleaseLineMenuDialog: FC = useCallback(
-    () => (
-      <CreateReleaseLineDialog
-        open={open}
-        componentName={entity.metadata.title ?? entity.metadata.name}
-        creating={creating}
-        onClose={() => setOpen(false)}
-        onCreate={handleCreate}
-      />
-    ),
-    [open, entity, creating, handleCreate],
+  // An element, not a component made here: a new component type on every
+  // change of `creating` would remount the dialog and lose its state.
+  const createReleaseLineDialog = (
+    <CreateReleaseLineDialog
+      open={open}
+      componentName={entity.metadata.title ?? entity.metadata.name}
+      creating={creating}
+      onClose={() => setOpen(false)}
+      onCreate={handleCreate}
+    />
   );
 
-  return { extraMenuItems, CreateReleaseLineMenuDialog };
+  return { extraMenuItems, createReleaseLineDialog };
 }

@@ -22,9 +22,12 @@ import {
 } from '@openchoreo/backstage-plugin-react';
 import {
   CHOREO_ANNOTATIONS,
+  DEFAULT_RELEASE_LINE,
   openchoreoReleaseBindingUpdatePermission,
 } from '@openchoreo/backstage-plugin-common';
 import { applyResourceChange } from '../../utils/applyResourceChange';
+import { useComponentReleaseLineState } from '../../hooks/useComponentReleaseLines';
+import { useSelectedReleaseLine } from '../../hooks/useSelectedReleaseLine';
 import {
   buildOptimizeChange,
   buildRecommendationChanges,
@@ -94,6 +97,15 @@ export const CostOptimizeButton = ({
     environment: env,
   });
 
+  // The recommendation covers the selected line, or every line of the
+  // component when none is selected, which no single binding matches.
+  const releaseLine = useSelectedReleaseLine();
+  const componentLines = useComponentReleaseLineState(
+    scope.namespace,
+    scope.component,
+  );
+  const lineRequired = !releaseLine && componentLines.lines.length > 0;
+
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<ApplyStatus>('idle');
   const [errorMsg, setErrorMsg] = useState('');
@@ -114,6 +126,7 @@ export const CostOptimizeButton = ({
         projectName: scope.project!,
         componentName: scope.component!,
         environment: env,
+        releaseLine,
       });
 
       await applyResourceChange({
@@ -121,6 +134,10 @@ export const CostOptimizeButton = ({
         fetchApi,
         namespaceName: scope.namespace!,
         change: buildOptimizeChange(releaseBinding, recommendation),
+        expectedOwner: {
+          componentName: scope.component,
+          releaseLine: releaseLine ?? DEFAULT_RELEASE_LINE,
+        },
       });
 
       setStatus('success');
@@ -132,7 +149,15 @@ export const CostOptimizeButton = ({
       );
       setStatus('failed');
     }
-  }, [discovery, fetchApi, scope, env, recommendation, onOptimized]);
+  }, [
+    discovery,
+    fetchApi,
+    scope,
+    env,
+    recommendation,
+    onOptimized,
+    releaseLine,
+  ]);
 
   if (status === 'success') {
     return (
@@ -148,9 +173,17 @@ export const CostOptimizeButton = ({
   }
 
   const disabled =
-    permissionLoading || !allowed || !resourceRef || Boolean(disabledProp);
+    permissionLoading ||
+    componentLines.loading ||
+    lineRequired ||
+    !allowed ||
+    !resourceRef ||
+    Boolean(disabledProp);
   let tooltipTitle = '';
   if (disabledProp) tooltipTitle = 'No recommendations to apply';
+  else if (lineRequired)
+    tooltipTitle =
+      'Choose a release line to apply its recommendation. With all lines, it covers every line of the component.';
   else if (!allowed)
     tooltipTitle = `You do not have permission to modify the deployment in ${env}`;
   const changes = buildRecommendationChanges(recommendation);
@@ -211,8 +244,13 @@ export const CostOptimizeButton = ({
             color="textSecondary"
             style={{ marginTop: 16 }}
           >
-            This will trigger a redeployment of the <strong>{env}</strong>{' '}
-            environment.
+            This will trigger a redeployment of{' '}
+            {releaseLine && (
+              <>
+                release line <strong>{releaseLine}</strong> in{' '}
+              </>
+            )}
+            the <strong>{env}</strong> environment.
           </Typography>
           {status === 'failed' && (
             <Box mt={2}>

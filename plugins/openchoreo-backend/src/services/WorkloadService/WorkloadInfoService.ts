@@ -3,6 +3,7 @@ import { WorkloadService } from '../../types';
 import {
   createOpenChoreoApiClient,
   assertApiResponse,
+  fetchAllPages,
 } from '@openchoreo/openchoreo-client-node';
 import {
   isSameReleaseLine,
@@ -45,20 +46,27 @@ export class WorkloadInfoService implements WorkloadService {
       });
 
       // List workloads filtered by project and component name
-      const { data, error, response } = await client.GET(
-        '/api/v1/namespaces/{namespaceName}/workloads',
-        {
-          params: {
-            path: { namespaceName },
-            query: { project: projectName, component: componentName },
-          },
-        },
+      const items = await fetchAllPages(cursor =>
+        client
+          .GET('/api/v1/namespaces/{namespaceName}/workloads', {
+            params: {
+              path: { namespaceName },
+              query: {
+                project: projectName,
+                component: componentName,
+                limit: 100,
+                cursor,
+              },
+            },
+          })
+          .then(res => {
+            assertApiResponse(res, 'fetch workloads');
+            return res.data;
+          }),
       );
 
-      assertApiResponse({ data, error, response }, 'fetch workloads');
-
       // Each release line has its own Workload; the default line's has none.
-      const workload = data!.items.find(item =>
+      const workload = items.find(item =>
         isSameReleaseLine(item.spec?.owner?.releaseLine, releaseLine),
       );
       if (!workload) {

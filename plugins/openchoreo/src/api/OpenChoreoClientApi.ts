@@ -106,6 +106,8 @@ export interface ReleaseBinding {
   status?: string;
   statusReason?: string;
   statusMessage?: string;
+  /** The binding's release line, absent for the default line */
+  releaseLine?: string;
 }
 
 /** Release bindings response */
@@ -661,13 +663,6 @@ export interface OpenChoreoClientApi {
   /** Fetch environment deployment info for an entity */
   fetchEnvironmentInfo(entity: Entity, releaseLine?: string): Promise<any>;
 
-  /** Promote a deployment from one environment to another */
-  promoteToEnvironment(
-    entity: Entity,
-    sourceEnvironment: string,
-    targetEnvironment: string,
-  ): Promise<any>;
-
   /** Delete a release binding (undeploy from environment) */
   deleteReleaseBinding(
     entity: Entity,
@@ -719,9 +714,14 @@ export interface OpenChoreoClientApi {
   /** Fetch the release lines of a component, empty for components without them */
   fetchReleaseLines(entity: Entity): Promise<ReleaseLineSummary[]>;
 
+  /**
+   * Fetch the release bindings of a release line, the default line when none
+   * is given, or of every line with `allReleaseLines`.
+   */
   fetchReleaseBindings(
     entity: Entity,
     releaseLine?: string,
+    options?: { allReleaseLines?: boolean },
   ): Promise<ReleaseBindingsResponse>;
 
   /**

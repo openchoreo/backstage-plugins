@@ -61,7 +61,6 @@ import type { Environment } from '../components/RuntimeLogs/types';
 
 const API_ENDPOINTS = {
   ENVIRONMENT_INFO: '/deploy',
-  PROMOTE_DEPLOYMENT: '/promote-deployment',
   DELETE_RELEASE_BINDING: '/delete-release-binding',
   CELL_DIAGRAM: '/cell-diagram',
   NAMESPACE_CELL_DIAGRAM: '/namespace-cell-diagram',
@@ -340,25 +339,6 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     });
   }
 
-  async promoteToEnvironment(
-    entity: Entity,
-    sourceEnvironment: string,
-    targetEnvironment: string,
-  ): Promise<any> {
-    const { component, project, namespace } = extractEntityMetadata(entity);
-
-    return this.apiFetch(API_ENDPOINTS.PROMOTE_DEPLOYMENT, {
-      method: 'POST',
-      body: {
-        sourceEnv: sourceEnvironment,
-        targetEnv: targetEnvironment,
-        componentName: component,
-        projectName: project,
-        namespaceName: namespace,
-      },
-    });
-  }
-
   async deleteReleaseBinding(
     entity: Entity,
     environment: string,
@@ -504,14 +484,16 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   async fetchReleaseBindings(
     entity: Entity,
     releaseLine?: string,
+    options?: { allReleaseLines?: boolean },
   ): Promise<ReleaseBindingsResponse> {
     const metadata = extractEntityMetadata(entity);
+    const params = options?.allReleaseLines
+      ? { ...entityMetadataToParams(metadata), allReleaseLines: 'true' }
+      : withReleaseLine(entityMetadataToParams(metadata), releaseLine);
 
     return this.apiFetch<ReleaseBindingsResponse>(
       API_ENDPOINTS.RELEASE_BINDINGS,
-      {
-        params: withReleaseLine(entityMetadataToParams(metadata), releaseLine),
-      },
+      { params },
     );
   }
 

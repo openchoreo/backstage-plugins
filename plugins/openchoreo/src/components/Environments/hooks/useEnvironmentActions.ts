@@ -11,7 +11,8 @@ interface UseNotificationHook {
 }
 
 /**
- * Hook for environment action handlers (promote, suspend, refresh).
+ * Hook for environment action handlers (suspend, redeploy, restart, remove,
+ * refresh). Promote goes through the overrides page instead.
  * Provides callback functions for common environment operations.
  */
 export function useEnvironmentActions(
@@ -44,17 +45,6 @@ export function useEnvironmentActions(
         ]);
       }),
     [refetch, refreshTracker],
-  );
-
-  const handlePromote = useCallback(
-    async (sourceEnvName: string, targetEnvName: string) => {
-      await client.promoteToEnvironment(entity, sourceEnvName, targetEnvName);
-      await refetch();
-      notification.showSuccess(
-        `Component promoted from ${sourceEnvName} to ${targetEnvName}`,
-      );
-    },
-    [entity, client, refetch, notification],
   );
 
   const handleUndeploy = useCallback(
@@ -166,7 +156,6 @@ export function useEnvironmentActions(
 
   return {
     handleRefreshEnvironment,
-    handlePromote,
     handleUndeploy,
     handleRedeploy,
     handleRolloutRestart,

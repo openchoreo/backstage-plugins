@@ -19,6 +19,8 @@ export interface ReleaseLineFilterProps {
    * several components, such as cost reports filtered by their line.
    */
   lines?: string[];
+  /** True while the given `lines` are still loading, so a URL line is kept. */
+  linesLoading?: boolean;
   disabled?: boolean;
 }
 
@@ -32,6 +34,7 @@ export function ReleaseLineFilter({
   namespace,
   component,
   lines: givenLines,
+  linesLoading,
   disabled,
 }: ReleaseLineFilterProps) {
   const classes = useReleaseLineFilterStyles();
@@ -41,7 +44,7 @@ export function ReleaseLineFilter({
     givenLines ? undefined : component,
   );
   const lines = givenLines ?? componentLines.lines;
-  const loading = !givenLines && componentLines.loading;
+  const loading = givenLines ? Boolean(linesLoading) : componentLines.loading;
   const scoped = Boolean(givenLines || component);
   const [value, setValue] = useReleaseLineParam();
 

@@ -29,15 +29,6 @@ export interface EnvironmentService {
     releaseLine?: string;
   }): Promise<Environment[]>;
 
-  promoteComponent(request: {
-    sourceEnvironment: string;
-    targetEnvironment: string;
-    componentName: string;
-    projectName: string;
-    namespaceName: string;
-    releaseLine?: string;
-  }): Promise<Environment[]>;
-
   updateComponentBinding(request: {
     componentName: string;
     projectName: string;

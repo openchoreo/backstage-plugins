@@ -110,6 +110,7 @@ describe('BuildInfoService', () => {
         'test-ns',
         'my-project',
         'api-service',
+        undefined,
         'token-123',
       );
 
@@ -122,12 +123,56 @@ describe('BuildInfoService', () => {
       expect(result[0].commit).toBe('abc1234');
     });
 
+    it('keeps only the builds of the requested release line', async () => {
+      const lineRun = {
+        ...k8sWorkflowRun,
+        metadata: {
+          ...k8sWorkflowRun.metadata,
+          name: 'line-run',
+          labels: {
+            ...k8sWorkflowRun.metadata.labels,
+            'openchoreo.dev/release-line': 'next',
+          },
+        },
+      };
+      mockGET.mockResolvedValue(
+        createOkResponse({ items: [k8sWorkflowRun, lineRun], pagination: {} }),
+      );
+
+      const service = createService();
+      const onLine = await service.fetchBuilds(
+        'test-ns',
+        'my-project',
+        'api-service',
+        'next',
+        'token',
+      );
+      const onDefault = await service.fetchBuilds(
+        'test-ns',
+        'my-project',
+        'api-service',
+        undefined,
+        'token',
+      );
+
+      expect(onLine.map(b => b.name)).toEqual(['line-run']);
+      expect(onDefault.map(b => b.name)).toEqual([
+        k8sWorkflowRun.metadata.name,
+      ]);
+    });
+
     it('throws on API error', async () => {
       mockGET.mockResolvedValueOnce(createErrorResponse());
 
       const service = createService();
       await expect(
-        service.fetchBuilds('test-ns', 'my-project', 'api-service', 'token'),
+        service.fetchBuilds(
+          'test-ns',
+          'my-project',
+          'api-service',
+          undefined,
+          'token',
+        ),
       ).rejects.toThrow();
     });
   });

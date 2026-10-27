@@ -1,5 +1,5 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import { NotFoundError } from '@backstage/errors';
+import { ConflictError, NotFoundError } from '@backstage/errors';
 import {
   EnvironmentService,
   Environment,
@@ -88,8 +88,10 @@ function getSourceEnvName(ref: unknown): string {
 }
 
 /**
- * Name of a component's ReleaseBinding in an environment: `{component}-{env}`, or
- * `{component}-{line}-{env}` for a release line.
+ * Name a new ReleaseBinding of a component gets in an environment: `{component}-{env}`,
+ * or `{component}-{line}-{env}` for a release line. Existing bindings are found by
+ * owner instead: line `b-c` of `a` and component `a-b-c` compute the same name,
+ * and bindings created elsewhere may be named otherwise.
  */
 function releaseBindingName(
   componentName: string,
@@ -99,6 +101,13 @@ function releaseBindingName(
   return releaseLine
     ? `${componentName}-${releaseLine}-${environment}`
     : `${componentName}-${environment}`;
+}
+
+/** The owner of a component's bindings on a line, for messages. */
+function describeOwner(componentName: string, releaseLine?: string): string {
+  return releaseLine
+    ? `release line ${releaseLine} of component ${componentName}`
+    : `component ${componentName}`;
 }
 
 /**
@@ -207,22 +216,23 @@ export class EnvironmentInfoService implements EnvironmentService {
 
       // Fetch release bindings filtered by component (not paginated)
       const bindingsPromise = createTimedPromise(
-        (async () => {
-          const { data, error, response } = await client.GET(
-            '/api/v1/namespaces/{namespaceName}/releasebindings',
-            {
+        fetchAllPages(cursor =>
+          client
+            .GET('/api/v1/namespaces/{namespaceName}/releasebindings', {
               params: {
                 path: { namespaceName: request.namespaceName },
-                query: { component: request.componentName },
+                query: {
+                  component: request.componentName,
+                  limit: 100,
+                  cursor,
+                },
               },
-            },
-          );
-          assertApiResponse(
-            { data, error, response },
-            'fetch release bindings',
-          );
-          return data!.items || [];
-        })(),
+            })
+            .then(res => {
+              assertApiResponse(res, 'fetch release bindings');
+              return res.data;
+            }),
+        ),
         'bindings',
       );
 
@@ -730,89 +740,51 @@ export class EnvironmentInfoService implements EnvironmentService {
   }
 
   /**
-   * Promotes a component from source environment to target environment.
-   * Uses the OpenChoreo API client to perform the promotion and returns updated environment data.
-   *
-   * @param {Object} request - The promotion request parameters
-   * @param {string} request.sourceEnvironment - Source environment name
-   * @param {string} request.targetEnvironment - Target environment name
-   * @param {string} request.componentName - Name of the component to promote
-   * @param {string} request.projectName - Name of the project containing the component
-   * @param {string} request.namespaceName - Name of the namespace owning the project
-   * @returns {Promise<Environment[]>} Array of environments with updated deployment information
-   * @throws {Error} When there's an error promoting the component
+   * Finds the ReleaseBinding of a component's release line, the default line
+   * without one, in an environment by its owner rather than its name.
    */
-  async promoteComponent(
+  private async findReleaseBinding(
+    client: ReturnType<typeof createOpenChoreoApiClient>,
     request: {
-      sourceEnvironment: string;
-      targetEnvironment: string;
-      componentName: string;
-      projectName: string;
       namespaceName: string;
+      componentName: string;
+      environment: string;
       releaseLine?: string;
     },
-    token?: string,
-  ): Promise<Environment[]> {
-    const startTime = Date.now();
-    try {
-      this.logger.info(
-        `Starting promotion for component: ${request.componentName} from ${request.sourceEnvironment} to ${request.targetEnvironment}`,
-      );
-
-      const client = createOpenChoreoApiClient({
-        baseUrl: this.baseUrl,
-        token,
-        logger: this.logger,
-      });
-
-      const { error, response } = await (client as any).POST(
-        '/api/v1/namespaces/{namespaceName}/components/{componentName}/promote',
-        {
+  ): Promise<NewReleaseBinding | undefined> {
+    const items = await fetchAllPages(cursor =>
+      client
+        .GET('/api/v1/namespaces/{namespaceName}/releasebindings', {
           params: {
-            path: {
-              namespaceName: request.namespaceName,
-              componentName: request.componentName,
-            },
+            path: { namespaceName: request.namespaceName },
+            query: { component: request.componentName, limit: 100, cursor },
           },
-          body: {
-            sourceEnv: request.sourceEnvironment,
-            targetEnv: request.targetEnvironment,
-          },
-        },
+        })
+        .then(res => {
+          assertApiResponse(res, 'fetch release bindings');
+          return res.data;
+        }),
+    );
+    const matches = items.filter(
+      binding =>
+        binding.spec?.owner?.componentName === request.componentName &&
+        binding.spec?.environment === request.environment &&
+        isSameReleaseLine(
+          binding.spec?.owner?.releaseLine,
+          request.releaseLine,
+        ),
+    );
+    if (matches.length > 1) {
+      throw new ConflictError(
+        `Found ${matches.length} release bindings of ${describeOwner(
+          request.componentName,
+          request.releaseLine,
+        )} in environment ${request.environment}: ${matches
+          .map(binding => binding.metadata.name)
+          .join(', ')}`,
       );
-
-      assertApiResponse(
-        { data: undefined, error, response },
-        'promote component',
-      );
-
-      this.logger.debug(`Promotion completed successfully.`);
-
-      // Fetch fresh environment data to return updated information
-      const refreshedEnvironments = await this.fetchDeploymentInfo(
-        {
-          componentName: request.componentName,
-          projectName: request.projectName,
-          namespaceName: request.namespaceName,
-          releaseLine: request.releaseLine,
-        },
-        token,
-      );
-
-      const totalTime = Date.now() - startTime;
-      this.logger.debug(
-        `Component promotion completed for ${request.componentName}: Total: ${totalTime}ms`,
-      );
-
-      return refreshedEnvironments;
-    } catch (error: unknown) {
-      const totalTime = Date.now() - startTime;
-      this.logger.error(
-        `Error promoting component ${request.componentName} from ${request.sourceEnvironment} to ${request.targetEnvironment} (${totalTime}ms):`,
-        error as Error,
-      );
-      throw error;
     }
+    return matches[0];
   }
 
   /**
@@ -849,11 +821,15 @@ export class EnvironmentInfoService implements EnvironmentService {
         logger: this.logger,
       });
 
-      const bindingName = releaseBindingName(
-        request.componentName,
-        request.environment,
-        request.releaseLine,
-      );
+      const binding = await this.findReleaseBinding(client, request);
+      if (!binding) {
+        throw new NotFoundError(
+          `No release binding of ${describeOwner(
+            request.componentName,
+            request.releaseLine,
+          )} in environment ${request.environment}`,
+        );
+      }
 
       const { error, response } = await client.DELETE(
         '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}',
@@ -861,7 +837,7 @@ export class EnvironmentInfoService implements EnvironmentService {
           params: {
             path: {
               namespaceName: request.namespaceName,
-              releaseBindingName: bindingName,
+              releaseBindingName: binding.metadata.name,
             },
           },
         },
@@ -1430,7 +1406,8 @@ export class EnvironmentInfoService implements EnvironmentService {
   }
 
   /**
-   * Fetches all release bindings for a specific component.
+   * Fetches the release bindings of a component's release line, its default
+   * line when none is given, or of every line with `allReleaseLines`.
    *
    * @param {Object} request - The request parameters
    * @param {string} request.componentName - Name of the component
@@ -1444,6 +1421,7 @@ export class EnvironmentInfoService implements EnvironmentService {
       projectName: string;
       namespaceName: string;
       releaseLine?: string;
+      allReleaseLines?: boolean;
     },
     token?: string,
   ) {
@@ -1459,17 +1437,19 @@ export class EnvironmentInfoService implements EnvironmentService {
         logger: this.logger,
       });
 
-      const { data, error, response } = await client.GET(
-        '/api/v1/namespaces/{namespaceName}/releasebindings',
-        {
-          params: {
-            path: { namespaceName: request.namespaceName },
-            query: { component: request.componentName },
-          },
-        },
+      const items = await fetchAllPages(cursor =>
+        client
+          .GET('/api/v1/namespaces/{namespaceName}/releasebindings', {
+            params: {
+              path: { namespaceName: request.namespaceName },
+              query: { component: request.componentName, limit: 100, cursor },
+            },
+          })
+          .then(res => {
+            assertApiResponse(res, 'fetch release bindings');
+            return res.data;
+          }),
       );
-
-      assertApiResponse({ data, error, response }, 'fetch release bindings');
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
@@ -1477,13 +1457,14 @@ export class EnvironmentInfoService implements EnvironmentService {
       );
 
       return {
-        ...data!,
-        items: (data!.items ?? []).filter(binding =>
-          isSameReleaseLine(
-            binding.spec?.owner?.releaseLine,
-            request.releaseLine,
-          ),
-        ),
+        items: request.allReleaseLines
+          ? items
+          : items.filter(binding =>
+              isSameReleaseLine(
+                binding.spec?.owner?.releaseLine,
+                request.releaseLine,
+              ),
+            ),
       };
     } catch (error: unknown) {
       const totalTime = Date.now() - startTime;
@@ -2930,24 +2911,26 @@ export class EnvironmentInfoService implements EnvironmentService {
         logger: this.logger,
       });
 
-      const { data, error, response } = await client.GET(
-        '/api/v1/namespaces/{namespaceName}/componentreleases',
-        {
-          params: {
-            path: { namespaceName: request.namespaceName },
-            query: { component: request.componentName },
-          },
-        },
+      const items = await fetchAllPages(cursor =>
+        client
+          .GET('/api/v1/namespaces/{namespaceName}/componentreleases', {
+            params: {
+              path: { namespaceName: request.namespaceName },
+              query: { component: request.componentName, limit: 100, cursor },
+            },
+          })
+          .then(res => {
+            assertApiResponse(res, 'list component releases');
+            return res.data;
+          }),
       );
-
-      assertApiResponse({ data, error, response }, 'list component releases');
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
         `Component releases listed for ${request.componentName}: Total: ${totalTime}ms`,
       );
 
-      return data;
+      return { items };
     } catch (error: unknown) {
       const totalTime = Date.now() - startTime;
       this.logger.error(
@@ -3142,30 +3125,14 @@ export class EnvironmentInfoService implements EnvironmentService {
         logger: this.logger,
       });
 
+      const existing = await this.findReleaseBinding(client, request);
       const bindingName = releaseBindingName(
         request.componentName,
         request.environment,
         request.releaseLine,
       );
 
-      // Try to GET the existing binding
-      const {
-        data: existing,
-        error: getError,
-        response: getResponse,
-      } = await client.GET(
-        '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}',
-        {
-          params: {
-            path: {
-              namespaceName: request.namespaceName,
-              releaseBindingName: bindingName,
-            },
-          },
-        },
-      );
-
-      if (getResponse.ok && existing) {
+      if (existing) {
         // Binding exists — update it with PUT
         const updated = {
           ...existing,
@@ -3194,7 +3161,7 @@ export class EnvironmentInfoService implements EnvironmentService {
             params: {
               path: {
                 namespaceName: request.namespaceName,
-                releaseBindingName: bindingName,
+                releaseBindingName: existing.metadata.name,
               },
             },
             body: updated,
@@ -3211,17 +3178,7 @@ export class EnvironmentInfoService implements EnvironmentService {
         return data;
       }
 
-      // Non-404 error — surface it rather than falling through to create
-      if (getResponse.status !== 404) {
-        const errorDetail = getError ? JSON.stringify(getError) : '';
-        throw new Error(
-          `Failed to fetch release binding: ${getResponse.status} ${
-            getResponse.statusText
-          }${errorDetail ? ` ${errorDetail}` : ''}`,
-        );
-      }
-
-      // Binding does not exist (404) — create it with POST
+      // The line has no binding in the environment, so create it with POST
       const newBinding = {
         metadata: {
           name: bindingName,
@@ -3269,37 +3226,22 @@ export class EnvironmentInfoService implements EnvironmentService {
         },
       );
 
-      // Handle 409 Conflict — binding was created concurrently, fetch it
+      // 409 Conflict: the name is taken, by this line's binding created
+      // concurrently, or by a binding of another component or line.
       if (createResponse.status === 409) {
         this.logger.debug(
-          `Release binding ${bindingName} already exists (409 conflict), fetching existing`,
+          `Release binding ${bindingName} already exists (409 conflict), looking it up by owner`,
         );
-        const {
-          data: conflictExisting,
-          error: conflictGetError,
-          response: conflictGetResponse,
-        } = await client.GET(
-          '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}',
-          {
-            params: {
-              path: {
-                namespaceName: request.namespaceName,
-                releaseBindingName: bindingName,
-              },
-            },
-          },
+        const concurrent = await this.findReleaseBinding(client, request);
+        if (concurrent) {
+          return concurrent;
+        }
+        throw new ConflictError(
+          `Cannot create release binding ${bindingName} for ${describeOwner(
+            request.componentName,
+            request.releaseLine,
+          )}: another component or release line has a binding with that name`,
         );
-
-        assertApiResponse(
-          {
-            data: conflictExisting,
-            error: conflictGetError,
-            response: conflictGetResponse,
-          },
-          'fetch release binding after 409 conflict',
-        );
-
-        return conflictExisting;
       }
 
       assertApiResponse(
@@ -3325,7 +3267,7 @@ export class EnvironmentInfoService implements EnvironmentService {
 
   /**
    * Patches a release binding with component type environment overrides.
-   * Creates the binding if it doesn't exist.
+   * Fails when the line has no binding in the environment.
    *
    * @param {Object} request - The request parameters
    * @param {string} request.componentName - Name of the component
@@ -3363,38 +3305,21 @@ export class EnvironmentInfoService implements EnvironmentService {
         logger: this.logger,
       });
 
-      const bindingName = releaseBindingName(
-        request.componentName,
-        request.environment,
-        request.releaseLine,
-      );
-
-      // New API uses PUT (full update): GET existing, merge overrides, PUT back
-      const {
-        data: existing,
-        error: getError,
-        response: getResponse,
-      } = await client.GET(
-        '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}',
-        {
-          params: {
-            path: {
-              namespaceName: request.namespaceName,
-              releaseBindingName: bindingName,
-            },
-          },
-        },
-      );
-
-      assertApiResponse(
-        { data: existing, error: getError, response: getResponse },
-        'fetch binding for patch',
-      );
+      // New API uses PUT (full update): find the binding, merge overrides, PUT back
+      const existing = await this.findReleaseBinding(client, request);
+      if (!existing) {
+        throw new NotFoundError(
+          `No release binding of ${describeOwner(
+            request.componentName,
+            request.releaseLine,
+          )} in environment ${request.environment}`,
+        );
+      }
 
       const updated = {
-        ...existing!,
+        ...existing,
         spec: {
-          ...existing!.spec!,
+          ...existing.spec!,
           componentTypeEnvironmentConfigs:
             request.componentTypeEnvironmentConfigs,
           traitEnvironmentConfigs: request.traitEnvironmentConfigs,
@@ -3409,7 +3334,7 @@ export class EnvironmentInfoService implements EnvironmentService {
           params: {
             path: {
               namespaceName: request.namespaceName,
-              releaseBindingName: bindingName,
+              releaseBindingName: existing.metadata.name,
             },
           },
           body: updated,

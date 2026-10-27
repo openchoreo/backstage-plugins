@@ -11,7 +11,10 @@ import {
   Typography,
 } from '@material-ui/core';
 import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
-import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
+import {
+  openChoreoFetchApiRef,
+  useReleaseLine,
+} from '@openchoreo/backstage-plugin-react';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { RjsfForm } from '@openchoreo/backstage-design-system';
 import { JSONSchema7 } from 'json-schema';
@@ -72,6 +75,7 @@ export const EditTraitDialog: React.FC<EditTraitDialogProps> = ({
   const { entity } = useEntity();
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(openChoreoFetchApiRef);
+  const { releaseLine } = useReleaseLine();
 
   const [instanceName, setInstanceName] = useState<string>('');
   const [parameters, setParameters] = useState<Record<string, any>>({});
@@ -218,15 +222,17 @@ export const EditTraitDialog: React.FC<EditTraitDialogProps> = ({
       return;
     }
 
-    // Keep only what the trait had or the user changed, not the defaults the
-    // form filled in, so a release line doesn't pin them as overrides.
+    // On a release line, keep only what the trait had or the user changed,
+    // not the defaults the form filled in, so the line doesn't pin them as
+    // overrides. A component's own traits are saved as before.
     const updatedTrait: ComponentTrait = {
       kind: trait.kind,
       name: trait.name,
       instanceName: instanceName.trim(),
-      parameters: traitSchema
-        ? withoutFilledDefaults(traitSchema, parameters, trait.parameters)
-        : parameters,
+      parameters:
+        releaseLine && traitSchema
+          ? withoutFilledDefaults(traitSchema, parameters, trait.parameters)
+          : parameters,
     };
 
     onSave(updatedTrait);

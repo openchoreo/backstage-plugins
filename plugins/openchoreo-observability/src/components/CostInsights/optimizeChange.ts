@@ -1,4 +1,5 @@
 import type { FetchApi } from '@backstage/core-plugin-api';
+import { toStoredReleaseLine } from '@openchoreo/backstage-plugin-common';
 import type { Change } from '@openchoreo/backstage-plugin-react';
 import type {
   FieldChangeDef,
@@ -36,6 +37,22 @@ interface ReleaseBindingListItem {
 /** Normalize an environment name so lookups tolerate casing differences. */
 export const normalizeEnv = (env: string): string => env.toLowerCase();
 
+/** URL listing a component's release bindings, with the given line parameters. */
+function releaseBindingsUrl(
+  openchoreoBaseUrl: string,
+  names: { componentName: string; projectName: string; namespaceName: string },
+  lineParams: Record<string, string>,
+): string {
+  const params = new URLSearchParams({ ...names, ...lineParams });
+  return `${openchoreoBaseUrl}/release-bindings?${params}`;
+}
+
+/** The `releaseLine` parameter of a line, left out for the default line. */
+function releaseLineParam(releaseLine?: string): Record<string, string> {
+  const line = toStoredReleaseLine(releaseLine);
+  return line ? { releaseLine: line } : {};
+}
+
 /** Live spec state for one environment's ReleaseBinding. */
 export interface ReleaseBindingInfo {
   cpuRequest?: string;
@@ -57,6 +74,11 @@ export interface ReleaseBindingInfo {
  * phantom saving). We use `lastSpecUpdateTime` to detect that case and the live
  * requests as the source of truth for the displayed `current` value.
  *
+ * `releaseLine` is the line the recommendations cover: a release line, the
+ * default line, or undefined for every line. With every line, an environment
+ * running several lines is left out, since no single binding matches its
+ * recommendation.
+ *
  * Best-effort: returns an empty map on any failure.
  */
 export async function fetchBindingInfoByEnv(opts: {
@@ -65,6 +87,7 @@ export async function fetchBindingInfoByEnv(opts: {
   namespaceName: string;
   projectName: string;
   componentName: string;
+  releaseLine?: string;
 }): Promise<Map<string, ReleaseBindingInfo>> {
   const {
     openchoreoBaseUrl,
@@ -72,13 +95,16 @@ export async function fetchBindingInfoByEnv(opts: {
     namespaceName,
     projectName,
     componentName,
+    releaseLine,
   } = opts;
 
-  const url = `${openchoreoBaseUrl}/release-bindings?componentName=${encodeURIComponent(
-    componentName,
-  )}&projectName=${encodeURIComponent(
-    projectName,
-  )}&namespaceName=${encodeURIComponent(namespaceName)}`;
+  const url = releaseBindingsUrl(
+    openchoreoBaseUrl,
+    { componentName, projectName, namespaceName },
+    releaseLine === undefined
+      ? { allReleaseLines: 'true' }
+      : releaseLineParam(releaseLine),
+  );
 
   const map = new Map<string, ReleaseBindingInfo>();
   try {
@@ -86,9 +112,15 @@ export async function fetchBindingInfoByEnv(opts: {
     if (!response.ok) return map;
     const body = await response.json();
     const items: ReleaseBindingListItem[] = body?.data?.items ?? [];
+    const shared = new Set<string>();
     for (const item of items) {
+      const env = normalizeEnv(item.environment);
+      if (map.has(env)) {
+        shared.add(env);
+        continue;
+      }
       const resources = item.componentTypeEnvironmentConfigs?.resources;
-      map.set(normalizeEnv(item.environment), {
+      map.set(env, {
         cpuRequest: resources?.requests?.cpu,
         cpuLimit: resources?.limits?.cpu,
         memoryRequest: resources?.requests?.memory,
@@ -96,6 +128,7 @@ export async function fetchBindingInfoByEnv(opts: {
         lastSpecUpdateTime: item.lastSpecUpdateTime,
       });
     }
+    shared.forEach(env => map.delete(env));
   } catch {
     // Best-effort; keep the observer-derived values on failure.
   }
@@ -108,6 +141,7 @@ export async function fetchBindingInfoByEnv(opts: {
  *
  * The observability recommendation API does not carry a binding name, so we
  * look it up via the existing openchoreo backend route (no new backend needed).
+ * The binding is the one of `releaseLine`, or of the default line without one.
  */
 export async function resolveReleaseBindingName(opts: {
   openchoreoBaseUrl: string;
@@ -116,6 +150,7 @@ export async function resolveReleaseBindingName(opts: {
   projectName: string;
   componentName: string;
   environment: string;
+  releaseLine?: string;
 }): Promise<string> {
   const {
     openchoreoBaseUrl,
@@ -124,13 +159,14 @@ export async function resolveReleaseBindingName(opts: {
     projectName,
     componentName,
     environment,
+    releaseLine,
   } = opts;
 
-  const url = `${openchoreoBaseUrl}/release-bindings?componentName=${encodeURIComponent(
-    componentName,
-  )}&projectName=${encodeURIComponent(
-    projectName,
-  )}&namespaceName=${encodeURIComponent(namespaceName)}`;
+  const url = releaseBindingsUrl(
+    openchoreoBaseUrl,
+    { componentName, projectName, namespaceName },
+    releaseLineParam(releaseLine),
+  );
 
   const response = await fetchApi.fetch(url);
   if (!response.ok) {

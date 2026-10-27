@@ -213,39 +213,6 @@ export async function createRouter({
     );
   });
 
-  router.post('/promote-deployment', requireAuth, async (req, res) => {
-    const { sourceEnv, targetEnv, componentName, projectName, namespaceName } =
-      req.body;
-
-    if (
-      !sourceEnv ||
-      !targetEnv ||
-      !componentName ||
-      !projectName ||
-      !namespaceName
-    ) {
-      throw new InputError(
-        'sourceEnv, targetEnv, componentName, projectName and namespaceName are required in request body',
-      );
-    }
-
-    const userToken = getUserTokenFromRequest(req);
-
-    res.json(
-      await environmentInfoService.promoteComponent(
-        {
-          sourceEnvironment: sourceEnv,
-          targetEnvironment: targetEnv,
-          componentName: componentName as string,
-          projectName: projectName as string,
-          namespaceName: namespaceName as string,
-          releaseLine: requestReleaseLine(req),
-        },
-        userToken,
-      ),
-    );
-  });
-
   router.delete('/delete-release-binding', requireAuth, async (req, res) => {
     const { componentName, projectName, namespaceName, environment } = req.body;
 
@@ -742,6 +709,7 @@ export async function createRouter({
         namespaceName as string,
         projectName as string,
         componentName as string,
+        requestReleaseLine(req),
         userToken,
       ),
     );
@@ -1089,6 +1057,7 @@ export async function createRouter({
         projectName: projectName as string,
         namespaceName: namespaceName as string,
         releaseLine: requestReleaseLine(req),
+        allReleaseLines: req.query.allReleaseLines === 'true',
       },
       userToken,
     );

@@ -186,7 +186,7 @@ function EntityChrome({ routes }: OpenChoreoCatalogEntityPageContentProps) {
     message,
   } = useEntityExistsCheck(entity);
 
-  const { extraMenuItems: releaseLineMenuItems, CreateReleaseLineMenuDialog } =
+  const { extraMenuItems: releaseLineMenuItems, createReleaseLineDialog } =
     useCreateReleaseLineMenuItems(entity);
 
   const extraMenuItems = [
@@ -266,7 +266,7 @@ function EntityChrome({ routes }: OpenChoreoCatalogEntityPageContentProps) {
       </OpenChoreoEntityLayout>
       <DeleteConfirmationDialog />
       <AnnotationEditorDialog />
-      <CreateReleaseLineMenuDialog />
+      {createReleaseLineDialog}
     </>
   );
 }

@@ -46,6 +46,44 @@ describe('resolveReleaseBindingName', () => {
     expect(fetch.mock.calls[0][0]).toContain('namespaceName=default');
   });
 
+  it('looks up the binding of the given release line', async () => {
+    const fetch = jest.fn().mockResolvedValue(
+      okResponse({
+        data: { items: [{ name: 'ad-next-dev', environment: 'dev' }] },
+      }),
+    );
+    const name = await resolveReleaseBindingName({
+      ...base,
+      fetchApi: makeFetchApi(fetch),
+      environment: 'dev',
+      releaseLine: 'next',
+    });
+    expect(name).toBe('ad-next-dev');
+    const url = new URL(fetch.mock.calls[0][0]);
+    expect(url.searchParams.get('releaseLine')).toBe('next');
+  });
+
+  it('asks for the default line without a line or with default', async () => {
+    const fetch = jest.fn().mockResolvedValue(
+      okResponse({
+        data: { items: [{ name: 'ad-dev', environment: 'dev' }] },
+      }),
+    );
+    for (const releaseLine of [undefined, 'default']) {
+      await resolveReleaseBindingName({
+        ...base,
+        fetchApi: makeFetchApi(fetch),
+        environment: 'dev',
+        releaseLine,
+      });
+    }
+    for (const [called] of fetch.mock.calls) {
+      const url = new URL(called);
+      expect(url.searchParams.has('releaseLine')).toBe(false);
+      expect(url.searchParams.has('allReleaseLines')).toBe(false);
+    }
+  });
+
   it('falls back to a case-insensitive environment match', async () => {
     const fetch = jest.fn().mockResolvedValue(
       okResponse({
@@ -185,6 +223,45 @@ describe('fetchBindingInfoByEnv', () => {
       lastSpecUpdateTime: '2026-08-01T00:00:00.000Z',
     });
     expect(map.get('Dev')).toBeUndefined();
+  });
+
+  it('asks for the given release line', async () => {
+    const fetch = jest
+      .fn()
+      .mockResolvedValue(okResponse({ data: { items: [] } }));
+    await fetchBindingInfoByEnv({
+      ...base,
+      fetchApi: makeFetchApi(fetch),
+      releaseLine: 'next',
+    });
+    const url = new URL(fetch.mock.calls[0][0]);
+    expect(url.searchParams.get('releaseLine')).toBe('next');
+    expect(url.searchParams.has('allReleaseLines')).toBe(false);
+  });
+
+  it('leaves out an environment running several lines when covering every line', async () => {
+    const fetch = jest.fn().mockResolvedValue(
+      okResponse({
+        data: {
+          items: [
+            { name: 'ad-dev', environment: 'dev', lastSpecUpdateTime: 't1' },
+            {
+              name: 'ad-next-dev',
+              environment: 'dev',
+              lastSpecUpdateTime: 't2',
+            },
+            { name: 'ad-prod', environment: 'prod', lastSpecUpdateTime: 't3' },
+          ],
+        },
+      }),
+    );
+    const map = await fetchBindingInfoByEnv({
+      ...base,
+      fetchApi: makeFetchApi(fetch),
+    });
+    const url = new URL(fetch.mock.calls[0][0]);
+    expect(url.searchParams.get('allReleaseLines')).toBe('true');
+    expect([...map.keys()]).toEqual(['prod']);
   });
 
   it('returns an empty map when the request is not ok', async () => {

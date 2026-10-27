@@ -6,7 +6,10 @@ import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { Entity } from '@backstage/catalog-model';
 
 const openChoreoClientApiRef = createApiRef<{
-  fetchEnvironmentInfo: (entity: Entity) => Promise<unknown>;
+  fetchEnvironmentInfo: (
+    entity: Entity,
+    releaseLine?: string,
+  ) => Promise<unknown>;
 }>({ id: 'test.openchoreo.client' });
 
 jest.mock('@openchoreo/backstage-plugin', () => ({
@@ -66,7 +69,7 @@ describe('RecentDeploymentsContent', () => {
 
     expect(queryEntities).toHaveBeenCalledWith(
       expect.objectContaining({
-        filter: { kind: 'Component' },
+        filter: { kind: ['Component', 'ReleaseLine'] },
         limit: 20,
         orderFields: [
           expect.objectContaining({
@@ -117,6 +120,34 @@ describe('RecentDeploymentsContent', () => {
     // One chip per deployed environment.
     expect(screen.getByText('prod')).toBeInTheDocument();
     expect(screen.getAllByText('dev')).toHaveLength(2);
+  });
+
+  it('shows a release line as its own row, scoped to its line', async () => {
+    const line: Entity = {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'ReleaseLine',
+      metadata: {
+        name: 'next',
+        namespace: 'default',
+        annotations: { 'openchoreo.io/release-line': 'next' },
+      },
+      spec: { component: 'component:default/checkout' },
+    };
+    queryEntities.mockResolvedValue({ items: [line] });
+    fetchEnvironmentInfo.mockResolvedValue([
+      {
+        name: 'dev',
+        deployment: { status: 'Ready', lastDeployed: minutesAgo(1) },
+      },
+    ]);
+
+    await renderCard();
+
+    expect(await screen.findByTestId('entity-ref')).toHaveTextContent(
+      'releaseline:default/next',
+    );
+    expect(fetchEnvironmentInfo).toHaveBeenCalledWith(line, 'next');
+    expect(screen.getByText('release line')).toBeInTheDocument();
   });
 
   it('skips components without deployments and failed environment fetches', async () => {
