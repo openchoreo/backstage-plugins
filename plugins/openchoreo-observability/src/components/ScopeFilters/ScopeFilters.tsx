@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, ReactNode } from 'react';
 import { MenuItem, TextField } from '@material-ui/core';
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
@@ -35,11 +35,22 @@ export interface ScopeFiltersProps {
    * namespace/project lists share a prefix to share the cached lookups.
    */
   queryKeyPrefix?: string;
+  /**
+   * Rendered between the namespace and project controls.
+   *
+   * A page may have a filter that is not part of the namespace → project →
+   * component hierarchy but still selects which data is shown rather than how
+   * it is drawn -- environment, on Delivery Insights. Those belong beside the
+   * scope controls rather than after the chart controls, and the namespace is
+   * the only level above them, so this is where they go.
+   */
+  afterNamespace?: ReactNode;
 }
 
 /**
  * Scope selection as filter controls, sitting in the page's filter bar beside
- * the window and environment.
+ * the window and the chart controls. A page's own data filter can be placed
+ * among them with afterNamespace.
  *
  * Project and component each offer an "All" option, because the absence of a
  * selection is itself a scope -- no project means the namespace as a whole -- so
@@ -49,6 +60,7 @@ export const ScopeFilters: FC<ScopeFiltersProps> = ({
   scope,
   onScopeChange,
   queryKeyPrefix = 'insights-scope',
+  afterNamespace,
 }) => {
   const catalogApi = useApi(catalogApiRef);
 
@@ -122,6 +134,8 @@ export const ScopeFilters: FC<ScopeFiltersProps> = ({
           </MenuItem>
         ))}
       </TextField>
+
+      {afterNamespace}
 
       <TextField
         select

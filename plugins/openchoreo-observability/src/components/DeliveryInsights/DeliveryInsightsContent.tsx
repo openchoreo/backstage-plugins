@@ -248,6 +248,26 @@ export const DeliveryInsightsContent = ({
           scope={scope ?? {}}
           onScopeChange={onScopeChange}
           queryKeyPrefix="insights-scope"
+          // Environment selects which data is shown, not how it is drawn, so it
+          // sits with the scope controls rather than after time range and
+          // granularity.
+          afterNamespace={
+            <TextField
+              select
+              size="small"
+              variant="outlined"
+              label="Environment"
+              value={envFilter}
+              onChange={event => onEnvFilterChange(event.target.value)}
+              style={{ minWidth: 160 }}
+            >
+              {breakdown.environments.map(env => (
+                <MenuItem key={env} value={env}>
+                  {environmentLabel(env)}
+                </MenuItem>
+              ))}
+            </TextField>
+          }
         />
         <TextField
           select
@@ -280,21 +300,6 @@ export const DeliveryInsightsContent = ({
           {granularityOptions.map(option => (
             <MenuItem key={option} value={option}>
               {GRANULARITY_LABELS[option]}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          select
-          size="small"
-          variant="outlined"
-          label="Environment"
-          value={envFilter}
-          onChange={event => onEnvFilterChange(event.target.value)}
-          style={{ minWidth: 160 }}
-        >
-          {breakdown.environments.map(env => (
-            <MenuItem key={env} value={env}>
-              {environmentLabel(env)}
             </MenuItem>
           ))}
         </TextField>
