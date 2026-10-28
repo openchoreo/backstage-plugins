@@ -38,8 +38,15 @@ jest.mock('../CostInsights/useNamespaceEnvironments', () => ({
   useNamespaceEnvironments: () => ({ environments: [] }),
 }));
 
+// The provider renders its children so the page's own filters, which sit among
+// the scope controls, are still exercised here.
 jest.mock('../ScopeFilters', () => ({
-  ScopeFilters: () => <div data-testid="scope-filters" />,
+  ScopeFilterProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="scope-filters">{children}</div>
+  ),
+  NamespaceFilter: () => <div data-testid="namespace-filter" />,
+  ProjectFilter: () => <div data-testid="project-filter" />,
+  ComponentFilter: () => <div data-testid="component-filter" />,
 }));
 
 beforeEach(() => {
