@@ -17,7 +17,13 @@ import { DoraMetricTile } from './DoraMetricTile';
 import { DoraTrendChart } from './DoraTrendChart';
 import { DoraBreakdownTable } from './DoraBreakdownTable';
 import { DoraEnvironmentCards } from './DoraEnvironmentCards';
-import { ScopeFilters, type ScopeSelection } from '../ScopeFilters';
+import {
+  ScopeFilterProvider,
+  NamespaceFilter,
+  ProjectFilter,
+  ComponentFilter,
+  type ScopeSelection,
+} from '../ScopeFilters';
 import { useNamespaceEnvironments } from '../CostInsights/useNamespaceEnvironments';
 import {
   INSIGHTS_TIME_RANGES,
@@ -244,31 +250,36 @@ export const DeliveryInsightsContent = ({
   return (
     <Box>
       <Box display="flex" alignItems="center" style={{ gap: 12 }} mb={2}>
-        <ScopeFilters
+        <ScopeFilterProvider
           scope={scope ?? {}}
           onScopeChange={onScopeChange}
           queryKeyPrefix="insights-scope"
-          // Environment selects which data is shown, not how it is drawn, so it
-          // sits with the scope controls rather than after time range and
-          // granularity.
-          afterNamespace={
-            <TextField
-              select
-              size="small"
-              variant="outlined"
-              label="Environment"
-              value={envFilter}
-              onChange={event => onEnvFilterChange(event.target.value)}
-              style={{ minWidth: 160 }}
-            >
-              {breakdown.environments.map(env => (
-                <MenuItem key={env} value={env}>
-                  {environmentLabel(env)}
-                </MenuItem>
-              ))}
-            </TextField>
-          }
-        />
+        >
+          <NamespaceFilter />
+          {/*
+            Environment selects which data is shown rather than how it is drawn,
+            so it belongs among the scope controls and not after time range and
+            granularity. It is not part of the scope hierarchy, but namespace is
+            the only level above it.
+          */}
+          <TextField
+            select
+            size="small"
+            variant="outlined"
+            label="Environment"
+            value={envFilter}
+            onChange={event => onEnvFilterChange(event.target.value)}
+            style={{ minWidth: 160 }}
+          >
+            {breakdown.environments.map(env => (
+              <MenuItem key={env} value={env}>
+                {environmentLabel(env)}
+              </MenuItem>
+            ))}
+          </TextField>
+          <ProjectFilter />
+          <ComponentFilter />
+        </ScopeFilterProvider>
         <TextField
           select
           size="small"
