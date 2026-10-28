@@ -543,7 +543,29 @@ permission:
   enabled: true
 
 # Tech Insights — scorecards/checks against catalog entities.
+# Play environment: short initialDelay so facts populate right after backend
+# startup instead of waiting for the first cadence tick.
 techInsights:
+  factRetrievers:
+    # None of the built-in retrievers are enabled; a built-in with no entry
+    # here is never scheduled. Retrievers added via the
+    # techInsightsFactRetrieversExtensionPoint are likewise silently dropped
+    # unless listed here.
+    #
+    # timeToLive is enforced on every run across all entities, so it is kept
+    # at several cadences: an entity skipped by a transient failure keeps
+    # its last facts instead of losing them after one missed run.
+    githubRepositoryFactRetriever:
+      cadence: '0 2 * * *'
+      initialDelay: { seconds: 20 }
+      lifecycle: { timeToLive: { days: 7 } }
+  # Repository and branch resolution for tech-insights-backend-module-github.
+  # repoAnnotations keeps the module default (source-location, then
+  # project-slug); OpenChoreo records a component's build branch separately
+  # from its repository URL.
+  github:
+    branchAnnotations:
+      - openchoreo.io/branch
   # No factChecker.checks: checks are stored by
   # tech-insights-backend-module-dynamic-checks and managed on the
   # Scorecards page.

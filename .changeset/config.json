@@ -33,7 +33,8 @@
       "@openchoreo/create-portal",
       "@openchoreo/backstage-plugin-tech-insights-dynamic-checks-common",
       "@openchoreo/backstage-plugin-tech-insights-backend-module-dynamic-checks",
-      "@openchoreo/backstage-plugin-tech-insights-scorecards"
+      "@openchoreo/backstage-plugin-tech-insights-scorecards",
+      "@openchoreo/backstage-plugin-tech-insights-backend-module-github"
     ]
   ],
   "access": "public",

@@ -1,0 +1,103 @@
+import { ConfigReader } from '@backstage/config';
+import type { Entity } from '@backstage/catalog-model';
+import { mockServices } from '@backstage/backend-test-utils';
+import type { FactRetrieverContext } from '@backstage-community/plugin-tech-insights-node';
+import type { GithubApiResponse } from './githubApi';
+import { createGithubRepositoryFactRetriever } from './githubRepositoryFactRetriever';
+
+const mockGetEntities = jest.fn();
+jest.mock('@backstage/catalog-client', () => ({
+  CatalogClient: jest.fn().mockImplementation(() => ({
+    getEntities: mockGetEntities,
+  })),
+}));
+
+const mockGetRepo = jest.fn();
+jest.mock('./githubApi', () => ({
+  ...jest.requireActual('./githubApi'),
+  createGithubApi: () => ({ getRepo: mockGetRepo }),
+}));
+
+const component: Entity = {
+  apiVersion: 'backstage.io/v1alpha1',
+  kind: 'Component',
+  metadata: {
+    name: 'svc',
+    namespace: 'default',
+    annotations: { 'github.com/project-slug': 'org/repo' },
+  },
+};
+
+function context(): FactRetrieverContext {
+  return {
+    config: new ConfigReader({}),
+    discovery: mockServices.discovery(),
+    auth: mockServices.auth(),
+    logger: mockServices.logger.mock(),
+    entityFilter: [{ kind: 'component' }],
+  } as unknown as FactRetrieverContext;
+}
+
+function respondWith(protection: GithubApiResponse) {
+  const responses: Record<string, GithubApiResponse> = {
+    '': {
+      status: 200,
+      body: { default_branch: 'main', archived: false, visibility: 'public' },
+    },
+    '/branches/main': { status: 200, body: { protected: true } },
+    '/rules/branches/main?per_page=100': {
+      status: 200,
+      body: [
+        {
+          type: 'pull_request',
+          parameters: { required_approving_review_count: 1 },
+        },
+      ],
+    },
+    '/branches/main/protection': protection,
+  };
+  mockGetRepo.mockImplementation(async (_repository, path = '') =>
+    path.startsWith('/contents')
+      ? { status: 404, body: { message: 'Not Found' } }
+      : responses[path],
+  );
+}
+
+async function collectFacts() {
+  const retriever = createGithubRepositoryFactRetriever({
+    cache: mockServices.cache.mock(),
+  });
+  const [result] = await retriever.handler(context());
+  return result.facts;
+}
+
+describe('githubRepositoryFactRetriever', () => {
+  beforeEach(() => {
+    mockGetEntities.mockReset().mockResolvedValue({ items: [component] });
+    mockGetRepo.mockReset();
+  });
+
+  it('reports ruleset protection on a branch without classic protection', async () => {
+    respondWith({ status: 404, body: { message: 'Branch not protected' } });
+
+    expect(await collectFacts()).toMatchObject({
+      githubBranchProtected: true,
+      githubRequiresPullRequest: true,
+      githubRequiredApprovingReviewCount: 1,
+      githubAllowsForcePushes: true,
+      githubAllowsDeletions: true,
+    });
+  });
+
+  it('omits unsettled settings when classic protection is unreadable', async () => {
+    respondWith({ status: 404, body: { message: 'Not Found' } });
+
+    const facts = await collectFacts();
+    expect(facts).toMatchObject({
+      githubBranchProtected: true,
+      githubRequiresPullRequest: true,
+    });
+    expect(facts).not.toHaveProperty('githubRequiredApprovingReviewCount');
+    expect(facts).not.toHaveProperty('githubAllowsForcePushes');
+  });
+});

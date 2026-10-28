@@ -188,6 +188,13 @@ techInsights:
       plural: resources
     # Suggested in the check editor, which also accepts new ones.
     categories: [Security, Reliability, Documentation]
+  # Repository and branch resolution for tech-insights-backend-module-github.
+  # repoAnnotations keeps the module default (source-location, then
+  # project-slug); OpenChoreo records a component's build branch separately
+  # from its repository URL.
+  github:
+    branchAnnotations:
+      - openchoreo.io/branch
 
 auth:
   providers:
