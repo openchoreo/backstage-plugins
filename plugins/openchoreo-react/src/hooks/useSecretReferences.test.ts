@@ -1,5 +1,6 @@
 import {
   filterSecretReferencesForEnvDataPlane,
+  filterSecretReferencesForObservabilityPlane,
   type SecretReference,
 } from './useSecretReferences';
 
@@ -74,5 +75,29 @@ describe('filterSecretReferencesForEnvDataPlane', () => {
     ];
     const out = filterSecretReferencesForEnvDataPlane(refs, dpProd);
     expect(out.map(r => r.name)).toEqual(['legacy', 'match']);
+  });
+});
+
+describe('filterSecretReferencesForObservabilityPlane', () => {
+  it('keeps refs without targetPlane (legacy / unscoped)', () => {
+    const refs = [makeRef('legacy')];
+    expect(filterSecretReferencesForObservabilityPlane(refs)).toEqual(refs);
+  });
+
+  it('keeps refs that target an observability plane of either kind', () => {
+    const refs = [
+      makeRef('op', { kind: 'ObservabilityPlane', name: 'default' }),
+      makeRef('cop', { kind: 'ClusterObservabilityPlane', name: 'default' }),
+    ];
+    expect(filterSecretReferencesForObservabilityPlane(refs)).toEqual(refs);
+  });
+
+  it('drops refs that target data or workflow planes', () => {
+    const refs = [
+      makeRef('dp', { kind: 'DataPlane', name: 'default' }),
+      makeRef('cdp', { kind: 'ClusterDataPlane', name: 'default' }),
+      makeRef('cwp', { kind: 'ClusterWorkflowPlane', name: 'default' }),
+    ];
+    expect(filterSecretReferencesForObservabilityPlane(refs)).toEqual([]);
   });
 });

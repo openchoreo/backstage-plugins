@@ -59,6 +59,7 @@ const ALPHA_EXTENSION_NAMES = [
   ['entity-card', 'observability-plane-linked-planes'],
   ['entity-card', 'cluster-observability-plane-status'],
   ['entity-card', 'cluster-observability-plane-linked-planes'],
+  ['entity-card', 'notification-channel-config'],
   // deployment pipeline
   ['entity-card', 'deployment-pipeline-visualization'],
   ['entity-card', 'promotion-paths'],
@@ -116,6 +117,7 @@ const ALPHA_EXTENSION_NAMES = [
   ['entity-content-layout', 'cluster-workflow-plane-overview'],
   ['entity-content-layout', 'observability-plane-overview'],
   ['entity-content-layout', 'cluster-observability-plane-overview'],
+  ['entity-content-layout', 'notification-channel-overview'],
   ['entity-content-layout', 'deployment-pipeline-overview'],
   ['entity-content-layout', 'component-type-overview'],
   ['entity-content-layout', 'resource-type-overview'],

@@ -872,7 +872,9 @@ export interface SecretReferenceTargetPlane {
     | 'WorkflowPlane'
     | 'ClusterWorkflowPlane'
     | 'DataPlane'
-    | 'ClusterDataPlane';
+    | 'ClusterDataPlane'
+    | 'ObservabilityPlane'
+    | 'ClusterObservabilityPlane';
   /** @description Name of the target plane resource. */
   name: string;
 }

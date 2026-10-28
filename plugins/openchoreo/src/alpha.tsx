@@ -575,6 +575,17 @@ const clusterObservabilityPlaneLinkedPlanesCard = EntityCardBlueprint.make({
   },
 });
 
+const notificationChannelConfigCard = EntityCardBlueprint.make({
+  name: 'notification-channel-config',
+  params: {
+    filter: isOpenChoreoManagedOfKind('observabilityalertsnotificationchannel'),
+    loader: () =>
+      import('./components/NotificationChannelOverview').then(m => (
+        <m.NotificationChannelConfigCard />
+      )),
+  },
+});
+
 // ─── DeploymentPipeline page cards (kind:deploymentpipeline) ──────────────
 const deploymentPipelineVisualizationCard = EntityCardBlueprint.make({
   name: 'deployment-pipeline-visualization',
@@ -837,6 +848,17 @@ const clusterObservabilityPlaneOverviewLayout =
     },
   });
 
+const notificationChannelOverviewLayout = EntityContentLayoutBlueprint.make({
+  name: 'notification-channel-overview',
+  params: {
+    filter: isOpenChoreoManagedOfKind('observabilityalertsnotificationchannel'),
+    loader: () =>
+      import(
+        './extensions/entityLayouts/NotificationChannelOverviewLayout'
+      ).then(m => m.default),
+  },
+});
+
 const deploymentPipelineOverviewLayout = EntityContentLayoutBlueprint.make({
   name: 'deployment-pipeline-overview',
   params: {
@@ -1039,6 +1061,7 @@ export const openChoreoPlugin = createFrontendPlugin({
     observabilityPlaneLinkedPlanesCard,
     clusterObservabilityPlaneStatusCard,
     clusterObservabilityPlaneLinkedPlanesCard,
+    notificationChannelConfigCard,
     deploymentPipelineVisualizationCard,
     promotionPathsCard,
     componentTypeOverviewCard,
@@ -1060,6 +1083,7 @@ export const openChoreoPlugin = createFrontendPlugin({
     clusterWorkflowPlaneOverviewLayout,
     observabilityPlaneOverviewLayout,
     clusterObservabilityPlaneOverviewLayout,
+    notificationChannelOverviewLayout,
     deploymentPipelineOverviewLayout,
     componentTypeOverviewLayout,
     resourceTypeOverviewLayout,

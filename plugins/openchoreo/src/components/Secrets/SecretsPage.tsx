@@ -77,7 +77,7 @@ export const SecretsContent = () => {
     client.listNamespaces(),
   );
 
-  // Fetch all four plane kinds for the target-plane dropdown
+  // Fetch every plane kind that can host secrets for the target-plane dropdown
   const {
     data: targetPlanes,
     loading: targetPlanesLoading,
@@ -87,26 +87,36 @@ export const SecretsContent = () => {
     async () => {
       if (!selectedNamespace) return [];
 
-      const [wpResult, cwpResult, dpResult, cdpResult] = await Promise.all([
-        catalogApi.getEntities({
-          filter: {
-            kind: 'WorkflowPlane',
-            'metadata.namespace': selectedNamespace,
-          },
-        }),
-        catalogApi.getEntities({
-          filter: { kind: 'ClusterWorkflowPlane' },
-        }),
-        catalogApi.getEntities({
-          filter: {
-            kind: 'DataPlane',
-            'metadata.namespace': selectedNamespace,
-          },
-        }),
-        catalogApi.getEntities({
-          filter: { kind: 'ClusterDataPlane' },
-        }),
-      ]);
+      const [wpResult, cwpResult, dpResult, cdpResult, opResult, copResult] =
+        await Promise.all([
+          catalogApi.getEntities({
+            filter: {
+              kind: 'WorkflowPlane',
+              'metadata.namespace': selectedNamespace,
+            },
+          }),
+          catalogApi.getEntities({
+            filter: { kind: 'ClusterWorkflowPlane' },
+          }),
+          catalogApi.getEntities({
+            filter: {
+              kind: 'DataPlane',
+              'metadata.namespace': selectedNamespace,
+            },
+          }),
+          catalogApi.getEntities({
+            filter: { kind: 'ClusterDataPlane' },
+          }),
+          catalogApi.getEntities({
+            filter: {
+              kind: 'ObservabilityPlane',
+              'metadata.namespace': selectedNamespace,
+            },
+          }),
+          catalogApi.getEntities({
+            filter: { kind: 'ClusterObservabilityPlane' },
+          }),
+        ]);
 
       const planes: TargetPlaneOption[] = [];
 
@@ -123,6 +133,12 @@ export const SecretsContent = () => {
           kind: 'ClusterWorkflowPlane' as TargetPlaneKind,
         });
       });
+      copResult.items.forEach(e => {
+        planes.push({
+          name: e.metadata.name,
+          kind: 'ClusterObservabilityPlane' as TargetPlaneKind,
+        });
+      });
       dpResult.items.forEach(e => {
         planes.push({
           name: e.metadata.name,
@@ -133,6 +149,12 @@ export const SecretsContent = () => {
         planes.push({
           name: e.metadata.name,
           kind: 'WorkflowPlane' as TargetPlaneKind,
+        });
+      });
+      opResult.items.forEach(e => {
+        planes.push({
+          name: e.metadata.name,
+          kind: 'ObservabilityPlane' as TargetPlaneKind,
         });
       });
 

@@ -1530,6 +1530,8 @@ export async function createRouter({
     'ClusterWorkflowPlane',
     'DataPlane',
     'ClusterDataPlane',
+    'ObservabilityPlane',
+    'ClusterObservabilityPlane',
   ] as const;
 
   // List secrets in a namespace (filtered SecretReferences with spec.targetPlane set)

@@ -651,6 +651,24 @@ describe('createRouter', () => {
       );
     });
 
+    it.each(['ObservabilityPlane', 'ClusterObservabilityPlane'])(
+      'accepts %s as targetPlane.kind',
+      async kind => {
+        services.secretsService.createSecret.mockResolvedValue({
+          name: 's1',
+          namespace: 'ns',
+          keys: ['k'],
+        });
+
+        const response = await request(app)
+          .post('/secrets')
+          .query({ namespaceName: 'ns' })
+          .send({ ...validBody, targetPlane: { kind, name: 'default' } });
+
+        expect(response.status).toBe(201);
+      },
+    );
+
     it('rejects when data is not an object', async () => {
       const response = await request(app)
         .post('/secrets')
