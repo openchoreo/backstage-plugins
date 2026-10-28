@@ -121,6 +121,7 @@ const KIND_TO_ENTITY_LEVEL: Record<string, EntityLevel> = {
   domain: 'domain',
   system: 'system',
   component: 'component',
+  releaseline: 'component',
   resource: 'resource',
   dataplane: 'namespace-scoped',
   workflowplane: 'namespace-scoped',

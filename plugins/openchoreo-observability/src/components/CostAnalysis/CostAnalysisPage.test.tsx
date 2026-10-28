@@ -3,10 +3,20 @@ import { renderInTestApp } from '@backstage/test-utils';
 import { EntityProvider } from '@backstage/plugin-catalog-react';
 import { CostAnalysisPage } from './CostAnalysisPage';
 
+// The line filter is covered by its own tests.
+const mockReleaseLineFilter = jest.fn();
+jest.mock('../common/ReleaseLineFilter', () => ({
+  ReleaseLineFilter: (props: any) => {
+    mockReleaseLineFilter(props);
+    return null;
+  },
+}));
+
 // Mock permissions
 const mockUseRcaPermission = jest.fn();
 const mockUseProjectEnvironments = jest.fn();
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
+  useReleaseLine: () => ({}),
   useRcaPermission: () => mockUseRcaPermission(),
   ForbiddenState: ({ message }: any) => (
     <div data-testid="forbidden-state">{message}</div>
@@ -135,6 +145,24 @@ describe('CostAnalysisPage', () => {
   it('renders cost analysis table when user has permission', async () => {
     await renderPage();
     expect(screen.getByTestId('cost-analysis-table')).toBeInTheDocument();
+  });
+
+  it('keeps the line filter loading until an environment is selected', async () => {
+    mockUseUrlFilters.mockReturnValue({
+      filters: { timeRange: '1h' },
+      updateFilters: jest.fn(),
+    });
+    await renderPage();
+    expect(mockReleaseLineFilter).toHaveBeenLastCalledWith(
+      expect.objectContaining({ linesLoading: true }),
+    );
+  });
+
+  it('marks the line filter loaded once the reports are in', async () => {
+    await renderPage();
+    expect(mockReleaseLineFilter).toHaveBeenLastCalledWith(
+      expect.objectContaining({ lines: [], linesLoading: false }),
+    );
   });
 
   it('shows error alert when reports fetch fails', async () => {

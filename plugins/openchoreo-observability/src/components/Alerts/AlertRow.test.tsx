@@ -108,6 +108,25 @@ describe('AlertRow', () => {
     expect(screen.queryByText('View incident')).not.toBeInTheDocument();
   });
 
+  it('shows the release line in the details when the alert has one', async () => {
+    const user = userEvent.setup();
+    renderRow({ alert: { ...sampleAlert, releaseLineName: 'next' } });
+
+    await user.click(screen.getByText('High CPU Alert'));
+
+    expect(screen.getByText('Release Line:')).toBeInTheDocument();
+    expect(screen.getByText('next')).toBeInTheDocument();
+  });
+
+  it('omits the release line from the details without one', async () => {
+    const user = userEvent.setup();
+    renderRow();
+
+    await user.click(screen.getByText('High CPU Alert'));
+
+    expect(screen.queryByText('Release Line:')).not.toBeInTheDocument();
+  });
+
   it('expands to show alert details on row click', async () => {
     const user = userEvent.setup();
     renderRow();

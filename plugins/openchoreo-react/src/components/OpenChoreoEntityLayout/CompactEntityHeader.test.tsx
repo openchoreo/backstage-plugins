@@ -39,6 +39,7 @@ jest.mock('react-use/esm/useAsync', () => ({
 }));
 jest.mock('react-router-dom', () => ({
   useNavigate: () => jest.fn(),
+  useLocation: () => ({ pathname: '/catalog/default/component/hello' }),
 }));
 
 // Catalog-react display helpers need app/entity context we don't supply; render

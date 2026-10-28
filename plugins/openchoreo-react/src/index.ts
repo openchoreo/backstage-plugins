@@ -99,6 +99,7 @@ export {
   type ProjectOption,
   type ComponentOption,
   type EndpointOption,
+  type ReleaseLineOption,
 } from './components/DependencyEditor';
 export {
   DependencyList,
@@ -180,6 +181,18 @@ export {
   type OpenChoreoEntityLayoutProps,
   type ExtraContextMenuItem,
 } from './components/OpenChoreoEntityLayout';
+export {
+  ReleaseLineProvider,
+  ReleaseLineContext,
+  useReleaseLine,
+  useEntityPagePath,
+  useReleaseLineComponentEntity,
+  type ReleaseLineContextValue,
+  type ReleaseLineProviderProps,
+  triggerReleaseLineBuild,
+  fetchReleaseLineResource,
+  updateReleaseLineResource,
+} from './components/ReleaseLine';
 export {
   VirtualizedLogList,
   type VirtualizedLogListProps,

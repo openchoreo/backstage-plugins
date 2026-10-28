@@ -2,7 +2,10 @@ import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
 import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import { ModelsBuild } from '@openchoreo/backstage-plugin-common';
-import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
+import {
+  useOpenChoreoQuery,
+  useReleaseLine,
+} from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { isFromSourceComponent } from '../../../utils/componentUtils';
 
@@ -33,6 +36,7 @@ export const useReleaseReadiness = (
   const discovery = useApi(discoveryApiRef);
   const fetchApi = useApi(openChoreoFetchApiRef);
   const client = useApi(openChoreoClientApiRef);
+  const { releaseLine } = useReleaseLine();
   const entityRef = stringifyEntityRef(entity);
 
   // Workload existence: a successful fetch means it exists; any error means it
@@ -42,10 +46,10 @@ export const useReleaseReadiness = (
     loading: workloadLoading,
     isRefetching: workloadRefetching,
   } = useOpenChoreoQuery<boolean>(
-    ['release-readiness', 'workload', entityRef],
+    ['release-readiness', 'workload', entityRef, releaseLine ?? ''],
     () =>
       client
-        .fetchWorkloadInfo(entity)
+        .fetchWorkloadInfo(entity, releaseLine)
         .then(() => true)
         .catch(() => false),
   );
@@ -55,7 +59,7 @@ export const useReleaseReadiness = (
     loading: buildsLoading,
     isRefetching: buildsRefetching,
   } = useOpenChoreoQuery<ModelsBuild[]>(
-    ['release-readiness', 'builds', entityRef],
+    ['release-readiness', 'builds', entityRef, releaseLine ?? ''],
     async () => {
       const componentName = entity.metadata.name;
       const projectName =
@@ -66,14 +70,15 @@ export const useReleaseReadiness = (
         return [];
       }
       const baseUrl = await discovery.getBaseUrl('openchoreo');
+      // Only this line's builds count: a line's workload comes from its own builds.
+      const params = new URLSearchParams({
+        componentName,
+        projectName,
+        namespaceName,
+      });
+      if (releaseLine) params.set('releaseLine', releaseLine);
       try {
-        const response = await fetchApi.fetch(
-          `${baseUrl}/builds?componentName=${encodeURIComponent(
-            componentName,
-          )}&projectName=${encodeURIComponent(
-            projectName,
-          )}&namespaceName=${encodeURIComponent(namespaceName)}`,
-        );
+        const response = await fetchApi.fetch(`${baseUrl}/builds?${params}`);
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }

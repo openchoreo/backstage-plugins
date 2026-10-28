@@ -219,6 +219,7 @@ jest.mock('@openchoreo/backstage-plugin-react', () => {
 });
 
 jest.mock('@material-ui/core/styles', () => ({
+  ...jest.requireActual('@material-ui/core/styles'),
   useTheme: () => ({
     palette: {
       background: { paper: '#fff' },

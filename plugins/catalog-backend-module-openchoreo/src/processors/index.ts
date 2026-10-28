@@ -5,6 +5,7 @@ export { ObservabilityPlaneEntityProcessor } from './ObservabilityPlaneEntityPro
 export { DeploymentPipelineEntityProcessor } from './DeploymentPipelineEntityProcessor';
 export { ComponentEntityProcessor } from './ComponentEntityProcessor';
 export { ResourceEntityProcessor } from './ResourceEntityProcessor';
+export { ReleaseLineEntityProcessor } from './ReleaseLineEntityProcessor';
 export { ComponentTypeEntityProcessor } from './ComponentTypeEntityProcessor';
 export { TraitTypeEntityProcessor } from './TraitTypeEntityProcessor';
 export { WorkflowEntityProcessor } from './WorkflowEntityProcessor';

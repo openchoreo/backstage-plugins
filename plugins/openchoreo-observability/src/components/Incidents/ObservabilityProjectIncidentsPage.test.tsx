@@ -3,6 +3,11 @@ import { renderInTestApp } from '@backstage/test-utils';
 import { EntityProvider } from '@backstage/plugin-catalog-react';
 import { ObservabilityProjectIncidentsPage } from './ObservabilityProjectIncidentsPage';
 
+// The line filter is covered by its own tests.
+jest.mock('../common/ReleaseLineFilter', () => ({
+  ReleaseLineFilter: () => null,
+}));
+
 // ---- Mocks (own hooks and child components only) ----
 
 const mockUseIncidentsPermission = jest.fn();

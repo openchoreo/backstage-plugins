@@ -686,6 +686,170 @@ describe('CellDiagramInfoService', () => {
       expect(api!.connections!.some(c => c.type === 'http')).toBe(true);
       expect(api!.connections!.some(c => c.type === 'datastore')).toBe(true);
     });
+
+    describe('release lines', () => {
+      const lineWorkload = (
+        componentName: string,
+        releaseLine: string,
+        opts?: { endpoints?: Record<string, any>; dependencies?: any },
+      ) => {
+        const workload = k8sWorkload(componentName, opts);
+        return {
+          ...workload,
+          metadata: {
+            ...workload.metadata,
+            name: `${componentName}-${releaseLine}-workload`,
+          },
+          spec: {
+            ...workload.spec,
+            owner: { ...workload.spec.owner, releaseLine },
+          },
+        };
+      };
+
+      it('renders main, then one node per release line', async () => {
+        mockGET
+          .mockResolvedValueOnce(
+            createOkResponse({
+              items: [k8sComponent('api', 'deployment/service')],
+              pagination: {},
+            }),
+          )
+          .mockResolvedValueOnce(
+            createOkResponse({
+              items: [
+                lineWorkload('api', 'next'),
+                k8sWorkload('api'),
+                lineWorkload('api', 'canary'),
+              ],
+              pagination: {},
+            }),
+          );
+
+        const result = await createService().fetchProjectInfo(
+          { projectName: 'my-project', namespaceName: 'test-ns' },
+          'token',
+        );
+
+        expect(result!.components.map(c => [c.id, c.label, c.badge])).toEqual([
+          ['api', 'api', 'main'],
+          ['api@canary', 'api', 'canary'],
+          ['api@next', 'api', 'next'],
+        ]);
+      });
+
+      it('renders a component without release lines without a badge', async () => {
+        mockGET
+          .mockResolvedValueOnce(
+            createOkResponse({
+              items: [k8sComponent('api', 'deployment/service')],
+              pagination: {},
+            }),
+          )
+          .mockResolvedValueOnce(
+            createOkResponse({ items: [k8sWorkload('api')], pagination: {} }),
+          );
+
+        const result = await createService().fetchProjectInfo(
+          { projectName: 'my-project', namespaceName: 'test-ns' },
+          'token',
+        );
+
+        expect(result!.components.map(c => [c.id, c.badge])).toEqual([
+          ['api', undefined],
+        ]);
+      });
+
+      it.each([
+        [{ releaseLine: 'next' }, 'api@next', 'api:next/http'],
+        [{}, 'api', 'api:main/http'],
+        [{ releaseLine: 'main' }, 'api', 'api:main/http'],
+      ])(
+        'links a dependency on %j to its line',
+        async (line, targetId, label) => {
+          mockGET
+            .mockResolvedValueOnce(
+              createOkResponse({
+                items: [
+                  k8sComponent('api', 'deployment/service'),
+                  k8sComponent('web', 'deployment/service'),
+                ],
+                pagination: {},
+              }),
+            )
+            .mockResolvedValueOnce(
+              createOkResponse({
+                items: [
+                  k8sWorkload('api'),
+                  lineWorkload('api', 'next'),
+                  k8sWorkload('web', {
+                    dependencies: {
+                      endpoints: [{ component: 'api', name: 'http', ...line }],
+                    },
+                  }),
+                ],
+                pagination: {},
+              }),
+            );
+
+          const result = await createService().fetchProjectInfo(
+            { projectName: 'my-project', namespaceName: 'test-ns' },
+            'token',
+          );
+
+          const web = result!.components.find(c => c.id === 'web');
+          expect(web!.connections).toEqual([
+            expect.objectContaining({
+              id: `test-ns:my-project:${targetId}:http`,
+              label,
+              onPlatform: true,
+            }),
+          ]);
+        },
+      );
+
+      it('scopes gateway metrics to each line', async () => {
+        mockGET
+          .mockResolvedValueOnce(
+            createOkResponse({
+              items: [k8sComponent('api', 'deployment/service')],
+              pagination: {},
+            }),
+          )
+          .mockResolvedValueOnce(
+            createOkResponse({
+              items: [k8sWorkload('api'), lineWorkload('api', 'next')],
+              pagination: {},
+            }),
+          );
+        mockResolveForEnvironment.mockResolvedValueOnce({
+          observerUrl: 'http://observer:8080',
+        });
+        mockObsPOST.mockResolvedValue(createOkResponse({ edges: [] }));
+
+        await createService().fetchProjectInfo(
+          {
+            projectName: 'my-project',
+            namespaceName: 'test-ns',
+            environmentName: 'dev',
+          },
+          'token',
+        );
+
+        const scopes = mockObsPOST.mock.calls
+          .filter(([path]) => path === '/api/v1/metrics/query')
+          .map(([, req]) => req.body.searchScope);
+        expect(scopes).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              component: 'api',
+              releaseLine: 'main',
+            }),
+            expect.objectContaining({ component: 'api', releaseLine: 'next' }),
+          ]),
+        );
+      });
+    });
   });
 
   describe('fetchNamespaceInfo', () => {

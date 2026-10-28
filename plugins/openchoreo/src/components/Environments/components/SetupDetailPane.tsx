@@ -347,15 +347,20 @@ export const SetupDetailPane = ({
     return map;
   }, [environments]);
 
+  // An image-based component without a workload creates one from the editor
+  // these buttons open, e.g. a release line added after the component.
+  const canOpenWorkloadEditor =
+    readiness.canCreateRelease ||
+    (!readiness.isFromSource && !readiness.hasWorkload);
   const createDisabledReason = (() => {
     if (!canConfigureAndDeploy) return deniedTooltip;
-    if (!readiness.canCreateRelease) {
+    if (!canOpenWorkloadEditor) {
       return readiness.alertMessage ?? 'Not ready to create a release.';
     }
     return '';
   })();
   const canCreate =
-    !permissionLoading && canConfigureAndDeploy && readiness.canCreateRelease;
+    !permissionLoading && canConfigureAndDeploy && canOpenWorkloadEditor;
 
   // A component can only deploy into an environment where its project is
   // deployed (the project owns the cell namespace). Block the manual Deploy

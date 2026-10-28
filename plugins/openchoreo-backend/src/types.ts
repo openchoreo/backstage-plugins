@@ -26,20 +26,14 @@ export interface EnvironmentService {
     projectName: string;
     componentName: string;
     namespaceName: string;
-  }): Promise<Environment[]>;
-
-  promoteComponent(request: {
-    sourceEnvironment: string;
-    targetEnvironment: string;
-    componentName: string;
-    projectName: string;
-    namespaceName: string;
+    releaseLine?: string;
   }): Promise<Environment[]>;
 
   updateComponentBinding(request: {
     componentName: string;
     projectName: string;
     namespaceName: string;
+    releaseLine?: string;
     bindingName: string;
     releaseState: 'Active' | 'Suspend' | 'Undeploy';
   }): Promise<Environment[]>;
@@ -48,12 +42,14 @@ export interface EnvironmentService {
     resourceName: string;
     projectName: string;
     namespaceName: string;
+    releaseLine?: string;
   }): Promise<ResourceEnvironment[]>;
 
   updateResourceReleaseBinding(request: {
     resourceName: string;
     projectName: string;
     namespaceName: string;
+    releaseLine?: string;
     environment: string;
     releaseName: string;
     retainPolicy?: 'Delete' | 'Retain';
@@ -64,17 +60,20 @@ export interface EnvironmentService {
     resourceName: string;
     projectName: string;
     namespaceName: string;
+    releaseLine?: string;
     environment: string;
   }): Promise<unknown>;
 
   fetchProjectEnvironmentInfo(request: {
     projectName: string;
     namespaceName: string;
+    releaseLine?: string;
   }): Promise<ProjectEnvironment[]>;
 
   updateProjectReleaseBinding(request: {
     projectName: string;
     namespaceName: string;
+    releaseLine?: string;
     environment: string;
     releaseName: string;
     environmentConfigs?: any;
@@ -271,6 +270,7 @@ export interface WorkloadService {
       projectName: string;
       componentName: string;
       namespaceName: string;
+      releaseLine?: string;
     },
     token?: string,
   ): Promise<WorkloadResource | null>;
@@ -280,6 +280,7 @@ export interface WorkloadService {
       projectName: string;
       componentName: string;
       namespaceName: string;
+      releaseLine?: string;
       workload: WorkloadResource;
       isNew: boolean;
     },

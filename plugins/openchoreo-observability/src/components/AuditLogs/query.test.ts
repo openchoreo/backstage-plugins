@@ -37,6 +37,17 @@ describe('tokensToFilters', () => {
     });
   });
 
+  it('maps the release line onto the resource group', () => {
+    const tokens: AuditQueryToken[] = [
+      { path: 'resource.component', value: 'hello' },
+      { path: 'resource.release_line', value: 'next' },
+    ];
+
+    expect(tokensToFilters(tokens)).toEqual({
+      resource: { component: ['hello'], release_line: ['next'] },
+    });
+  });
+
   it('ORs values on one path into a single field', () => {
     const tokens: AuditQueryToken[] = [
       { path: 'result', value: 'denied' },

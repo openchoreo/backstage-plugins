@@ -1,7 +1,10 @@
 import { stringifyEntityRef } from '@backstage/catalog-model';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
-import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
+import {
+  useOpenChoreoQuery,
+  useReleaseLine,
+} from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { isForbiddenError } from '../../../utils/errorUtils';
 import type { Environment } from '../hooks/useEnvironmentData';
@@ -23,10 +26,14 @@ function shouldPoll(envs?: Environment[]): boolean {
 export function useDeploymentStatus() {
   const { entity } = useEntity();
   const client = useApi(openChoreoClientApiRef);
+  const { releaseLine } = useReleaseLine();
 
   const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
-    ['deployment-status', stringifyEntityRef(entity)],
-    () => client.fetchEnvironmentInfo(entity) as Promise<Environment[]>,
+    ['deployment-status', stringifyEntityRef(entity), releaseLine ?? ''],
+    () =>
+      client.fetchEnvironmentInfo(entity, releaseLine) as Promise<
+        Environment[]
+      >,
     {
       refetchInterval: query => (shouldPoll(query.state.data) ? 10000 : false),
     },

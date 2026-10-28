@@ -202,4 +202,29 @@ describe('CostAnalysisReportView', () => {
     );
     expect(screen.getAllByText('100m').length).toBeGreaterThan(0);
   });
+
+  it('shows the release line for a release line report', () => {
+    render(
+      <CostAnalysisReportView
+        report={{ ...mockReport, releaseLine: 'canary' }}
+        reportId="r1"
+        onBack={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Release Line')).toBeInTheDocument();
+    expect(screen.getByText('canary')).toBeInTheDocument();
+  });
+
+  it('omits the release line for components without lines', () => {
+    render(
+      <CostAnalysisReportView
+        report={mockReport}
+        reportId="r1"
+        onBack={jest.fn()}
+      />,
+    );
+
+    expect(screen.queryByText('Release Line')).not.toBeInTheDocument();
+  });
 });

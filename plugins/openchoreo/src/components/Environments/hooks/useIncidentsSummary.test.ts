@@ -27,6 +27,12 @@ const entity: Entity = {
   },
 };
 
+let mockReleaseLine: string | undefined;
+jest.mock('@openchoreo/backstage-plugin-react', () => ({
+  ...jest.requireActual('@openchoreo/backstage-plugin-react'),
+  useReleaseLine: () => ({ releaseLine: mockReleaseLine }),
+}));
+
 jest.mock('@backstage/plugin-catalog-react', () => ({
   ...jest.requireActual('@backstage/plugin-catalog-react'),
   useEntity: () => ({ entity }),
@@ -61,6 +67,35 @@ function renderUseIncidentsSummary(
 }
 
 describe('useIncidentsSummary', () => {
+  afterEach(() => {
+    mockReleaseLine = undefined;
+  });
+
+  it.each([
+    ['without a release line', undefined],
+    ['on a release line page', 'next'],
+  ])('passes the page release line %s', async (_label, line) => {
+    mockReleaseLine = line;
+    const observabilityApi = {
+      getIncidents: jest.fn().mockResolvedValue({ incidents: [], total: 0 }),
+    };
+    const { result } = renderUseIncidentsSummary(
+      [makeEnv('development')],
+      observabilityApi,
+    );
+
+    await waitFor(() =>
+      expect(result.current.get('development')?.loading).toBe(false),
+    );
+    expect(observabilityApi.getIncidents).toHaveBeenCalledWith(
+      'ns-1',
+      'shop',
+      'development',
+      'checkout',
+      expect.objectContaining({ releaseLine: line }),
+    );
+  });
+
   it('reports loading with zero counts on the first fetch', () => {
     const observabilityApi = {
       getIncidents: jest.fn().mockReturnValue(new Promise(() => {})),

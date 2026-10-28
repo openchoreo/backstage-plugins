@@ -107,6 +107,33 @@ export const ComponentName = styled.span<ComponentNameStyleProps>`
     disabled ? theme.colors.SURFACE_DIM : theme.colors.ON_SURFACE_VARIANT};
 `;
 
+export const ComponentLabel = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  max-width: ${LABEL_MAX_WIDTH}px;
+  min-width: 0;
+`;
+
+export const ComponentBadge = styled.span<ComponentNameStyleProps>`
+  flex-shrink: 0;
+  max-width: ${LABEL_MAX_WIDTH / 2}px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: ${LABEL_FONT_SIZE * 0.7}px;
+  line-height: 1.4;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background-color: ${({ theme }) => theme.colors.PRIMARY_CONTAINER};
+  border: 1px solid
+    ${({ theme, disabled }) =>
+      disabled ? theme.colors.SURFACE_DIM : theme.colors.PRIMARY};
+  color: ${({ theme, disabled }) =>
+    disabled ? theme.colors.SURFACE_DIM : theme.colors.PRIMARY};
+`;
+
 interface IconWrapperStyleProps {
   previewMode: boolean;
   disabled: boolean;

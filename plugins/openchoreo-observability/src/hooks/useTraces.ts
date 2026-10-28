@@ -8,6 +8,7 @@ import {
   calculateTimeRange,
   useOpenChoreoQuery,
 } from '@openchoreo/backstage-plugin-react';
+import { useSelectedReleaseLine } from './useSelectedReleaseLine';
 
 const sortByStartTime = (traceList: Trace[]): Trace[] =>
   [...traceList].sort((a, b) => {
@@ -22,6 +23,10 @@ export function useTraces(filters: Filters, entity: Entity) {
   const namespace =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ?? '';
   const projectName = entity.metadata.name as string;
+  // A release line narrows a single selected component.
+  const selectedLine = useSelectedReleaseLine();
+  const releaseLine =
+    filters.components?.length === 1 ? selectedLine : undefined;
 
   const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery<
     Trace[]
@@ -35,6 +40,7 @@ export function useTraces(filters: Filters, entity: Entity) {
       filters.customStartTime,
       filters.customEndTime,
       filters.components?.join(',') ?? '',
+      releaseLine ?? null,
     ],
     async () => {
       const { startTime, endTime } = calculateTimeRange(filters.timeRange, {
@@ -53,7 +59,13 @@ export function useTraces(filters: Filters, entity: Entity) {
                   projectName,
                   filters.environment.name,
                   name,
-                  { limit: 100, startTime, endTime, sortOrder: 'desc' },
+                  {
+                    limit: 100,
+                    startTime,
+                    endTime,
+                    sortOrder: 'desc',
+                    releaseLine,
+                  },
                 ),
               ),
             )

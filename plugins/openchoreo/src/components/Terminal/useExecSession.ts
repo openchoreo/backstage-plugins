@@ -18,6 +18,8 @@ export interface ExecConnectParams {
   podName?: string;
   /** Target container within the pod; omit to use the upstream default. */
   containerName?: string;
+  /** Release line whose pod to exec into, for components with release lines. */
+  releaseLine?: string;
 }
 
 export interface UseExecSessionResult {

@@ -148,6 +148,7 @@ describe('FinOpsApplyButton', () => {
           fetchApi: expect.any(Object),
           namespaceName: 'dev',
           change: revisedAction.change,
+          expectedOwner: { componentName: undefined, releaseLine: undefined },
         }),
       );
     });
@@ -260,5 +261,28 @@ describe('FinOpsApplyButton', () => {
       );
       expect(mockApplyResourceChange).toHaveBeenCalledTimes(2);
     });
+  });
+
+  it('names the binding and line it updates, and checks them on apply', async () => {
+    renderButton(revisedAction, {
+      componentName: 'my-service',
+      releaseLine: 'canary',
+    });
+
+    expect(
+      screen.getByText(
+        'Updates release binding my-service-development on release line canary',
+      ),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Apply Recommendation'));
+
+    await waitFor(() =>
+      expect(mockApplyResourceChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          expectedOwner: { componentName: 'my-service', releaseLine: 'canary' },
+        }),
+      ),
+    );
   });
 });

@@ -12,7 +12,10 @@ import {
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { useFinOpsReport, useFilters } from '../../hooks';
-import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import {
+  CHOREO_ANNOTATIONS,
+  toStoredReleaseLine,
+} from '@openchoreo/backstage-plugin-common';
 import { CostAnalysisReportView } from './CostAnalysisReportView';
 import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
 import { finopsAgentApiRef } from '../../api/FinOpsAgentApi';
@@ -112,15 +115,16 @@ const CostAnalysisReportContent = () => {
   };
 
   const componentName = detailedReport.report?.component;
+  // The main line's tabs are its component's own, and each release line has its page.
+  const releaseLine = toStoredReleaseLine(detailedReport.releaseLine);
   const catalogNs = entity.metadata.namespace || 'default';
   const environmentName = environment?.name || detailedReport.environment;
-  const componentUrl = componentName
-    ? `/catalog/${catalogNs}/component/${componentName}`
-    : undefined;
-  const metricsUrl = componentName
-    ? `/catalog/${catalogNs}/component/${componentName}/metrics${
-        environmentName ? `?env=${environmentName}` : ''
-      }`
+  const entityPath = releaseLine
+    ? `/catalog/${catalogNs}/releaseline/${releaseLine}`
+    : componentName && `/catalog/${catalogNs}/component/${componentName}`;
+  const componentUrl = entityPath || undefined;
+  const metricsUrl = entityPath
+    ? `${entityPath}/metrics${environmentName ? `?env=${environmentName}` : ''}`
     : undefined;
 
   const chatContext = {

@@ -130,6 +130,15 @@ export const AuditEventDrawer = ({
                 },
               ]
             : []),
+          ...(resource.release_line
+            ? [
+                {
+                  key: 'release line',
+                  value: resource.release_line,
+                  path: 'resource.release_line' as const,
+                },
+              ]
+            : []),
           ...(resource.resource
             ? [
                 {

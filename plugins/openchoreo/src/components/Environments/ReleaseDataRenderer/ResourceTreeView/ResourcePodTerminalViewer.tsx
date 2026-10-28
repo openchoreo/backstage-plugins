@@ -157,6 +157,7 @@ export const ResourcePodTerminalViewer: FC<ResourcePodTerminalViewerProps> = ({
       environment: execContext.environmentName,
       podName,
       containerName: selectedContainer || undefined,
+      releaseLine: execContext.releaseLine,
     });
   }, [connect, execContext, podName, selectedContainer]);
 
@@ -190,6 +191,9 @@ export const ResourcePodTerminalViewer: FC<ResourcePodTerminalViewerProps> = ({
       params.set('containers', containerOptions.join(','));
     }
     if (selectedContainer) params.set('container', selectedContainer);
+    if (execContext.releaseLine) {
+      params.set('releaseLine', execContext.releaseLine);
+    }
     window.open(
       `${window.location.origin}/exec-terminal?${params.toString()}`,
       '_blank',

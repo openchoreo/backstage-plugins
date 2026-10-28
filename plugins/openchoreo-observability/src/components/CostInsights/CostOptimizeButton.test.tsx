@@ -65,7 +65,17 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
 
 jest.mock('@openchoreo/backstage-plugin-common', () => ({
   CHOREO_ANNOTATIONS: { NAMESPACE: 'ns', PROJECT: 'proj' },
+  MAIN_RELEASE_LINE: 'main',
   openchoreoReleaseBindingUpdatePermission: { name: 'releasebinding.update' },
+}));
+
+let mockSelectedLine: string | undefined;
+const mockComponentLines = { lines: [] as string[], loading: false };
+jest.mock('../../hooks/useSelectedReleaseLine', () => ({
+  useSelectedReleaseLine: () => mockSelectedLine,
+}));
+jest.mock('../../hooks/useComponentReleaseLines', () => ({
+  useComponentReleaseLineState: () => mockComponentLines,
 }));
 
 const mockGetBaseUrl = jest.fn(async (id: string) => `http://backend/${id}`);
@@ -113,6 +123,9 @@ describe('CostOptimizeButton', () => {
     mockUseOpenChoreoQuery.mockReturnValue({ data: 'component:default/ad' });
     mockResolve.mockResolvedValue('ad-dev');
     mockApply.mockResolvedValue(undefined);
+    mockSelectedLine = undefined;
+    mockComponentLines.lines = [];
+    mockComponentLines.loading = false;
   });
 
   it('disables the Apply button when permission is denied', () => {
@@ -195,6 +208,8 @@ describe('CostOptimizeButton', () => {
         expect.objectContaining({
           namespaceName: 'default',
           change: { release_binding: 'ad-dev', fields: [expect.anything()] },
+          // A component without release lines applies to its main line.
+          expectedOwner: { componentName: 'ad', releaseLine: 'main' },
         }),
       ),
     );
@@ -202,6 +217,41 @@ describe('CostOptimizeButton', () => {
     expect(
       screen.getByRole('button', { name: /applied/i }),
     ).toBeInTheDocument();
+  });
+
+  it('applies a release line recommendation to that line binding only', async () => {
+    mockSelectedLine = 'next';
+    mockComponentLines.lines = ['next'];
+    mockResolve.mockResolvedValue('ad-next-dev');
+    renderButton();
+    fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+    expect(screen.getByText(/redeployment of release line/)).toHaveTextContent(
+      'This will trigger a redeployment of release line next in the dev environment.',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Save' }));
+
+    await waitFor(() =>
+      expect(mockApply).toHaveBeenCalledWith(
+        expect.objectContaining({
+          expectedOwner: { componentName: 'ad', releaseLine: 'next' },
+        }),
+      ),
+    );
+    expect(mockResolve).toHaveBeenCalledWith(
+      expect.objectContaining({ environment: 'dev', releaseLine: 'next' }),
+    );
+  });
+
+  it('is disabled for a component with release lines until a line is chosen', () => {
+    mockComponentLines.lines = ['next'];
+    renderButton();
+    expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
+  });
+
+  it('is disabled while the component release lines load', () => {
+    mockComponentLines.loading = true;
+    renderButton();
+    expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
   });
 
   it('shows an error and a Retry action when apply fails', async () => {

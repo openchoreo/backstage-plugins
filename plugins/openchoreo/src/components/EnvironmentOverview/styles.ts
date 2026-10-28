@@ -101,6 +101,11 @@ export const useEnvironmentOverviewStyles = makeStyles(theme => ({
     height: '24px',
     fontSize: '0.75rem',
   },
+  releaseLineChip: {
+    height: '20px',
+    fontSize: '0.75rem',
+    marginLeft: theme.spacing(1),
+  },
   chipActive: {
     backgroundColor: theme.palette.success.light,
     color: theme.palette.success.dark,

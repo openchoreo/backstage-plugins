@@ -369,3 +369,26 @@ describe('transformReleaseBinding endpoint https prioritization', () => {
     expect(result.endpoints![0]).toEqual({ name: 'ep' });
   });
 });
+
+describe('transformReleaseBinding release line', () => {
+  const makeOwnedBinding = (releaseLine?: string): ReleaseBinding =>
+    ({
+      metadata: { name: 'hello-next-development' },
+      spec: {
+        owner: { projectName: 'default', componentName: 'hello', releaseLine },
+        environment: 'development',
+      },
+    } as ReleaseBinding);
+
+  it('carries the release line of the owner', () => {
+    expect(transformReleaseBinding(makeOwnedBinding('next')).releaseLine).toBe(
+      'next',
+    );
+  });
+
+  it('omits the release line for components without release lines', () => {
+    expect(transformReleaseBinding(makeOwnedBinding())).not.toHaveProperty(
+      'releaseLine',
+    );
+  });
+});

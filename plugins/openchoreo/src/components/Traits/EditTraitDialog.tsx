@@ -11,7 +11,10 @@ import {
   Typography,
 } from '@material-ui/core';
 import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
-import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
+import {
+  openChoreoFetchApiRef,
+  useReleaseLine,
+} from '@openchoreo/backstage-plugin-react';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { RjsfForm } from '@openchoreo/backstage-design-system';
 import { JSONSchema7 } from 'json-schema';
@@ -19,6 +22,7 @@ import validator from '@rjsf/validator-ajv8';
 import { TraitConfigToggle } from '@openchoreo/backstage-plugin-react';
 import { useTraitsStyles } from './styles';
 import { generateUiSchemaWithTitles } from './uiSchema';
+import { withoutFilledDefaults } from './traitDefaults';
 import { ComponentTrait } from '../../api/OpenChoreoClientApi';
 import { ResponseError } from '@backstage/errors';
 import { extractEntityMetadata } from '../../utils/entityUtils';
@@ -71,6 +75,7 @@ export const EditTraitDialog: React.FC<EditTraitDialogProps> = ({
   const { entity } = useEntity();
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(openChoreoFetchApiRef);
+  const { releaseLine } = useReleaseLine();
 
   const [instanceName, setInstanceName] = useState<string>('');
   const [parameters, setParameters] = useState<Record<string, any>>({});
@@ -217,11 +222,17 @@ export const EditTraitDialog: React.FC<EditTraitDialogProps> = ({
       return;
     }
 
+    // On a release line, keep only what the trait had or the user changed,
+    // not the defaults the form filled in, so the line doesn't pin them as
+    // overrides. A component's own traits are saved as before.
     const updatedTrait: ComponentTrait = {
       kind: trait.kind,
       name: trait.name,
       instanceName: instanceName.trim(),
-      parameters,
+      parameters:
+        releaseLine && traitSchema
+          ? withoutFilledDefaults(traitSchema, parameters, trait.parameters)
+          : parameters,
     };
 
     onSave(updatedTrait);

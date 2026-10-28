@@ -20,6 +20,7 @@ const ALPHA_EXTENSION_NAMES = [
   ['entity-context-menu-item', 'edit-annotations'],
   // shared
   ['entity-content', 'resource-definition'],
+  ['entity-content', 'release-line-definition'],
   // component-page
   ['entity-content', 'component-deploy'],
   ['entity-card', 'deployment-status'],
@@ -107,6 +108,7 @@ const ALPHA_EXTENSION_NAMES = [
   ['scaffolder-form-field', 'workload-details-field'],
   // per-kind Overview layouts
   ['entity-content-layout', 'component-overview'],
+  ['entity-content-layout', 'release-line-overview'],
   ['entity-content-layout', 'system-overview'],
   ['entity-content-layout', 'domain-overview'],
   ['entity-content-layout', 'resource-overview'],

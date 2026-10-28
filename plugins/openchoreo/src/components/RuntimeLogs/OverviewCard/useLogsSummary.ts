@@ -2,7 +2,10 @@ import { useEntity } from '@backstage/plugin-catalog-react';
 import { useApi, useApiHolder, createApiRef } from '@backstage/core-plugin-api';
 import { stringifyEntityRef } from '@backstage/catalog-model';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
-import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
+import {
+  useOpenChoreoQuery,
+  useReleaseLine,
+} from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { calculateTimeRange } from '../../../api/runtimeLogs';
 import type { LogEntry, Environment, LogsResponse } from '../types';
@@ -26,6 +29,7 @@ interface ObservabilityLogsApi {
       logLevels?: string[];
       searchQuery?: string;
       sortOrder?: 'asc' | 'desc';
+      releaseLine?: string;
     },
   ): Promise<LogsResponse>;
 }
@@ -58,10 +62,11 @@ export function useLogsSummary() {
   // observability-disabled (the same state the backend sets when the cluster has
   // observability turned off).
   const observabilityApi = useApiHolder().get(observabilityApiRef);
+  const { releaseLine } = useReleaseLine();
 
   const { data, loading, isRefetching, error, refetch } =
     useOpenChoreoQuery<LogsSummaryData>(
-      ['logs-summary', stringifyEntityRef(entity)],
+      ['logs-summary', stringifyEntityRef(entity), releaseLine ?? ''],
       async () => {
         const environments: Environment[] = await client.getEnvironments(
           entity,
@@ -93,7 +98,7 @@ export function useLogsSummary() {
             projectName,
             selectedEnv.resourceName,
             componentName,
-            { limit: 100, startTime, endTime, logLevels: [] },
+            { limit: 100, startTime, endTime, logLevels: [], releaseLine },
           );
 
         const logs: LogEntry[] = logsResponse.logs || [];

@@ -75,6 +75,7 @@ function transformWorkflowRun(run: any): import('../types').WorkflowRun {
     parameters: run.spec?.workflow?.parameters,
     createdAt: run.metadata?.creationTimestamp,
     finishedAt: run.status?.completedAt,
+    labels: run.metadata?.labels,
   };
 }
 

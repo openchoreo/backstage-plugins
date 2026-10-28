@@ -109,6 +109,59 @@ describe('useEnvironmentDeployedComponents', () => {
     expect(result.current.isRefetching).toBe(false);
   });
 
+  it('lists each release line deployed in the environment as its own row', async () => {
+    mockCatalogApi.getEntities
+      .mockResolvedValueOnce({
+        items: [{ metadata: { name: 'proj-1' } }],
+      })
+      .mockResolvedValueOnce({
+        items: [
+          {
+            metadata: {
+              name: 'checkout',
+              namespace: 'ns-1',
+              title: 'Checkout',
+              annotations: { [CHOREO_ANNOTATIONS.COMPONENT]: 'checkout' },
+            },
+          },
+        ],
+      });
+
+    const client = {
+      fetchReleaseBindings: jest.fn().mockResolvedValue({
+        data: {
+          items: [
+            { environment: 'production', status: 'ready', releaseName: 'r1' },
+            {
+              environment: 'production',
+              status: 'ready',
+              releaseName: 'r2',
+              releaseLine: 'next',
+            },
+            { environment: 'dev', status: 'ready', releaseLine: 'next' },
+          ],
+        },
+      }),
+    };
+
+    const { result } = renderHookWithApis(client);
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(client.fetchReleaseBindings).toHaveBeenCalledWith(
+      expect.anything(),
+      undefined,
+      { allReleaseLines: true },
+    );
+    expect(
+      result.current.components.map(c => [c.entityRef, c.releaseLine]),
+    ).toEqual([
+      ['component:ns-1/checkout', undefined],
+      ['releaseline:ns-1/next', 'next'],
+    ]);
+    expect(result.current.statusSummary.total).toBe(2);
+  });
+
   it('returns empty without catalog hits when namespace is missing', async () => {
     const noNs: Entity = {
       apiVersion: 'backstage.io/v1alpha1',

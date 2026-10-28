@@ -11,6 +11,7 @@ import {
   TextField,
 } from '@material-ui/core';
 import Autocomplete from '@material-ui/lab/Autocomplete';
+import Alert from '@material-ui/lab/Alert';
 import validator from '@rjsf/validator-ajv8';
 import { RJSFValidationError, WidgetProps } from '@rjsf/utils';
 import { JSONSchema7 } from 'json-schema';
@@ -19,7 +20,12 @@ import {
   alertApiRef,
   discoveryApiRef,
 } from '@backstage/core-plugin-api';
-import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
+import {
+  openChoreoFetchApiRef,
+  useReleaseLine,
+  fetchReleaseLineResource,
+  updateReleaseLineResource,
+} from '@openchoreo/backstage-plugin-react';
 import { useEntity, catalogApiRef } from '@backstage/plugin-catalog-react';
 import { openChoreoCiClientApiRef } from '../../api/OpenChoreoCiClientApi';
 import {
@@ -28,6 +34,9 @@ import {
   GIT_SECRET_TYPE_VALUE,
   sanitizeLabel,
   filterEmptyObjectProperties,
+  diffOverrides,
+  mergeOverrides,
+  type ReleaseLineResource,
 } from '@openchoreo/backstage-plugin-common';
 import {
   VerticalTabNav,
@@ -103,6 +112,25 @@ export const WorkflowConfigPage = ({
   const alertApi = useApi(alertApiRef);
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(openChoreoFetchApiRef);
+  const { releaseLine } = useReleaseLine();
+  // On a release line: the line, whose build overrides are edited here, on
+  // top of the component's workflow parameters (passed in as `parameters`).
+  const [releaseLineResource, setReleaseLineResource] =
+    useState<ReleaseLineResource | null>(null);
+  const releaseLineRef = useMemo(
+    () =>
+      releaseLine
+        ? {
+            namespaceName:
+              entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ?? '',
+            componentName:
+              entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT] ??
+              entity.metadata.name,
+            releaseLineName: releaseLine,
+          }
+        : undefined,
+    [entity, releaseLine],
+  );
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -249,7 +277,20 @@ export const WorkflowConfigPage = ({
       const filteredSchema = filterEmptyObjectProperties(rawSchema);
       setSchema(addTitlesToSchema(filteredSchema));
 
-      if (parameters) {
+      if (releaseLineRef) {
+        const line = await fetchReleaseLineResource(
+          discoveryApi,
+          fetchApi,
+          releaseLineRef,
+        );
+        const effective = mergeOverrides(
+          parameters ?? {},
+          line.spec?.workflow?.parameters,
+        );
+        setReleaseLineResource(line);
+        setFormData(effective);
+        setInitialFormData(effective);
+      } else if (parameters) {
         setFormData(parameters);
         setInitialFormData(parameters);
       } else {
@@ -261,7 +302,16 @@ export const WorkflowConfigPage = ({
     } finally {
       setLoading(false);
     }
-  }, [namespace, client, workflowName, workflowKind, parameters]);
+  }, [
+    namespace,
+    client,
+    workflowName,
+    workflowKind,
+    parameters,
+    releaseLineRef,
+    discoveryApi,
+    fetchApi,
+  ]);
 
   useEffect(() => {
     if (workflowName) {
@@ -377,7 +427,25 @@ export const WorkflowConfigPage = ({
     setError(null);
 
     try {
-      await client.updateComponentWorkflowParameters(entity, formData);
+      if (releaseLineRef && releaseLineResource) {
+        // Save the line's build overrides: what differs from the component.
+        await updateReleaseLineResource(
+          discoveryApi,
+          fetchApi,
+          releaseLineRef,
+          {
+            ...releaseLineResource,
+            spec: {
+              ...releaseLineResource.spec!,
+              workflow: {
+                parameters: diffOverrides(formData, parameters ?? {}),
+              },
+            },
+          },
+        );
+      } else {
+        await client.updateComponentWorkflowParameters(entity, formData);
+      }
 
       setShowSaveConfirm(false);
       alertApi.post({
@@ -454,6 +522,17 @@ export const WorkflowConfigPage = ({
         onBack={handleBackClick}
         actions={headerActions}
       >
+        {releaseLine && !loading && (
+          <Box mb={2}>
+            <Alert severity="info">
+              Showing the component's build parameters with the {releaseLine}{' '}
+              release line's overrides applied. Changes are saved as overrides
+              on {releaseLine}; the component itself is edited on its Definition
+              page.
+            </Alert>
+          </Box>
+        )}
+
         {loading && (
           <Box className={classes.loadingContainer}>
             <CircularProgress />

@@ -2,13 +2,13 @@ import { useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import {
-  buildWorkflowsBasePath,
   buildWorkflowRunPath,
   buildWorkflowConfigPath,
   buildWorkflowListPath,
   type WorkflowView,
   type WorkflowTab,
   type RunDetailsTab,
+  useEntityPagePath,
 } from '@openchoreo/backstage-plugin-react';
 
 // Re-export types for backwards compatibility
@@ -58,8 +58,9 @@ export function useWorkflowRouting() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { entity } = useEntity();
 
-  // Get absolute base path for workflows
-  const basePath = useMemo(() => buildWorkflowsBasePath(entity), [entity]);
+  // Absolute base path for workflows; on a release line, its own page.
+  const pagePath = useEntityPagePath(entity);
+  const basePath = `${pagePath}/workflows`;
 
   // Derive current state from URL
   const state = useMemo<WorkflowRoutingState>(() => {

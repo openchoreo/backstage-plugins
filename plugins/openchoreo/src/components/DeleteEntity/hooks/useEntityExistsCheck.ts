@@ -34,6 +34,7 @@ const KIND_DISPLAY_NAMES: Record<string, string> = {
   workflow: 'Workflow',
   clusterworkflow: 'Cluster Workflow',
   componentworkflow: 'Component Workflow',
+  releaseline: 'Release Line',
 };
 
 /**
@@ -55,6 +56,17 @@ export function useEntityExistsCheck(entity: Entity): EntityExistsCheckResult {
 
         if (entityKind === 'component') {
           details = await client.getComponentDetails(entity);
+        } else if (entityKind === 'releaseline') {
+          const releaseLine = await client.fetchReleaseLine(
+            entity,
+            entity.metadata.annotations?.[CHOREO_ANNOTATIONS.RELEASE_LINE] ??
+              entityName,
+          );
+          details = {
+            deletionTimestamp: releaseLine?.metadata?.deletionTimestamp as
+              | string
+              | undefined,
+          };
         } else if (entityKind === 'system') {
           // System in Backstage = Project in OpenChoreo
           details = await client.getProjectDetails(entity);

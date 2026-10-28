@@ -263,12 +263,15 @@ export const EnvironmentDeployedComponentsCard = () => {
               </TableRow>
             ) : (
               filteredComponents.map(component => {
+                const ref = parseEntityRef(component.entityRef);
                 const componentLink = `/catalog/${
-                  parseEntityRef(component.entityRef).namespace
-                }/component/${component.name}`;
+                  ref.namespace
+                }/${ref.kind.toLocaleLowerCase('en-US')}/${ref.name}`;
                 return (
                   <TableRow
-                    key={`${component.projectName}-${component.name}`}
+                    key={`${component.projectName}-${component.name}-${
+                      component.releaseLine ?? ''
+                    }`}
                     className={classes.clickableRow}
                     onClick={e => {
                       if (shouldNavigateOnRowClick(e)) {
@@ -290,6 +293,14 @@ export const EnvironmentDeployedComponentsCard = () => {
                       >
                         {component.displayName || component.name}
                       </Link>
+                      {component.releaseLine && (
+                        <Chip
+                          size="small"
+                          variant="outlined"
+                          label={component.releaseLine}
+                          className={classes.releaseLineChip}
+                        />
+                      )}
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">

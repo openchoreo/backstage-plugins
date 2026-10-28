@@ -344,57 +344,12 @@ describe('EnvironmentInfoService', () => {
     });
   });
 
-  describe('promoteComponent', () => {
-    it('calls promote endpoint then refetches deployment info', async () => {
-      // POST promote
-      mockPOST.mockResolvedValueOnce(createOkResponse({}));
-      // Then fetchDeploymentInfo internally calls 4 GETs:
-      mockGET.mockResolvedValueOnce(
-        createOkResponse({ items: [k8sEnvironment], pagination: {} }),
-      );
+  describe('deleteReleaseBinding', () => {
+    it('deletes binding and refetches deployment info', async () => {
+      // The binding is found by owner first.
       mockGET.mockResolvedValueOnce(
         createOkResponse({ items: [k8sReleaseBinding] }),
       );
-      mockGET.mockResolvedValueOnce(createOkResponse(k8sProject));
-      mockGET.mockResolvedValueOnce(createOkResponse(k8sPipeline));
-
-      const service = createService();
-      const result = await service.promoteComponent(
-        {
-          sourceEnvironment: 'dev',
-          targetEnvironment: 'staging',
-          componentName: 'api-service',
-          projectName: 'my-project',
-          namespaceName: 'test-ns',
-        },
-        'token-123',
-      );
-
-      expect(mockPOST).toHaveBeenCalledTimes(1);
-      expect(result).toHaveLength(1);
-    });
-
-    it('throws when promote API fails', async () => {
-      mockPOST.mockResolvedValueOnce(createErrorResponse());
-
-      const service = createService();
-      await expect(
-        service.promoteComponent(
-          {
-            sourceEnvironment: 'dev',
-            targetEnvironment: 'staging',
-            componentName: 'api-service',
-            projectName: 'my-project',
-            namespaceName: 'test-ns',
-          },
-          'token',
-        ),
-      ).rejects.toThrow();
-    });
-  });
-
-  describe('deleteReleaseBinding', () => {
-    it('deletes binding and refetches deployment info', async () => {
       mockDELETE.mockResolvedValueOnce({
         error: undefined,
         response: { ok: true, status: 200 },
@@ -420,6 +375,211 @@ describe('EnvironmentInfoService', () => {
 
       expect(mockDELETE).toHaveBeenCalledTimes(1);
       expect(result).toHaveLength(1);
+    });
+  });
+
+  describe('release bindings found by owner', () => {
+    // Line b-c of component a and component a-b-c compute the same name in an
+    // environment, and bindings created elsewhere may be named otherwise.
+    const ownedBinding = (
+      name: string,
+      componentName: string,
+      environment: string,
+      releaseLine?: string,
+    ) => ({
+      metadata: { name, namespace: 'test-ns' },
+      spec: {
+        owner: {
+          projectName: 'my-project',
+          componentName,
+          ...(releaseLine ? { releaseLine } : {}),
+        },
+        environment,
+        releaseName: `${name}-release`,
+      },
+    });
+    const lineRequest = {
+      componentName: 'a',
+      projectName: 'my-project',
+      namespaceName: 'test-ns',
+      releaseLine: 'b-c',
+      environment: 'staging',
+    };
+    const otherComponentBinding = ownedBinding(
+      'a-b-c-staging',
+      'a-b-c',
+      'staging',
+    );
+
+    const deleteName = () =>
+      mockDELETE.mock.calls[0][1].params.path.releaseBindingName;
+    const putName = () =>
+      mockPUT.mock.calls[0][1].params.path.releaseBindingName;
+
+    it('removes the line binding by its own name', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          items: [
+            otherComponentBinding,
+            ownedBinding('rb-a-staging', 'a', 'staging'),
+            ownedBinding('rb-a-line-b-c', 'a', 'staging', 'b-c'),
+          ],
+        }),
+      );
+      mockDELETE.mockResolvedValueOnce({
+        error: undefined,
+        response: { ok: true, status: 200 },
+      });
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({ items: [k8sEnvironment] }),
+      );
+      mockGET.mockResolvedValueOnce(createOkResponse({ items: [] }));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProject));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sPipeline));
+
+      await createService().deleteReleaseBinding(lineRequest, 'token');
+
+      expect(deleteName()).toBe('rb-a-line-b-c');
+    });
+
+    it('never removes the binding of another component with the computed name', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({ items: [otherComponentBinding] }),
+      );
+
+      await expect(
+        createService().deleteReleaseBinding(lineRequest, 'token'),
+      ).rejects.toThrow(
+        'No release binding of release line b-c of component a in environment staging',
+      );
+      expect(mockDELETE).not.toHaveBeenCalled();
+    });
+
+    it('promotes into the line binding by its own name', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          items: [
+            otherComponentBinding,
+            ownedBinding('rb-a-line-b-c', 'a', 'staging', 'b-c'),
+          ],
+        }),
+      );
+      mockPUT.mockResolvedValueOnce(createOkResponse({}));
+
+      await createService().updateReleaseBinding(
+        { ...lineRequest, releaseName: 'a-b-c-54f46888fd' },
+        'token',
+      );
+
+      expect(putName()).toBe('rb-a-line-b-c');
+      expect(mockPUT.mock.calls[0][1].body.spec).toMatchObject({
+        owner: { componentName: 'a', releaseLine: 'b-c' },
+        releaseName: 'a-b-c-54f46888fd',
+        state: 'Active',
+      });
+      expect(mockPOST).not.toHaveBeenCalled();
+    });
+
+    it('creates the line binding under the computed name when it has none', async () => {
+      mockGET.mockResolvedValueOnce(createOkResponse({ items: [] }));
+      mockPOST.mockResolvedValueOnce(createOkResponse({}));
+
+      await createService().updateReleaseBinding(
+        {
+          componentName: 'hello',
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+          releaseLine: 'next',
+          environment: 'production',
+          releaseName: 'hello-next-794cc58cc8',
+        },
+        'token',
+      );
+
+      expect(mockPOST.mock.calls[0][1].body).toMatchObject({
+        metadata: { name: 'hello-next-4833a175-production' },
+        spec: {
+          owner: { componentName: 'hello', releaseLine: 'next' },
+          environment: 'production',
+          releaseName: 'hello-next-794cc58cc8',
+        },
+      });
+    });
+
+    it('refuses a computed name another component already has', async () => {
+      mockGET
+        .mockResolvedValueOnce(
+          createOkResponse({ items: [otherComponentBinding] }),
+        )
+        .mockResolvedValueOnce(
+          createOkResponse({ items: [otherComponentBinding] }),
+        );
+      mockPOST.mockResolvedValueOnce(createErrorResponse(409, 'exists'));
+
+      await expect(
+        createService().updateReleaseBinding(
+          { ...lineRequest, releaseName: 'a-b-c-54f46888fd' },
+          'token',
+        ),
+      ).rejects.toThrow(
+        'another component or release line has a binding with that name',
+      );
+      expect(mockPUT).not.toHaveBeenCalled();
+    });
+
+    it('saves overrides on the line binding by its own name', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          items: [
+            otherComponentBinding,
+            ownedBinding('rb-a-line-b-c', 'a', 'staging', 'b-c'),
+          ],
+        }),
+      );
+      mockPUT.mockResolvedValueOnce(createOkResponse({}));
+
+      await createService().patchReleaseBindingOverrides(
+        {
+          ...lineRequest,
+          componentTypeEnvironmentConfigs: { replicas: 2 },
+        },
+        'token',
+      );
+
+      expect(putName()).toBe('rb-a-line-b-c');
+      expect(
+        mockPUT.mock.calls[0][1].body.spec.componentTypeEnvironmentConfigs,
+      ).toEqual({ replicas: 2 });
+    });
+
+    it('fails to save overrides when the line has no binding in the environment', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({ items: [otherComponentBinding] }),
+      );
+
+      await expect(
+        createService().patchReleaseBindingOverrides(
+          { ...lineRequest, componentTypeEnvironmentConfigs: {} },
+          'token',
+        ),
+      ).rejects.toThrow('No release binding of release line b-c');
+      expect(mockPUT).not.toHaveBeenCalled();
+    });
+
+    it('refuses to pick between several bindings of one line', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          items: [
+            ownedBinding('rb-a-line-b-c', 'a', 'staging', 'b-c'),
+            ownedBinding('a-b-c-staging-2', 'a', 'staging', 'b-c'),
+          ],
+        }),
+      );
+
+      await expect(
+        createService().deleteReleaseBinding(lineRequest, 'token'),
+      ).rejects.toThrow('Found 2 release bindings');
+      expect(mockDELETE).not.toHaveBeenCalled();
     });
   });
 
@@ -485,6 +645,79 @@ describe('EnvironmentInfoService', () => {
       );
 
       expect((result as any).items).toHaveLength(1);
+    });
+
+    const lineBinding = {
+      ...k8sReleaseBinding,
+      metadata: { ...k8sReleaseBinding.metadata, name: 'api-service-next-dev' },
+      spec: {
+        ...k8sReleaseBinding.spec,
+        owner: { ...k8sReleaseBinding.spec.owner, releaseLine: 'next' },
+      },
+    };
+
+    it('keeps the main line without a release line', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({ items: [k8sReleaseBinding, lineBinding] }),
+      );
+
+      const result = await createService().fetchReleaseBindings(
+        {
+          componentName: 'api-service',
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+        },
+        'token-123',
+      );
+
+      expect(result.items.map(b => b.metadata.name)).toEqual([
+        k8sReleaseBinding.metadata.name,
+      ]);
+    });
+
+    it('keeps every line with allReleaseLines', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({ items: [k8sReleaseBinding, lineBinding] }),
+      );
+
+      const result = await createService().fetchReleaseBindings(
+        {
+          componentName: 'api-service',
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+          allReleaseLines: true,
+        },
+        'token-123',
+      );
+
+      expect(result.items).toHaveLength(2);
+    });
+
+    it('pages through the bindings', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({ items: [k8sReleaseBinding] }),
+      );
+
+      await createService().fetchReleaseBindings(
+        {
+          componentName: 'api-service',
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+        },
+        'token-123',
+      );
+
+      expect(mockGET).toHaveBeenCalledWith(
+        '/api/v1/namespaces/{namespaceName}/releasebindings',
+        expect.objectContaining({
+          params: expect.objectContaining({
+            query: expect.objectContaining({
+              component: 'api-service',
+              limit: 100,
+            }),
+          }),
+        }),
+      );
     });
   });
 

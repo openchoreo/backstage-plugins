@@ -18,7 +18,7 @@ import {
   ForbiddenState,
   useProjectEnvironments,
 } from '@openchoreo/backstage-plugin-react';
-import { EnvironmentsStatusNotice } from '../common';
+import { EnvironmentsStatusNotice, ReleaseLineFilter } from '../common';
 import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { useRuntimeEventsStyles } from './styles';
 
@@ -202,6 +202,11 @@ const ObservabilityRuntimeEventsContent = () => {
       <RefreshOverlay
         active={eventsRefetching && !filters.isLive}
         label="Refreshing events"
+      />
+      <ReleaseLineFilter
+        namespace={namespace}
+        component={componentName}
+        disabled={eventsLoading}
       />
       <EventsFilter
         filters={filters}

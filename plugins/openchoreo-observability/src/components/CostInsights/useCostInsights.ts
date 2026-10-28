@@ -9,6 +9,7 @@ import type { CostItem, CostRecommendationItem } from '../../types';
 import { buildCostInsightsData } from './costAggregation';
 import { fetchBindingInfoByEnv, normalizeEnv } from './optimizeChange';
 import type { CostInsightsData, CostScope, CostScopeLevel } from './types';
+import { useSelectedReleaseLine } from '../../hooks/useSelectedReleaseLine';
 
 export interface UseCostInsightsParams {
   /** Atomic scopes to query (one per selected item at `level`). */
@@ -62,6 +63,12 @@ export function useCostInsights(
   const sortedScopeKeys = uniqueScopes.map(scopeKey).sort();
 
   const enabled = uniqueScopes.length > 0 && sortedEnvs.length > 0;
+  // A release line narrows a single component in scope.
+  const selectedLine = useSelectedReleaseLine();
+  const releaseLine =
+    uniqueScopes.length === 1 && uniqueScopes[0].component
+      ? selectedLine
+      : undefined;
 
   const { data, loading, isRefetching, error, refetch } =
     useOpenChoreoQuery<CostInsightsData>(
@@ -75,6 +82,7 @@ export function useCostInsights(
         params.customEndTime ?? '',
         granularity,
         summaryOnly ? 'summary' : 'full',
+        releaseLine ?? '',
       ],
       async () => {
         const { startTime, endTime } = calculateTimeRange(timeRange, {
@@ -108,6 +116,7 @@ export function useCostInsights(
             const scopeOpts = {
               project: scope.project,
               component: scope.component,
+              releaseLine,
             };
             const noCosts = () => ({ items: [] as CostItem[] });
             const noRecommendations = () => ({
@@ -247,6 +256,7 @@ export function useCostInsights(
             namespaceName: singleComponent.namespace!,
             projectName: singleComponent.project!,
             componentName: singleComponent.component!,
+            releaseLine,
           });
           const windowStartMs = new Date(startTime).getTime();
           // Buffer so the settling period right after a spec change (pods rolling

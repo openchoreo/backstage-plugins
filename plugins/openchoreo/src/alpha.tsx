@@ -174,8 +174,10 @@ const resourceDefinitionEntityContent = EntityContentBlueprint.make({
     title: 'Definition',
     group: 'definition',
     // API entities are excluded — upstream api-docs owns their /definition tab.
+    // Release lines have their own Definition tab.
     filter: entity =>
-      isOpenChoreoManagedEntity(entity) && entity.kind.toLowerCase() !== 'api',
+      isOpenChoreoManagedEntity(entity) &&
+      !['api', 'releaseline'].includes(entity.kind.toLowerCase()),
     loader: () =>
       import('./components/ResourceDefinition').then(m => (
         <m.ResourceDefinitionTab />
@@ -184,6 +186,20 @@ const resourceDefinitionEntityContent = EntityContentBlueprint.make({
 });
 
 // ─── Component-page tabs (kind:component) ─────────────────────────────────
+const releaseLineDefinitionEntityContent = EntityContentBlueprint.make({
+  name: 'release-line-definition',
+  params: {
+    path: '/definition',
+    title: 'Definition',
+    group: 'definition',
+    filter: isOpenChoreoManagedOfKind('releaseline'),
+    loader: () =>
+      import('./components/ReleaseLines').then(m => (
+        <m.ReleaseLineDefinitionTab />
+      )),
+  },
+});
+
 const componentDeployEntityContent = EntityContentBlueprint.make({
   name: 'component-deploy',
   params: {
@@ -735,6 +751,17 @@ const componentServiceOverviewLayout = EntityContentLayoutBlueprint.make({
   },
 });
 
+const releaseLineOverviewLayout = EntityContentLayoutBlueprint.make({
+  name: 'release-line-overview',
+  params: {
+    filter: isOpenChoreoManagedOfKind('releaseline'),
+    loader: () =>
+      import('./extensions/entityLayouts/ReleaseLineOverviewLayout').then(
+        m => m.default,
+      ),
+  },
+});
+
 const systemOverviewLayout = EntityContentLayoutBlueprint.make({
   name: 'system-overview',
   params: {
@@ -1030,6 +1057,7 @@ export const openChoreoPlugin = createFrontendPlugin({
     deleteEntityContextMenuItem,
     editAnnotationsEntityContextMenuItem,
     resourceDefinitionEntityContent,
+    releaseLineDefinitionEntityContent,
     componentDeployEntityContent,
     deploymentStatusCard,
     runtimeHealthCard,
@@ -1073,6 +1101,7 @@ export const openChoreoPlugin = createFrontendPlugin({
     openChoreoUserTokenFormDecorator,
     // per-kind Overview layouts
     componentServiceOverviewLayout,
+    releaseLineOverviewLayout,
     systemOverviewLayout,
     domainOverviewLayout,
     resourceOverviewLayout,

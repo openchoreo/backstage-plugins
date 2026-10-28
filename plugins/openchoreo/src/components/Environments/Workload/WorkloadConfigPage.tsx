@@ -20,11 +20,18 @@ import { useEntity, catalogApiRef } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
 import {
   type WorkloadResource,
+  type ReleaseLineOverrides,
   CHOREO_ANNOTATIONS,
+  diffOverrides,
+  diffTraits,
+  isInheritedTrait,
+  mergeOverrides,
+  mergeTraits,
 } from '@openchoreo/backstage-plugin-common';
 import {
   DetailPageLayout,
   UnsavedChangesDialog,
+  useReleaseLine,
 } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { getErrorMessage } from '../../../utils/errorUtils';
@@ -40,6 +47,7 @@ import { CreateReleaseDialog } from '../components/CreateReleaseDialog';
 import { useReleases } from '../hooks/useReleases';
 import { useEnvironmentsContext } from '../EnvironmentsContext';
 import { useNotification } from '../../../hooks';
+import { pickOverridableProperties } from '../../ReleaseLines/releaseLineUtils';
 
 /** Stable empty array to avoid unnecessary rerenders in WorkloadProvider */
 const EMPTY_BUILDS: never[] = [];
@@ -88,6 +96,7 @@ export const WorkloadConfigPage = ({
 }: WorkloadConfigPageProps) => {
   const classes = useStyles();
   const client = useApi(openChoreoClientApiRef);
+  const { releaseLine } = useReleaseLine();
   const catalogApi = useApi(catalogApiRef);
   const { entity } = useEntity();
   const {
@@ -134,6 +143,17 @@ export const WorkloadConfigPage = ({
     name: string;
   }> | null>(null);
   const [traitsLoadError, setTraitsLoadError] = useState<string | null>(null);
+
+  // On a release line: the component's own traits and parameters, which the
+  // line inherits, and the line's current overrides. The editors show the
+  // merged values; saving writes back only what differs from the component.
+  const [inheritedTraits, setInheritedTraits] =
+    useState<ComponentTrait[]>(EMPTY_TRAITS);
+  const [inheritedParameters, setInheritedParameters] = useState<
+    Record<string, unknown>
+  >({});
+  const [releaseLineOverrides, setReleaseLineOverrides] =
+    useState<ReleaseLineOverrides | null>(null);
 
   // Traits management via usePendingChanges
   const {
@@ -218,7 +238,7 @@ export const WorkloadConfigPage = ({
 
         // Fetch workload and traits in parallel
         const [workloadResult, traitsResult] = await Promise.allSettled([
-          client.fetchWorkloadInfo(entity),
+          client.fetchWorkloadInfo(entity, releaseLine),
           client.fetchComponentTraits(entity),
         ]);
 
@@ -235,14 +255,22 @@ export const WorkloadConfigPage = ({
             );
           } else {
             setIsNewWorkload(true);
+            // On a release line page the entity is the line, so the component
+            // comes from its annotation, and the backend names the line's workload.
+            const componentName =
+              entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT] ||
+              entity.metadata.name;
             const defaultResource: WorkloadResource = {
-              metadata: { name: entity.metadata.name },
+              metadata: {
+                name: releaseLine ? '' : entity.metadata.name,
+              },
               spec: {
                 owner: {
                   projectName:
                     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT] ||
                     '',
-                  componentName: entity.metadata.name,
+                  componentName,
+                  ...(releaseLine ? { releaseLine } : {}),
                 },
                 container: {
                   image: '',
@@ -255,8 +283,10 @@ export const WorkloadConfigPage = ({
         }
 
         // Handle traits result
+        let componentTraits: ComponentTrait[] = [];
         if (traitsResult.status === 'fulfilled') {
-          setInitialTraits(traitsResult.value);
+          componentTraits = traitsResult.value;
+          setInitialTraits(componentTraits);
           setTraitsLoadError(null);
         } else {
           setTraitsLoadError(
@@ -323,6 +353,7 @@ export const WorkloadConfigPage = ({
           }
         }
 
+        let componentParams: Record<string, unknown> = {};
         try {
           const componentDetails = await client.getComponentDetails(entity);
           const params = componentDetails?.parameters;
@@ -331,11 +362,34 @@ export const WorkloadConfigPage = ({
             typeof params === 'object' &&
             Object.keys(params).length > 0
           ) {
+            componentParams = params;
             setComponentParameters(params);
             setInitialParameters(JSON.parse(JSON.stringify(params)));
           }
         } catch {
           // Component details fetch failure is non-critical for parameters
+        }
+
+        if (releaseLine) {
+          const line = await client.fetchReleaseLine(entity, releaseLine);
+          const overrides = pickOverridableProperties(
+            line.spec as Record<string, unknown> | undefined,
+          );
+          const effectiveParams = mergeOverrides(
+            componentParams,
+            overrides.parameters,
+          );
+          setReleaseLineOverrides(overrides);
+          setInheritedTraits(componentTraits);
+          setInheritedParameters(componentParams);
+          setInitialTraits(
+            mergeTraits(
+              componentTraits,
+              (overrides.traits ?? []) as ComponentTrait[],
+            ),
+          );
+          setComponentParameters(effectiveParams);
+          setInitialParameters(JSON.parse(JSON.stringify(effectiveParams)));
         }
       } catch (e) {
         setLoadError('Failed to load configuration');
@@ -356,21 +410,34 @@ export const WorkloadConfigPage = ({
       setInitialParameters({});
       setAllowedTraits(null);
       setTraitsLoadError(null);
+      setInheritedTraits(EMPTY_TRAITS);
+      setInheritedParameters({});
+      setReleaseLineOverrides(null);
     };
-  }, [entity, client, catalogApi]);
+  }, [entity, client, catalogApi, releaseLine]);
 
   // Retry fetching traits when initial load failed
   const retryTraitsFetch = useCallback(async () => {
     try {
       setTraitsLoadError(null);
       const traits = await client.fetchComponentTraits(entity);
-      setInitialTraits(traits);
+      if (releaseLine) {
+        setInheritedTraits(traits);
+        setInitialTraits(
+          mergeTraits(
+            traits,
+            (releaseLineOverrides?.traits ?? []) as ComponentTrait[],
+          ),
+        );
+      } else {
+        setInitialTraits(traits);
+      }
     } catch {
       setTraitsLoadError(
         'Failed to load traits. Trait editing is disabled until traits are loaded.',
       );
     }
-  }, [client, entity]);
+  }, [client, entity, releaseLine, releaseLineOverrides]);
 
   // Combined unsaved state
   const hasUnsavedWork =
@@ -462,13 +529,27 @@ export const WorkloadConfigPage = ({
           entity,
           workloadResource,
           isNewWorkload,
+          releaseLine,
         );
         setWorkloadResource(result);
         setInitialResource(JSON.parse(JSON.stringify(result)));
         setIsNewWorkload(false);
       }
 
-      if (hasTraitChanges || hasParameterChanges) {
+      if ((hasTraitChanges || hasParameterChanges) && releaseLine) {
+        // Save the line's overrides: what differs from the component, keeping
+        // the overrides edited elsewhere (autoDeploy, build parameters).
+        const overrides: ReleaseLineOverrides = {
+          ...releaseLineOverrides,
+          parameters: diffOverrides(
+            getParametersForSave(),
+            inheritedParameters,
+          ),
+          traits: diffTraits(getTraitsForSave(), inheritedTraits),
+        };
+        await client.updateReleaseLine(entity, releaseLine, overrides);
+        setReleaseLineOverrides(overrides);
+      } else if (hasTraitChanges || hasParameterChanges) {
         await client.updateComponentConfig(
           entity,
           hasTraitChanges ? getTraitsForSave() : undefined,
@@ -608,8 +689,18 @@ export const WorkloadConfigPage = ({
     [editTrait],
   );
   const handleDeleteTrait = useCallback(
-    (instanceName: string) => deleteTrait(instanceName),
-    [deleteTrait],
+    (instanceName: string) => {
+      const trait = traitsState.find(t => t.instanceName === instanceName);
+      // A release line can override an inherited trait but not drop it.
+      if (releaseLine && trait && isInheritedTrait(trait, inheritedTraits)) {
+        setSaveError(
+          `The ${instanceName} trait is inherited from the component and cannot be removed on a release line. Remove it on the component's Definition page, or edit it here to override its configuration.`,
+        );
+        return;
+      }
+      deleteTrait(instanceName);
+    },
+    [deleteTrait, traitsState, releaseLine, inheritedTraits],
   );
   const handleUndoDeleteTrait = useCallback(
     (instanceName: string) => undoDelete(instanceName),
@@ -657,6 +748,17 @@ export const WorkloadConfigPage = ({
         <Box mb={2}>
           <Alert severity="error" onClose={() => setSaveError(null)}>
             {saveError}
+          </Alert>
+        </Box>
+      )}
+
+      {!isLoading && !loadError && releaseLine && (
+        <Box mb={2}>
+          <Alert severity="info">
+            Showing the component's configuration with the {releaseLine} release
+            line's overrides applied. Parameter and trait changes are saved as
+            overrides on {releaseLine}; the component itself is edited on its
+            Definition page.
           </Alert>
         </Box>
       )}

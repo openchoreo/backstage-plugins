@@ -72,6 +72,7 @@ export function registerExecWebSocketProxy(
     if (session.environment) q.set('env', session.environment);
     if (session.podName) q.set('pod', session.podName);
     if (session.containerName) q.set('container', session.containerName);
+    if (session.releaseLine) q.set('releaseLine', session.releaseLine);
     q.set('tty', 'true');
     q.set('stdin', 'true');
     q.set('command', '/bin/sh');

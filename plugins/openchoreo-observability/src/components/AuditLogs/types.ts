@@ -33,6 +33,8 @@ export interface AuditLogResource {
   environment?: string;
   project?: string;
   component?: string;
+  /** Absent for components without release lines. */
+  release_line?: string;
   resource?: string;
   /** Absent when the operation returned no object — a delete, or a non-CRUD mutation. */
   uid?: string;
@@ -121,6 +123,7 @@ export interface AuditLogsResourceFilter {
   environment?: string[];
   project?: string[];
   component?: string[];
+  release_line?: string[];
   /**
    * The OpenChoreo Resource in the hierarchy, the sibling of `component`. On a
    * release or binding this is the parent Resource, not the object `name`
@@ -245,6 +248,7 @@ export const AUDIT_PICKABLE_FILTERS = [
   'resource.environment',
   'resource.project',
   'resource.component',
+  'resource.release_line',
   'resource.resource',
   'resource.name',
   'action',
@@ -305,6 +309,7 @@ export const AUDIT_FILTER_DESCRIPTIONS: Record<AuditFilterPath, string> = {
     'namespace-qualified environment, e.g. default/production',
   'resource.project': 'the project the decision was authorized at',
   'resource.component': 'the component the decision was authorized at',
+  'resource.release_line': 'the release line of the component',
   'resource.resource':
     'the Resource the decision was authorized at, the sibling of component',
   'resource.name': 'name the handler recorded',
@@ -354,7 +359,7 @@ export const AUDIT_COLUMNS: AuditColumn[] = [
   {
     id: 'scope',
     label: 'Scope',
-    field: 'resource.namespace / project / component',
+    field: 'resource.namespace / project / component / release_line',
     defaultOn: true,
   },
   { id: 'result', label: 'Result', field: 'result', fixed: true },

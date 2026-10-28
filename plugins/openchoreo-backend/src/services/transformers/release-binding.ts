@@ -211,6 +211,9 @@ export function transformReleaseBinding(
     namespaceName: getNamespace(binding) ?? '',
     environment: binding.spec?.environment ?? '',
     releaseName: binding.spec?.releaseName ?? '',
+    ...(binding.spec?.owner?.releaseLine
+      ? { releaseLine: binding.spec.owner.releaseLine }
+      : {}),
     componentTypeEnvironmentConfigs:
       binding.spec?.componentTypeEnvironmentConfigs,
     traitEnvironmentConfigs: binding.spec?.traitEnvironmentConfigs,

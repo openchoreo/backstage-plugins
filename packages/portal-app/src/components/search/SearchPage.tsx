@@ -9,6 +9,7 @@ import {
 } from '@backstage/plugin-search-react';
 import { Content, Header, Page } from '@backstage/core-components';
 import { SearchResultItem } from './SearchResultItem';
+import { isHiddenSearchResult } from '../../utils/kindUtils';
 import { SearchKindDropdown } from './SearchKindDropdown';
 
 const useStyles = makeStyles((theme: Theme) => ({
@@ -58,13 +59,15 @@ const SearchPage = () => {
             <SearchResult>
               {resultSet => (
                 <List>
-                  {resultSet.results.map(({ document, rank }) => (
-                    <SearchResultItem
-                      key={document.location}
-                      result={document}
-                      rank={rank}
-                    />
-                  ))}
+                  {resultSet.results
+                    .filter(r => !isHiddenSearchResult(r.document))
+                    .map(({ document, rank }) => (
+                      <SearchResultItem
+                        key={document.location}
+                        result={document}
+                        rank={rank}
+                      />
+                    ))}
                 </List>
               )}
             </SearchResult>

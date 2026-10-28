@@ -86,6 +86,7 @@ describe('EventDeltaApplier.handleEvent', () => {
     // convention fallback); covered by separate tests below, not by
     // the generic per-kind dispatch table.
     { kind: 'Environment', expectedRefs: ['environment:test-ns/order'] },
+    { kind: 'ReleaseLine', expectedRefs: ['releaseline:test-ns/order'] },
     {
       kind: 'ObservabilityAlertsNotificationChannel',
       expectedRefs: ['observabilityalertsnotificationchannel:test-ns/order'],
@@ -1103,5 +1104,164 @@ describe('EventDeltaApplier component removal refreshes the parent System', () =
       applyMutation.mock.calls[0][0].removed.map((r: any) => r.entityRef),
     ).toEqual(['component:test-ns/order']);
     expect(refreshEntity).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Release lines are served under their component, so a ReleaseLine event is
+// resolved through the component the catalog already knows for the line.
+// ---------------------------------------------------------------------------
+describe('EventDeltaApplier release lines', () => {
+  let applyMutation: jest.Mock;
+  let connection: EntityProviderConnection;
+
+  function newApplierWithCatalog(catalogService: any) {
+    return new EventDeltaApplier({
+      logger: mkLogger(),
+      baseUrl: 'http://test:8080',
+      defaultOwner: 'group:default/test-owner',
+      translatorContext: {
+        providerName: 'OpenChoreoEntityProvider',
+        defaultOwner: 'group:default/test-owner',
+        componentTypeUtils: ComponentTypeUtils.fromConfig(
+          new ConfigReader({
+            openchoreo: { componentTypes: { mappings: [] } },
+          }),
+        ),
+      },
+      getConnection: () => connection,
+      ctdConverter: new CtdToTemplateConverter(mkLogger()),
+      rtdConverter: new RtdToTemplateConverter(mkLogger()),
+      ptdConverter: new PtdToTemplateConverter(mkLogger()),
+      catalogService,
+      auth: {
+        getOwnServiceCredentials: jest.fn().mockResolvedValue({}),
+      } as any,
+    });
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockGET.mockResolvedValue(notFound());
+    applyMutation = jest.fn();
+    connection = { applyMutation, refresh: jest.fn() } as any;
+  });
+
+  it('upserts a release line fetched through its component', async () => {
+    const catalogService = {
+      getEntityByRef: jest.fn().mockResolvedValue({
+        kind: 'ReleaseLine',
+        metadata: {
+          name: 'next',
+          namespace: 'test-ns',
+          annotations: { 'openchoreo.io/component': 'hello' },
+        },
+      }),
+    };
+    mockGET.mockImplementation((path: string) => {
+      if (path.endsWith('/releaselines/{releaseLineName}')) {
+        return Promise.resolve({
+          data: {
+            metadata: { name: 'next', namespace: 'test-ns' },
+            spec: { owner: { projectName: 'proj', componentName: 'hello' } },
+          },
+          response: { ok: true, status: 200 },
+        });
+      }
+      return Promise.resolve(notFound());
+    });
+
+    await newApplierWithCatalog(catalogService).handleEvent(
+      'ReleaseLine',
+      'next',
+      'test-ns',
+      'updated',
+    );
+
+    expect(mockGET).toHaveBeenCalledWith(
+      '/api/v1/namespaces/{namespaceName}/components/{componentName}/releaselines/{releaseLineName}',
+      {
+        params: {
+          path: {
+            namespaceName: 'test-ns',
+            componentName: 'hello',
+            releaseLineName: 'next',
+          },
+        },
+      },
+    );
+    const added = applyMutation.mock.calls[0][0].added.map(
+      (a: any) => a.entity,
+    );
+    expect(added).toHaveLength(1);
+    expect(added[0].kind).toBe('ReleaseLine');
+    expect(added[0].spec.component).toBe('component:test-ns/hello');
+  });
+
+  it("refreshes a deleted line's component, whose lines it marks", async () => {
+    const catalogService = {
+      getEntityByRef: jest.fn().mockResolvedValue({
+        kind: 'ReleaseLine',
+        metadata: {
+          name: 'next',
+          namespace: 'test-ns',
+          annotations: { 'openchoreo.io/component': 'hello' },
+        },
+      }),
+      getEntities: jest.fn().mockResolvedValue({ items: [] }),
+    };
+
+    await newApplierWithCatalog(catalogService).handleEvent(
+      'ReleaseLine',
+      'next',
+      'test-ns',
+      'deleted',
+    );
+
+    expect(mockGET).toHaveBeenCalledWith(
+      '/api/v1/namespaces/{namespaceName}/components/{componentName}',
+      expect.objectContaining({
+        params: expect.objectContaining({
+          path: { namespaceName: 'test-ns', componentName: 'hello' },
+        }),
+      }),
+    );
+  });
+
+  it('removes the release lines of a deleted component with release lines', async () => {
+    const catalogService = {
+      getEntityByRef: jest.fn().mockResolvedValue({
+        kind: 'Component',
+        metadata: {
+          name: 'hello',
+          namespace: 'test-ns',
+          annotations: { 'openchoreo.io/has-release-lines': 'true' },
+        },
+        spec: { system: 'proj' },
+      }),
+      getEntities: jest.fn().mockResolvedValue({
+        items: [
+          { metadata: { name: 'canary' } },
+          { metadata: { name: 'next' } },
+        ],
+      }),
+      refreshEntity: jest.fn().mockResolvedValue(undefined),
+    };
+
+    await newApplierWithCatalog(catalogService).handleEvent(
+      'Component',
+      'hello',
+      'test-ns',
+      'deleted',
+    );
+
+    const removed = applyMutation.mock.calls[0][0].removed.map(
+      (r: any) => r.entityRef,
+    );
+    expect(removed.sort()).toEqual([
+      'component:test-ns/hello',
+      'releaseline:test-ns/canary',
+      'releaseline:test-ns/next',
+    ]);
   });
 });

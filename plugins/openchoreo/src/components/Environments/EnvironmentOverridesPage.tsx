@@ -42,6 +42,7 @@ import { ContainerContent } from './Workload/WorkloadEditor';
 import {
   useSecretReferences,
   filterSecretReferencesForEnvDataPlane,
+  useReleaseLine,
 } from '@openchoreo/backstage-plugin-react';
 import type { EnvVar } from '@openchoreo/backstage-plugin-common';
 import { TraitParameters } from './TraitParameters';
@@ -103,6 +104,7 @@ export const EnvironmentOverridesPage = ({
 }: EnvironmentOverridesPageProps) => {
   const classes = useStyles();
   const client = useApi(openChoreoClientApiRef);
+  const { releaseLine } = useReleaseLine();
 
   const [traitTypeMap, setTraitTypeMap] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -515,6 +517,10 @@ export const EnvironmentOverridesPage = ({
           entity,
           environmentName,
           pendingAction.releaseName,
+          undefined,
+          undefined,
+          undefined,
+          releaseLine,
         );
         await onPendingActionComplete(pendingAction);
       } catch (err) {
@@ -552,6 +558,7 @@ export const EnvironmentOverridesPage = ({
           formState.componentTypeFormData,
           formState.traitFormDataMap,
           formState.workloadFormData,
+          releaseLine,
         );
       } else {
         // Plain save — use existing patchReleaseBindingOverrides
@@ -561,6 +568,8 @@ export const EnvironmentOverridesPage = ({
           formState.componentTypeFormData,
           formState.traitFormDataMap,
           formState.workloadFormData,
+          undefined,
+          releaseLine,
         );
       }
 
@@ -605,6 +614,8 @@ export const EnvironmentOverridesPage = ({
           {},
           {},
           {},
+          undefined,
+          releaseLine,
         );
         setShowDeleteConfirm(false);
         onSaved();
