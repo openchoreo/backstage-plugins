@@ -1,5 +1,18 @@
 # @openchoreo/backstage-plugin-platform-engineer-core-backend
 
+## 1.4.0-m.1
+
+### Patch Changes
+
+- c67978a: Replace Backstage CLI boilerplate in published package descriptions and READMEs with
+  real ones, so the npm listings describe what each package does and point at the install
+  guide. No code changes.
+- Updated dependencies [f5ca212]
+- Updated dependencies [c67978a]
+- Updated dependencies [cdc4c6e]
+  - @openchoreo/openchoreo-client-node@2.0.0-next.0
+  - @openchoreo/openchoreo-auth@2.0.0-next.0
+
 ## 1.3.0
 
 ### Patch Changes

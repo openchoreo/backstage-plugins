@@ -1,5 +1,26 @@
 # @openchoreo/backstage-plugin-openchoreo-workflows
 
+## 1.4.0-m.1
+
+### Patch Changes
+
+- c67978a: Replace Backstage CLI boilerplate in published package descriptions and READMEs with
+  real ones, so the npm listings describe what each package does and point at the install
+  guide. No code changes.
+- Updated dependencies [d19949b]
+- Updated dependencies [c15ee42]
+- Updated dependencies [9e3a840]
+- Updated dependencies [f5ca212]
+- Updated dependencies [f5ca212]
+- Updated dependencies [44795b9]
+- Updated dependencies [c67978a]
+- Updated dependencies [11907a6]
+- Updated dependencies [cdc4c6e]
+- Updated dependencies [3275f94]
+  - @openchoreo/backstage-plugin@2.0.0-next.0
+  - @openchoreo/backstage-plugin-react@2.0.0-next.0
+  - @openchoreo/backstage-design-system@2.0.0-next.0
+
 ## 1.3.0
 
 ### Patch Changes
