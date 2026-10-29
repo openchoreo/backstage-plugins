@@ -149,6 +149,7 @@ describe('CustomReviewStep — Notification Channel templates', () => {
               insecureSkipVerify: false,
               subjectTemplate: 'Alert',
               bodyTemplate: 'Body',
+              contentType: 'text/html',
             },
           },
         })}
@@ -157,6 +158,7 @@ describe('CustomReviewStep — Notification Channel templates', () => {
 
     const meta = JSON.stringify(tables()[0]);
     expect(meta).toContain('alerts@example.com');
+    expect(meta).toContain('text/html');
     expect(meta).not.toContain('Webhook Config');
   });
 });

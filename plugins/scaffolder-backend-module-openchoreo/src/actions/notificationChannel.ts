@@ -56,6 +56,11 @@ export const createNotificationChannelAction = (
               insecureSkipVerify: z.boolean().optional(),
               subjectTemplate: z.string(),
               bodyTemplate: z.string(),
+              contentType: z
+                .enum(['text/plain', 'text/html'], {
+                  description: 'Content type of the email body',
+                })
+                .optional(),
             })
             .optional(),
         webhookConfig: z =>
@@ -158,6 +163,7 @@ export const createNotificationChannelAction = (
               template: {
                 subject: emailInput.subjectTemplate,
                 body: emailInput.bodyTemplate,
+                contentType: emailInput.contentType ?? 'text/plain',
               },
             }
           : undefined;

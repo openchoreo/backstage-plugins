@@ -28,6 +28,9 @@ interface NotificationChannelSpec {
         password?: { secretKeyRef?: SecretKeyRef };
       };
     };
+    template?: {
+      contentType?: 'text/plain' | 'text/html';
+    };
   };
   webhookConfig?: {
     url: string;
@@ -160,6 +163,12 @@ export const NotificationChannelConfigCard = () => {
             <Typography className={classes.infoLabel}>SMTP Server</Typography>
             <Typography className={classes.infoValue}>
               {spec.emailConfig.smtp?.host}:{spec.emailConfig.smtp?.port}
+            </Typography>
+          </Box>
+          <Box className={classes.infoRow}>
+            <Typography className={classes.infoLabel}>Content Type</Typography>
+            <Typography className={classes.infoValue}>
+              {spec.emailConfig.template?.contentType ?? 'text/plain'}
             </Typography>
           </Box>
           {smtpUsernameRef && (

@@ -6760,6 +6760,12 @@ export interface components {
        * @example Alert: ${alert.name} triggered at ${alert.startsAt}.
        */
       body: string;
+      /**
+       * @description Content type of the email body (text/plain or text/html)
+       * @default text/plain
+       * @enum {string}
+       */
+      contentType: 'text/plain' | 'text/html';
     };
     /** @description Configuration for webhook notification channels */
     NotificationWebhookConfig: {

@@ -67,6 +67,7 @@ export interface NotificationSmtpConfig {
 export interface NotificationEmailTemplate {
   subject: string;
   body: string;
+  contentType?: 'text/plain' | 'text/html';
   /**
    * Index signature for JSON compatibility
    */
