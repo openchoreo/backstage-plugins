@@ -162,6 +162,90 @@ describe('CheckValidator', () => {
     ]);
   });
 
+  it.each([
+    [
+      'the operator that is unknown',
+      {
+        all: [
+          { fact: 'githubIsArchived', operator: 'equal', value: true },
+          {
+            any: [
+              { fact: 'githubIsArchived', operator: 'equal', value: true },
+              {
+                not: { fact: 'githubIsArchived', operator: 'equals', value: 1 },
+              },
+            ],
+          },
+        ],
+      },
+      ['/conditions/all/1/any/1/not/operator'],
+    ],
+    [
+      'every leaf that fails, not only the first',
+      {
+        any: [
+          { fact: 'githubIsArchived', operator: 'equals', value: true },
+          { fact: 'githubIsArchived', operator: 'equal', value: true },
+          { fact: 'githubIsArchived', operator: 'isTrue', value: true },
+        ],
+      },
+      ['/conditions/any/0/operator', '/conditions/any/2/operator'],
+    ],
+    [
+      'a reference to a named condition jsonfc does not define',
+      { all: [{ condition: 'shared' }] },
+      ['/conditions/all/0/condition'],
+    ],
+    [
+      'a condition missing its value',
+      { all: [{ any: [{ fact: 'githubIsArchived', operator: 'equal' }] }] },
+      ['/conditions/all/0/any/0'],
+    ],
+    [
+      'an all that is not an array',
+      { all: [{ all: { fact: 'githubIsArchived' } }] },
+      ['/conditions/all/0'],
+    ],
+    [
+      'a root that is a bare condition',
+      { fact: 'githubIsArchived', operator: 'equal', value: true },
+      ['/conditions'],
+    ],
+  ])('points at %s', async (_label, conditions, paths) => {
+    const problems = await validator.problemsOf({
+      ...check('x', 'githubIsArchived'),
+      rule: { conditions } as unknown as TechInsightJsonRuleCheck['rule'],
+    });
+    expect(problems.map(p => [p.code, p.path])).toEqual(
+      paths.map(path => ['invalid-rule', path]),
+    );
+  });
+
+  it('names the unknown fact', async () => {
+    await expect(
+      validator.problemsOf(check('x', 'githubNoSuchFact')),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        code: 'unknown-fact',
+        fact: 'githubNoSuchFact',
+      }),
+    ]);
+  });
+
+  it.each([
+    ['a rule that is not an object', []],
+    ['a rule without conditions', {}],
+  ])('reports %s at the rule itself', async (_label, rule) => {
+    await expect(
+      validator.problemsOf({
+        ...check('x', 'githubIsArchived'),
+        rule: rule as unknown as TechInsightJsonRuleCheck['rule'],
+      }),
+    ).resolves.toEqual([
+      expect.objectContaining({ code: 'invalid-rule', path: '' }),
+    ]);
+  });
+
   it('accepts a rule that uses not', async () => {
     await expect(
       validator.problemsOf({

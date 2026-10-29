@@ -201,6 +201,25 @@ export async function createDynamicChecksRouter(
     res.status(204).end();
   });
 
+  // Called as the check editor's text changes, so a draft's problems come back
+  // as data rather than as a 400.
+  router.post('/dynamic-checks/validate', async (req, res) => {
+    await authorize(req, dynamicCheckManagePermission);
+    const { factIds, rule } = (req.body ?? {}) as {
+      factIds?: unknown;
+      rule?: unknown;
+    };
+    const problems = await requireEvaluation().validator.problemsOf({
+      type: 'json-rules-engine',
+      name: '',
+      factIds: Array.isArray(factIds)
+        ? factIds.filter((id): id is string => typeof id === 'string')
+        : [],
+      rule: rule as TechInsightJsonRuleCheck['rule'],
+    });
+    res.json({ problems });
+  });
+
   router.post('/dynamic-checks/dry-run', async (req, res) => {
     await authorize(req, dynamicCheckManagePermission);
     const { entity, check } = (req.body ?? {}) as {

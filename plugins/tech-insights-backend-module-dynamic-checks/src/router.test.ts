@@ -81,6 +81,7 @@ describe('createDynamicChecksRouter permissions', () => {
     ['post', '/dynamic-checks/check-1/publish'],
     ['post', '/dynamic-checks/check-1/unpublish'],
     ['post', '/dynamic-checks/dry-run'],
+    ['post', '/dynamic-checks/validate'],
     [
       'post',
       '/dynamic-checks/fact-retrievers/githubRepositoryFactRetriever/trigger',
@@ -90,6 +91,36 @@ describe('createDynamicChecksRouter permissions', () => {
     const response = await request(app)[method](path).send({});
     expect(response.status).toBe(403);
     expect(registry.publish).not.toHaveBeenCalled();
+  });
+});
+
+describe('POST /dynamic-checks/validate', () => {
+  it('returns the problems of a draft rule', async () => {
+    const problem: CheckProblem = {
+      code: 'invalid-rule',
+      path: '/conditions/all/0/operator',
+      message: "The rule can't be evaluated: Unknown operator: equals",
+    };
+    const { app, validator } = await setup({
+      result: AuthorizeResult.ALLOW,
+      problems: [problem],
+    });
+    const rule = {
+      conditions: {
+        all: [{ fact: 'githubIsArchived', operator: 'equals', value: true }],
+      },
+    };
+    const response = await request(app)
+      .post('/dynamic-checks/validate')
+      .send({ factIds: ['githubRepositoryFactRetriever', 7], rule });
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ problems: [problem] });
+    expect(validator.problemsOf).toHaveBeenCalledWith(
+      expect.objectContaining({
+        factIds: ['githubRepositoryFactRetriever'],
+        rule,
+      }),
+    );
   });
 });
 

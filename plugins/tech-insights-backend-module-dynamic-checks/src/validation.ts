@@ -15,6 +15,10 @@ export interface CheckProblem {
   code: CheckProblemCode;
   message: string;
   factRetrieverId?: string;
+  /** JSON pointer into the rule at the condition an invalid rule fails on. */
+  path?: string;
+  /** The fact an unknown-fact problem is about. */
+  fact?: string;
 }
 
 /** The parts of a check that decide whether it can be evaluated. */
@@ -43,14 +47,69 @@ const RULE_CACHE_LIMIT = 500;
 
 const NOOP_EVENT = { type: 'noop' };
 
+type ConditionAt = { node: unknown; path: string };
+
+/** The children of a boolean condition, in json-rules-engine's own order. */
+function childrenOf(node: unknown, path: string): ConditionAt[] | undefined {
+  if (!node || typeof node !== 'object' || Array.isArray(node))
+    return undefined;
+  const has = (key: string) => Object.prototype.hasOwnProperty.call(node, key);
+  const operator = ['any', 'all', 'not'].find(has);
+  if (!operator) return undefined;
+  const value = (node as Record<string, unknown>)[operator];
+  if (operator === 'not') {
+    return Array.isArray(value)
+      ? undefined
+      : [{ node: value, path: `${path}/not` }];
+  }
+  return Array.isArray(value)
+    ? value.map((child, i) => ({
+        node: child,
+        path: `${path}/${operator}/${i}`,
+      }))
+    : undefined;
+}
+
 /** Every leaf of a rule's conditions: fact conditions and named references. */
-function leavesOf(condition: unknown): unknown[] {
-  if (!condition || typeof condition !== 'object') return [condition];
-  const node = condition as Record<string, unknown>;
-  if (Array.isArray(node.all)) return node.all.flatMap(leavesOf);
-  if (Array.isArray(node.any)) return node.any.flatMap(leavesOf);
-  if ('not' in node) return leavesOf(node.not);
-  return [node];
+function leavesOf(at: ConditionAt): ConditionAt[] {
+  const children = childrenOf(at.node, at.path);
+  return children ? children.flatMap(leavesOf) : [at];
+}
+
+/**
+ * A leaf that builds can only fail to evaluate on what is looked up while it
+ * runs: its operator, or the named condition it refers to.
+ */
+function evaluationFailurePath(leaf: ConditionAt): string {
+  const node = leaf.node as Record<string, unknown>;
+  if ('operator' in node) return `${leaf.path}/operator`;
+  if ('condition' in node) return `${leaf.path}/condition`;
+  return leaf.path;
+}
+
+function invalidRule(error: unknown, path: string): CheckProblem {
+  return {
+    code: 'invalid-rule',
+    path,
+    message: `The rule can't be evaluated: ${(error as Error).message}`,
+  };
+}
+
+/**
+ * The deepest conditions json-rules-engine refuses to build. A boolean
+ * condition is blamed only when all of its children build, so each problem
+ * points at the condition at fault rather than at the whole rule.
+ */
+function shapeProblems(at: ConditionAt): CheckProblem[] {
+  const nested = (childrenOf(at.node, at.path) ?? []).flatMap(shapeProblems);
+  if (nested.length > 0) return nested;
+  try {
+    // eslint-disable-next-line no-new
+    new Rule({ conditions: { all: [at.node as any] }, event: NOOP_EVENT });
+    return [];
+  } catch (error) {
+    return [invalidRule(error, at.path)];
+  }
 }
 
 /**
@@ -62,27 +121,49 @@ function leavesOf(condition: unknown): unknown[] {
  * JSON schema isn't used: jsonfc never applies it to the checks it
  * evaluates, and it rejects valid rules that use `not`.
  */
-async function ruleProblems(
-  rule: TechInsightJsonRuleCheck['rule'],
-): Promise<CheckProblem[]> {
-  try {
-    // eslint-disable-next-line no-new
-    new Rule({ conditions: rule.conditions as any, event: NOOP_EVENT });
-    for (const leaf of leavesOf(rule.conditions)) {
-      await new Engine(
-        [{ conditions: { all: [leaf as any] }, event: NOOP_EVENT }],
-        { allowUndefinedFacts: true },
-      ).run({});
-    }
-    return [];
-  } catch (error) {
+async function ruleProblems(rule: unknown): Promise<CheckProblem[]> {
+  if (!rule || typeof rule !== 'object' || Array.isArray(rule)) {
     return [
       {
         code: 'invalid-rule',
-        message: `The rule can't be evaluated: ${(error as Error).message}`,
+        path: '',
+        message: 'The rule must be an object.',
       },
     ];
   }
+  const { conditions } = rule as { conditions?: unknown };
+  if (conditions === undefined) {
+    return [
+      {
+        code: 'invalid-rule',
+        path: '',
+        message: 'The rule needs a "conditions" object.',
+      },
+    ];
+  }
+
+  const root = { node: conditions, path: '/conditions' };
+  const shape = shapeProblems(root);
+  if (shape.length > 0) return shape;
+  try {
+    // eslint-disable-next-line no-new
+    new Rule({ conditions: conditions as any, event: NOOP_EVENT });
+  } catch (error) {
+    return [invalidRule(error, root.path)];
+  }
+
+  const problems: CheckProblem[] = [];
+  for (const leaf of leavesOf(root)) {
+    try {
+      await new Engine(
+        [{ conditions: { all: [leaf.node as any] }, event: NOOP_EVENT }],
+        { allowUndefinedFacts: true },
+      ).run({});
+    } catch (error) {
+      problems.push(invalidRule(error, evaluationFailurePath(leaf)));
+    }
+  }
+  return problems;
 }
 
 /**
@@ -164,6 +245,7 @@ export class CheckValidator {
       );
       return {
         code: 'unknown-fact',
+        fact: name,
         ...(owner && { factRetrieverId: String(owner.id) }),
         message: owner
           ? `Fact ${name} comes from ${owner.id}, which isn't selected for this check.`
