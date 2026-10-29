@@ -43,8 +43,15 @@ jest.mock('../../hooks/useComponentReleaseLines', () => ({
   useComponentReleaseLines: () => releaseLines,
 }));
 
+// The provider renders its children so the page's own filters, which sit among
+// the scope controls, are still exercised here.
 jest.mock('../ScopeFilters', () => ({
-  ScopeFilters: () => <div data-testid="scope-filters" />,
+  ScopeFilterProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="scope-filters">{children}</div>
+  ),
+  NamespaceFilter: () => <div data-testid="namespace-filter" />,
+  ProjectFilter: () => <div data-testid="project-filter" />,
+  ComponentFilter: () => <div data-testid="component-filter" />,
 }));
 
 beforeEach(() => {
@@ -174,5 +181,71 @@ describe('DeliveryInsightsContent release line filter', () => {
     ).toEqual(['All lines', 'main', 'canary', 'next']);
     fireEvent.click(screen.getByRole('option', { name: 'next' }));
     expect(onReleaseLineChange).toHaveBeenCalledWith('next');
+  });
+});
+
+// The bar puts the filters that choose WHICH data is shown -- namespace,
+// environment, project, component, release line -- before the ones that choose
+// HOW it is drawn. Getting that wrong breaks nothing, so nothing else would
+// catch it: the page still renders and every filter still works. Hence this.
+//
+// Document order is asserted, not visual order, because it is also the tab
+// order; a CSS-only reorder would pass a screenshot and fail a keyboard user.
+describe('DeliveryInsightsContent filter bar order', () => {
+  // The scope controls are mocked, so each is read by its test id and the
+  // page's own filters by their label. An outlined MUI field repeats its label
+  // in the notch, so <label> elements are read rather than every node with the
+  // text.
+  const filterBarOrder = () => {
+    const bar = screen.getByTestId('scope-filters').parentElement!;
+    return Array.from(bar.querySelectorAll('label, [data-testid]'))
+      .map(node =>
+        node.tagName === 'LABEL'
+          ? node.textContent
+          : node.getAttribute('data-testid'),
+      )
+      .filter(name => name && name !== 'scope-filters');
+  };
+
+  const renderBar = () =>
+    renderInTestApp(
+      <DeliveryInsightsContent
+        scope={{ namespace: 'default', project: 'p', component: 'hello' }}
+        level="component"
+        onScopeChange={() => {}}
+        rangeDays={30}
+        granularity="daily"
+        envFilter="development"
+        onRangeDaysChange={() => {}}
+        onGranularityChange={() => {}}
+        onEnvFilterChange={() => {}}
+        onReleaseLineChange={() => {}}
+      />,
+    );
+
+  it('puts environment between namespace and project', async () => {
+    await renderBar();
+    expect(filterBarOrder()).toEqual([
+      'namespace-filter',
+      'Environment',
+      'project-filter',
+      'component-filter',
+      'Time range',
+      'Granularity',
+    ]);
+  });
+
+  it('keeps release line with the scope controls, after the component', async () => {
+    releaseLines = ['canary'];
+    await renderBar();
+    expect(filterBarOrder()).toEqual([
+      'namespace-filter',
+      'Environment',
+      'project-filter',
+      'component-filter',
+      'Release line',
+      'Time range',
+      'Granularity',
+    ]);
   });
 });
