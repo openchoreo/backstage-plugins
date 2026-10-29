@@ -17,6 +17,8 @@ import { DoraMetricTile } from './DoraMetricTile';
 import { DoraTrendChart } from './DoraTrendChart';
 import { DoraBreakdownTable } from './DoraBreakdownTable';
 import { DoraEnvironmentCards } from './DoraEnvironmentCards';
+import { useComponentReleaseLines } from '../../hooks/useComponentReleaseLines';
+import { MAIN_RELEASE_LINE } from '@openchoreo/backstage-plugin-common';
 import {
   ScopeFilterProvider,
   NamespaceFilter,
@@ -93,6 +95,8 @@ export interface DeliveryInsightsContentProps {
   onRangeDaysChange: (days: number) => void;
   onGranularityChange: (granularity: DoraGranularity) => void;
   onEnvFilterChange: (environment: string) => void;
+  /** Release line of the component, or '' for every line. */
+  onReleaseLineChange: (releaseLine: string) => void;
   /**
    * Drill into a breakdown row one level down (a project or component). Absent
    * at component level, where rows are environments and apply as a filter.
@@ -120,8 +124,15 @@ export const DeliveryInsightsContent = ({
   onRangeDaysChange,
   onGranularityChange,
   onEnvFilterChange,
+  onReleaseLineChange,
   onDrill,
 }: DeliveryInsightsContentProps) => {
+  // A component with release lines can be narrowed to one line; the filter only
+  // appears for such components.
+  const releaseLines = useComponentReleaseLines(
+    scope?.namespace,
+    level === 'component' ? scope?.component : undefined,
+  );
   // The environment filter narrows the headline tiles/charts, and the
   // project/component breakdown children inherit it. The per-environment cards
   // below do not: they scope each card explicitly, so they stay a comparison
@@ -280,6 +291,33 @@ export const DeliveryInsightsContent = ({
           <ProjectFilter />
           <ComponentFilter />
         </ScopeFilterProvider>
+        {/*
+          Release line narrows which data is shown too, so it stays with the
+          scope controls. It sits after the component because it is a property
+          of one, and outside the provider because it is the page's own filter.
+        */}
+        {releaseLines.length > 0 && (
+          <TextField
+            select
+            size="small"
+            variant="outlined"
+            id="insights-release-line"
+            label="Release line"
+            value={scope?.releaseLine ?? ''}
+            onChange={event => onReleaseLineChange(event.target.value)}
+            SelectProps={{ displayEmpty: true }}
+            InputLabelProps={{ shrink: true }}
+            style={{ minWidth: 150 }}
+          >
+            <MenuItem value="">All lines</MenuItem>
+            <MenuItem value={MAIN_RELEASE_LINE}>{MAIN_RELEASE_LINE}</MenuItem>
+            {releaseLines.map(line => (
+              <MenuItem key={line} value={line}>
+                {line}
+              </MenuItem>
+            ))}
+          </TextField>
+        )}
         <TextField
           select
           size="small"

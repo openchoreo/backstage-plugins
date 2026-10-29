@@ -4,6 +4,12 @@ import { createQueryWrapper } from '@openchoreo/test-utils';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { useAutoDeploy } from './useAutoDeploy';
 
+let mockReleaseLine: string | undefined;
+jest.mock('@openchoreo/backstage-plugin-react', () => ({
+  ...jest.requireActual('@openchoreo/backstage-plugin-react'),
+  useReleaseLine: () => ({ releaseLine: mockReleaseLine }),
+}));
+
 const entity: Entity = {
   apiVersion: 'backstage.io/v1alpha1',
   kind: 'Component',
@@ -18,6 +24,10 @@ function renderUseAutoDeploy(getComponentDetails: jest.Mock) {
 }
 
 describe('useAutoDeploy', () => {
+  beforeEach(() => {
+    mockReleaseLine = undefined;
+  });
+
   it('starts loading with defaults before component details resolve', () => {
     const { result } = renderUseAutoDeploy(
       jest.fn().mockReturnValue(new Promise(() => {})),
@@ -68,4 +78,36 @@ describe('useAutoDeploy', () => {
 
     await waitFor(() => expect(result.current.autoDeploy).toBe(true));
   });
+
+  it.each([
+    [undefined, true],
+    [false, false],
+  ])(
+    'on a release line with override %s, auto deploy is %s',
+    async (override, expected) => {
+      mockReleaseLine = 'next';
+      const client = {
+        getComponentDetails: jest.fn().mockResolvedValue({
+          autoDeploy: true,
+          latestRelease: { name: 'component-release' },
+        }),
+        fetchReleaseLines: jest.fn().mockResolvedValue([
+          {
+            name: 'next',
+            latestRelease: 'hello-next-1',
+            environments: [],
+            autoDeploy: override,
+          },
+        ]),
+      } as any;
+      const { result } = renderHook(() => useAutoDeploy(entity), {
+        wrapper: createQueryWrapper([[openChoreoClientApiRef, client]]),
+      });
+
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      expect(result.current.autoDeploy).toBe(expected);
+      expect(result.current.latestReleaseName).toBe('hello-next-1');
+    },
+  );
 });

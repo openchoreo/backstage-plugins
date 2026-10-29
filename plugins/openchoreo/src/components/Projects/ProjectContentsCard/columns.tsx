@@ -9,6 +9,7 @@ import { isForbiddenError } from '../../../utils/errorUtils';
 import { type Environment, type ProjectContentItem } from '../hooks';
 import { KindCell } from './KindCell';
 import { DeploymentStatusCell } from './DeploymentStatusCell';
+import { ReleaseLinesSummaryCell } from './ReleaseLinesSummaryCell';
 import { RowActionsCell } from './RowActionsCell';
 import { useProjectContentsCardStyles } from './styles';
 
@@ -91,6 +92,10 @@ const DeploymentColumnCell = ({
         </Box>
       </Tooltip>
     );
+  }
+
+  if (item.releaseLines) {
+    return <ReleaseLinesSummaryCell releaseLines={item.releaseLines} />;
   }
 
   return (

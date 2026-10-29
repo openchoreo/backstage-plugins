@@ -8,7 +8,13 @@ import {
 import { ComponentModel } from './ComponentModel';
 import { ComponentLinkModel } from '../ComponentLink/ComponentLinkModel';
 import { ComponentHeadWidget } from './ComponentHead/ComponentHead';
-import { ComponentName, ComponentNode, PortsContainer } from './styles';
+import {
+  ComponentBadge,
+  ComponentLabel,
+  ComponentName,
+  ComponentNode,
+  PortsContainer,
+} from './styles';
 import { DiagramContext } from '../../DiagramContext/DiagramContext';
 import { ComponentPortWidget } from '../ComponentPort/ComponentPortWidget';
 import Tooltip from '@mui/material/Tooltip';
@@ -38,6 +44,8 @@ export function ComponentWidget(props: ComponentWidgetProps) {
   const headPorts = useRef<PortModel[]>([]);
 
   const displayName: string = node.component.label || node.component.id;
+  const badge = node.component.badge;
+  const tooltip = badge ? `${displayName} (${badge})` : displayName;
   const isDisabled = Boolean(node.component.disabled?.status);
 
   useEffect(() => {
@@ -156,14 +164,14 @@ export function ComponentWidget(props: ComponentWidgetProps) {
         menuItems={componentMenu ?? []}
         onFocusOut={handleMouseLeave}
       />
-      <Tooltip
-        title={displayName}
-        placement="bottom"
-        enterNextDelay={500}
-        arrow
-      >
+      <Tooltip title={tooltip} placement="bottom" enterNextDelay={500} arrow>
         {!previewMode ? (
-          <ComponentName disabled={isDisabled}>{displayName}</ComponentName>
+          <ComponentLabel>
+            <ComponentName disabled={isDisabled}>{displayName}</ComponentName>
+            {badge && (
+              <ComponentBadge disabled={isDisabled}>{badge}</ComponentBadge>
+            )}
+          </ComponentLabel>
         ) : (
           <></>
         )}

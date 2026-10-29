@@ -1395,6 +1395,7 @@ export const CATALOG_PERMISSION_TO_ACTION: Record<string, string> = {
  */
 export const OPENCHOREO_MANAGED_ENTITY_KINDS = [
   'Component',
+  'ReleaseLine',
   'Resource',
   'System',
   'Domain',
@@ -1438,6 +1439,12 @@ export const CATALOG_KIND_TO_ACTION: Record<string, Record<string, string>> = {
   component: {
     'catalog.entity.read': 'component:view',
     'catalog.entity.delete': 'component:delete',
+    'catalog.entity.refresh': 'component:update',
+  },
+  // Release lines are read and changed through their component.
+  releaseline: {
+    'catalog.entity.read': 'component:view',
+    'catalog.entity.delete': 'component:update',
     'catalog.entity.refresh': 'component:update',
   },
   resource: {

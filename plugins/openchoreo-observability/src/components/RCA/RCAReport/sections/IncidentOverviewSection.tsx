@@ -158,6 +158,15 @@ const AlertDetails = ({
         </Typography>
       </Box>
 
+      {alertContext.release_line && (
+        <Box className={classes.propertyRow}>
+          <Typography className={classes.propertyKey}>Release Line</Typography>
+          <Typography className={classes.propertyValue}>
+            {alertContext.release_line}
+          </Typography>
+        </Box>
+      )}
+
       {alertContext.severity && (
         <Box className={classes.propertyRow}>
           <Typography className={classes.propertyKey}>Severity</Typography>

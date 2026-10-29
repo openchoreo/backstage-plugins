@@ -2,12 +2,18 @@ import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
 import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { stringifyEntityRef } from '@backstage/catalog-model';
-import { useComponentEntityDetails } from '@openchoreo/backstage-plugin-react';
+import {
+  useComponentEntityDetails,
+  useReleaseLine,
+} from '@openchoreo/backstage-plugin-react';
 import type {
   ModelsBuild,
   ModelsCompleteComponent,
 } from '@openchoreo/backstage-plugin-common';
-import { CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
+import {
+  CHOREO_LABELS,
+  isSameReleaseLine,
+} from '@openchoreo/backstage-plugin-common';
 import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 
 const POLLING_INTERVAL = 5000; // 5 seconds
@@ -40,6 +46,7 @@ export function useWorkflowData() {
   const fetchApi = useApi(openChoreoFetchApiRef);
   const { getEntityDetails } = useComponentEntityDetails();
   const entityRef = stringifyEntityRef(entity);
+  const { releaseLine } = useReleaseLine();
 
   const { data: componentDetails, refetch: refetchComponentDetails } =
     useOpenChoreoQuery<ModelsCompleteComponent | null>(
@@ -75,7 +82,7 @@ export function useWorkflowData() {
     error,
     refetch: refetchBuildsQuery,
   } = useOpenChoreoQuery<ModelsBuild[]>(
-    ['workflow-data', 'builds', entityRef],
+    ['workflow-data', 'builds', entityRef, releaseLine ?? ''],
     async () => {
       const { componentName, projectName, namespaceName } =
         await getEntityDetails();
@@ -94,18 +101,25 @@ export function useWorkflowData() {
       }
       const result = await response.json();
       // Map WorkflowRun items to ModelsBuild shape for UI compatibility.
-      return (result.items || []).map((run: any) => ({
-        name: run.name,
-        uuid: run.uuid || '',
-        componentName:
-          run.labels?.[CHOREO_LABELS.WORKFLOW_COMPONENT] || componentName,
-        projectName:
-          run.labels?.[CHOREO_LABELS.WORKFLOW_PROJECT] || projectName,
-        namespaceName: run.namespaceName,
-        status: run.status,
-        createdAt: run.createdAt,
-        parameters: run.parameters,
-      }));
+      return (result.items || [])
+        .filter((run: any) =>
+          isSameReleaseLine(
+            run.labels?.[CHOREO_LABELS.WORKFLOW_RELEASE_LINE],
+            releaseLine,
+          ),
+        )
+        .map((run: any) => ({
+          name: run.name,
+          uuid: run.uuid || '',
+          componentName:
+            run.labels?.[CHOREO_LABELS.WORKFLOW_COMPONENT] || componentName,
+          projectName:
+            run.labels?.[CHOREO_LABELS.WORKFLOW_PROJECT] || projectName,
+          namespaceName: run.namespaceName,
+          status: run.status,
+          createdAt: run.createdAt,
+          parameters: run.parameters,
+        }));
     },
     {
       refetchInterval: query =>

@@ -7,7 +7,10 @@ import {
   ObservabilityUrlResolver,
 } from '@openchoreo/openchoreo-client-node';
 import type { ComponentWorkflowRunResponse } from '@openchoreo/backstage-plugin-common';
-import { CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
+import {
+  CHOREO_LABELS,
+  isSameReleaseLine,
+} from '@openchoreo/backstage-plugin-common';
 import { transformComponentWorkflowRun } from '../transformers';
 import { RuntimeLogsResponse } from '../../types';
 
@@ -30,10 +33,12 @@ export class BuildInfoService {
     this.resolver = new ObservabilityUrlResolver({ baseUrl, logger });
   }
 
+  /** The component's builds of one release line, the main line when none is given. */
   async fetchBuilds(
     namespaceName: string,
     _projectName: string,
     componentName: string,
+    releaseLine?: string,
     token?: string,
   ): Promise<ModelsBuild[]> {
     this.logger.debug(
@@ -61,12 +66,16 @@ export class BuildInfoService {
           }),
       );
 
-      // Filter by component label, transform, and sort by creation time descending
+      // Filter by component and release line labels, transform, and sort by creation time descending
       const builds = items
         .filter(
           (run: any) =>
             run.metadata?.labels?.[CHOREO_LABELS.WORKFLOW_COMPONENT] ===
-            componentName,
+              componentName &&
+            isSameReleaseLine(
+              run.metadata?.labels?.[CHOREO_LABELS.WORKFLOW_RELEASE_LINE],
+              releaseLine,
+            ),
         )
         .map(transformComponentWorkflowRun)
         .sort((a, b) => {

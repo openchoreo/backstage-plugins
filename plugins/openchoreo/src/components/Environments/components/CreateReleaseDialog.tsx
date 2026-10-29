@@ -12,6 +12,7 @@ import {
 } from '@material-ui/core';
 import { Alert } from '@material-ui/lab';
 import { useApi } from '@backstage/core-plugin-api';
+import { useReleaseLine } from '@openchoreo/backstage-plugin-react';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import type { ComponentRelease } from '@openchoreo/backstage-plugin-common';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
@@ -67,6 +68,7 @@ export const CreateReleaseDialog = ({
   firstEnvironmentName,
 }: CreateReleaseDialogProps) => {
   const client = useApi(openChoreoClientApiRef);
+  const { releaseLine } = useReleaseLine();
   const { entity } = useEntity();
 
   const [name, setName] = useState('');
@@ -102,6 +104,7 @@ export const CreateReleaseDialog = ({
       const response = await client.createComponentRelease(
         entity,
         trimmed || undefined,
+        releaseLine,
       );
       const created = response.data?.name;
       if (!created) {

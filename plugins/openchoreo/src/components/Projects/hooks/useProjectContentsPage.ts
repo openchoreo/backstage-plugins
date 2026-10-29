@@ -2,7 +2,10 @@ import { useMemo } from 'react';
 import { Entity } from '@backstage/catalog-model';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
-import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import {
+  CHOREO_ANNOTATIONS,
+  hasReleaseLines,
+} from '@openchoreo/backstage-plugin-common';
 import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 
@@ -18,6 +21,12 @@ export interface EnvironmentDeploymentStatus {
 /** Deployment status keyed by lowercased environment name. */
 export type DeploymentStatusByEnv = Record<string, EnvironmentDeploymentStatus>;
 
+/** Where each release line of a component with release lines is deployed. */
+export interface ReleaseLineDeployments {
+  name: string;
+  environments: string[];
+}
+
 /** Entity kinds surfaced in the project's "Project Contents" table. */
 export type ProjectContentKind = 'component' | 'resource';
 
@@ -30,6 +39,12 @@ export interface ProjectContentItem {
   type: string;
   description: string;
   deploymentStatus: DeploymentStatusByEnv;
+  /**
+   * For a component with release lines: its lines and where each is
+   * deployed, summarised in the Deployment column instead of per-environment
+   * chips (each environment can run several lines).
+   */
+  releaseLines?: ReleaseLineDeployments[];
   /**
    * False until this row's release bindings have been fetched. Rows render from
    * catalog data first; the Deployment column shows a skeleton until this flips.
@@ -73,6 +88,12 @@ export interface ProjectContentsPageResult {
   error: Error | null;
   /** Re-run both the page query and its deployment-status enrichment. */
   refetch: () => Promise<void>;
+}
+
+/** A row's deployment: per-environment status, or its release lines. */
+interface RowDeployment {
+  status: DeploymentStatusByEnv;
+  releaseLines?: ReleaseLineDeployments[];
 }
 
 /** The page-query payload: catalog rows plus paging cursors. */
@@ -270,25 +291,36 @@ export function useProjectContentsPage(
   // --- Bindings query: deployment status for exactly the visible rows -----
   // Keyed on the rows on screen so it refetches when the page changes.
   const rowsKey = baseItems.map(rowKey).join('|');
-  const bindingsQuery = useOpenChoreoQuery<
-    Record<string, DeploymentStatusByEnv>
-  >(
+  const bindingsQuery = useOpenChoreoQuery<Record<string, RowDeployment>>(
     ['project-contents-bindings', namespace, project, rowsKey],
     async () => {
       const entries = await Promise.all(
-        baseItems.map(async item => {
+        baseItems.map(async (item): Promise<[string, RowDeployment]> => {
           try {
+            if (hasReleaseLines(item.entity)) {
+              const lines = await client.fetchReleaseLines(item.entity);
+              return [
+                rowKey(item),
+                {
+                  status: {},
+                  releaseLines: lines.map(line => ({
+                    name: line.name,
+                    environments: line.environments.map(e => e.environment),
+                  })),
+                },
+              ];
+            }
             const response =
               item.kind === 'component'
                 ? await client.fetchReleaseBindings(item.entity)
                 : await client.fetchResourceReleaseBindings(item.entity);
             return [
               rowKey(item),
-              toDeploymentStatus(response?.data?.items),
-            ] as const;
+              { status: toDeploymentStatus(response?.data?.items) },
+            ];
           } catch {
             // Leave deployment status empty if bindings can't be fetched.
-            return [rowKey(item), {}] as const;
+            return [rowKey(item), { status: {} }];
           }
         }),
       );
@@ -302,11 +334,15 @@ export function useProjectContentsPage(
   // so the Deployment column skeletons.
   const items = useMemo<ProjectContentItem[]>(() => {
     const statuses = bindingsQuery.data;
-    return baseItems.map(item => ({
-      ...item,
-      deploymentStatus: statuses?.[rowKey(item)] ?? {},
-      deploymentLoaded: statuses !== undefined,
-    }));
+    return baseItems.map(item => {
+      const deployment = statuses?.[rowKey(item)];
+      return {
+        ...item,
+        deploymentStatus: deployment?.status ?? {},
+        releaseLines: deployment?.releaseLines,
+        deploymentLoaded: statuses !== undefined,
+      };
+    });
   }, [baseItems, bindingsQuery.data]);
 
   const refetch = async () => {

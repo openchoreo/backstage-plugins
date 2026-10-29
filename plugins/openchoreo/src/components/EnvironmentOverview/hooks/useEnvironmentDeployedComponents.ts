@@ -1,7 +1,10 @@
 import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
 import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
-import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import {
+  CHOREO_ANNOTATIONS,
+  toStoredReleaseLine,
+} from '@openchoreo/backstage-plugin-common';
 import {
   openChoreoClientApiRef,
   ReleaseBinding,
@@ -11,7 +14,10 @@ import { catalogApiRef } from '@backstage/plugin-catalog-react';
 export interface DeployedComponent {
   name: string;
   displayName?: string;
+  /** The component, or the ReleaseLine entity for a release line's deployment */
   entityRef: string;
+  /** The release line deployed, absent for the main line */
+  releaseLine?: string;
   projectName: string;
   releaseVersion?: string;
   status: 'Ready' | 'NotReady' | 'Failed' | 'Pending' | 'Unknown';
@@ -106,29 +112,33 @@ export function useEnvironmentDeployedComponents(
           try {
             const releaseBindingsData = await client.fetchReleaseBindings(
               component,
+              undefined,
+              { allReleaseLines: true },
             );
 
             const bindings = releaseBindingsData?.data?.items;
             if (bindings && Array.isArray(bindings)) {
-              // Find binding for this environment
-              const binding = bindings.find(
+              // Each line deployed in this environment is its own row.
+              const envBindings = bindings.filter(
                 (b: ReleaseBinding) =>
                   b.environment?.toLowerCase() ===
                   environmentName.toLowerCase(),
               );
+              const entityNamespace = component.metadata.namespace || 'default';
 
-              if (binding) {
-                const status = mapBindingStatusToStatus(binding.status);
+              for (const binding of envBindings) {
+                const releaseLine = toStoredReleaseLine(binding.releaseLine);
                 deployedComponents.push({
                   name: componentName,
                   displayName:
                     component.metadata.title || component.metadata.name,
-                  entityRef: `component:${
-                    component.metadata.namespace || 'default'
-                  }/${component.metadata.name}`,
+                  entityRef: releaseLine
+                    ? `releaseline:${entityNamespace}/${releaseLine}`
+                    : `component:${entityNamespace}/${component.metadata.name}`,
+                  ...(releaseLine && { releaseLine }),
                   projectName,
                   releaseVersion: binding.releaseName || undefined,
-                  status,
+                  status: mapBindingStatusToStatus(binding.status),
                   endpoints: binding.endpoints?.length || 0,
                 });
               }

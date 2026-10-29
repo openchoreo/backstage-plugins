@@ -3,7 +3,10 @@ import {
   getAnnotation,
   type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
-import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import {
+  CHOREO_ANNOTATIONS,
+  MAIN_RELEASE_LINE,
+} from '@openchoreo/backstage-plugin-common';
 import {
   WorkloadDependency,
   WorkloadEndpoint,
@@ -13,6 +16,31 @@ import {
 type NewProject = OpenChoreoComponents['schemas']['Project'];
 type NewComponent = OpenChoreoComponents['schemas']['Component'];
 type NewWorkload = OpenChoreoComponents['schemas']['Workload'];
+type NewReleaseLine = OpenChoreoComponents['schemas']['ReleaseLine'];
+
+// ────────────────────────────────────────────────────────────────────────
+// Release lines
+// ────────────────────────────────────────────────────────────────────────
+
+/**
+ * The Workload of a component's main line. A component's workload list also
+ * holds the Workloads of its release lines, which set `owner.releaseLine`.
+ */
+export function findMainWorkload<
+  W extends { spec?: { owner?: { releaseLine?: string } } },
+>(workloads: W[] | undefined): W | undefined {
+  return workloads?.find(w => !w.spec?.owner?.releaseLine);
+}
+
+/**
+ * The ReleaseLine resources of a component's line list, which the API starts
+ * with its implicit main line.
+ */
+export function withoutMainReleaseLine(
+  lines: NewReleaseLine[],
+): NewReleaseLine[] {
+  return lines.filter(line => line.metadata?.name !== MAIN_RELEASE_LINE);
+}
 
 // ────────────────────────────────────────────────────────────────────────
 // Ownership resolution

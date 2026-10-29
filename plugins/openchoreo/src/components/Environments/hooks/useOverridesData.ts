@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { JSONSchema7 } from 'json-schema';
 import { Entity } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
+import { useReleaseLine } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { getSchemaDefaults } from '../overridesUtils';
 import type { ModelsWorkload } from '@openchoreo/backstage-plugin-common';
@@ -93,6 +94,7 @@ export function useOverridesData(
   isOpen: boolean,
 ): UseOverridesDataReturn {
   const client = useApi(openChoreoClientApiRef);
+  const { releaseLine } = useReleaseLine();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -231,7 +233,10 @@ export function useOverridesData(
       }
 
       // Fetch existing bindings to get current overrides
-      const bindingsResponse = await client.fetchReleaseBindings(entity);
+      const bindingsResponse = await client.fetchReleaseBindings(
+        entity,
+        releaseLine,
+      );
 
       if (bindingsResponse.success && bindingsResponse.data?.items) {
         const bindings = bindingsResponse.data.items as ReleaseBinding[];
@@ -341,7 +346,7 @@ export function useOverridesData(
     } finally {
       setLoading(false);
     }
-  }, [entity, client, environmentName, releaseName]);
+  }, [entity, client, environmentName, releaseName, releaseLine]);
 
   useEffect(() => {
     if (isOpen && environmentName) {

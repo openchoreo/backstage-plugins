@@ -171,6 +171,8 @@ export interface AlertSummary {
   sourceMetric?: string;
   projectName?: string;
   componentName?: string;
+  /** Release line of the component, absent for components without lines. */
+  releaseLineName?: string;
   environmentName?: string;
   namespaceName?: string;
   notificationChannels?: string[];
@@ -191,6 +193,8 @@ export interface IncidentSummary {
   incidentTriggerAiCostAnalysis?: boolean;
   projectName?: string;
   componentName?: string;
+  /** Release line of the component, absent for components without lines. */
+  releaseLineName?: string;
   environmentName?: string;
   namespaceName?: string;
 }
@@ -205,6 +209,8 @@ export interface FinOpsReportSummary {
   project: string;
   environment?: string | null;
   component?: string | null;
+  /** Release line the budget alert fired on, for components with lines. */
+  releaseLine?: string | null;
   timestamp: string;
   summary?: string | null;
   status: FinOpsReportStatus;
@@ -216,6 +222,8 @@ export interface FinOpsReportDetailed {
   project: string;
   environment?: string | null;
   component?: string | null;
+  /** Release line the budget alert fired on, for components with lines. */
+  releaseLine?: string | null;
   timestamp: string;
   status: FinOpsReportStatus;
   report?: FinOpsReport | null;
@@ -319,6 +327,10 @@ export interface DoraSearchScope {
   project?: string;
   component?: string;
   environment?: string;
+  /** Release line of the component; requires `component`. */
+  releaseLine?: string;
+  /** Covers every line of the component; without it, a component covers its main line. */
+  allReleaseLines?: boolean;
 }
 
 export interface DoraFrequencySummary {

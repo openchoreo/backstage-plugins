@@ -19,6 +19,10 @@ on:
         description: 'Prerelease identifier (e.g. rc.1, beta.2)'
         required: false
         type: string
+      target_branch:
+        description: 'Branch to bump instead of auto-detecting release-v<major>.<minor>'
+        required: false
+        type: string
 
 concurrency:
   group: prepare-next-version-${{ github.event.inputs.major }}-${{ github.event.inputs.minor }}
@@ -62,6 +66,7 @@ jobs:
           MINOR: ${{ github.event.inputs.minor }}
           PATCH: ${{ github.event.inputs.patch }}
           PRE_RELEASE_ID: ${{ github.event.inputs.pre_release_id }}
+          TARGET_BRANCH: ${{ github.event.inputs.target_branch }}
         run: |
           if [[ ! "${MAJOR}" =~ ^[0-9]+$ ]] || [[ ! "${MINOR}" =~ ^[0-9]+$ ]] || [[ ! "${PATCH}" =~ ^[0-9]+$ ]]; then
             echo "ERROR: major, minor, and patch must be non-negative integers"
@@ -77,7 +82,14 @@ jobs:
             VER="${VER}-${PRE_RELEASE_ID}"
           fi
 
-          if git ls-remote origin "refs/heads/release-v${MAJOR}.${MINOR}" | head -1 | grep -q .; then
+          if [ -n "${TARGET_BRANCH}" ] && ! git check-ref-format --branch "${TARGET_BRANCH}" >/dev/null 2>&1; then
+            echo "ERROR: invalid target_branch: ${TARGET_BRANCH}"
+            exit 1
+          fi
+
+          if [ -n "${TARGET_BRANCH}" ]; then
+            echo "TARGET=${TARGET_BRANCH}" >> $GITHUB_ENV
+          elif git ls-remote origin "refs/heads/release-v${MAJOR}.${MINOR}" | head -1 | grep -q .; then
             echo "TARGET=release-v${MAJOR}.${MINOR}" >> $GITHUB_ENV
           else
             echo "TARGET=main" >> $GITHUB_ENV

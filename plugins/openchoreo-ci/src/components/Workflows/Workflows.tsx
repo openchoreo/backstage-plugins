@@ -23,6 +23,7 @@ import {
   useWorkflowData,
   useWorkflowRouting,
   useWorkflowRetention,
+  useReleaseLineWorkflowParameters,
 } from '../../hooks';
 import type { ModelsBuild } from '@openchoreo/backstage-plugin-common';
 import {
@@ -36,6 +37,8 @@ import {
   useOpenChoreoMutation,
   ForbiddenState,
   BuildFailureNotifierSlot,
+  useReleaseLine,
+  triggerReleaseLineBuild,
 } from '@openchoreo/backstage-plugin-react';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { openChoreoCiClientApiRef } from '../../api/OpenChoreoCiClientApi';
@@ -88,6 +91,11 @@ export const Workflows = () => {
 
   // Data fetching hook
   const workflowData = useWorkflowData();
+  const componentWorkflow = workflowData.componentDetails?.componentWorkflow;
+  const effectiveWorkflowParameters = useReleaseLineWorkflowParameters(
+    componentWorkflow?.parameters,
+  );
+  const { releaseLine } = useReleaseLine();
 
   // Check if component has workflow from componentDetails
   const hasWorkflow = !!workflowData.componentDetails?.componentWorkflow;
@@ -197,6 +205,17 @@ export const Workflows = () => {
         throw new Error('No workflow configured for this component');
       }
 
+      // A release line build goes through the component's workflow-run API,
+      // which applies the line's workflow parameter overrides.
+      if (releaseLine) {
+        await triggerReleaseLineBuild(discoveryApi, fetchApi, {
+          componentName,
+          namespaceName,
+          releaseLine,
+        });
+        return;
+      }
+
       const parameters = workflow.parameters
         ? JSON.parse(JSON.stringify(workflow.parameters))
         : {};
@@ -226,7 +245,7 @@ export const Workflows = () => {
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-    }, [discoveryApi, fetchApi, getEntityDetails, workflowData]),
+    }, [discoveryApi, fetchApi, getEntityDetails, workflowData, releaseLine]),
     { onSuccess: () => workflowData.fetchBuilds() },
   );
 
@@ -262,6 +281,9 @@ export const Workflows = () => {
               labels: {
                 [CHOREO_LABELS.WORKFLOW_PROJECT]: projectName,
                 [CHOREO_LABELS.WORKFLOW_COMPONENT]: componentName,
+                ...(releaseLine
+                  ? { [CHOREO_LABELS.WORKFLOW_RELEASE_LINE]: releaseLine }
+                  : {}),
               },
             }),
           },
@@ -271,7 +293,7 @@ export const Workflows = () => {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
       },
-      [discoveryApi, fetchApi, getEntityDetails, workflowData],
+      [discoveryApi, fetchApi, getEntityDetails, workflowData, releaseLine],
     ),
     { onSuccess: () => workflowData.fetchBuilds() },
   );
@@ -374,7 +396,12 @@ export const Workflows = () => {
       case 'configurations':
         return (
           <OverviewTab
-            workflow={workflowData.componentDetails?.componentWorkflow}
+            workflow={
+              componentWorkflow && {
+                ...componentWorkflow,
+                parameters: effectiveWorkflowParameters,
+              }
+            }
           />
         );
       default:

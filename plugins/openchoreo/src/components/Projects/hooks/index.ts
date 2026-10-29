@@ -9,6 +9,7 @@ export type {
   ProjectContentsPageResult,
   DeploymentStatusByEnv,
   EnvironmentDeploymentStatus,
+  ReleaseLineDeployments,
 } from './useProjectContentsPage';
 export { useProjectContentFacets } from './useProjectContentFacets';
 export type { ProjectContentFacets } from './useProjectContentFacets';

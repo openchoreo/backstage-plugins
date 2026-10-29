@@ -48,6 +48,24 @@ function renderRow(
 // ---- Tests ----
 
 describe('IncidentRow', () => {
+  it('shows the release line next to the component when present', async () => {
+    const user = userEvent.setup();
+    renderRow({ incident: { ...sampleIncident, releaseLineName: 'next' } });
+
+    expect(screen.getByText('next')).toBeInTheDocument();
+
+    await user.click(screen.getByText('High CPU usage on api-service'));
+    expect(screen.getByText('Release Line:')).toBeInTheDocument();
+  });
+
+  it('shows no release line for an incident without one', async () => {
+    const user = userEvent.setup();
+    renderRow();
+
+    await user.click(screen.getByText('High CPU usage on api-service'));
+    expect(screen.queryByText('Release Line:')).not.toBeInTheDocument();
+  });
+
   it('renders incident timestamp', () => {
     renderRow();
 

@@ -77,6 +77,7 @@ export function scopeSegments(resource?: AuditLogResource | null): string[] {
     resource.namespace,
     resource.project,
     resource.component,
+    resource.release_line,
     resource.resource,
   ].filter((value): value is string => Boolean(value));
 }

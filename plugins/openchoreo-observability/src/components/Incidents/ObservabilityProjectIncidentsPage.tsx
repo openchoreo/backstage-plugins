@@ -19,7 +19,7 @@ import {
   useIncidentsPermission,
   useProjectEnvironments,
 } from '@openchoreo/backstage-plugin-react';
-import { EnvironmentsStatusNotice } from '../common';
+import { EnvironmentsStatusNotice, ReleaseLineFilter } from '../common';
 import { useRuntimeLogsStyles } from '../RuntimeLogs/styles';
 import type { IncidentSummary } from '../../types';
 
@@ -276,6 +276,12 @@ const ObservabilityProjectIncidentsContent = () => {
   return (
     <Box position="relative">
       <RefreshOverlay active={isRefetching} label="Refreshing incidents" />
+      <ReleaseLineFilter
+        namespace={namespace}
+        component={
+          filters.components?.length === 1 ? filters.components[0] : undefined
+        }
+      />
       <IncidentsFilter
         filters={filters}
         onFiltersChange={handleFiltersChange}

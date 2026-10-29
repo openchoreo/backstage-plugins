@@ -46,8 +46,10 @@ import {
   extractWorkloadDependencies,
   extractWorkloadResourceDependencies,
   filterDependenciesWithSchema,
+  findMainWorkload,
   resolveComponentOwner,
   resolveProvidesAndConsumes,
+  withoutMainReleaseLine,
 } from '../utils/helpers';
 import {
   NewApiTranslatorContext,
@@ -70,6 +72,7 @@ import {
   translateNewClusterProjectTypeToEntity,
   translateNewProjectTypeToEntity,
   translateNewResourceToEntity,
+  translateNewReleaseLineToEntity,
   translateNewResourceTypeToEntity,
   translateNewTraitToEntity,
   translateNewWorkflowPlaneToEntity,
@@ -98,6 +101,7 @@ type NewProjectType = OpenChoreoComponents['schemas']['ProjectType'];
 type NewClusterProjectType =
   OpenChoreoComponents['schemas']['ClusterProjectType'];
 type NewResource = OpenChoreoComponents['schemas']['ResourceInstance'];
+type NewReleaseLine = OpenChoreoComponents['schemas']['ReleaseLine'];
 type NewTrait = OpenChoreoComponents['schemas']['Trait'];
 type NewClusterComponentType =
   OpenChoreoComponents['schemas']['ClusterComponentType'];
@@ -281,6 +285,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           'openchoreo.resourcetype',
           'openchoreo.projecttype',
           'openchoreo.resource',
+          'openchoreo.releaseline',
           'openchoreo.trait',
           'openchoreo.workflow',
           'openchoreo.workload',
@@ -758,7 +763,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                     );
                   }
 
-                  const workloadData = workloadListData?.items?.[0];
+                  const workloadData = findMainWorkload(
+                    workloadListData?.items,
+                  );
                   const allEndpoints = workloadData
                     ? extractAllWorkloadEndpoints(workloadData)
                     : {};
@@ -850,6 +857,13 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               nsName,
             );
 
+            const releaseLineEntities = await this.fetchReleaseLineEntities(
+              client,
+              nsName,
+              componentName,
+              resolvedOwner,
+            );
+
             const componentEntity = translateNewComponentToEntity(
               component,
               nsName,
@@ -860,8 +874,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               consumesApis,
               workloadName,
               dependsOn,
+              releaseLineEntities.length > 0,
             );
-            allEntities.push(componentEntity);
+            allEntities.push(componentEntity, ...releaseLineEntities);
 
             // Create API entities from schema endpoints. We only emit
             // API entities when there's a Workload (the schemas live on
@@ -1910,6 +1925,53 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       this.logEntityCounts(allEntities, domainEntities.length);
     } catch (error) {
       this.logger.error(`Failed to run OpenChoreoEntityProvider: ${error}`);
+    }
+  }
+
+  /**
+   * Translates the release lines of a component, leaving out its implicit main line.
+   * A failure leaves the component's lines out of this sync instead of
+   * failing the whole sync.
+   */
+  private async fetchReleaseLineEntities(
+    client: Awaited<ReturnType<typeof createAuthenticatedOpenChoreoApiClient>>,
+    namespaceName: string,
+    componentName: string,
+    owner: string,
+  ): Promise<Entity[]> {
+    try {
+      const releaseLines = await fetchAllPages<NewReleaseLine>(cursor =>
+        client
+          .GET(
+            '/api/v1/namespaces/{namespaceName}/components/{componentName}/releaselines',
+            {
+              params: {
+                path: { namespaceName, componentName },
+                query: { limit: 100, cursor },
+              },
+            },
+          )
+          .then(res => {
+            if (res.error)
+              throw new Error(
+                `Failed to fetch release lines for component ${componentName}`,
+              );
+            return res.data;
+          }),
+      );
+      return withoutMainReleaseLine(releaseLines).map(line =>
+        translateNewReleaseLineToEntity(
+          line,
+          namespaceName,
+          owner,
+          this.translatorContext,
+        ),
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Failed to fetch release lines for component ${componentName} in namespace ${namespaceName}: ${error}`,
+      );
+      return [];
     }
   }
 

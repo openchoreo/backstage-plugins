@@ -1,4 +1,7 @@
-import { ObservabilityClient } from './ObservabilityApi';
+import {
+  CostsReleaseLineNotSupportedError,
+  ObservabilityClient,
+} from './ObservabilityApi';
 
 const resolveUrls = jest.fn();
 
@@ -193,5 +196,122 @@ describe('ObservabilityClient cost APIs', () => {
     await expect(client.getCostRecommendations('ns1', 'dev')).rejects.toThrow(
       'rec-boom',
     );
+  });
+});
+
+describe('ObservabilityClient cost APIs with a release line', () => {
+  const notImplemented = {
+    ok: false,
+    status: 501,
+    statusText: 'Not Implemented',
+    json: () => Promise.resolve({ error: 'not implemented' }),
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resolveUrls.mockResolvedValue({ observerUrl: 'http://observer' });
+  });
+
+  it.each([
+    [
+      'getCosts',
+      (c: ObservabilityClient, o: any) => c.getCosts('ns1', 'dev', o),
+    ],
+    [
+      'getCostRecommendations',
+      (c: ObservabilityClient, o: any) =>
+        c.getCostRecommendations('ns1', 'dev', o),
+    ],
+  ])('%s sends the release line with a component', async (_name, call) => {
+    mockFetchApi.fetch.mockResolvedValueOnce(okResponse({ items: [] }));
+
+    await call(createClient(), {
+      project: 'proj',
+      component: 'comp',
+      releaseLine: 'next',
+    });
+
+    const parsed = new URL(mockFetchApi.fetch.mock.calls[0][0]);
+    expect(parsed.searchParams.get('releaseLine')).toBe('next');
+  });
+
+  it.each([
+    [
+      'getCosts',
+      (c: ObservabilityClient, o: any) => c.getCosts('ns1', 'dev', o),
+    ],
+    [
+      'getCostRecommendations',
+      (c: ObservabilityClient, o: any) =>
+        c.getCostRecommendations('ns1', 'dev', o),
+    ],
+  ])('%s drops the release line without a component', async (_name, call) => {
+    mockFetchApi.fetch.mockResolvedValueOnce(okResponse({ items: [] }));
+
+    await call(createClient(), { project: 'proj', releaseLine: 'next' });
+
+    const parsed = new URL(mockFetchApi.fetch.mock.calls[0][0]);
+    expect(parsed.searchParams.has('releaseLine')).toBe(false);
+    expect(parsed.searchParams.has('allReleaseLines')).toBe(false);
+  });
+
+  it.each([
+    [
+      'getCosts',
+      (c: ObservabilityClient, o: any) => c.getCosts('ns1', 'dev', o),
+    ],
+    [
+      'getCostRecommendations',
+      (c: ObservabilityClient, o: any) =>
+        c.getCostRecommendations('ns1', 'dev', o),
+    ],
+  ])(
+    '%s asks for every line of a component without a line',
+    async (_name, call) => {
+      mockFetchApi.fetch.mockResolvedValueOnce(okResponse({ items: [] }));
+
+      await call(createClient(), { project: 'proj', component: 'comp' });
+
+      const parsed = new URL(mockFetchApi.fetch.mock.calls[0][0]);
+      expect(parsed.searchParams.has('releaseLine')).toBe(false);
+      expect(parsed.searchParams.get('allReleaseLines')).toBe('true');
+    },
+  );
+
+  it.each([
+    [
+      'getCosts',
+      (c: ObservabilityClient, o: any) => c.getCosts('ns1', 'dev', o),
+    ],
+    [
+      'getCostRecommendations',
+      (c: ObservabilityClient, o: any) =>
+        c.getCostRecommendations('ns1', 'dev', o),
+    ],
+  ])(
+    '%s reports a 501 for a release line as not supported',
+    async (_name, call) => {
+      mockFetchApi.fetch.mockResolvedValueOnce(notImplemented);
+
+      const result = call(createClient(), {
+        project: 'proj',
+        component: 'comp',
+        releaseLine: 'next',
+      });
+      await expect(result).rejects.toBeInstanceOf(
+        CostsReleaseLineNotSupportedError,
+      );
+      await expect(result).rejects.toThrow(
+        'Cost data for a single release line is not supported by the installed FinOps module',
+      );
+    },
+  );
+
+  it('keeps the generic error for a 501 without a release line', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(notImplemented);
+
+    await expect(
+      createClient().getCosts('ns1', 'dev', { component: 'comp' }),
+    ).rejects.toThrow('not implemented');
   });
 });

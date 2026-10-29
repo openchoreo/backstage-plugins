@@ -46,7 +46,17 @@ import {
 import { execSessionStore } from './ExecSessionStore';
 import type { AuthService, LoggerService } from '@backstage/backend-plugin-api';
 import type { CatalogService } from '@backstage/plugin-catalog-node';
-import type { AnnotationStore } from '@openchoreo/backstage-plugin-catalog-backend-module';
+import {
+  CHOREO_ANNOTATIONS,
+  reservedReleaseLineNameError,
+  toStoredReleaseLine,
+  type ReleaseLineResource,
+} from '@openchoreo/backstage-plugin-common';
+import {
+  translateReleaseLineToEntity,
+  type AnnotationStore,
+  type ImmediateCatalogService,
+} from '@openchoreo/backstage-plugin-catalog-backend-module';
 import {
   transformReleaseBinding,
   transformResourceReleaseBinding,
@@ -87,6 +97,15 @@ const VALID_PLATFORM_RESOURCE_KINDS = [
 export type PlatformResourceKind =
   (typeof VALID_PLATFORM_RESOURCE_KINDS)[number];
 
+/**
+ * The release line a request names in its query or body. The main line, by
+ * name or omitted, is undefined, so `main` is never written into a resource.
+ */
+function requestReleaseLine(req: express.Request): string | undefined {
+  const value = req.query.releaseLine ?? req.body?.releaseLine;
+  return typeof value === 'string' ? toStoredReleaseLine(value) : undefined;
+}
+
 export async function createRouter({
   environmentInfoService,
   cellDiagramInfoService,
@@ -111,6 +130,8 @@ export async function createRouter({
   wirelogsInfoService,
   versionService,
   annotationStore,
+  immediateCatalog,
+  defaultOwner,
   catalogService,
   auth,
   tokenService,
@@ -141,6 +162,8 @@ export async function createRouter({
   wirelogsInfoService: WirelogsInfoService;
   versionService: VersionService;
   annotationStore: AnnotationStore;
+  immediateCatalog: ImmediateCatalogService;
+  defaultOwner: string;
   catalogService: CatalogService;
   auth: AuthService;
   tokenService: OpenChoreoTokenService;
@@ -182,38 +205,7 @@ export async function createRouter({
           componentName: componentName as string,
           projectName: projectName as string,
           namespaceName: namespaceName as string,
-        },
-        userToken,
-      ),
-    );
-  });
-
-  router.post('/promote-deployment', requireAuth, async (req, res) => {
-    const { sourceEnv, targetEnv, componentName, projectName, namespaceName } =
-      req.body;
-
-    if (
-      !sourceEnv ||
-      !targetEnv ||
-      !componentName ||
-      !projectName ||
-      !namespaceName
-    ) {
-      throw new InputError(
-        'sourceEnv, targetEnv, componentName, projectName and namespaceName are required in request body',
-      );
-    }
-
-    const userToken = getUserTokenFromRequest(req);
-
-    res.json(
-      await environmentInfoService.promoteComponent(
-        {
-          sourceEnvironment: sourceEnv,
-          targetEnvironment: targetEnv,
-          componentName: componentName as string,
-          projectName: projectName as string,
-          namespaceName: namespaceName as string,
+          releaseLine: requestReleaseLine(req),
         },
         userToken,
       ),
@@ -237,6 +229,7 @@ export async function createRouter({
           componentName: componentName as string,
           projectName: projectName as string,
           namespaceName: namespaceName as string,
+          releaseLine: requestReleaseLine(req),
           environment: environment as string,
         },
         userToken,
@@ -279,6 +272,7 @@ export async function createRouter({
           componentName: componentName as string,
           projectName: projectName as string,
           namespaceName: namespaceName as string,
+          releaseLine: requestReleaseLine(req),
           bindingName: bindingName as string,
           releaseState: releaseState as 'Active' | 'Suspend' | 'Undeploy',
         },
@@ -304,6 +298,7 @@ export async function createRouter({
           componentName: componentName as string,
           projectName: projectName as string,
           namespaceName: namespaceName as string,
+          releaseLine: requestReleaseLine(req),
           bindingName: bindingName as string,
         },
         userToken,
@@ -713,6 +708,7 @@ export async function createRouter({
         namespaceName as string,
         projectName as string,
         componentName as string,
+        requestReleaseLine(req),
         userToken,
       ),
     );
@@ -843,6 +839,7 @@ export async function createRouter({
         componentName: componentName as string,
         projectName: projectName as string,
         namespaceName: namespaceName as string,
+        releaseLine: requestReleaseLine(req),
       },
       userToken,
     );
@@ -877,6 +874,7 @@ export async function createRouter({
           componentName: componentName as string,
           projectName: projectName as string,
           namespaceName: namespaceName as string,
+          releaseLine: requestReleaseLine(req),
           workload,
           isNew: isNew === 'true',
         },
@@ -951,6 +949,7 @@ export async function createRouter({
           componentName: componentName as string,
           projectName: projectName as string,
           namespaceName: namespaceName as string,
+          releaseLine: requestReleaseLine(req),
           releaseName: releaseName as string | undefined,
         },
         userToken,
@@ -980,6 +979,7 @@ export async function createRouter({
           componentName: componentName as string,
           projectName: projectName as string,
           namespaceName: namespaceName as string,
+          releaseLine: requestReleaseLine(req),
           releaseName: releaseName as string,
         },
         userToken,
@@ -1055,6 +1055,8 @@ export async function createRouter({
         componentName: componentName as string,
         projectName: projectName as string,
         namespaceName: namespaceName as string,
+        releaseLine: requestReleaseLine(req),
+        allReleaseLines: req.query.allReleaseLines === 'true',
       },
       userToken,
     );
@@ -1062,6 +1064,253 @@ export async function createRouter({
       transformReleaseBinding(binding),
     );
     res.json({ success: true, data: { items } });
+  });
+
+  router.get('/release-lines', async (req, res) => {
+    const { componentName, namespaceName } = req.query;
+
+    if (!componentName || !namespaceName) {
+      throw new InputError(
+        'componentName and namespaceName are required query parameters',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    const items = await componentInfoService.fetchReleaseLines(
+      namespaceName as string,
+      componentName as string,
+      userToken,
+    );
+    res.json({ success: true, data: { items } });
+  });
+
+  /**
+   * Adds a release line created from the UI to the catalog right away, owned
+   * like its component. Best effort: the next sync adds it otherwise.
+   */
+  const insertReleaseLineEntity = async (
+    namespaceName: string,
+    componentName: string,
+    releaseLine: ReleaseLineResource,
+  ) => {
+    try {
+      const credentials = await auth.getOwnServiceCredentials();
+      const component = await catalogService.getEntityByRef(
+        `component:${namespaceName}/${componentName}`,
+        { credentials },
+      );
+      const spec = releaseLine.spec;
+      await immediateCatalog.insertEntity(
+        translateReleaseLineToEntity(
+          {
+            name: releaseLine.metadata.name,
+            description:
+              releaseLine.metadata.annotations?.['openchoreo.dev/description'],
+            projectName:
+              spec?.owner.projectName ??
+              (component?.spec?.system as string | undefined) ??
+              '',
+            componentName,
+            autoDeploy: spec?.autoDeploy,
+            parameters: spec?.parameters,
+            traits: spec?.traits,
+            workflow: spec?.workflow,
+            createdAt:
+              releaseLine.metadata.creationTimestamp ??
+              new Date().toISOString(),
+          },
+          namespaceName,
+          {
+            locationKey: 'OpenChoreoEntityProvider',
+            defaultOwner:
+              (component?.spec?.owner as string | undefined) ?? defaultOwner,
+          },
+        ),
+      );
+    } catch (err) {
+      logger.warn(
+        `Failed to add release line ${namespaceName}/${releaseLine.metadata.name} to the catalog; the next sync adds it: ${err}`,
+      );
+    }
+  };
+
+  /**
+   * Updates the component's `has-release-lines` annotation in the catalog
+   * right away, so its overview follows a line created or deleted from the UI.
+   * Best effort: the next sync updates it otherwise.
+   */
+  const markComponentReleaseLines = async (
+    namespaceName: string,
+    componentName: string,
+    hasLines: boolean,
+  ) => {
+    try {
+      const credentials = await auth.getOwnServiceCredentials();
+      const component = await catalogService.getEntityByRef(
+        `component:${namespaceName}/${componentName}`,
+        { credentials },
+      );
+      if (!component) return;
+      const {
+        uid: _uid,
+        etag: _etag,
+        generation: _generation,
+        ...metadata
+      } = component.metadata as typeof component.metadata & {
+        generation?: number;
+      };
+      const annotations = { ...metadata.annotations };
+      if (hasLines) {
+        annotations[CHOREO_ANNOTATIONS.HAS_RELEASE_LINES] = 'true';
+      } else {
+        delete annotations[CHOREO_ANNOTATIONS.HAS_RELEASE_LINES];
+      }
+      await immediateCatalog.insertEntity({
+        apiVersion: component.apiVersion,
+        kind: component.kind,
+        metadata: { ...metadata, annotations },
+        spec: component.spec,
+      });
+    } catch (err) {
+      logger.warn(
+        `Failed to update release lines of component ${namespaceName}/${componentName} in the catalog; the next sync updates it: ${err}`,
+      );
+    }
+  };
+
+  router.post('/release-lines', requireAuth, async (req, res) => {
+    const { componentName, namespaceName, releaseLine } = req.body;
+
+    if (!componentName || !namespaceName || !releaseLine?.metadata?.name) {
+      throw new InputError(
+        'componentName, namespaceName and releaseLine.metadata.name are required in request body',
+      );
+    }
+    const reservedNameError = reservedReleaseLineNameError(
+      releaseLine.metadata.name,
+    );
+    if (reservedNameError) {
+      throw new InputError(reservedNameError);
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    const created = await componentInfoService.createReleaseLine(
+      namespaceName as string,
+      componentName as string,
+      releaseLine,
+      userToken,
+    );
+    await insertReleaseLineEntity(namespaceName, componentName, created);
+    await markComponentReleaseLines(namespaceName, componentName, true);
+    res.status(201).json({ success: true, data: created });
+  });
+
+  router.get('/release-line', async (req, res) => {
+    const { componentName, namespaceName, releaseLineName } = req.query;
+
+    if (!componentName || !namespaceName || !releaseLineName) {
+      throw new InputError(
+        'componentName, namespaceName and releaseLineName are required query parameters',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    const releaseLine = await componentInfoService.fetchReleaseLine(
+      namespaceName as string,
+      componentName as string,
+      releaseLineName as string,
+      userToken,
+    );
+    res.json({ success: true, data: releaseLine });
+  });
+
+  router.put('/release-line', requireAuth, async (req, res) => {
+    const { componentName, namespaceName, releaseLineName, releaseLine } =
+      req.body;
+
+    if (!componentName || !namespaceName || !releaseLineName || !releaseLine) {
+      throw new InputError(
+        'componentName, namespaceName, releaseLineName and releaseLine are required in request body',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    const updated = await componentInfoService.updateReleaseLine(
+      namespaceName as string,
+      componentName as string,
+      releaseLineName as string,
+      releaseLine,
+      userToken,
+    );
+    await insertReleaseLineEntity(namespaceName, componentName, updated);
+    res.json({ success: true, data: updated });
+  });
+
+  router.delete('/release-line', requireAuth, async (req, res) => {
+    const { componentName, namespaceName, releaseLineName } = req.query;
+
+    if (!componentName || !namespaceName || !releaseLineName) {
+      throw new InputError(
+        'componentName, namespaceName and releaseLineName are required query parameters',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    await componentInfoService.deleteReleaseLine(
+      namespaceName as string,
+      componentName as string,
+      releaseLineName as string,
+      userToken,
+    );
+    try {
+      await immediateCatalog.removeEntity(
+        `releaseline:${namespaceName}/${releaseLineName}`,
+      );
+    } catch (err) {
+      logger.warn(
+        `Failed to remove release line ${namespaceName}/${releaseLineName} from the catalog; the next sync removes it: ${err}`,
+      );
+    }
+    const remaining = await componentInfoService
+      .fetchReleaseLines(
+        namespaceName as string,
+        componentName as string,
+        userToken,
+      )
+      .catch(() => undefined);
+    if (remaining) {
+      await markComponentReleaseLines(
+        namespaceName as string,
+        componentName as string,
+        remaining.some(line => !line.isMain && line.name !== releaseLineName),
+      );
+    }
+    res.json({ success: true });
+  });
+
+  router.post('/release-line-builds', requireAuth, async (req, res) => {
+    const { componentName, namespaceName, releaseLine } = req.body;
+
+    if (!componentName || !namespaceName || !releaseLine) {
+      throw new InputError(
+        'componentName, namespaceName and releaseLine are required in request body',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    const run = await componentInfoService.triggerReleaseLineBuild(
+      namespaceName as string,
+      componentName as string,
+      releaseLine as string,
+      userToken,
+    );
+    res.json({ success: true, data: run });
   });
 
   router.get('/resource-release-bindings', async (req, res) => {
@@ -1360,6 +1609,7 @@ export async function createRouter({
           componentName: componentName as string,
           projectName: projectName as string,
           namespaceName: namespaceName as string,
+          releaseLine: requestReleaseLine(req),
           environment: environment as string,
           componentTypeEnvironmentConfigs,
           traitEnvironmentConfigs,
@@ -1397,6 +1647,7 @@ export async function createRouter({
           componentName: componentName as string,
           projectName: projectName as string,
           namespaceName: namespaceName as string,
+          releaseLine: requestReleaseLine(req),
           environment: environment as string,
           componentTypeEnvironmentConfigs: componentTypeEnvironmentConfigs,
           traitEnvironmentConfigs: traitEnvironmentConfigs,
@@ -2440,6 +2691,7 @@ export async function createRouter({
       environment: environment as string,
       podName: podName ? (podName as string) : undefined,
       containerName: containerName ? (containerName as string) : undefined,
+      releaseLine: requestReleaseLine(req),
     });
 
     res.json({ sessionId, ttlSeconds: 30 });

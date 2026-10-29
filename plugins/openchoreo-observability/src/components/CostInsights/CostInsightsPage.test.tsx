@@ -2,6 +2,11 @@ import { screen } from '@testing-library/react';
 import { renderInTestApp } from '@backstage/test-utils';
 import { CostInsightsPage } from './CostInsightsPage';
 
+// The line filter is covered by its own tests.
+jest.mock('../common/ReleaseLineFilter', () => ({
+  ReleaseLineFilter: () => null,
+}));
+
 // Child components are exercised by their own tests; stub them to lightweight
 // markers so this suite focuses on the page's state wiring.
 jest.mock('./CostInsightsScopeFilters', () => ({

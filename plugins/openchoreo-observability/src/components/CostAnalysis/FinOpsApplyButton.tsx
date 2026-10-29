@@ -1,5 +1,11 @@
 import { useState, useCallback } from 'react';
-import { Button, Box, LinearProgress, Tooltip } from '@material-ui/core';
+import {
+  Button,
+  Box,
+  LinearProgress,
+  Tooltip,
+  Typography,
+} from '@material-ui/core';
 import CheckIcon from '@material-ui/icons/Check';
 import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
 import { Alert } from '@material-ui/lab';
@@ -22,6 +28,10 @@ interface FinOpsApplyButtonProps {
   actionIndex: number;
   action: FinOpsRemediationAction;
   chatContext: FinOpsApplyChatContext;
+  /** Component the report is for; the target binding must belong to it. */
+  componentName?: string | null;
+  /** Release line the report is for; the target binding must be on it. */
+  releaseLine?: string | null;
   onApplied?: () => void;
 }
 
@@ -32,6 +42,8 @@ export const FinOpsApplyButton = ({
   actionIndex,
   action,
   chatContext,
+  componentName,
+  releaseLine,
   onApplied,
 }: FinOpsApplyButtonProps) => {
   const fetchApi = useApi(openChoreoFetchApiRef);
@@ -58,6 +70,7 @@ export const FinOpsApplyButton = ({
         fetchApi,
         namespaceName: chatContext.namespaceName,
         change: action.change,
+        expectedOwner: { componentName, releaseLine },
       });
 
       try {
@@ -81,7 +94,16 @@ export const FinOpsApplyButton = ({
       );
       setStatus('failed');
     }
-  }, [chatContext, fetchApi, reportId, actionIndex, action.change, onApplied]);
+  }, [
+    chatContext,
+    fetchApi,
+    reportId,
+    actionIndex,
+    action.change,
+    componentName,
+    releaseLine,
+    onApplied,
+  ]);
 
   if (action.status === 'applied' || status === 'success') {
     return (
@@ -141,18 +163,26 @@ export const FinOpsApplyButton = ({
     : deniedTooltip;
 
   return (
-    <Tooltip title={tooltipTitle}>
-      <span>
-        <Button
-          variant="contained"
-          color="primary"
-          size="small"
-          onClick={handleApply}
-          disabled={disabled}
-        >
-          Apply Recommendation
-        </Button>
-      </span>
-    </Tooltip>
+    <Box>
+      <Tooltip title={tooltipTitle}>
+        <span>
+          <Button
+            variant="contained"
+            color="primary"
+            size="small"
+            onClick={handleApply}
+            disabled={disabled}
+          >
+            Apply Recommendation
+          </Button>
+        </span>
+      </Tooltip>
+      {action.change && (
+        <Typography variant="caption" color="textSecondary" display="block">
+          Updates release binding {action.change.release_binding}
+          {releaseLine ? ` on release line ${releaseLine}` : ''}
+        </Typography>
+      )}
+    </Box>
   );
 };

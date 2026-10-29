@@ -3,6 +3,7 @@ export const kindDisplayNames: Record<string, string> = {
   domain: 'Namespace',
   system: 'Project',
   component: 'Component',
+  releaseline: 'Release Line',
   api: 'API',
   user: 'User',
   group: 'Group',
@@ -30,6 +31,18 @@ export const kindDisplayNames: Record<string, string> = {
   clusterworkflow: 'Cluster Workflow',
   componentworkflow: 'Component Workflow',
 };
+
+/**
+ * Kinds kept in the catalog but not listed in the catalog viewer or search.
+ * Release lines are reached from their component's Overview.
+ */
+export const hiddenCatalogKinds = new Set(['releaseline']);
+
+/** Whether a search result is an entity of a kind hidden from the viewer. */
+export function isHiddenSearchResult(document: unknown): boolean {
+  const kind = (document as { kind?: unknown } | undefined)?.kind;
+  return typeof kind === 'string' && hiddenCatalogKinds.has(kind.toLowerCase());
+}
 
 export interface KindCategory {
   label: string;

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { Entity } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
+import { useReleaseLine } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { ItemActionTracker } from '../types';
 
@@ -10,7 +11,8 @@ interface UseNotificationHook {
 }
 
 /**
- * Hook for environment action handlers (promote, suspend, refresh).
+ * Hook for environment action handlers (suspend, redeploy, restart, remove,
+ * refresh). Promote goes through the overrides page instead.
  * Provides callback functions for common environment operations.
  */
 export function useEnvironmentActions(
@@ -20,6 +22,7 @@ export function useEnvironmentActions(
   refreshTracker: ItemActionTracker,
 ) {
   const client = useApi(openChoreoClientApiRef);
+  const { releaseLine } = useReleaseLine();
 
   // Tracks whether the consumer component is still mounted. Long-running
   // handlers (e.g. handleRemoveDeployment's poll loop) check this before
@@ -44,37 +47,36 @@ export function useEnvironmentActions(
     [refetch, refreshTracker],
   );
 
-  const handlePromote = useCallback(
-    async (sourceEnvName: string, targetEnvName: string) => {
-      await client.promoteToEnvironment(entity, sourceEnvName, targetEnvName);
-      await refetch();
-      notification.showSuccess(
-        `Component promoted from ${sourceEnvName} to ${targetEnvName}`,
-      );
-    },
-    [entity, client, refetch, notification],
-  );
-
   const handleUndeploy = useCallback(
     async (bindingName: string) => {
-      await client.updateComponentBinding(entity, bindingName, 'Undeploy');
+      await client.updateComponentBinding(
+        entity,
+        bindingName,
+        'Undeploy',
+        releaseLine,
+      );
       // Small delay to allow the server to reconcile the state change
       await new Promise(resolve => setTimeout(resolve, 1000));
       await refetch();
       notification.showSuccess(`Component undeployed successfully`);
     },
-    [entity, client, refetch, notification],
+    [entity, client, refetch, notification, releaseLine],
   );
 
   const handleRedeploy = useCallback(
     async (bindingName: string) => {
-      await client.updateComponentBinding(entity, bindingName, 'Active');
+      await client.updateComponentBinding(
+        entity,
+        bindingName,
+        'Active',
+        releaseLine,
+      );
       // Small delay to allow the server to reconcile the state change
       await new Promise(resolve => setTimeout(resolve, 1000));
       await refetch();
       notification.showSuccess(`Component redeployed successfully`);
     },
-    [entity, client, refetch, notification],
+    [entity, client, refetch, notification, releaseLine],
   );
 
   // Rollout restart is declarative on the platform side: we stamp
@@ -85,11 +87,15 @@ export function useEnvironmentActions(
   // the user can watch the pod-status panel.
   const handleRolloutRestart = useCallback(
     async (bindingName: string) => {
-      await client.rolloutRestartReleaseBinding(entity, bindingName);
+      await client.rolloutRestartReleaseBinding(
+        entity,
+        bindingName,
+        releaseLine,
+      );
       await refetch();
       notification.showSuccess(`Rollout restart triggered for ${bindingName}`);
     },
-    [entity, client, refetch, notification],
+    [entity, client, refetch, notification, releaseLine],
   );
 
   // Removing the deployment deletes the release binding for the env;
@@ -106,7 +112,7 @@ export function useEnvironmentActions(
   // hanging forever.
   const handleRemoveDeployment = useCallback(
     async (_bindingName: string, envName: string) => {
-      await client.deleteReleaseBinding(entity, envName);
+      await client.deleteReleaseBinding(entity, envName, releaseLine);
 
       const POLL_INTERVAL_MS = 1500;
       const POLL_TIMEOUT_MS = 15_000;
@@ -116,7 +122,10 @@ export function useEnvironmentActions(
         await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
         if (!mountedRef.current) break;
         try {
-          const envs = (await client.fetchEnvironmentInfo(entity)) as Array<{
+          const envs = (await client.fetchEnvironmentInfo(
+            entity,
+            releaseLine,
+          )) as Array<{
             name: string;
             resourceName?: string;
             bindingName?: string;
@@ -142,12 +151,11 @@ export function useEnvironmentActions(
         );
       }
     },
-    [entity, client, refetch, notification],
+    [entity, client, refetch, notification, releaseLine],
   );
 
   return {
     handleRefreshEnvironment,
-    handlePromote,
     handleUndeploy,
     handleRedeploy,
     handleRolloutRestart,

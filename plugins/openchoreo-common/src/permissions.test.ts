@@ -148,3 +148,19 @@ describe('NotificationChannel permissions', () => {
     ).toBe('observabilityalertsnotificationchannel:view');
   });
 });
+
+describe('ReleaseLine catalog permissions', () => {
+  it('lists ReleaseLine as a managed entity kind', () => {
+    expect(OPENCHOREO_MANAGED_ENTITY_KINDS).toEqual(
+      expect.arrayContaining(['ReleaseLine']),
+    );
+  });
+
+  it('bridges catalog permissions to the component actions', () => {
+    expect(CATALOG_KIND_TO_ACTION.releaseline).toEqual({
+      'catalog.entity.read': 'component:view',
+      'catalog.entity.delete': 'component:update',
+      'catalog.entity.refresh': 'component:update',
+    });
+  });
+});

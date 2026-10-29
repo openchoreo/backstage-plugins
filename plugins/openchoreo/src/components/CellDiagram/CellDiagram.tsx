@@ -21,7 +21,10 @@ import { catalogApiRef, useEntity } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
 import { stringifyEntityRef } from '@backstage/catalog-model';
 import { useNavigate } from 'react-router-dom';
-import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import {
+  CHOREO_ANNOTATIONS,
+  parseReleaseLineNodeId,
+} from '@openchoreo/backstage-plugin-common';
 import { useTheme } from '@material-ui/core/styles';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
 import {
@@ -41,6 +44,11 @@ import {
   calculateTimeRange,
 } from '@openchoreo/backstage-plugin-react';
 import { useCellEnvironments } from './useCellEnvironments';
+import { ReleaseLineSelect } from './ReleaseLineSelect';
+import {
+  diagramReleaseLines,
+  filterProjectByReleaseLine,
+} from './releaseLineFilter';
 
 const CellView = lazy(() =>
   import('@openchoreo/cell-diagram').then(module => ({
@@ -93,8 +101,8 @@ export const CellDiagram = () => {
   const navDeps = useRef({ catalogApi, navigate, entity });
   navDeps.current = { catalogApi, navigate, entity };
 
-  // Resolve a component node and navigate to one of its tabs.
-  // no-op when the component isn't in the catalog. `subPath` selects the tab
+  // Resolve a component (or release line) node and navigate to one of its
+  // tabs. no-op when the entity isn't in the catalog. `subPath` selects the tab
   // (e.g. '/environments'); an empty string lands on the Overview tab.
   const navigateToComponent = useCallback(
     async (componentId: string, subPath: string = '') => {
@@ -104,11 +112,13 @@ export const CellDiagram = () => {
         navigate: nav,
         entity: project,
       } = navDeps.current;
+      const { componentName, releaseLine } =
+        parseReleaseLineNodeId(componentId);
       try {
         const { items } = await api.getEntities({
           filter: {
             kind: 'Component',
-            'metadata.name': componentId,
+            'metadata.name': componentName,
             'relations.partof': stringifyEntityRef(project),
           },
           fields: ['kind', 'metadata.name', 'metadata.namespace'],
@@ -116,7 +126,25 @@ export const CellDiagram = () => {
         const target = items[0];
         if (!target) return;
         const ns = target.metadata.namespace ?? 'default';
-        nav(`/catalog/${ns}/component/${target.metadata.name}${subPath}`);
+        if (!releaseLine) {
+          nav(`/catalog/${ns}/component/${target.metadata.name}${subPath}`);
+          return;
+        }
+        const { items: lines } = await api.getEntities({
+          filter: {
+            kind: 'ReleaseLine',
+            'metadata.name': releaseLine,
+            'metadata.namespace': ns,
+            'relations.partof': stringifyEntityRef(target),
+          },
+          fields: ['metadata.name'],
+        });
+        // Fall back to the component when the line isn't in the catalog yet.
+        nav(
+          lines[0]
+            ? `/catalog/${ns}/releaseline/${releaseLine}${subPath}`
+            : `/catalog/${ns}/component/${target.metadata.name}`,
+        );
       } catch {
         // Swallow — a failed lookup just leaves the user on the diagram.
       }
@@ -267,6 +295,18 @@ export const CellDiagram = () => {
   const hasNoComponents =
     !!cellDiagramData && (cellDiagramData.components?.length ?? 0) === 0;
 
+  const [releaseLine, setReleaseLine] = useState('');
+  const releaseLines = useMemo(
+    () => diagramReleaseLines(cellDiagramData),
+    [cellDiagramData],
+  );
+  const shownDiagramData = useMemo(
+    () =>
+      cellDiagramData &&
+      filterProjectByReleaseLine(cellDiagramData, releaseLine),
+    [cellDiagramData, releaseLine],
+  );
+
   return (
     <Box
       sx={{
@@ -294,6 +334,14 @@ export const CellDiagram = () => {
             gap: 12,
           }}
         >
+          {releaseLines.length > 0 && (
+            <ReleaseLineSelect
+              value={releaseLine}
+              lines={releaseLines}
+              onChange={setReleaseLine}
+            />
+          )}
+
           {toggleDisabled ? (
             <Tooltip title="Runtime network observability is unavailable in all environments. Configure the Cilium module to enable network observability.">
               <span>{toggleControl}</span>
@@ -421,7 +469,7 @@ export const CellDiagram = () => {
             return (
               <MemoCellView
                 key={targetLayer}
-                project={cellDiagramData}
+                project={shownDiagramData ?? cellDiagramData}
                 mode={mode}
                 defaultDiagramLayer={targetLayer}
                 componentMenu={componentMenu}

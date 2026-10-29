@@ -298,4 +298,35 @@ describe('useDependencyEditBuffer', () => {
     expect(result.current.editingRow).toBeNull();
     expect(result.current.editBuffer).toBeNull();
   });
+
+  it('accepts a dependency without a release line, which targets the main line', () => {
+    const { result } = renderHook(() => useDependencyEditBuffer(makeOptions()));
+
+    act(() => {
+      result.current.startNew(0, {
+        component: 'rl-service',
+        name: 'http',
+        visibility: 'project',
+      });
+    });
+    expect(result.current.isBufferValid).toBe(true);
+  });
+
+  it('updateBuffer with undefined removes the field', () => {
+    const { result } = renderHook(() => useDependencyEditBuffer(makeOptions()));
+
+    act(() => {
+      result.current.startNew(0, {
+        component: 'svc',
+        releaseLine: 'v1',
+        name: 'http',
+        visibility: 'project',
+      });
+    });
+    act(() => {
+      result.current.updateBuffer('releaseLine', undefined);
+    });
+
+    expect(result.current.editBuffer).not.toHaveProperty('releaseLine');
+  });
 });

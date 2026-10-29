@@ -1,6 +1,10 @@
+import { createElement, type ReactNode } from 'react';
 import { renderHook, waitFor } from '@testing-library/react';
 import { discoveryApiRef } from '@backstage/core-plugin-api';
-import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
+import {
+  openChoreoFetchApiRef,
+  ReleaseLineContext,
+} from '@openchoreo/backstage-plugin-react';
 import { Entity } from '@backstage/catalog-model';
 import { createQueryWrapper } from '@openchoreo/test-utils';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
@@ -25,13 +29,19 @@ const mockFetchApi = { fetch: jest.fn() };
 const okResponse = (body: unknown) =>
   ({ ok: true, status: 200, json: async () => body } as unknown as Response);
 
-function renderUseReleaseReadiness(client: any) {
+function renderUseReleaseReadiness(client: any, releaseLine?: string) {
+  const QueryWrapper = createQueryWrapper([
+    [openChoreoClientApiRef, client],
+    [discoveryApiRef, mockDiscoveryApi as any],
+    [openChoreoFetchApiRef, mockFetchApi as any],
+  ]);
   return renderHook(() => useReleaseReadiness(entity), {
-    wrapper: createQueryWrapper([
-      [openChoreoClientApiRef, client],
-      [discoveryApiRef, mockDiscoveryApi as any],
-      [openChoreoFetchApiRef, mockFetchApi as any],
-    ]),
+    wrapper: ({ children }: { children: ReactNode }) =>
+      createElement(
+        ReleaseLineContext.Provider,
+        { value: { releaseLine } },
+        createElement(QueryWrapper, null, children),
+      ),
   });
 }
 
@@ -82,5 +92,33 @@ describe('useReleaseReadiness', () => {
       'Configure your workload to enable deployment.',
     );
     expect(result.current.alertSeverity).toBe('info');
+  });
+
+  it('checks the workload and builds of the page release line', async () => {
+    const client = {
+      fetchWorkloadInfo: jest.fn().mockResolvedValue({}),
+    };
+    mockFetchApi.fetch.mockResolvedValue(okResponse([]));
+    const { result } = renderUseReleaseReadiness(client, 'next');
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(client.fetchWorkloadInfo).toHaveBeenCalledWith(entity, 'next');
+    const url = new URL(mockFetchApi.fetch.mock.calls[0][0]);
+    expect(url.pathname).toBe('/openchoreo/builds');
+    expect(url.searchParams.get('releaseLine')).toBe('next');
+  });
+
+  it('asks for the main line builds outside a release line', async () => {
+    const client = {
+      fetchWorkloadInfo: jest.fn().mockResolvedValue({}),
+    };
+    mockFetchApi.fetch.mockResolvedValue(okResponse([]));
+    const { result } = renderUseReleaseReadiness(client);
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    const url = new URL(mockFetchApi.fetch.mock.calls[0][0]);
+    expect(url.searchParams.has('releaseLine')).toBe(false);
   });
 });
