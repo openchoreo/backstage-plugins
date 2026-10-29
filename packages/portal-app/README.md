@@ -60,12 +60,12 @@ already the upstream `defaultTarget` of each external route ref.
 
 ## Status
 
-This package is **private for now**. It is the landing place for app-shell
-pieces as they are migrated to the new frontend system — parts of the shell
-still run through `@backstage/core-compat-api` (legacy bridge) and are being
-migrated piece by piece. The shell no longer depends on the private
-portal-assistant plugin: the assistant ships its own wiring from
-`@openchoreo/backstage-plugin-openchoreo-portal-assistant/alpha` and the `app`
-package installs it. Removing the legacy-bridged internals is the remaining
-blocker; that PR flips `private` and adds the
-package to the changeset linked group.
+Published in lockstep with the rest of `@openchoreo/*`: every release ships
+this package at the same version as the plugins it composes, so one version
+number identifies a whole portal. The shell carries no dependency on the
+private Portal Assistant: the assistant ships its own wiring from
+`@openchoreo/backstage-plugin-openchoreo-portal-assistant/alpha`, and the stock
+`app` package installs it through discovery like any other plugin.
+
+To scaffold a portal of your own from this package, see
+[`@openchoreo/create-portal`](../create-portal/README.md).

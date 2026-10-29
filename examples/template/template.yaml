@@ -20,6 +20,10 @@ spec:
           title: Name
           type: string
           description: Unique name of the component
+          # Rendered into content/package.json and content/index.js — keep it
+          # package-name safe.
+          pattern: '^[a-z0-9][a-z0-9-]*$'
+          maxLength: 63
           ui:autofocus: true
           ui:options:
             rows: 5
