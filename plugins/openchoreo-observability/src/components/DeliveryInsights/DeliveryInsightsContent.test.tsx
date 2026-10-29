@@ -140,3 +140,39 @@ describe('DeliveryInsightsContent observability notice', () => {
     ).toBeInTheDocument();
   });
 });
+
+// The bar puts the filters that choose WHICH data is shown -- namespace,
+// environment, project, component -- before the ones that choose HOW it is
+// drawn. Getting that wrong breaks nothing, so nothing else would catch it: the
+// page still renders and every filter still works. Hence this.
+//
+// Document order is asserted, not visual order, because it is also the tab
+// order; a CSS-only reorder would pass a screenshot and fail a keyboard user.
+describe('DeliveryInsightsContent filter bar order', () => {
+  // The scope controls are mocked, so each is read by its test id and the
+  // page's own filters by their label. An outlined MUI field repeats its label
+  // in the notch, so <label> elements are read rather than every node with the
+  // text.
+  const filterBarOrder = () => {
+    const bar = screen.getByTestId('scope-filters').parentElement!;
+    return Array.from(bar.querySelectorAll('label, [data-testid]'))
+      .map(node =>
+        node.tagName === 'LABEL'
+          ? node.textContent
+          : node.getAttribute('data-testid'),
+      )
+      .filter(name => name && name !== 'scope-filters');
+  };
+
+  it('puts environment between namespace and project', async () => {
+    await render('development');
+    expect(filterBarOrder()).toEqual([
+      'namespace-filter',
+      'Environment',
+      'project-filter',
+      'component-filter',
+      'Time range',
+      'Granularity',
+    ]);
+  });
+});
