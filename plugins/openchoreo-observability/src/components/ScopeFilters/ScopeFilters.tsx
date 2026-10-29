@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { createContext, useContext, FC, ReactNode } from 'react';
 import { MenuItem, TextField } from '@material-ui/core';
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
@@ -27,7 +27,27 @@ interface Option {
 
 const ALL = '';
 
-export interface ScopeFiltersProps {
+interface ScopeFilterContextValue {
+  scope: ScopeSelection;
+  onScopeChange: (next: ScopeSelection) => void;
+  namespaces: Option[];
+  projects: Option[];
+  components: Option[];
+}
+
+const ScopeFilterContext = createContext<ScopeFilterContextValue | null>(null);
+
+const useScopeFilter = (control: string): ScopeFilterContextValue => {
+  const value = useContext(ScopeFilterContext);
+  if (!value) {
+    throw new Error(
+      `<${control}> must be rendered inside <ScopeFilterProvider>`,
+    );
+  }
+  return value;
+};
+
+export interface ScopeFilterProviderProps {
   scope: ScopeSelection;
   onScopeChange: (next: ScopeSelection) => void;
   /**
@@ -35,20 +55,28 @@ export interface ScopeFiltersProps {
    * namespace/project lists share a prefix to share the cached lookups.
    */
   queryKeyPrefix?: string;
+  children: ReactNode;
 }
 
 /**
- * Scope selection as filter controls, sitting in the page's filter bar beside
- * the window and environment.
+ * Holds the scope selection and the cascading option lists behind it, so the
+ * filter controls below can be placed in any order the page needs.
  *
- * Project and component each offer an "All" option, because the absence of a
- * selection is itself a scope -- no project means the namespace as a whole -- so
- * the control has to be able to return to it, not only descend.
+ * The controls are separate components rather than one block because a page's
+ * own filters may belong among them -- environment, on Delivery Insights, is
+ * not part of the namespace → project → component hierarchy but is still a
+ * filter on which data is shown, so it reads better beside these than after the
+ * chart controls. Each level's options depend on the one above, so the queries
+ * live here and the controls stay presentational.
+ *
+ * Renders no markup of its own: the controls remain direct children of whatever
+ * lays the filter bar out.
  */
-export const ScopeFilters: FC<ScopeFiltersProps> = ({
+export const ScopeFilterProvider: FC<ScopeFilterProviderProps> = ({
   scope,
   onScopeChange,
   queryKeyPrefix = 'insights-scope',
+  children,
 }) => {
   const catalogApi = useApi(catalogApiRef);
 
@@ -105,74 +133,100 @@ export const ScopeFilters: FC<ScopeFiltersProps> = ({
     .sort((a: Option, b: Option) => a.label.localeCompare(b.label));
 
   return (
-    <>
-      <TextField
-        select
-        size="small"
-        variant="outlined"
-        label="Namespace"
-        value={scope.namespace ?? ALL}
-        // A different namespace invalidates any project and component under it.
-        onChange={event => onScopeChange({ namespace: event.target.value })}
-        style={{ minWidth: 160 }}
-      >
-        {namespaces.map(option => (
-          <MenuItem key={option.name} value={option.name}>
-            {option.label}
-          </MenuItem>
-        ))}
-      </TextField>
+    <ScopeFilterContext.Provider
+      value={{ scope, onScopeChange, namespaces, projects, components }}
+    >
+      {children}
+    </ScopeFilterContext.Provider>
+  );
+};
 
-      <TextField
-        select
-        size="small"
-        variant="outlined"
-        label="Project"
-        value={scope.project ?? ALL}
-        disabled={!scope.namespace}
-        SelectProps={{ displayEmpty: true }}
-        InputLabelProps={{ shrink: true }}
-        onChange={event =>
-          onScopeChange({
-            namespace: scope.namespace,
-            project: event.target.value || undefined,
-          })
-        }
-        style={{ minWidth: 160 }}
-      >
-        <MenuItem value={ALL}>All projects</MenuItem>
-        {projects.map(option => (
-          <MenuItem key={option.name} value={option.name}>
-            {option.label}
-          </MenuItem>
-        ))}
-      </TextField>
+export const NamespaceFilter: FC = () => {
+  const { scope, onScopeChange, namespaces } =
+    useScopeFilter('NamespaceFilter');
+  return (
+    <TextField
+      select
+      size="small"
+      variant="outlined"
+      label="Namespace"
+      value={scope.namespace ?? ALL}
+      // A different namespace invalidates any project and component under it.
+      onChange={event => onScopeChange({ namespace: event.target.value })}
+      style={{ minWidth: 160 }}
+    >
+      {namespaces.map(option => (
+        <MenuItem key={option.name} value={option.name}>
+          {option.label}
+        </MenuItem>
+      ))}
+    </TextField>
+  );
+};
 
-      <TextField
-        select
-        size="small"
-        variant="outlined"
-        label="Component"
-        value={scope.component ?? ALL}
-        disabled={!scope.project}
-        SelectProps={{ displayEmpty: true }}
-        InputLabelProps={{ shrink: true }}
-        onChange={event =>
-          onScopeChange({
-            namespace: scope.namespace,
-            project: scope.project,
-            component: event.target.value || undefined,
-          })
-        }
-        style={{ minWidth: 160 }}
-      >
-        <MenuItem value={ALL}>All components</MenuItem>
-        {components.map(option => (
-          <MenuItem key={option.name} value={option.name}>
-            {option.label}
-          </MenuItem>
-        ))}
-      </TextField>
-    </>
+/**
+ * Project and component each offer an "All" option, because the absence of a
+ * selection is itself a scope -- no project means the namespace as a whole -- so
+ * the control has to be able to return to it, not only descend.
+ */
+export const ProjectFilter: FC = () => {
+  const { scope, onScopeChange, projects } = useScopeFilter('ProjectFilter');
+  return (
+    <TextField
+      select
+      size="small"
+      variant="outlined"
+      label="Project"
+      value={scope.project ?? ALL}
+      disabled={!scope.namespace}
+      SelectProps={{ displayEmpty: true }}
+      InputLabelProps={{ shrink: true }}
+      onChange={event =>
+        onScopeChange({
+          namespace: scope.namespace,
+          project: event.target.value || undefined,
+        })
+      }
+      style={{ minWidth: 160 }}
+    >
+      <MenuItem value={ALL}>All projects</MenuItem>
+      {projects.map(option => (
+        <MenuItem key={option.name} value={option.name}>
+          {option.label}
+        </MenuItem>
+      ))}
+    </TextField>
+  );
+};
+
+export const ComponentFilter: FC = () => {
+  const { scope, onScopeChange, components } =
+    useScopeFilter('ComponentFilter');
+  return (
+    <TextField
+      select
+      size="small"
+      variant="outlined"
+      label="Component"
+      value={scope.component ?? ALL}
+      disabled={!scope.project}
+      SelectProps={{ displayEmpty: true }}
+      InputLabelProps={{ shrink: true }}
+      onChange={event =>
+        onScopeChange({
+          namespace: scope.namespace,
+          project: scope.project,
+          component: event.target.value || undefined,
+        })
+      }
+      style={{ minWidth: 160 }}
+    >
+      <MenuItem value={ALL}>All components</MenuItem>
+      {components.map(option => (
+        <MenuItem key={option.name} value={option.name}>
+          {option.label}
+        </MenuItem>
+      ))}
+    </TextField>
   );
 };

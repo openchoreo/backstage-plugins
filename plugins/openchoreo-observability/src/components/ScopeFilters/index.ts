@@ -1,2 +1,7 @@
-export { ScopeFilters } from './ScopeFilters';
-export type { ScopeFiltersProps, ScopeSelection } from './ScopeFilters';
+export {
+  ScopeFilterProvider,
+  NamespaceFilter,
+  ProjectFilter,
+  ComponentFilter,
+} from './ScopeFilters';
+export type { ScopeFilterProviderProps, ScopeSelection } from './ScopeFilters';
