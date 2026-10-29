@@ -1,6 +1,6 @@
 # @openchoreo/backstage-plugin-catalog-backend-module-openchoreo-users
 
-## 2.0.0-next.0
+## 1.4.0-m.1
 
 ### Patch Changes
 

@@ -1,6 +1,6 @@
 # @openchoreo/backstage-plugin-openchoreo-ci
 
-## 2.0.0-next.0
+## 1.4.0-m.1
 
 ### Minor Changes
 
