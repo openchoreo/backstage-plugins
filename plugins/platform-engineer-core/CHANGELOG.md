@@ -1,5 +1,60 @@
 # @openchoreo/backstage-plugin-platform-engineer-core
 
+## 2.0.0-next.0
+
+### Patch Changes
+
+- 44795b9: Stop overriding the app-wide fetch API and attach the OpenChoreo user token to
+  OpenChoreo requests only.
+
+  `openChoreoAppModule` registered an `api:app/core.fetch` override. In the
+  portal that was invisible, but in any other Backstage host it replaced the
+  app's own fetch API for every installed plugin — dropping the default
+  middleware chain (`plugin://` resolution, failure clarification, and identity
+  injection scoped to the host's own `backend.baseUrl`) and attaching both the
+  Backstage token and the OpenChoreo IDP token to every outbound request
+  regardless of destination.
+
+  Requests bound for an OpenChoreo backend now go through a new
+  `openChoreoFetchApiRef`, which decorates the host's `fetchApiRef` instead of
+  replacing it. The host keeps its middleware, and OpenChoreo credentials travel
+  only to OpenChoreo.
+
+  Destinations are checked rather than trusted: the IDP token is attached only to
+  requests bound for `backend.baseUrl`, so a caller passing an unrelated URL
+  cannot send the user's credentials to a third party. Direct mode (the
+  `x-openchoreo-direct` signal) remains an explicit per-request opt-in for
+  external OpenChoreo services.
+
+  The token itself comes from a new `openChoreoTokenApiRef` capability rather
+  than from a named auth provider. The default implementation sources it from the
+  `openchoreo-auth` OAuth provider exactly as before, so nothing changes for the
+  portal; a host whose own session already carries an OpenChoreo-accepted token
+  can now override that one API instead of forking the plugins.
+
+  `OpenChoreoFetchApi` from `@openchoreo/backstage-plugin` is deprecated and no
+  longer registered. `OPENCHOREO_TOKEN_HEADER` and `OPENCHOREO_DIRECT_HEADER` are
+  now exported from `@openchoreo/backstage-plugin-common` as the single
+  definition shared by both sides of the wire.
+
+- c67978a: Replace Backstage CLI boilerplate in published package descriptions and READMEs with
+  real ones, so the npm listings describe what each package does and point at the install
+  guide. No code changes.
+- Updated dependencies [d19949b]
+- Updated dependencies [c15ee42]
+- Updated dependencies [9e3a840]
+- Updated dependencies [f5ca212]
+- Updated dependencies [f5ca212]
+- Updated dependencies [44795b9]
+- Updated dependencies [c67978a]
+- Updated dependencies [11907a6]
+- Updated dependencies [cdc4c6e]
+- Updated dependencies [3275f94]
+  - @openchoreo/backstage-plugin@2.0.0-next.0
+  - @openchoreo/backstage-plugin-common@2.0.0-next.0
+  - @openchoreo/backstage-plugin-react@2.0.0-next.0
+  - @openchoreo/backstage-design-system@2.0.0-next.0
+
 ## 1.3.0
 
 ### Minor Changes

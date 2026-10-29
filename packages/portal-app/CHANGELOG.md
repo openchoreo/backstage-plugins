@@ -1,5 +1,100 @@
 # @openchoreo/backstage-portal-app
 
+## 1.4.0-next.0
+
+### Minor Changes
+
+- 9fa30bd: Make the portal shell installable by Backstage frontend feature discovery. The
+  new `@openchoreo/backstage-portal-app/alpha` entry point default-exports a
+  feature loader carrying the whole portal, and the package's `backstage.role`
+  changes from `web-library` to `frontend-plugin-module` so discovery can see it.
+  A host now installs the shell with a dependency plus `app.packages` in config,
+  and needs no `features` array.
+
+  A loader rather than a flat list of modules because that is the only shape
+  discovery can consume — one package contributes one default export — and
+  because a loader's features are spliced in at the loader's own position, in the
+  order it returns them. The portal's three order-dependent pairs (API modules
+  before the plugin-scoped `withOverrides`, Build before Deploy, Platform
+  Overview before Platform Logs) therefore survive discovery, and are now pinned
+  by tests instead of comments.
+
+  `createPortalApp()` keeps working and is unchanged for callers. It now reads the
+  same loader, so the two installation paths cannot drift, and using both at once
+  is safe — feature loaders are de-duplicated by reference. Its `bindRoutes` is
+  gone: all five bindings it declared are already the upstream `defaultTarget` of
+  the external route refs involved, so `resolveRouteBindings` applies them
+  anyway. `advanced.loadingElement` is the only thing the function still adds that
+  a feature cannot.
+
+- cdc4c6e: Support components with release lines.
+
+  - Every component has an implicit `main` line, built from the component's own workload and bindings. Its other lines are ReleaseLine resources, synced to the catalog as a new `ReleaseLine` kind, part of their component and visible to whoever can view the component. They are not listed in the catalog viewer or search, and are reached from their component's Overview.
+  - Components are created as before. Any component's context menu offers Create Release Line. Once a component has a release line, its Overview lists its lines, `main` first, with their environments, latest release and overrides. The component's own tabs work on the main line, which can't be edited, deleted or created. The names `main` and `default` are rejected for a new line: `main` is the implicit line, and `default` is reserved.
+  - Each release line has its own page with the component's tabs (build, deploy, logs, metrics, ...) scoped to that line. Its Definition tab edits the properties the line overrides, next to the properties it inherits from the component, which are read-only and edited on the component's Definition page.
+  - The `main` keyword is never written into a resource or request: releases, deploys, workload saves, dependencies and builds for the main line leave the release line empty. A dependency on a component with release lines picks the main line or one of its release lines, the main line unless chosen otherwise.
+  - The project cell diagram shows the main line and each release line of a component as their own nodes, labelled with the component name and a pill with the line name, with a Release line filter. Dependencies link to the line they name, or to the main line, and gateway metrics are scoped per line. Clicking a line node opens the line's page.
+  - Runtime logs, events, metrics, alerts, project logs, metrics, traces and incidents, cost insights and cost analysis reports get a Release line filter of All lines, `main` or one line, shown for a component with release lines. On a release line's page they are scoped to the line. Alert and incident details show the release line when there is one, and the observability API reports clearly when the installed FinOps module cannot filter costs by line.
+  - The Delivery Insights page shows a Release line filter when the selected component has release lines, narrowing the metrics and the per-environment breakdown to `main` or one line.
+  - An RCA report's Incident Overview shows the release line the alert fired on.
+  - Cost analysis reports show their line in their overview and in the reports list, and link to the line's page and metrics, or the component's for the main line. Apply Recommendation names the release binding it updates and refuses a binding that belongs to another line.
+  - Cost Insights applies a recommendation to the binding of the selected release line, and refuses a binding of another line. For a component with release lines, Apply is disabled until a line is chosen, since a recommendation for all lines matches no single binding.
+  - Workflow runs returned by the workflows backend include their labels, so a run can be matched to its release line.
+  - The environment overview lists each release line deployed in an environment as its own row, linked to the line's page, and Recent Deployments shows release lines next to components. `GET /release-bindings` returns the main line's bindings without a line, and every line's with `allReleaseLines=true`.
+  - The unused `promoteToEnvironment` client method and the backend `/promote-deployment` route are removed. The OpenChoreo API no longer has the promote endpoint they called, and the Promote action deploys through the release binding instead.
+  - A new release line's Workload and bindings are named as OpenChoreo names a line's objects, `{component}-{line}-{hash}`, so they never take a name another component needs. Deploy, promote, saving overrides and removing a deployment find a line's binding by its owner (component, line and environment) rather than by name, since a binding created elsewhere may be named otherwise.
+
+  Components without release lines behave as before.
+
+### Patch Changes
+
+- e6c00f2: The portal shell no longer wires the private Portal Assistant. Its drawer, assistant API factory, integration slots and log-row action now ship from the assistant plugin's own `/alpha` default export, installed by the `app` package — so the shell carries no dependency on the private plugin.
+- 3275f94: Adopt the shipped Access Control and Secrets settings sub-pages instead of overriding the whole `/settings` page.
+
+  Portal-app used to override `page:user-settings` with a hand-authored
+  `OpenChoreoUserSettingsPage` so Auth Providers and Feature Flags would not
+  appear. Now that `@openchoreo/backstage-plugin` contributes Access Control
+  and Secrets as `SubPageBlueprint` extensions, portal-app does the same thing
+  with far less code:
+
+  - Drops the `page:user-settings` override and the `OpenChoreoUserSettingsPage`
+    component.
+  - Hides `sub-page:user-settings/auth-providers` and
+    `sub-page:user-settings/feature-flags` through `app.extensions` in
+    `app-config.yaml` and `app-config.production.yaml`.
+  - Narrowly overrides `sub-page:user-settings/general` with a new
+    `OpenChoreoGeneralSettings` component so the portal keeps the fourth
+    `PlatformAboutCard` grid card next to upstream's Profile / Appearance /
+    Identity cards.
+
+  Net result is the same three visible tabs — General, Access Control, Secrets
+  — but every host that installs the plugins now gets the OpenChoreo settings
+  layout rather than only the portal.
+
+- Updated dependencies [d19949b]
+- Updated dependencies [92134d1]
+- Updated dependencies [a9b2476]
+- Updated dependencies [ac1813b]
+- Updated dependencies [127f3d0]
+- Updated dependencies [c15ee42]
+- Updated dependencies [9e3a840]
+- Updated dependencies [f5ca212]
+- Updated dependencies [f5ca212]
+- Updated dependencies [44795b9]
+- Updated dependencies [c67978a]
+- Updated dependencies [14f0837]
+- Updated dependencies [11907a6]
+- Updated dependencies [cdc4c6e]
+- Updated dependencies [3275f94]
+  - @openchoreo/backstage-plugin@2.0.0-next.0
+  - @openchoreo/backstage-plugin-openchoreo-observability@2.0.0-next.0
+  - @openchoreo/backstage-plugin-common@2.0.0-next.0
+  - @openchoreo/backstage-plugin-react@2.0.0-next.0
+  - @openchoreo/backstage-plugin-openchoreo-ci@2.0.0-next.0
+  - @openchoreo/backstage-plugin-platform-engineer-core@2.0.0-next.0
+  - @openchoreo/backstage-plugin-openchoreo-workflows@2.0.0-next.0
+  - @openchoreo/backstage-design-system@2.0.0-next.0
+
 ## 1.3.0
 
 ### Minor Changes
