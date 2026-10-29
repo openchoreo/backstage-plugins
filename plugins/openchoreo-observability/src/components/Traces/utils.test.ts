@@ -4,6 +4,7 @@ import {
   formatDuration,
   formatTime,
   formatTimeFromString,
+  formatTimestamp,
   getSpanStatusCode,
   isSpanError,
 } from './utils';
@@ -86,6 +87,28 @@ describe('formatTimeFromString', () => {
     expect(formatTimeFromString('2024-06-01T10:00:00')).toBe(
       '2024-06-01T10:00:00Z',
     );
+  });
+});
+
+describe('formatTimestamp', () => {
+  it('formats a UTC timestamp in the viewer locale', () => {
+    expect(formatTimestamp('2024-06-01T10:00:00.000Z')).toBe(
+      new Date('2024-06-01T10:00:00.000Z').toLocaleString(),
+    );
+  });
+
+  it('handles nanosecond precision without dropping the milliseconds', () => {
+    expect(formatTimestamp('2024-06-01T10:00:00.123456789Z')).toBe(
+      new Date('2024-06-01T10:00:00.123Z').toLocaleString(),
+    );
+  });
+
+  it('returns the raw value when it cannot be parsed', () => {
+    expect(formatTimestamp('not-a-date')).toBe('not-a-date');
+  });
+
+  it('returns an empty string for an empty timestamp', () => {
+    expect(formatTimestamp('')).toBe('');
   });
 });
 

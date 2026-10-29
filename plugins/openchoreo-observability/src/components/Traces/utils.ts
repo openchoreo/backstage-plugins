@@ -37,6 +37,24 @@ export function formatTimeFromString(rfc3339Nano: string): string {
   return rfc3339Nano.endsWith('Z') ? rfc3339Nano : `${rfc3339Nano}Z`;
 }
 
+/**
+ * Format an RFC 3339 (nano-precision) timestamp in the viewer's local
+ * timezone, matching how the runtime logs view renders timestamps. Falls back
+ * to the raw value when it cannot be parsed, so we never render "Invalid Date".
+ */
+export function formatTimestamp(rfc3339Nano: string): string {
+  if (!rfc3339Nano) return '';
+
+  // Parse through the nano-aware helper: some browsers (notably Safari)
+  // cannot parse 9-digit fractional seconds with `new Date(str)` directly.
+  const milliseconds = Math.floor(
+    parseRfc3339NanoToNanoseconds(rfc3339Nano) / 1_000_000,
+  );
+  const date = new Date(milliseconds);
+
+  return Number.isNaN(date.getTime()) ? rfc3339Nano : date.toLocaleString();
+}
+
 /** The OTel status code (`ok` | `error` | `unset`) of a span, if present. */
 export function getSpanStatusCode(status?: SpanStatus): string | undefined {
   return status?.code;
