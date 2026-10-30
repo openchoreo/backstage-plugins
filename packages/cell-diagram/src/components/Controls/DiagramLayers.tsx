@@ -1,6 +1,6 @@
-import { FC, useEffect, useRef, useState } from 'react';
+import { FC, useState } from 'react';
 import styled from '@emotion/styled';
-import gsap from 'gsap';
+import { PANEL_REVEAL_CLASS, panelRevealStyles } from '../../utils/animations';
 import { useDiagramContext } from '../DiagramContext/DiagramContext';
 import {
   DiagramIcon,
@@ -21,6 +21,7 @@ export const DiagramLayersPanel: FC<any> = styled.div`
   position: absolute;
   bottom: 15px;
   left: 15px;
+  ${panelRevealStyles}
 `;
 
 export const LayersPanel: FC<any> = styled.div`
@@ -77,24 +78,7 @@ export function DiagramLayers(props: DiagramLayersProps) {
     diagramLayers: { addLayer, removeLayer, hasLayer, activeLayers },
   } = useDiagramContext();
   const [hover, setHover] = useState(true);
-  const controlPanelRef = useRef(null);
   const canRemoveLayer = activeLayers.length > 1;
-
-  useEffect(() => {
-    if (animation) {
-      gsap.fromTo(
-        controlPanelRef.current,
-        { scale: 0 },
-        {
-          scale: 1,
-          duration: 1,
-          ease: 'power3.out',
-          delay: 1,
-        },
-      );
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const toggleArchitectureLayer = () => {
     if (hasLayer(DiagramLayer.ARCHITECTURE)) {
@@ -125,7 +109,7 @@ export function DiagramLayers(props: DiagramLayersProps) {
   };
 
   return (
-    <DiagramLayersPanel ref={controlPanelRef}>
+    <DiagramLayersPanel className={animation ? PANEL_REVEAL_CLASS : undefined}>
       <CanvasControlButton
         onClick={toggleDiagramLayerPanel}
         tooltipTitle={!hover ? 'Toggle architecture layers' : ''}

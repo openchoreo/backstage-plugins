@@ -1,4 +1,4 @@
-import { FC, useEffect, useRef } from 'react';
+import { FC } from 'react';
 import {
   FullScreenIcon,
   FitScreenIcon,
@@ -7,9 +7,9 @@ import {
   RefreshIcon,
 } from '../../resources/assets/icons';
 import styled from '@emotion/styled';
+import { PANEL_REVEAL_CLASS, panelRevealStyles } from '../../utils/animations';
 import { DiagramEngine } from '@projectstorm/react-diagrams';
 import { CanvasControlButton } from './ControlButtons/ControlButton';
-import gsap from 'gsap';
 
 interface ControlProps {
   engine: DiagramEngine;
@@ -26,27 +26,11 @@ export const ControlPanel: FC<any> = styled.div`
   position: absolute;
   right: 15px;
   width: 32px;
+  ${panelRevealStyles}
 `;
 
 export function DiagramControls(props: ControlProps) {
   const { engine, animation = true, refreshDiagram } = props;
-  const controlPanelRef = useRef(null);
-
-  useEffect(() => {
-    if (animation) {
-      gsap.fromTo(
-        controlPanelRef.current,
-        { scale: 0 },
-        {
-          scale: 1,
-          duration: 1,
-          ease: 'power3.out',
-          delay: 1,
-        },
-      );
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const onZoom = (zoomIn: boolean) => {
     const delta: number = zoomIn ? +5 : -5;
@@ -64,7 +48,7 @@ export function DiagramControls(props: ControlProps) {
   };
 
   return (
-    <ControlPanel ref={controlPanelRef}>
+    <ControlPanel className={animation ? PANEL_REVEAL_CLASS : undefined}>
       {refreshDiagram && (
         <CanvasControlButton onClick={refreshDiagram} tooltipTitle="Refresh">
           <RefreshIcon />

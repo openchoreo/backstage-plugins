@@ -1,5 +1,4 @@
 import createEngine, { DiagramEngine } from '@projectstorm/react-diagrams';
-import gsap from 'gsap';
 import {
   OverlayLayerFactory,
   ComponentFactory,
@@ -28,6 +27,7 @@ import {
   PROJECT_NODE,
 } from '../resources';
 import { ZoomCanvasAction } from '@projectstorm/react-canvas-core';
+import { REVEAL_DURATION, RevealClass } from './animations';
 
 // Diagram engine utils
 
@@ -67,85 +67,67 @@ export function generateEngine(previewMode?: boolean): DiagramEngine {
   return engine;
 }
 
-// reveal diagram with animation
-export function animateProjectDiagram() {
-  const tl = gsap.timeline();
-  const safeAnimate = (
-    selector: string,
-    animation: gsap.TweenVars,
-    label?: gsap.Position,
-  ) => {
-    const elements = gsap.utils.toArray(selector);
-    if (elements.length > 0) {
-      tl.from(elements, animation, label);
-    }
-  };
-  safeAnimate(`div[data-nodeid="${MAIN_CELL}"]`, {
-    scale: 0,
-    opacity: 0,
-    duration: 0.5,
+// Diagram reveal animations (CSS keyframes, see `./animations`)
+
+type RevealClassName = (typeof RevealClass)[keyof typeof RevealClass];
+
+/**
+ * Applies a reveal animation class to every element matching `selector`.
+ * Returns the number of elements that were animated so callers can
+ * sequence later animations only when something actually rendered.
+ */
+export function revealElements(
+  selector: string,
+  className: RevealClassName,
+  delaySeconds = 0,
+  root: ParentNode = document,
+): number {
+  const elements = Array.from(
+    root.querySelectorAll<HTMLElement | SVGElement>(selector),
+  );
+  elements.forEach(element => {
+    // restart the animation if the class is already present
+    element.classList.remove(className);
+    element.style.animationDelay = delaySeconds > 0 ? `${delaySeconds}s` : '';
+    element.classList.add(className);
   });
-  safeAnimate(
-    `g[data-linkid^="${EXTERNAL_LINK}|"]`,
-    {
-      opacity: 0,
-      duration: 0.5,
-    },
-    'showNodeTime',
-  );
-  safeAnimate(
-    `div[data-nodeid^="${COMPONENT_NODE}|"]`,
-    {
-      opacity: 0,
-      duration: 0.5,
-    },
-    'showNodeTime',
-  );
-  safeAnimate(
-    `div[data-nodeid^="${CONNECTION_NODE}|"]`,
-    {
-      opacity: 0,
-      duration: 0.5,
-    },
-    'showNodeTime',
-  );
-  safeAnimate(
-    `g[data-linkid^="${COMPONENT_LINK}|"]`,
-    {
-      opacity: 0,
-      duration: 0.5,
-    },
-    'showNodeTime',
-  );
-  safeAnimate(
-    `g[data-linkid^="${CELL_LINK}|"]`,
-    {
-      opacity: 0,
-      duration: 0.5,
-    },
-    'showNodeTime',
-  );
+  return elements.length;
 }
 
-export function animateOrgDiagram() {
-  const tl = gsap.timeline();
-  const safeAnimate = (
-    selector: string,
-    animation: gsap.TweenVars,
-    label?: gsap.Position,
-  ) => {
-    const elements = gsap.utils.toArray(selector);
-    if (elements.length > 0) {
-      tl.from(elements, animation, label);
-    }
-  };
-  safeAnimate(`div[data-nodeid^="${PROJECT_NODE}|"]`, {
-    scale: 0.5,
-    opacity: 0,
-    duration: 0.5,
+// reveal diagram with animation
+export function animateProjectDiagram(root: ParentNode = document) {
+  // the main cell scales in first; everything inside it fades in once the
+  // cell is fully visible (same sequence as the previous timeline)
+  const cellCount = revealElements(
+    `div[data-nodeid="${MAIN_CELL}"]`,
+    RevealClass.SCALE,
+    0,
+    root,
+  );
+  const showNodeTime = cellCount > 0 ? REVEAL_DURATION : 0;
+  [
+    `g[data-linkid^="${EXTERNAL_LINK}|"]`,
+    `div[data-nodeid^="${COMPONENT_NODE}|"]`,
+    `div[data-nodeid^="${CONNECTION_NODE}|"]`,
+    `g[data-linkid^="${COMPONENT_LINK}|"]`,
+    `g[data-linkid^="${CELL_LINK}|"]`,
+  ].forEach(selector => {
+    revealElements(selector, RevealClass.FADE, showNodeTime, root);
   });
-  safeAnimate(`g[data-default-link-test^="${PROJECT_NODE}|"]`, {
-    opacity: 0,
-    duration: 0.5,
-  });
+}
+
+export function animateOrgDiagram(root: ParentNode = document) {
+  // project nodes scale in first, then their links fade in
+  const nodeCount = revealElements(
+    `div[data-nodeid^="${PROJECT_NODE}|"]`,
+    RevealClass.SCALE_HALF,
+    0,
+    root,
+  );
+  revealElements(
+    `g[data-default-link-test^="${PROJECT_NODE}|"]`,
+    RevealClass.FADE,
+    nodeCount > 0 ? REVEAL_DURATION : 0,
+    root,
+  );
 }
