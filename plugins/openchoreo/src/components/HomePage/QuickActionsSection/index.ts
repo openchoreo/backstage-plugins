@@ -1,1 +1,4 @@
-export { QuickActionsSection } from './QuickActions';
+export {
+  QuickActionsSection,
+  QuickActionsSectionPreview,
+} from './QuickActions';
