@@ -10,7 +10,9 @@ describe('GenericWorkflowsClient', () => {
       fetch: jest.fn(),
     };
     mockDiscoveryApi = {
-      getBaseUrl: jest.fn().mockResolvedValue('http://localhost:7007/api/openchoreo'),
+      getBaseUrl: jest
+        .fn()
+        .mockResolvedValue('http://localhost:7007/api/openchoreo'),
     };
 
     client = new GenericWorkflowsClient(mockDiscoveryApi, mockFetchApi);
@@ -21,15 +23,19 @@ describe('GenericWorkflowsClient', () => {
       mockFetchApi.fetch.mockResolvedValue({
         ok: true,
         status: 204,
-        json: jest.fn().mockImplementation(() => Promise.reject(new Error('Should not be called'))),
+        json: jest
+          .fn()
+          .mockImplementation(() =>
+            Promise.reject(new Error('Should not be called')),
+          ),
       });
 
       const result = await client.deleteWorkflowRun('dev-ns', 'run-1');
-      
+
       expect(result).toBeUndefined();
       expect(mockFetchApi.fetch).toHaveBeenCalledWith(
         'http://localhost:7007/api/openchoreo/workflow-runs/run-1?namespaceName=dev-ns',
-        expect.objectContaining({ method: 'DELETE' })
+        expect.objectContaining({ method: 'DELETE' }),
       );
     });
 
@@ -41,8 +47,19 @@ describe('GenericWorkflowsClient', () => {
       });
 
       const result = await client.getWorkflowRun('dev-ns', 'run-1');
-      
+
       expect(result).toEqual({ name: 'run-1' });
+    });
+
+    it('propagates an unsuccessful delete response', async () => {
+      mockFetchApi.fetch.mockResolvedValue({
+        ok: false,
+        status: 404,
+        text: jest.fn().mockResolvedValue('Run not found'),
+      });
+      await expect(client.deleteWorkflowRun('dev-ns', 'run-1')).rejects.toThrow(
+        'API request failed (404): Run not found',
+      );
     });
   });
 });

@@ -10,7 +10,9 @@ describe('OpenChoreoCiClient', () => {
       fetch: jest.fn(),
     };
     mockDiscoveryApi = {
-      getBaseUrl: jest.fn().mockResolvedValue('http://localhost:7007/api/openchoreo'),
+      getBaseUrl: jest
+        .fn()
+        .mockResolvedValue('http://localhost:7007/api/openchoreo'),
     };
 
     client = new OpenChoreoCiClient(mockDiscoveryApi, mockFetchApi);
@@ -21,17 +23,26 @@ describe('OpenChoreoCiClient', () => {
       mockFetchApi.fetch.mockResolvedValue({
         ok: true,
         status: 204,
-        json: jest.fn().mockImplementation(() => Promise.reject(new Error('Should not be called'))),
+        json: jest
+          .fn()
+          .mockImplementation(() =>
+            Promise.reject(new Error('Should not be called')),
+          ),
       });
 
       // We access the private apiFetch method indirectly through a public method
       // that calls it, like deleteWorkflowRun
-      const result = await client.deleteWorkflowRun('dev-ns', 'my-project', 'api-service', 'build-2');
-      
+      const result = await client.deleteWorkflowRun(
+        'dev-ns',
+        'my-project',
+        'api-service',
+        'build-2',
+      );
+
       expect(result).toBeUndefined();
       expect(mockFetchApi.fetch).toHaveBeenCalledWith(
         'http://localhost:7007/api/openchoreo/workflow-run?namespaceName=dev-ns&projectName=my-project&componentName=api-service&runName=build-2',
-        expect.objectContaining({ method: 'DELETE' })
+        expect.objectContaining({ method: 'DELETE' }),
       );
     });
 
@@ -43,8 +54,24 @@ describe('OpenChoreoCiClient', () => {
       });
 
       const result = await client.fetchWorkflowSchema('dev-ns', 'my-workflow');
-      
+
       expect(result).toEqual({ name: 'build-2' });
+    });
+
+    it('propagates an unsuccessful delete response', async () => {
+      mockFetchApi.fetch.mockResolvedValue({
+        ok: false,
+        status: 404,
+        text: jest.fn().mockResolvedValue('Run not found'),
+      });
+      await expect(
+        client.deleteWorkflowRun(
+          'dev-ns',
+          'my-project',
+          'api-service',
+          'build-2',
+        ),
+      ).rejects.toThrow('API request failed (404): Run not found');
     });
   });
 });

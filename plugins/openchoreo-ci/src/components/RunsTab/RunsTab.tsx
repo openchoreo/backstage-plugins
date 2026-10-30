@@ -1,17 +1,6 @@
 import { useState } from 'react';
 import { Table, TableColumn } from '@backstage/core-components';
-import {
-  Typography,
-  Box,
-  IconButton,
-  Tooltip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
-  Button,
-} from '@material-ui/core';
+import { Typography, Box, IconButton, Tooltip } from '@material-ui/core';
 import Refresh from '@material-ui/icons/Refresh';
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import DeleteIcon from '@material-ui/icons/Delete';
@@ -19,7 +8,10 @@ import { useApi, alertApiRef } from '@backstage/core-plugin-api';
 import { BuildStatusChip } from '../BuildStatusChip';
 import { openChoreoCiClientApiRef } from '../../api/OpenChoreoCiClientApi';
 import type { ModelsBuild } from '@openchoreo/backstage-plugin-common';
-import { formatRelativeTime } from '@openchoreo/backstage-plugin-react';
+import {
+  formatRelativeTime,
+  WorkflowRunDeleteDialog,
+} from '@openchoreo/backstage-plugin-react';
 import { extractGitFieldValues } from '../../utils/schemaExtensions';
 import type { GitFieldMapping } from '../../utils/schemaExtensions';
 import { formatRetentionDuration } from '../../hooks';
@@ -50,9 +42,13 @@ export const RunsTab = ({
 
   const [deleteTarget, setDeleteTarget] = useState<ModelsBuild | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const deleteTargetGitValues = extractGitFieldValues(
+    deleteTarget?.parameters,
+    gitFieldMapping ?? {},
+  );
 
   const handleDeleteConfirm = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget || isDeleting) return;
 
     if (
       !deleteTarget.namespaceName ||
@@ -60,7 +56,10 @@ export const RunsTab = ({
       !deleteTarget.componentName ||
       !deleteTarget.name
     ) {
-      setDeleteTarget(null);
+      alertApi.post({
+        message: 'Cannot delete run: missing required identifiers.',
+        severity: 'error',
+      });
       return;
     }
 
@@ -173,13 +172,15 @@ export const RunsTab = ({
           search: true,
           paging: true,
           sorting: true,
+          actionsColumnIndex: -1,
         }}
         columns={columns}
         actions={[
           {
             icon: () => <DeleteIcon />,
             tooltip: 'Delete Run',
-            onClick: async (_event, rowData) => {
+            disabled: isDeleting,
+            onClick: (_event, rowData) => {
               setDeleteTarget(rowData as ModelsBuild);
             },
           },
@@ -217,34 +218,32 @@ export const RunsTab = ({
         }
       />
 
-      <Dialog
+      <WorkflowRunDeleteDialog
         open={Boolean(deleteTarget)}
-        onClose={() => setDeleteTarget(null)}
+        runName={deleteTarget?.name}
+        deleting={isDeleting}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
       >
-        <DialogTitle>Delete Workflow Run</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete workflow run "{deleteTarget?.name}"?
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => setDeleteTarget(null)}
-            color="primary"
-            disabled={isDeleting}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleDeleteConfirm}
-            color="secondary"
-            disabled={isDeleting}
-          >
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
+        {deleteTarget && (
+          <>
+            <BuildStatusChip status={deleteTarget.status} />
+            <Typography variant="body2">
+              {String(
+                deleteTargetGitValues.commit || deleteTarget.commit || 'latest',
+              ).substring(0, 8)}
+            </Typography>
+            {deleteTargetGitValues.branch && (
+              <Typography variant="body2">
+                {deleteTargetGitValues.branch}
+              </Typography>
+            )}
+            <Typography variant="body2">
+              {formatRelativeTime(deleteTarget.createdAt || '')}
+            </Typography>
+          </>
+        )}
+      </WorkflowRunDeleteDialog>
     </Box>
   );
 };
-

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
 import { WorkflowRunsContent } from './WorkflowRunsContent';
@@ -24,12 +24,14 @@ jest.mock('react-router-dom', () => ({
 }));
 
 const mockRefetch = jest.fn();
+const defaultRuns = [
+  { name: 'run-1', phase: 'Succeeded', namespaceName: 'default' },
+  { name: 'run-2', phase: 'Failed', namespaceName: 'default' },
+];
+let mockRuns = defaultRuns.map(run => ({ ...run }));
 jest.mock('../../hooks/useWorkflowRuns', () => ({
   useWorkflowRuns: () => ({
-    runs: [
-      { name: 'run-1', phase: 'Succeeded', namespaceName: 'default' },
-      { name: 'run-2', phase: 'Failed', namespaceName: 'default' },
-    ],
+    runs: mockRuns,
     loading: false,
     error: null,
     refetch: mockRefetch,
@@ -66,7 +68,8 @@ jest.mock('@backstage/core-components', () => ({
             <button
               key={`action-${k}`}
               data-testid={`action-${action.tooltip}-${i}`}
-              onClick={(e) => action.onClick(e, row)}
+              disabled={action.disabled}
+              onClick={e => action.onClick(e, row)}
             >
               {action.tooltip}
             </button>
@@ -82,6 +85,9 @@ jest.mock('@backstage/core-components', () => ({
 }));
 
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
+  WorkflowRunDeleteDialog: jest.requireActual(
+    '../../../../openchoreo-react/src/components/WorkflowRunDeleteDialog',
+  ).WorkflowRunDeleteDialog,
   formatRelativeTime: (time: string) => time,
   formatDate: (time: string) => time,
   DetailPageLayout: ({ children }: any) => <div>{children}</div>,
@@ -110,13 +116,14 @@ function renderComponent() {
       ]}
     >
       <WorkflowRunsContent />
-    </TestApiProvider>
+    </TestApiProvider>,
   );
 }
 
 describe('WorkflowRunsContent', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
+    mockRuns = defaultRuns.map(run => ({ ...run }));
   });
 
   it('renders a list of workflow runs', () => {
@@ -134,34 +141,82 @@ describe('WorkflowRunsContent', () => {
     // Click delete action on run-1
     await user.click(screen.getByTestId('action-Delete Run-0'));
 
-    expect(screen.getByText('Are you sure you want to delete workflow run "run-1"?')).toBeInTheDocument();
+    expect(
+      screen.getByRole('dialog', { name: 'Delete Workflow Run' }),
+    ).toBeInTheDocument();
 
     // Confirm deletion
     await user.click(screen.getByRole('button', { name: 'Delete' }));
 
-    expect(mockWorkflowsClient.deleteWorkflowRun).toHaveBeenCalledWith('default', 'run-1');
+    expect(mockWorkflowsClient.deleteWorkflowRun).toHaveBeenCalledWith(
+      'default',
+      'run-1',
+    );
     expect(mockRefetch).toHaveBeenCalled();
   });
 
   it('shows error alert if deletion fails', async () => {
     const user = userEvent.setup();
-    mockWorkflowsClient.deleteWorkflowRun.mockRejectedValue(new Error('Deletion failed'));
+    mockWorkflowsClient.deleteWorkflowRun.mockRejectedValue(
+      new Error('Deletion failed'),
+    );
 
     renderComponent();
 
     // Click delete action on run-2
     await user.click(screen.getByTestId('action-Delete Run-1'));
 
-    expect(screen.getByText('Are you sure you want to delete workflow run "run-2"?')).toBeInTheDocument();
+    expect(
+      screen.getByRole('dialog', { name: 'Delete Workflow Run' }),
+    ).toBeInTheDocument();
 
     // Confirm deletion
     await user.click(screen.getByRole('button', { name: 'Delete' }));
 
-    expect(mockWorkflowsClient.deleteWorkflowRun).toHaveBeenCalledWith('default', 'run-2');
+    expect(mockWorkflowsClient.deleteWorkflowRun).toHaveBeenCalledWith(
+      'default',
+      'run-2',
+    );
     expect(mockAlertApi.post).toHaveBeenCalledWith({
       message: 'Failed to delete run: Error: Deletion failed',
       severity: 'error',
     });
     expect(mockRefetch).not.toHaveBeenCalled();
+  });
+
+  it('cancels without deleting or refreshing', async () => {
+    const user = userEvent.setup();
+    renderComponent();
+    await user.click(screen.getByTestId('action-Delete Run-0'));
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    );
+    expect(mockWorkflowsClient.deleteWorkflowRun).not.toHaveBeenCalled();
+    expect(mockRefetch).not.toHaveBeenCalled();
+  });
+
+  it('deletes from the selected row namespace', async () => {
+    const user = userEvent.setup();
+    mockRuns[0].namespaceName = 'other-namespace';
+    renderComponent();
+    await user.click(screen.getByTestId('action-Delete Run-0'));
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(mockWorkflowsClient.deleteWorkflowRun).toHaveBeenCalledWith(
+      'other-namespace',
+      'run-1',
+    );
+  });
+
+  it('captures the list namespace when run metadata omits it', async () => {
+    const user = userEvent.setup();
+    mockRuns[0].namespaceName = '';
+    renderComponent();
+    await user.click(screen.getByTestId('action-Delete Run-0'));
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(mockWorkflowsClient.deleteWorkflowRun).toHaveBeenCalledWith(
+      'default',
+      'run-1',
+    );
   });
 });

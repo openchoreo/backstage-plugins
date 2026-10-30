@@ -26,11 +26,6 @@ import {
   Paper,
   Button,
   Collapse,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import RefreshIcon from '@material-ui/icons/Refresh';
@@ -47,7 +42,6 @@ import {
   VerticalTabNav,
   TabItemData,
   RjsfForm,
-  RefreshOverlay,
   PageLoader,
 } from '@openchoreo/backstage-design-system';
 import {
@@ -55,6 +49,7 @@ import {
   formatRelativeTime,
   YamlEditor,
   useYamlEditor,
+  WorkflowRunDeleteDialog,
 } from '@openchoreo/backstage-plugin-react';
 import { useWorkflowRuns } from '../../hooks/useWorkflowRuns';
 import { useWorkflowRunDetails } from '../../hooks/useWorkflowRunDetails';
@@ -426,11 +421,12 @@ const TriggerForm = ({
     );
   }
 
-  const hasSchema =
+  const hasSchema = Boolean(
     schema &&
-    typeof schema === 'object' &&
-    'properties' in schema &&
-    Object.keys((schema as any).properties || {}).length > 0;
+      typeof schema === 'object' &&
+      'properties' in schema &&
+      Object.keys((schema as any).properties || {}).length > 0,
+  );
 
   const uiSchema: UiSchema = {
     'ui:submitButtonOptions': {
@@ -478,45 +474,20 @@ const TriggerForm = ({
         </ToggleButtonGroup>
       </Box>
 
-      {mode === 'form' ? (
-        hasSchema ? (
-          <Box className={classes.triggerFormContainer}>
-            <RjsfForm
-              schema={schema as RJSFSchema}
-              uiSchema={uiSchema}
-              formData={formData}
-              onChange={e => setFormData(e.formData || {})}
-              onSubmit={handleSubmit}
-            >
-              <Box className={classes.triggerActions}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  type="submit"
-                  disabled={submitting}
-                >
-                  {submitting ? 'Triggering...' : 'Trigger Workflow'}
-                </Button>
-                <Button
-                  variant="outlined"
-                  onClick={onCancel}
-                  disabled={submitting}
-                >
-                  Cancel
-                </Button>
-              </Box>
-            </RjsfForm>
-          </Box>
-        ) : (
-          <Box>
-            <Typography className={classes.noSchemaMessage}>
-              This workflow has no configurable parameters.
-            </Typography>
+      {mode === 'form' && hasSchema && (
+        <Box className={classes.triggerFormContainer}>
+          <RjsfForm
+            schema={schema as RJSFSchema}
+            uiSchema={uiSchema}
+            formData={formData}
+            onChange={e => setFormData(e.formData || {})}
+            onSubmit={handleSubmit}
+          >
             <Box className={classes.triggerActions}>
               <Button
                 variant="contained"
                 color="primary"
-                onClick={() => handleSubmit({ formData: {} } as IChangeEvent)}
+                type="submit"
                 disabled={submitting}
               >
                 {submitting ? 'Triggering...' : 'Trigger Workflow'}
@@ -529,9 +500,30 @@ const TriggerForm = ({
                 Cancel
               </Button>
             </Box>
+          </RjsfForm>
+        </Box>
+      )}
+      {mode === 'form' && !hasSchema && (
+        <Box>
+          <Typography className={classes.noSchemaMessage}>
+            This workflow has no configurable parameters.
+          </Typography>
+          <Box className={classes.triggerActions}>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => handleSubmit({ formData: {} } as IChangeEvent)}
+              disabled={submitting}
+            >
+              {submitting ? 'Triggering...' : 'Trigger Workflow'}
+            </Button>
+            <Button variant="outlined" onClick={onCancel} disabled={submitting}>
+              Cancel
+            </Button>
           </Box>
-        )
-      ) : (
+        </Box>
+      )}
+      {mode === 'yaml' && (
         <Box>
           <Box className={classes.editorContainer}>
             <YamlEditor
@@ -781,16 +773,18 @@ export const WorkflowRunsContent = () => {
     runs,
     loading: runsLoading,
     error,
-    isRefetching,
     refetch,
   } = useWorkflowRuns(workflowName, runsNamespace);
 
   const handleDeleteConfirm = async () => {
-    if (!deleteTargetRun) return;
+    if (!deleteTargetRun || isDeleting) return;
 
     setIsDeleting(true);
     try {
-      await client.deleteWorkflowRun(runsNamespace, deleteTargetRun.name);
+      await client.deleteWorkflowRun(
+        deleteTargetRun.namespaceName,
+        deleteTargetRun.name,
+      );
       refetch();
     } catch (err) {
       alertApi.post({
@@ -952,8 +946,13 @@ export const WorkflowRunsContent = () => {
             {
               icon: () => <DeleteIcon />,
               tooltip: 'Delete Run',
-              onClick: async (_event, rowData) => {
-                setDeleteTargetRun(rowData as WorkflowRun);
+              disabled: isDeleting,
+              onClick: (_event, rowData) => {
+                const run = rowData as WorkflowRun;
+                setDeleteTargetRun({
+                  ...run,
+                  namespaceName: run.namespaceName || runsNamespace,
+                });
               },
             },
           ]}
@@ -962,6 +961,7 @@ export const WorkflowRunsContent = () => {
             paging: true,
             pageSize: 10,
             sorting: true,
+            actionsColumnIndex: -1,
           }}
           onRowClick={(_, row) => {
             if (row) {
@@ -971,33 +971,24 @@ export const WorkflowRunsContent = () => {
         />
       )}
 
-      <Dialog
+      <WorkflowRunDeleteDialog
         open={Boolean(deleteTargetRun)}
-        onClose={() => setDeleteTargetRun(null)}
+        runName={deleteTargetRun?.name}
+        deleting={isDeleting}
+        onCancel={() => setDeleteTargetRun(null)}
+        onConfirm={handleDeleteConfirm}
       >
-        <DialogTitle>Delete Workflow Run</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete workflow run "{deleteTargetRun?.name}"?
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => setDeleteTargetRun(null)}
-            color="primary"
-            disabled={isDeleting}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleDeleteConfirm}
-            color="secondary"
-            disabled={isDeleting}
-          >
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
+        {deleteTargetRun && (
+          <>
+            <WorkflowRunStatusChip
+              status={deleteTargetRun.phase || deleteTargetRun.status}
+            />
+            <Typography variant="body2">
+              {formatRelativeTime(deleteTargetRun.createdAt)}
+            </Typography>
+          </>
+        )}
+      </WorkflowRunDeleteDialog>
     </Content>
   );
 };
