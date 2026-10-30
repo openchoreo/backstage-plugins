@@ -1,7 +1,10 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RunsTab } from './RunsTab';
 import type { ModelsBuild } from '@openchoreo/backstage-plugin-common';
+import { TestApiProvider } from '@backstage/test-utils';
+import { openChoreoCiClientApiRef } from '../../api/OpenChoreoCiClientApi';
+import { alertApiRef } from '@backstage/core-plugin-api';
 
 // ---- Mocks ----
 
@@ -13,6 +16,9 @@ jest.mock('../BuildStatusChip', () => ({
 
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
   formatRelativeTime: (ts: string) => `relative(${ts})`,
+  WorkflowRunDeleteDialog: jest.requireActual(
+    '../../../../openchoreo-react/src/components/WorkflowRunDeleteDialog',
+  ).WorkflowRunDeleteDialog,
 }));
 
 jest.mock('../../utils/schemaExtensions', () => ({
@@ -24,7 +30,7 @@ jest.mock('../../hooks', () => ({
 }));
 
 jest.mock('@backstage/core-components', () => ({
-  Table: ({ title, data, columns, emptyContent, onRowClick }: any) => (
+  Table: ({ title, data, columns, emptyContent, onRowClick, actions }: any) => (
     <div data-testid="table">
       <div data-testid="table-title">{title}</div>
       {data.length === 0 ? (
@@ -45,6 +51,20 @@ jest.mock('@backstage/core-components', () => ({
                   </span>
                 ) : null,
               )}
+              {actions?.map((action: any, k: number) => (
+                <button
+                  key={`action-${k}`}
+                  title={action.tooltip}
+                  disabled={action.disabled}
+                  data-testid={`action-${action.tooltip}-${i}`}
+                  onClick={e => {
+                    e.stopPropagation();
+                    action.onClick(e, row);
+                  }}
+                >
+                  {action.tooltip}
+                </button>
+              ))}
             </div>
           ))}
         </div>
@@ -78,6 +98,14 @@ const builds: ModelsBuild[] = [
   },
 ];
 
+const mockCiClient = {
+  deleteWorkflowRun: jest.fn(),
+};
+
+const mockAlertApi = {
+  post: jest.fn(),
+};
+
 function renderTab(
   overrides: Partial<React.ComponentProps<typeof RunsTab>> = {},
 ) {
@@ -90,7 +118,16 @@ function renderTab(
   };
 
   return {
-    ...render(<RunsTab {...defaultProps} {...overrides} />),
+    ...render(
+      <TestApiProvider
+        apis={[
+          [openChoreoCiClientApiRef, mockCiClient],
+          [alertApiRef, mockAlertApi],
+        ]}
+      >
+        <RunsTab {...defaultProps} {...overrides} />
+      </TestApiProvider>,
+    ),
     props: { ...defaultProps, ...overrides },
   };
 }
@@ -98,6 +135,10 @@ function renderTab(
 // ---- Tests ----
 
 describe('RunsTab', () => {
+  beforeEach(() => {
+    jest.resetAllMocks();
+  });
+
   it('renders table with "Workflow Runs" title', () => {
     renderTab();
 
@@ -179,5 +220,98 @@ describe('RunsTab', () => {
     await user.click(screen.getByTitle('Refresh builds'));
 
     expect(onRefresh).toHaveBeenCalled();
+  });
+  it('calls deleteWorkflowRun and onRefresh when delete action is confirmed', async () => {
+    const user = userEvent.setup();
+    const onRefresh = jest.fn();
+    mockCiClient.deleteWorkflowRun.mockResolvedValue(undefined);
+
+    renderTab({ onRefresh });
+
+    // Open dialog
+    await user.click(screen.getByTestId('action-Delete Run-0'));
+
+    expect(
+      screen.getByRole('dialog', { name: 'Delete Workflow Run' }),
+    ).toBeInTheDocument();
+
+    // Click confirm in the dialog
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(mockCiClient.deleteWorkflowRun).toHaveBeenCalledWith(
+      'dev-ns',
+      'my-project',
+      'api-service',
+      'build-2',
+    );
+    expect(onRefresh).toHaveBeenCalled();
+  });
+
+  it('shows error alert when delete action fails', async () => {
+    const user = userEvent.setup();
+    const onRefresh = jest.fn();
+    mockCiClient.deleteWorkflowRun.mockRejectedValue(
+      new Error('Network error'),
+    );
+
+    renderTab({ onRefresh });
+
+    await user.click(screen.getByTestId('action-Delete Run-0'));
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(mockAlertApi.post).toHaveBeenCalledWith({
+      message: 'Failed to delete run: Error: Network error',
+      severity: 'error',
+    });
+    expect(onRefresh).not.toHaveBeenCalled();
+  });
+
+  it('cancels without deleting, refreshing, or opening run details', async () => {
+    const user = userEvent.setup();
+    const { props } = renderTab();
+    await user.click(screen.getByTestId('action-Delete Run-0'));
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    );
+    expect(mockCiClient.deleteWorkflowRun).not.toHaveBeenCalled();
+    expect(props.onRefresh).not.toHaveBeenCalled();
+    expect(props.onRowClick).not.toHaveBeenCalled();
+  });
+
+  it('keeps the dialog open and blocks cancellation while deletion is pending', async () => {
+    const user = userEvent.setup();
+    let resolveDelete!: () => void;
+    mockCiClient.deleteWorkflowRun.mockReturnValue(
+      new Promise<void>(resolve => {
+        resolveDelete = resolve;
+      }),
+    );
+    const { props } = renderTab();
+    await user.click(screen.getByTestId('action-Delete Run-0'));
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(screen.getByRole('button', { name: 'Deleting...' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
+    await user.keyboard('{Escape}');
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(props.onRefresh).not.toHaveBeenCalled();
+    await act(async () => resolveDelete());
+    expect(mockCiClient.deleteWorkflowRun).toHaveBeenCalledTimes(1);
+    expect(props.onRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports missing identifiers without issuing a delete', async () => {
+    const user = userEvent.setup();
+    const { props } = renderTab({
+      builds: [{ ...builds[0], namespaceName: '' }],
+    });
+    await user.click(screen.getByTestId('action-Delete Run-0'));
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(mockCiClient.deleteWorkflowRun).not.toHaveBeenCalled();
+    expect(props.onRefresh).not.toHaveBeenCalled();
+    expect(mockAlertApi.post).toHaveBeenCalledWith({
+      message: 'Cannot delete run: missing required identifiers.',
+      severity: 'error',
+    });
   });
 });

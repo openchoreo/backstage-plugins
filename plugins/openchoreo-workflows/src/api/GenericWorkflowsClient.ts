@@ -52,6 +52,10 @@ export class GenericWorkflowsClient implements GenericWorkflowsClientApi {
       throw new Error(`API request failed (${response.status}): ${errorText}`);
     }
 
+    if (response.status === 204) {
+      return undefined as unknown as T;
+    }
+
     return response.json();
   }
 
@@ -164,6 +168,19 @@ export class GenericWorkflowsClient implements GenericWorkflowsClientApi {
     return this.apiFetch<WorkflowRunEventEntry[]>(
       `/workflow-runs/${encodeURIComponent(runName)}/events`,
       { params },
+    );
+  }
+
+  async deleteWorkflowRun(
+    namespaceName: string,
+    runName: string,
+  ): Promise<void> {
+    return this.apiFetch<void>(
+      `/workflow-runs/${encodeURIComponent(runName)}`,
+      {
+        method: 'DELETE',
+        params: { namespaceName },
+      },
     );
   }
 }
