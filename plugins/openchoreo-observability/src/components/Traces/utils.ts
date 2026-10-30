@@ -1,7 +1,7 @@
 import { SpanStatus } from '../../types';
 
 const RFC3339_NANO_PATTERN =
-  /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d+))?(Z|[+-]\d{2}:\d{2})?$/;
+  /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d+))?(Z|[+-]\d{2}:\d{2})?$/i;
 
 export function parseRfc3339NanoToNanoseconds(rfc3339Nano: string): number {
   const match = RFC3339_NANO_PATTERN.exec(rfc3339Nano);
@@ -9,9 +9,16 @@ export function parseRfc3339NanoToNanoseconds(rfc3339Nano: string): number {
 
   const [, dateTime, fractional = '', offset = 'Z'] = match;
 
+  // RFC 3339 allows lowercase `t`/`z`; normalize them because Date only
+  // reliably accepts the uppercase forms.
+  const normalizedDateTime = dateTime.replace('t', 'T');
+  const normalizedOffset = offset.toLowerCase() === 'z' ? 'Z' : offset;
+
   // Parse the second-precision base together with its offset so Date applies
   // the numeric offset correctly. The fraction is added separately as nanos.
-  const milliseconds = new Date(`${dateTime}${offset}`).getTime();
+  const milliseconds = new Date(
+    `${normalizedDateTime}${normalizedOffset}`,
+  ).getTime();
   if (Number.isNaN(milliseconds)) return Number.NaN;
 
   const nanos = fractional
@@ -75,7 +82,17 @@ export function formatTimestamp(
 
   return date.toLocaleString(
     undefined,
-    options.fractionalSeconds ? { fractionalSecondDigits: 3 } : undefined,
+    options.fractionalSeconds
+      ? {
+          year: 'numeric',
+          month: 'numeric',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: 'numeric',
+          second: 'numeric',
+          fractionalSecondDigits: 3,
+        }
+      : undefined,
   );
 }
 

@@ -73,26 +73,19 @@ describe('WaterfallView', () => {
     expect(screen.queryByText('Status:')).not.toBeInTheDocument();
   });
 
-  it('shows span start and end times in the viewer locale', async () => {
+  it('shows span start and end times in the viewer locale with fractional seconds', async () => {
     const user = userEvent.setup();
     renderWaterfall([errorSpan]);
 
     await user.hover(screen.getByText('1.500s'));
 
-    expect(
-      await screen.findByText(
-        new Date(errorSpan.startTime).toLocaleString(undefined, {
-          fractionalSecondDigits: 3,
-        }),
-      ),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        new Date(errorSpan.endTime).toLocaleString(undefined, {
-          fractionalSecondDigits: 3,
-        }),
-      ),
-    ).toBeInTheDocument();
+    const timestamps = await screen.findAllByText(/\d{1,2}:\d{2}:\d{2}/);
+    const texts = timestamps.map(node => node.textContent ?? '');
+
+    expect(texts).toHaveLength(2);
+    expect(texts.every(text => text.includes('2024'))).toBe(true);
+    expect(texts.some(text => /[.,]000\b/.test(text))).toBe(true);
+    expect(texts.some(text => /[.,]500\b/.test(text))).toBe(true);
   });
 
   it('shows a dedicated Status section in the span details panel', async () => {

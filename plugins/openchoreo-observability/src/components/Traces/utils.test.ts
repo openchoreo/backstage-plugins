@@ -35,6 +35,28 @@ describe('parseRfc3339NanoToNanoseconds', () => {
     expect(result).toBe(expectedMs * 1_000_000);
   });
 
+  it('accepts lowercase t and z separators', () => {
+    const upper = parseRfc3339NanoToNanoseconds(
+      '2024-06-01T10:00:00.123456789Z',
+    );
+    const lower = parseRfc3339NanoToNanoseconds(
+      '2024-06-01t10:00:00.123456789z',
+    );
+
+    expect(lower).toBe(upper);
+  });
+
+  it('accepts lowercase t with a numeric offset', () => {
+    const upper = parseRfc3339NanoToNanoseconds(
+      '2024-06-01T10:00:00.123456789+05:30',
+    );
+    const lower = parseRfc3339NanoToNanoseconds(
+      '2024-06-01t10:00:00.123456789+05:30',
+    );
+
+    expect(lower).toBe(upper);
+  });
+
   it('applies a positive numeric timezone offset', () => {
     const result = parseRfc3339NanoToNanoseconds(
       '2024-06-01T10:00:00.123456789+05:30',
@@ -134,15 +156,21 @@ describe('formatTimestamp', () => {
     );
   });
 
-  it('includes fractional seconds when requested', () => {
-    expect(
-      formatTimestamp('2024-06-01T10:00:00.123456789Z', {
-        fractionalSeconds: true,
-      }),
-    ).toBe(
-      new Date('2024-06-01T10:00:00.123Z').toLocaleString(undefined, {
-        fractionalSecondDigits: 3,
-      }),
+  it('includes date, time, and fractional seconds when requested', () => {
+    const formatted = formatTimestamp('2024-06-01T10:00:00.123456789Z', {
+      fractionalSeconds: true,
+    });
+    const date = new Date('2024-06-01T10:00:00.123Z');
+
+    expect(formatted).toContain(String(date.getFullYear()));
+    expect(formatted).toMatch(/\d{1,2}:\d{2}:\d{2}/);
+    expect(formatted).toContain('123');
+    expect(formatted).not.toBe('123');
+  });
+
+  it('accepts lowercase t and z separators when formatting', () => {
+    expect(formatTimestamp('2024-06-01t10:00:00.123z')).toBe(
+      formatTimestamp('2024-06-01T10:00:00.123Z'),
     );
   });
 
