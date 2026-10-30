@@ -53,6 +53,7 @@ describe('NotificationChannelConfigCard', () => {
         from: 'alerts@example.com',
         to: ['team@example.com', 'oncall@example.com'],
         smtp: { host: 'smtp.example.com', port: 587 },
+        template: { contentType: 'text/html' },
       },
     });
 
@@ -64,6 +65,23 @@ describe('NotificationChannelConfigCard', () => {
       screen.getByText('team@example.com, oncall@example.com'),
     ).toBeInTheDocument();
     expect(screen.getByText('smtp.example.com:587')).toBeInTheDocument();
+    expect(screen.getByText('text/html')).toBeInTheDocument();
+  });
+
+  it('defaults the content type to text/plain when the template omits it', () => {
+    mockEntity = baseEntity({
+      environment: 'dev',
+      type: 'email',
+      emailConfig: {
+        from: 'alerts@example.com',
+        to: ['team@example.com'],
+        smtp: { host: 'smtp.example.com', port: 587 },
+      },
+    });
+
+    render(<NotificationChannelConfigCard />);
+
+    expect(screen.getByText('text/plain')).toBeInTheDocument();
   });
 
   it('renders webhook config details with inline and secret headers', () => {

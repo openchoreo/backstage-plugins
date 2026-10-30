@@ -228,6 +228,7 @@ describe('NotificationChannelFormWithYamlExtension — initialization', () => {
     await waitFor(() => expect(latestFormData).toBeDefined());
     expect(latestFormData!.type).toBe('email');
     expect(latestFormData!.emailConfig).toBeDefined();
+    expect(latestFormData!.emailConfig!.contentType).toBe('text/plain');
     expect(latestFormData!.webhookConfig).toBeUndefined();
   });
 
@@ -252,6 +253,7 @@ describe('NotificationChannelFormWithYamlExtension — initialization', () => {
             insecureSkipVerify: false,
             subjectTemplate: '',
             bodyTemplate: '',
+            contentType: 'text/plain',
           },
         }}
       />,
@@ -599,6 +601,12 @@ describe('NotificationChannelFormWithYamlExtension — email fields', () => {
         'Details: ${alertDescription}',
       ),
     );
+
+    openSelect('Content Type');
+    await selectOption('text/html');
+    await waitFor(() =>
+      expect(latestFormData!.emailConfig!.contentType).toBe('text/html'),
+    );
   });
 });
 
@@ -728,6 +736,7 @@ describe('NotificationChannelFormWithYamlExtension — namespace change', () => 
             insecureSkipVerify: false,
             subjectTemplate: 's',
             bodyTemplate: 'b',
+            contentType: 'text/plain',
           },
         }
       : {
@@ -892,6 +901,7 @@ describe('NotificationChannelFormWithYamlExtension — YAML mode', () => {
             insecureSkipVerify: false,
             subjectTemplate: 'Alert',
             bodyTemplate: 'Body',
+            contentType: 'text/html',
           },
         }}
       />,
@@ -904,6 +914,7 @@ describe('NotificationChannelFormWithYamlExtension — YAML mode', () => {
     );
     expect(yamlEditorProps.content).toContain('name: dev-email');
     expect(yamlEditorProps.content).toContain('environment: dev');
+    expect(yamlEditorProps.content).toContain('contentType: text/html');
   });
 
   it('populates the editor with webhook config, headers, and payload template', async () => {
@@ -1015,6 +1026,60 @@ describe('NotificationChannelFormWithYamlExtension — YAML mode', () => {
     expect(latestFormData!.type).toBe('webhook');
     expect(latestFormData!.webhookConfig!.url).toBe(
       'https://hooks.example.com',
+    );
+  });
+
+  it('parses the email contentType from YAML and falls back to text/plain', async () => {
+    render(<Harness />);
+    await waitFor(() => expect(latestFormData).toBeDefined());
+    fireEvent.click(screen.getByText('switch-to-yaml'));
+
+    act(() => {
+      yamlEditorProps.onChange(
+        [
+          'metadata:',
+          '  name: html-email',
+          '  namespace: team-a',
+          'spec:',
+          '  environment: dev',
+          '  type: email',
+          '  emailConfig:',
+          '    from: alerts@example.com',
+          '    to: [team@example.com]',
+          '    template:',
+          '      subject: Alert',
+          '      body: "<b>Body</b>"',
+          '      contentType: text/html',
+        ].join('\n'),
+      );
+    });
+
+    await waitFor(() =>
+      expect(latestFormData!.emailConfig!.contentType).toBe('text/html'),
+    );
+
+    act(() => {
+      yamlEditorProps.onChange(
+        [
+          'metadata:',
+          '  name: html-email',
+          '  namespace: team-a',
+          'spec:',
+          '  environment: dev',
+          '  type: email',
+          '  emailConfig:',
+          '    from: alerts@example.com',
+          '    to: [team@example.com]',
+          '    template:',
+          '      subject: Alert',
+          '      body: Body',
+          '      contentType: application/json',
+        ].join('\n'),
+      );
+    });
+
+    await waitFor(() =>
+      expect(latestFormData!.emailConfig!.contentType).toBe('text/plain'),
     );
   });
 
@@ -1358,6 +1423,7 @@ describe('notificationChannelFormWithYamlValidation', () => {
           smtpPasswordSecretKey: 'password',
           subjectTemplate: 'Alert',
           bodyTemplate: 'Body',
+          contentType: 'text/html',
         } as any,
       }),
     ).toHaveLength(0);

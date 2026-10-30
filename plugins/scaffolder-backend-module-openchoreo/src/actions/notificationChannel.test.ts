@@ -50,6 +50,7 @@ const buildCtx = (overrides: any = {}) => ({
       smtpPasswordSecretKey: 'password',
       subjectTemplate: 'Alert: ${alertName}',
       bodyTemplate: 'Details: ${alertDescription}',
+      contentType: 'text/html',
     },
     ...overrides.input,
   },
@@ -93,12 +94,27 @@ describe('createNotificationChannelAction', () => {
     const body = mockPOST.mock.calls[0][1].body;
     expect(body.spec.type).toBe('email');
     expect(body.spec.environment).toBe('dev');
+    expect(body.spec.emailConfig.template.contentType).toBe('text/html');
     expect(body.spec.emailConfig.smtp.auth.username.secretKeyRef).toEqual({
       name: 'smtp-auth',
       key: 'username',
     });
     expect(ctx.output).toHaveBeenCalledWith('channelName', 'dev-email');
     expect(ctx.output).toHaveBeenCalledWith('namespaceName', 'my-ns');
+  });
+
+  it('defaults the email template content type to text/plain', async () => {
+    mockPOST.mockResolvedValueOnce(successResponse());
+    const action = createNotificationChannelAction(
+      buildConfig(),
+      mockCatalog as any,
+    );
+    const ctx = buildCtx();
+    delete (ctx.input.emailConfig as any).contentType;
+    await action.handler(ctx as any);
+
+    const body = mockPOST.mock.calls[0][1].body;
+    expect(body.spec.emailConfig.template.contentType).toBe('text/plain');
   });
 
   it('builds webhook config with secret-backed headers', async () => {

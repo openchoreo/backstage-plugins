@@ -479,7 +479,11 @@ describe('translateNotificationChannelToEntity', () => {
             },
             tls: { insecureSkipVerify: false },
           },
-          template: { subject: 'Alert', body: 'Body' },
+          template: {
+            subject: 'Alert',
+            body: 'Body',
+            contentType: 'text/html',
+          },
         },
         createdAt: '2026-05-14T10:00:00Z',
       },
@@ -503,6 +507,7 @@ describe('translateNotificationChannelToEntity', () => {
     expect(entity.spec.isEnvDefault).toBe(true);
     expect(entity.spec.type).toBe('email');
     expect(entity.spec.emailConfig?.from).toBe('alerts@example.com');
+    expect(entity.spec.emailConfig?.template?.contentType).toBe('text/html');
     expect(entity.spec.webhookConfig).toBeUndefined();
   });
 

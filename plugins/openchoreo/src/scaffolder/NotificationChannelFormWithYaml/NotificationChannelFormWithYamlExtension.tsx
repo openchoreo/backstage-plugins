@@ -52,6 +52,7 @@ export interface NotificationChannelEmailConfigFormData {
   insecureSkipVerify: boolean;
   subjectTemplate: string;
   bodyTemplate: string;
+  contentType: 'text/plain' | 'text/html';
 }
 
 export interface NotificationChannelWebhookConfigFormData {
@@ -104,6 +105,7 @@ const DEFAULT_FORM_DATA: NotificationChannelWorkingData = {
     insecureSkipVerify: false,
     subjectTemplate: '',
     bodyTemplate: '',
+    contentType: 'text/plain',
   },
   webhookConfig: {
     url: '',
@@ -217,6 +219,7 @@ function formToYaml(data: NotificationChannelWorkingData): string {
       template: {
         subject: data.emailConfig.subjectTemplate,
         body: data.emailConfig.bodyTemplate,
+        contentType: data.emailConfig.contentType,
       },
     };
   } else {
@@ -306,6 +309,10 @@ function yamlToForm(
       insecureSkipVerify: emailSpec.smtp?.tls?.insecureSkipVerify ?? false,
       subjectTemplate: emailSpec.template?.subject || '',
       bodyTemplate: emailSpec.template?.body || '',
+      contentType:
+        emailSpec.template?.contentType === 'text/html'
+          ? 'text/html'
+          : 'text/plain',
     },
     webhookConfig: {
       url: webhookSpec.url || '',
@@ -824,6 +831,22 @@ export const NotificationChannelFormWithYamlExtension = ({
                     minRows={4}
                     helperText="Supports CEL expressions, e.g. ${alertDescription}"
                   />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    select
+                    label="Content Type"
+                    value={data.emailConfig.contentType}
+                    onChange={e =>
+                      updateEmailField('contentType', e.target.value)
+                    }
+                    fullWidth
+                    variant="outlined"
+                    helperText="text/html renders the body as HTML; text/plain sends it as plain text."
+                  >
+                    <MenuItem value="text/plain">text/plain</MenuItem>
+                    <MenuItem value="text/html">text/html</MenuItem>
+                  </TextField>
                 </Grid>
               </>
             ) : (
