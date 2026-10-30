@@ -129,8 +129,14 @@ const SpanDetailsPanel = ({ details, traceId }: SpanDetailsPanelProps) => {
     ...(details.parentSpanId
       ? [{ label: 'Parent Span ID', value: details.parentSpanId }]
       : []),
-    { label: 'Start Time', value: formatTimestamp(details.startTime) },
-    { label: 'End Time', value: formatTimestamp(details.endTime) },
+    {
+      label: 'Start Time',
+      value: formatTimestamp(details.startTime, { fractionalSeconds: true }),
+    },
+    {
+      label: 'End Time',
+      value: formatTimestamp(details.endTime, { fractionalSeconds: true }),
+    },
     { label: 'Duration', value: formatDuration(details.durationNs) },
   ];
 
@@ -508,7 +514,9 @@ export const WaterfallView = ({
                             minWidth: 0,
                           }}
                         >
-                          {formatTimestamp(span.startTime)}
+                          {formatTimestamp(span.startTime, {
+                            fractionalSeconds: true,
+                          })}
                         </Typography>
                       </Box>
                       <Box className={classes.tooltipRow}>
@@ -530,7 +538,9 @@ export const WaterfallView = ({
                             minWidth: 0,
                           }}
                         >
-                          {formatTimestamp(span.endTime)}
+                          {formatTimestamp(span.endTime, {
+                            fractionalSeconds: true,
+                          })}
                         </Typography>
                       </Box>
                       <Box className={classes.tooltipRow}>

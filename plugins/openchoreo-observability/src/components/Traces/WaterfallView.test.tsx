@@ -80,10 +80,18 @@ describe('WaterfallView', () => {
     await user.hover(screen.getByText('1.500s'));
 
     expect(
-      await screen.findByText(new Date(errorSpan.startTime).toLocaleString()),
+      await screen.findByText(
+        new Date(errorSpan.startTime).toLocaleString(undefined, {
+          fractionalSecondDigits: 3,
+        }),
+      ),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(new Date(errorSpan.endTime).toLocaleString()),
+      screen.getByText(
+        new Date(errorSpan.endTime).toLocaleString(undefined, {
+          fractionalSecondDigits: 3,
+        }),
+      ),
     ).toBeInTheDocument();
   });
 
