@@ -41,6 +41,7 @@ function mkLogger() {
 function newApplier(
   connection: EntityProviderConnection,
   remoteTemplateFetcher?: any,
+  onEntitiesRemoved?: (entityRefs: string[]) => void,
 ) {
   return new EventDeltaApplier({
     logger: mkLogger(),
@@ -54,6 +55,7 @@ function newApplier(
       ),
     },
     getConnection: () => connection,
+    onEntitiesRemoved,
     ctdConverter: new CtdToTemplateConverter(mkLogger()),
     rtdConverter: new RtdToTemplateConverter(mkLogger()),
     ptdConverter: new PtdToTemplateConverter(mkLogger()),
@@ -126,6 +128,17 @@ describe('EventDeltaApplier.handleEvent', () => {
     { kind: 'Resource', expectedRefs: ['resource:test-ns/order'] },
     { kind: 'Workflow', expectedRefs: ['workflow:test-ns/order'] },
   ];
+
+  it('reports removed entity refs to onEntitiesRemoved', async () => {
+    const onEntitiesRemoved = jest.fn();
+    const applier = newApplier(connection, undefined, onEntitiesRemoved);
+
+    await applier.handleEvent('Environment', 'order', 'test-ns', 'deleted');
+
+    expect(onEntitiesRemoved).toHaveBeenCalledWith([
+      'environment:test-ns/order',
+    ]);
+  });
 
   it.each(namespacedCases)(
     'routes "$kind" to a removal mutation against the right entity refs',
