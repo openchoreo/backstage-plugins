@@ -363,6 +363,10 @@ describe('SetupDetailPane', () => {
     await user.click(screen.getByRole('button', { name: /confirm/i }));
 
     await waitFor(() => {
+      expect(screen.queryByRole('dialog')).toBeNull();
+    });
+
+    await waitFor(() => {
       expect(mockShowError).toHaveBeenCalledWith(
         'Failed to update auto deploy setting: boom',
       );
@@ -398,6 +402,10 @@ describe('SetupDetailPane', () => {
 
     await user.click(screen.getByRole('checkbox', { name: /auto deploy/i }));
     await user.click(screen.getByRole('button', { name: /confirm/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).toBeNull();
+    });
 
     expect(mockUpdateAutoDeploy).toHaveBeenCalledWith(true);
     await waitFor(() => {
