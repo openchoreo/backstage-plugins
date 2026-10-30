@@ -95,15 +95,13 @@ describe('TracesTable', () => {
 
     expect(
       screen.getByText(
-       new Date(sampleTrace.startTime)
+        new Date(sampleTrace.startTime)
           .toLocaleString()
           .replace(/\s+/g, ' ')
           .trim(),
       ),
     ).toBeInTheDocument();
-    expect(
-      screen.queryByText(sampleTrace.startTime),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(sampleTrace.startTime)).not.toBeInTheDocument();
   });
 
   it('shows empty state when no traces', () => {
