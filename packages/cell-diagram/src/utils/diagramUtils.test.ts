@@ -65,17 +65,28 @@ describe('revealElements', () => {
     expect(revealElements('.missing', RevealClass.FADE, 0, root)).toBe(0);
   });
 
-  it('re-applies the class so a second call restarts the animation', () => {
+  it('removes the class, flushes styles, then re-adds it to restart the animation', () => {
     const root = document.createElement('div');
-    root.innerHTML = '<p class="a"></p>';
-    const el = root.querySelector<HTMLElement>('.a')!;
-    const remove = jest.spyOn(el.classList, 'remove');
+    root.innerHTML = '<p class="a"></p><p class="a"></p>';
+    const [first, second] = Array.from(
+      root.querySelectorAll<HTMLElement>('.a'),
+    );
+    const calls: string[] = [];
+    jest
+      .spyOn(second.classList, 'remove')
+      .mockImplementation(() => calls.push('remove'));
+    jest.spyOn(first, 'getBoundingClientRect').mockImplementation(() => {
+      calls.push('flush');
+      return {} as DOMRect;
+    });
+    jest
+      .spyOn(second.classList, 'add')
+      .mockImplementation(() => calls.push('add'));
 
     revealElements('.a', RevealClass.FADE, 0, root);
-    revealElements('.a', RevealClass.FADE, 0, root);
 
-    expect(remove).toHaveBeenCalledWith(RevealClass.FADE);
-    expect(el.classList.contains(RevealClass.FADE)).toBe(true);
+    expect(calls).toEqual(['remove', 'flush', 'add']);
+    expect(first.classList.contains(RevealClass.FADE)).toBe(true);
   });
 });
 

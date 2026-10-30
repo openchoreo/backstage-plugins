@@ -85,9 +85,14 @@ export function revealElements(
   const elements = Array.from(
     root.querySelectorAll<HTMLElement | SVGElement>(selector),
   );
+  // restart the animation if the class is already present: removing and
+  // re-adding the class in the same task is a no-op for the browser, so flush
+  // styles once in between (one read for the whole set avoids layout thrash)
+  elements.forEach(element => element.classList.remove(className));
+  if (elements.length > 0) {
+    elements[0].getBoundingClientRect();
+  }
   elements.forEach(element => {
-    // restart the animation if the class is already present
-    element.classList.remove(className);
     element.style.animationDelay = delaySeconds > 0 ? `${delaySeconds}s` : '';
     element.classList.add(className);
   });
