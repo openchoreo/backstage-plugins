@@ -162,3 +162,30 @@ describe('animateOrgDiagram', () => {
     expect(link.style.animationDelay).toBe('');
   });
 });
+
+describe('default root', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('queries the document when no root is given', () => {
+    document.body.appendChild(buildProjectDom());
+    document.body.innerHTML += `
+      <div data-nodeid="${PROJECT_NODE}|p" class="node"></div>
+      <svg><g data-default-link-test="${PROJECT_NODE}|l"></g></svg>
+    `;
+
+    expect(revealElements('.node', RevealClass.FADE)).toBe(6);
+    animateProjectDiagram();
+    animateOrgDiagram();
+
+    const cell = document.querySelector<HTMLElement>(
+      `div[data-nodeid="${MAIN_CELL}"]`,
+    )!;
+    expect(cell.classList.contains(RevealClass.SCALE)).toBe(true);
+    const project = document.querySelector<HTMLElement>(
+      `div[data-nodeid="${PROJECT_NODE}|p"]`,
+    )!;
+    expect(project.classList.contains(RevealClass.SCALE_HALF)).toBe(true);
+  });
+});
