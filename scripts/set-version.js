@@ -25,6 +25,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { execFileSync } = require('child_process');
 
 const ROOT_DIR = path.join(__dirname, '..');
 const DEP_FIELDS = [
@@ -64,6 +65,59 @@ function findPackageJsonFiles() {
   }
 
   return files;
+}
+
+/**
+ * Replace the topmost `## ` heading of a changelog with `## <version>`.
+ * Returns the new content, or null if there is nothing to change.
+ */
+function rewriteTopHeading(content, version) {
+  const match = /^## (.*)$/m.exec(content);
+  if (!match) return null;
+  // Only touch headings that look like a version, never e.g. "## Unreleased".
+  if (!/^\d+\.\d+\.\d+/.test(match[1])) return null;
+  if (match[1] === version) return null; // idempotent
+  return (
+    content.slice(0, match.index) +
+    `## ${version}` +
+    content.slice(match.index + match[0].length)
+  );
+}
+
+/**
+ * CHANGELOG.md files that `changeset version` just modified or created.
+ * Uses ls-files so brand-new (untracked) changelogs are included too.
+ */
+function findTouchedChangelogs() {
+  const out = execFileSync(
+    'git',
+    [
+      'ls-files',
+      '--modified',
+      '--others',
+      '--exclude-standard',
+      '--',
+      'CHANGELOG.md',
+      '*/CHANGELOG.md',
+    ],
+    { cwd: ROOT_DIR, encoding: 'utf-8' },
+  );
+  return [...new Set(out.split('\n').filter(Boolean))]
+    .map(f => path.join(ROOT_DIR, f))
+    .filter(f => fs.existsSync(f)); // --modified also lists deleted files
+}
+
+function fixChangelogHeadings() {
+  const files = findTouchedChangelogs();
+  let changed = 0;
+  for (const file of files) {
+    const next = rewriteTopHeading(fs.readFileSync(file, 'utf-8'), VERSION);
+    if (next === null) continue;
+    fs.writeFileSync(file, next);
+    changed++;
+    console.log(`   set heading ${path.relative(ROOT_DIR, file)} -> ${VERSION}`);
+  }
+  console.log(`set-version: updated ${changed} CHANGELOG.md heading(s)`);
 }
 
 /**
@@ -116,6 +170,7 @@ function main() {
   console.log(
     `\nset-version: updated ${changed} package.json file(s) to ${VERSION}`,
   );
+  fixChangelogHeadings();
 }
 
 main();
