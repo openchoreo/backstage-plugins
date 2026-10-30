@@ -8,6 +8,7 @@ import { parseUrlTimeRange, writeUrlTimeRange } from '../utils/urlTimeRange';
 interface UseUrlFiltersOptions {
   /** Available environments to map names to objects */
   environments: Environment[];
+  defaultTimeRange?: string;
 }
 
 /**
@@ -15,7 +16,7 @@ interface UseUrlFiltersOptions {
  *
  * Query parameters:
  * - `env`: Environment name
- * - `timeRange`: Time range value (defaults to '10m')
+ * - `timeRange`: Time range value (defaults to `defaultTimeRange`, or '10m')
  * - `components`: Comma-separated component IDs
  * - `q`: Search query string
  * - `view`: Project metrics view, `total` or `breakdown`. Absent on every
@@ -35,7 +36,10 @@ interface UseUrlFiltersOptions {
  * updateFilters({ timeRange: '24h' });
  * ```
  */
-export function useUrlFilters({ environments }: UseUrlFiltersOptions) {
+export function useUrlFilters({
+  environments,
+  defaultTimeRange,
+}: UseUrlFiltersOptions) {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Parse filters from URL
@@ -62,12 +66,12 @@ export function useUrlFilters({ environments }: UseUrlFiltersOptions) {
 
     return {
       environment,
-      ...parseUrlTimeRange(searchParams),
+      ...parseUrlTimeRange(searchParams, defaultTimeRange),
       components,
       searchQuery,
       view,
     };
-  }, [searchParams, environments]);
+  }, [searchParams, environments, defaultTimeRange]);
 
   // Auto-select first environment if none selected or URL has a stale env name
   useAutoSelectFirstEnvironment(environments, searchParams, setSearchParams);
@@ -85,7 +89,7 @@ export function useUrlFilters({ environments }: UseUrlFiltersOptions) {
         }
       }
 
-      writeUrlTimeRange(newParams, newFilters);
+      writeUrlTimeRange(newParams, newFilters, defaultTimeRange);
 
       if (newFilters.components !== undefined) {
         if (newFilters.components.length > 0) {
@@ -109,7 +113,7 @@ export function useUrlFilters({ environments }: UseUrlFiltersOptions) {
 
       setSearchParams(newParams, { replace: true });
     },
-    [searchParams, setSearchParams],
+    [searchParams, setSearchParams, defaultTimeRange],
   );
 
   // Reset filters to defaults
