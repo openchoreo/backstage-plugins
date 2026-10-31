@@ -16,7 +16,7 @@ import { Span, SpanDetails } from '../../types';
 import {
   parseRfc3339NanoToNanoseconds,
   formatDuration,
-  formatTimeFromString,
+  formatTimestamp,
   isSpanError,
   getSpanStatusCode,
 } from './utils';
@@ -129,8 +129,14 @@ const SpanDetailsPanel = ({ details, traceId }: SpanDetailsPanelProps) => {
     ...(details.parentSpanId
       ? [{ label: 'Parent Span ID', value: details.parentSpanId }]
       : []),
-    { label: 'Start Time', value: formatTimeFromString(details.startTime) },
-    { label: 'End Time', value: formatTimeFromString(details.endTime) },
+    {
+      label: 'Start Time',
+      value: formatTimestamp(details.startTime, { fractionalSeconds: true }),
+    },
+    {
+      label: 'End Time',
+      value: formatTimestamp(details.endTime, { fractionalSeconds: true }),
+    },
     { label: 'Duration', value: formatDuration(details.durationNs) },
   ];
 
@@ -508,7 +514,9 @@ export const WaterfallView = ({
                             minWidth: 0,
                           }}
                         >
-                          {formatTimeFromString(span.startTime)}
+                          {formatTimestamp(span.startTime, {
+                            fractionalSeconds: true,
+                          })}
                         </Typography>
                       </Box>
                       <Box className={classes.tooltipRow}>
@@ -530,7 +538,9 @@ export const WaterfallView = ({
                             minWidth: 0,
                           }}
                         >
-                          {formatTimeFromString(span.endTime)}
+                          {formatTimestamp(span.endTime, {
+                            fractionalSeconds: true,
+                          })}
                         </Typography>
                       </Box>
                       <Box className={classes.tooltipRow}>

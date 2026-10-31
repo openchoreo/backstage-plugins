@@ -4,6 +4,7 @@ import {
   formatDuration,
   formatTime,
   formatTimeFromString,
+  formatTimestamp,
   getSpanStatusCode,
   isSpanError,
 } from './utils';
@@ -31,6 +32,50 @@ describe('parseRfc3339NanoToNanoseconds', () => {
   it('pads short fractional parts', () => {
     const result = parseRfc3339NanoToNanoseconds('2024-06-01T10:00:00.5Z');
     const expectedMs = new Date('2024-06-01T10:00:00.500Z').getTime();
+    expect(result).toBe(expectedMs * 1_000_000);
+  });
+
+  it('accepts lowercase t and z separators', () => {
+    const upper = parseRfc3339NanoToNanoseconds(
+      '2024-06-01T10:00:00.123456789Z',
+    );
+    const lower = parseRfc3339NanoToNanoseconds(
+      '2024-06-01t10:00:00.123456789z',
+    );
+
+    expect(lower).toBe(upper);
+  });
+
+  it('accepts lowercase t with a numeric offset', () => {
+    const upper = parseRfc3339NanoToNanoseconds(
+      '2024-06-01T10:00:00.123456789+05:30',
+    );
+    const lower = parseRfc3339NanoToNanoseconds(
+      '2024-06-01t10:00:00.123456789+05:30',
+    );
+
+    expect(lower).toBe(upper);
+  });
+
+  it('applies a positive numeric timezone offset', () => {
+    const result = parseRfc3339NanoToNanoseconds(
+      '2024-06-01T10:00:00.123456789+05:30',
+    );
+    const expectedMs = new Date('2024-06-01T04:30:00Z').getTime();
+    expect(result).toBe(expectedMs * 1_000_000 + 123456789);
+  });
+
+  it('applies a negative numeric timezone offset', () => {
+    const result = parseRfc3339NanoToNanoseconds(
+      '2024-06-01T10:00:00.123456789-07:00',
+    );
+    const expectedMs = new Date('2024-06-01T17:00:00Z').getTime();
+    expect(result).toBe(expectedMs * 1_000_000 + 123456789);
+  });
+
+  it('applies a numeric timezone offset without fractional seconds', () => {
+    const result = parseRfc3339NanoToNanoseconds('2024-06-01T10:00:00+05:30');
+    const expectedMs = new Date('2024-06-01T04:30:00Z').getTime();
     expect(result).toBe(expectedMs * 1_000_000);
   });
 });
@@ -86,6 +131,94 @@ describe('formatTimeFromString', () => {
     expect(formatTimeFromString('2024-06-01T10:00:00')).toBe(
       '2024-06-01T10:00:00Z',
     );
+  });
+
+  it('preserves numeric timezone offsets instead of appending Z', () => {
+    expect(formatTimeFromString('2024-06-01T10:00:00+05:30')).toBe(
+      '2024-06-01T10:00:00+05:30',
+    );
+    expect(formatTimeFromString('2024-06-01T10:00:00-07:00')).toBe(
+      '2024-06-01T10:00:00-07:00',
+    );
+  });
+});
+
+describe('formatTimestamp', () => {
+  it('formats a UTC timestamp in the viewer locale', () => {
+    expect(formatTimestamp('2024-06-01T10:00:00.000Z')).toBe(
+      new Date('2024-06-01T10:00:00.000Z').toLocaleString(),
+    );
+  });
+
+  it('handles nanosecond precision without dropping the milliseconds', () => {
+    expect(formatTimestamp('2024-06-01T10:00:00.123456789Z')).toBe(
+      new Date('2024-06-01T10:00:00.123Z').toLocaleString(),
+    );
+  });
+
+  it('includes date, time, and fractional seconds when requested', () => {
+    const formatted = formatTimestamp('2024-06-01T10:00:00.123456789Z', {
+      fractionalSeconds: true,
+    });
+    const date = new Date('2024-06-01T10:00:00.123Z');
+
+    expect(formatted).toContain(String(date.getFullYear()));
+    expect(formatted).toContain(String(date.getMinutes()).padStart(2, '0'));
+    expect(formatted).toContain(String(date.getSeconds()).padStart(2, '0'));
+    expect(formatted).toContain('123');
+    expect(formatted).not.toBe('123');
+  });
+
+  it('preserves milliseconds instead of rounding to the next second', () => {
+    const formatted = formatTimestamp('2024-06-01T10:00:00.999999999Z', {
+      fractionalSeconds: true,
+    });
+
+    expect(formatted).toContain('999');
+    expect(formatted).not.toContain('000');
+  });
+
+  it('accepts lowercase t and z separators when formatting', () => {
+    expect(formatTimestamp('2024-06-01t10:00:00.123z')).toBe(
+      formatTimestamp('2024-06-01T10:00:00.123Z'),
+    );
+  });
+
+  it('renders distinct strings for timestamps in the same second', () => {
+    const earlier = formatTimestamp('2024-06-01T10:00:00.123Z', {
+      fractionalSeconds: true,
+    });
+    const later = formatTimestamp('2024-06-01T10:00:00.456Z', {
+      fractionalSeconds: true,
+    });
+
+    expect(earlier).not.toBe(later);
+  });
+
+  it('applies numeric timezone offsets when formatting', () => {
+    expect(
+      formatTimestamp('2024-06-01T10:00:00.123+05:30', {
+        fractionalSeconds: true,
+      }),
+    ).toBe(
+      formatTimestamp('2024-06-01T04:30:00.123Z', {
+        fractionalSeconds: true,
+      }),
+    );
+  });
+
+  it('applies numeric timezone offsets without requesting fractional seconds', () => {
+    expect(formatTimestamp('2024-06-01T10:00:00+05:30')).toBe(
+      new Date('2024-06-01T04:30:00Z').toLocaleString(),
+    );
+  });
+
+  it('returns the raw value when it cannot be parsed', () => {
+    expect(formatTimestamp('not-a-date')).toBe('not-a-date');
+  });
+
+  it('returns an empty string for an empty timestamp', () => {
+    expect(formatTimestamp('')).toBe('');
   });
 });
 
