@@ -1,6 +1,6 @@
-import { FC, useContext, useEffect, useRef } from 'react';
+import { FC, useContext } from 'react';
 import styled from '@emotion/styled';
-import gsap from 'gsap';
+import { PANEL_REVEAL_CLASS, panelRevealStyles } from '../../utils/animations';
 import { DiagramContext } from '../DiagramContext/DiagramContext';
 import { DiagramLayer } from '../../types';
 import { useColors } from '../../theme';
@@ -20,6 +20,7 @@ export const DiagramLegendPanel: FC<any> = styled.div`
 
   background-color: ${({ theme }) => theme.colors.SURFACE};
   border: 1px solid ${({ theme }) => theme.colors.SURFACE_DIM};
+  ${panelRevealStyles}
 `;
 
 export const LegendRow: FC<any> = styled.div`
@@ -50,29 +51,12 @@ export function DiagramLegend(props: DiagramLegendProps) {
     diagramLayers: { hasLayer },
   } = useContext(DiagramContext);
 
-  const controlPanelRef = useRef(null);
   const hasArchitectureLayer = hasLayer(DiagramLayer.ARCHITECTURE);
   const hasObservabilityLayer = hasLayer(DiagramLayer.OBSERVABILITY);
   const hasDiffLayer = hasLayer(DiagramLayer.DIFF);
 
-  useEffect(() => {
-    if (animation) {
-      gsap.fromTo(
-        controlPanelRef.current,
-        { scale: 0 },
-        {
-          scale: 1,
-          duration: 1,
-          ease: 'power3.out',
-          delay: 1,
-        },
-      );
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   return (
-    <DiagramLegendPanel ref={controlPanelRef}>
+    <DiagramLegendPanel className={animation ? PANEL_REVEAL_CLASS : undefined}>
       {(hasObservabilityLayer || hasDiffLayer) && (
         <LegendRow>
           <svg
