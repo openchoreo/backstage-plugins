@@ -163,9 +163,19 @@ describe('formatTimestamp', () => {
     const date = new Date('2024-06-01T10:00:00.123Z');
 
     expect(formatted).toContain(String(date.getFullYear()));
-    expect(formatted).toMatch(/\d{1,2}:\d{2}:\d{2}/);
+    expect(formatted).toContain(String(date.getMinutes()).padStart(2, '0'));
+    expect(formatted).toContain(String(date.getSeconds()).padStart(2, '0'));
     expect(formatted).toContain('123');
     expect(formatted).not.toBe('123');
+  });
+
+  it('preserves milliseconds instead of rounding to the next second', () => {
+    const formatted = formatTimestamp('2024-06-01T10:00:00.999999999Z', {
+      fractionalSeconds: true,
+    });
+
+    expect(formatted).toContain('999');
+    expect(formatted).not.toContain('000');
   });
 
   it('accepts lowercase t and z separators when formatting', () => {

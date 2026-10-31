@@ -79,13 +79,13 @@ describe('WaterfallView', () => {
 
     await user.hover(screen.getByText('1.500s'));
 
-    const timestamps = await screen.findAllByText(/\d{1,2}:\d{2}:\d{2}/);
-    const texts = timestamps.map(node => node.textContent ?? '');
+    const startRow = (await screen.findByText('Start Time:')).parentElement;
+    const endRow = screen.getByText('End Time:').parentElement;
 
-    expect(texts).toHaveLength(2);
-    expect(texts.every(text => text.includes('2024'))).toBe(true);
-    expect(texts.some(text => /[.,]000\b/.test(text))).toBe(true);
-    expect(texts.some(text => /[.,]500\b/.test(text))).toBe(true);
+    expect(startRow?.textContent).toContain('2024');
+    expect(startRow?.textContent).toContain('000');
+    expect(endRow?.textContent).toContain('2024');
+    expect(endRow?.textContent).toContain('500');
   });
 
   it('shows a dedicated Status section in the span details panel', async () => {

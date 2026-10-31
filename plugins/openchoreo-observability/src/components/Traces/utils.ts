@@ -71,12 +71,21 @@ export function formatTimestamp(
 ): string {
   if (!rfc3339Nano) return '';
 
-  // Parse through the nano-aware helper: some browsers (notably Safari)
-  // cannot parse 9-digit fractional seconds with `new Date(str)` directly.
-  const milliseconds = Math.floor(
-    parseRfc3339NanoToNanoseconds(rfc3339Nano) / 1_000_000,
+  const match = RFC3339_NANO_PATTERN.exec(rfc3339Nano);
+  if (!match) return rfc3339Nano;
+
+  const [, dateTime, fractional = '', offset = 'Z'] = match;
+  const normalizedDateTime = dateTime.replace('t', 'T');
+  const normalizedOffset = offset.toLowerCase() === 'z' ? 'Z' : offset;
+
+  // Keep the first three fractional digits (milliseconds) before building the
+  // Date. Converting through the nanosecond number can round .999999999 up to
+  // the next second.
+  const date = new Date(
+    `${normalizedDateTime}.${fractional
+      .slice(0, 3)
+      .padEnd(3, '0')}${normalizedOffset}`,
   );
-  const date = new Date(milliseconds);
 
   if (Number.isNaN(date.getTime())) return rfc3339Nano;
 
