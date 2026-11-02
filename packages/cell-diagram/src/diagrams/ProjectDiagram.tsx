@@ -1,4 +1,10 @@
-import { MouseEvent, useEffect, useRef, useState } from 'react';
+import {
+  MouseEvent,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { DiagramEngine, DiagramModel } from '@projectstorm/react-diagrams';
 import { CanvasWidget } from '@projectstorm/react-canvas-core';
 import {
@@ -98,7 +104,7 @@ export function ProjectDiagram(props: ProjectDiagramProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (diagramEngine && animation && isDiagramLoaded) {
       animateProjectDiagram();
       diagramEngine.repaintCanvas();
