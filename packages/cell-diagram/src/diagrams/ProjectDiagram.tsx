@@ -104,9 +104,6 @@ export function ProjectDiagram(props: ProjectDiagramProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props]);
 
-  // layout effect: the reveal classes must be on the nodes before the browser
-  // paints the first frame without the loader overlay, or the full diagram
-  // flashes for a frame before the animation starts
   useLayoutEffect(() => {
     if (diagramEngine && animation && isDiagramLoaded) {
       animateProjectDiagram();
