@@ -1,6 +1,6 @@
 {
   "name": "@openchoreo/backstage-plugin-backend",
-  "version": "1.4.0-m.1",
+  "version": "1.4.0-m.2",
   "description": "Backstage backend plugin for OpenChoreo. Proxies the OpenChoreo control plane API and serves the OpenChoreo frontend plugins.",
   "license": "Apache-2.0",
   "main": "src/index.ts",

@@ -1,5 +1,16 @@
 # @openchoreo/backstage-plugin-openchoreo-portal-assistant
 
+## 2.0.0-next.2
+
+### Patch Changes
+
+- Updated dependencies [1cec15b]
+  - @openchoreo/backstage-plugin@2.0.0-next.2
+  - @openchoreo/backstage-plugin-openchoreo-ci@2.0.0-next.2
+  - @openchoreo/backstage-plugin-openchoreo-observability@2.0.0-next.2
+  - @openchoreo/backstage-plugin-common@2.0.0-next.2
+  - @openchoreo/backstage-plugin-react@2.0.0-next.2
+
 ## 1.4.0-m.1
 
 ### Patch Changes

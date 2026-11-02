@@ -1,5 +1,12 @@
 # @openchoreo/backstage-plugin-platform-engineer-core-backend
 
+## 2.0.0-next.2
+
+### Patch Changes
+
+- Updated dependencies [1cec15b]
+  - @openchoreo/openchoreo-client-node@2.0.0-next.2
+
 ## 1.4.0-m.1
 
 ### Patch Changes
