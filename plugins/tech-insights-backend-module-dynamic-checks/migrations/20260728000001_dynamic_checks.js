@@ -26,6 +26,18 @@ exports.up = async function up(knex) {
       .comment('JSON entity filter for this check');
     table.text('rule').notNullable().comment('JSON: { conditions, priority? }');
     table
+      .text('links')
+      .nullable()
+      .comment('JSON array of { title, url } reference links');
+    table
+      .text('success_metadata')
+      .nullable()
+      .comment('JSON object merged into metadata when the check passes');
+    table
+      .text('failure_metadata')
+      .nullable()
+      .comment('JSON object merged into metadata when the check fails');
+    table
       .string('status')
       .notNullable()
       .defaultTo('draft')
