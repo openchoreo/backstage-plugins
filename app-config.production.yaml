@@ -82,6 +82,30 @@ app:
     - entity-card:gitlab/merge-requests-stats: false
     - entity-card:gitlab/people: false
     - entity-card:gitlab/languages: false
+    # tech-insights-maturity is installed only for its API; the
+    # tech-insights-scorecards page and entity tab replace its own views.
+    - page:tech-insights-maturity: false
+    - entity-content:tech-insights-maturity/maturity: false
+    - entity-content:tech-insights-maturity/summary: false
+    - entity-card:tech-insights-maturity/maturity-summary: false
+    # Scores are on the Scorecards tab, not the Overview tab.
+    - entity-card:tech-insights-scorecards/summary: false
+    - entity-content:tech-insights-scorecards:
+        config:
+          group: scorecards
+          # The plugin's default kinds plus the OpenChoreo kinds that
+          # collectors report facts for.
+          filter:
+            kind:
+              $in:
+                - Component
+                - API
+                - Resource
+                - System
+                - Domain
+                - Group
+                - ClusterComponentType
+                - ComponentType
 
 backend:
   # Used for enabling authentication, secret is shared by all backend plugins

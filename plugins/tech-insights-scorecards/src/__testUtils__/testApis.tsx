@@ -7,8 +7,9 @@ import {
 } from '@backstage/test-utils';
 import { configApiRef } from '@backstage/core-plugin-api';
 import { toastApiRef } from '@backstage/frontend-plugin-api';
-import { catalogApiRef } from '@backstage/plugin-catalog-react';
+import { catalogApiRef, entityRouteRef } from '@backstage/plugin-catalog-react';
 import { permissionApiRef } from '@backstage/plugin-permission-react';
+import { maturityApiRef } from '@backstage-community/plugin-tech-insights-maturity';
 import {
   dynamicCheckManagePermission,
   dynamicCheckReadPermission,
@@ -136,6 +137,11 @@ export async function renderWithApis(
       totalItems: 0,
       pageInfo: {},
     })),
+    getEntities: jest.fn(async () => ({ items: [] })),
+  };
+  const maturityApi = {
+    getAllChecks: jest.fn(async () => []),
+    getBulkMaturityCheckResults: jest.fn(async () => []),
   };
   const toastApi = { post: jest.fn() };
 
@@ -145,6 +151,7 @@ export async function renderWithApis(
         apis={[
           [dynamicChecksApiRef, api],
           [catalogApiRef, catalogApi],
+          [maturityApiRef, maturityApi],
           [permissionApiRef, permissionApi],
           [toastApiRef, toastApi],
           [configApiRef, mockApis.config({ data: config })],
@@ -153,6 +160,7 @@ export async function renderWithApis(
         {ui}
       </TestApiProvider>
     </SWRConfig>,
+    { mountedRoutes: { '/catalog/:namespace/:kind/:name': entityRouteRef } },
   );
-  return { ...rendered, api, catalogApi, toastApi };
+  return { ...rendered, api, catalogApi, maturityApi, toastApi };
 }
