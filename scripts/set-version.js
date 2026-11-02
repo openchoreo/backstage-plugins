@@ -115,7 +115,9 @@ function fixChangelogHeadings() {
     if (next === null) continue;
     fs.writeFileSync(file, next);
     changed++;
-    console.log(`   set heading ${path.relative(ROOT_DIR, file)} -> ${VERSION}`);
+    console.log(
+      `   set heading ${path.relative(ROOT_DIR, file)} -> ${VERSION}`,
+    );
   }
   console.log(`set-version: updated ${changed} CHANGELOG.md heading(s)`);
 }
