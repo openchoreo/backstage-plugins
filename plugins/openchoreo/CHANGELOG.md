@@ -1,5 +1,22 @@
 # @openchoreo/backstage-plugin
 
+## 2.0.0-next.2
+
+### Minor Changes
+
+- 1cec15b: Notification channels can send HTML email bodies. The create form exposes the email
+  template's `contentType` (`text/plain` or `text/html`), the scaffolder action forwards it to the
+  OpenChoreo API, and the channel overview card shows it. The client is regenerated for the new
+  `NotificationEmailTemplate.contentType` field.
+
+### Patch Changes
+
+- Updated dependencies [633aedd]
+- Updated dependencies [ae74877]
+  - @openchoreo/cell-diagram@2.0.0-next.2
+  - @openchoreo/backstage-plugin-common@2.0.0-next.2
+  - @openchoreo/backstage-plugin-react@2.0.0-next.2
+
 ## 1.4.0-m.1
 
 ### Minor Changes

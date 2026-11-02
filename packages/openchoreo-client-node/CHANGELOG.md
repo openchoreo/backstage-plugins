@@ -1,5 +1,14 @@
 # @openchoreo/openchoreo-client-node
 
+## 2.0.0-next.2
+
+### Minor Changes
+
+- 1cec15b: Notification channels can send HTML email bodies. The create form exposes the email
+  template's `contentType` (`text/plain` or `text/html`), the scaffolder action forwards it to the
+  OpenChoreo API, and the channel overview card shows it. The client is regenerated for the new
+  `NotificationEmailTemplate.contentType` field.
+
 ## 1.4.0-m.1
 
 ### Minor Changes

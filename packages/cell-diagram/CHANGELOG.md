@@ -1,5 +1,13 @@
 # @openchoreo/cell-diagram
 
+## 2.0.0-next.2
+
+### Patch Changes
+
+- 633aedd: Replace the `gsap` dependency with CSS keyframe animations for the diagram
+  reveal and the canvas control panels. Timing and sequencing are unchanged.
+- ae74877: Fix a one-frame flash of the full diagram before the reveal animation starts.
+
 ## 1.4.0-m.1
 
 ### Minor Changes
