@@ -8,27 +8,41 @@ import {
 import { ScorecardsPage } from './ScorecardsPage';
 
 describe('ScorecardsPage', () => {
-  it('shows the checks and data sources', async () => {
-    await renderWithApis(<ScorecardsPage title="Scorecards" />);
+  it('shows the score summary, checks and data sources', async () => {
+    await renderWithApis(<ScorecardsPage title="Scorecards" showChecks />);
 
     expect(await screen.findByText('Checks')).toBeInTheDocument();
     expect(screen.getByText('Data sources')).toBeInTheDocument();
+    expect(screen.getByText(/View full breakdown/)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Scorecards' })).toBeVisible();
   });
 
-  it('says when the user may not view checks', async () => {
-    await renderWithApis(<ScorecardsPage title="Scorecards" />, {
+  it('says when the user may not view scores and checks', async () => {
+    await renderWithApis(<ScorecardsPage title="Scorecards" showChecks />, {
       canRead: false,
     });
 
     expect(
-      await screen.findByText("You don't have permission to view checks."),
+      await screen.findByText(
+        /You don't have permission to view scores and checks across all entities/,
+      ),
     ).toBeInTheDocument();
     expect(screen.queryByText('Data sources')).not.toBeInTheDocument();
   });
 
+  it('shows only scores when checks are stored elsewhere', async () => {
+    await renderWithApis(
+      <ScorecardsPage title="Scorecards" showChecks={false} />,
+      { canRead: false },
+    );
+
+    expect(await screen.findByText(/View full breakdown/)).toBeInTheDocument();
+    expect(screen.queryByText('Checks')).not.toBeInTheDocument();
+    expect(screen.queryByText('Data sources')).not.toBeInTheDocument();
+  });
+
   it('opens the editor for a new check and goes back on cancel', async () => {
-    await renderWithApis(<ScorecardsPage title="Scorecards" />, {
+    await renderWithApis(<ScorecardsPage title="Scorecards" showChecks />, {
       config: {
         techInsights: {
           scorecards: { entityLabel: { singular: 'resource' } },
@@ -53,7 +67,9 @@ describe('ScorecardsPage', () => {
   it('opens a check for editing from its row', async () => {
     const api = mockDynamicChecksApi();
     api.listChecks.mockResolvedValue([check()]);
-    await renderWithApis(<ScorecardsPage title="Scorecards" />, { api });
+    await renderWithApis(<ScorecardsPage title="Scorecards" showChecks />, {
+      api,
+    });
 
     const row = await screen.findByText('Has a README');
     await waitFor(() =>

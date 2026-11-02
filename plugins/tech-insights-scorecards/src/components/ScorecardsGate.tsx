@@ -14,6 +14,8 @@ export interface ScorecardsGateProps {
   children: ReactNode;
   /** Wraps the notice in a page with this heading, for a routed page. */
   pageTitle?: string;
+  /** Shown instead of the notice while turned off; `null` shows nothing. */
+  fallback?: ReactNode;
 }
 
 /**
@@ -21,9 +23,14 @@ export interface ScorecardsGateProps {
  * calls the Tech Insights backend, which a host that turns Scorecards off
  * doesn't run. Turned off, it shows a notice in their place.
  */
-export function ScorecardsGate({ children, pageTitle }: ScorecardsGateProps) {
+export function ScorecardsGate({
+  children,
+  pageTitle,
+  fallback,
+}: ScorecardsGateProps) {
   const enabled = useScorecardsEnabled();
   if (enabled) return <>{children}</>;
+  if (fallback !== undefined) return <>{fallback}</>;
 
   const notice = (
     <EmptyState
