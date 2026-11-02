@@ -33,8 +33,7 @@ describe('filterShapeLinter', () => {
     expect(marks('{ "kind": "API", "spec.type": "openapi" }')).toEqual([
       {
         text: '"kind"',
-        message:
-          'Set kinds with the "Entity kinds" field, not in these criteria.',
+        message: 'Set kinds with the "Kinds" field, not in these criteria.',
       },
     ]);
   });

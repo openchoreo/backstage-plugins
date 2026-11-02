@@ -46,8 +46,7 @@ export function filterShapeLinter(raw: boolean): LintSource {
           from: name.from,
           to: name.to,
           severity: 'error',
-          message:
-            'Set kinds with the "Entity kinds" field, not in these criteria.',
+          message: 'Set kinds with the "Kinds" field, not in these criteria.',
         };
       });
   };

@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import Grid from '@material-ui/core/Grid';
 import TextField from '@material-ui/core/TextField';
 import Button from '@material-ui/core/Button';
@@ -24,6 +24,7 @@ import {
 } from '../useCheckPermissions';
 import {
   filterCoversKinds,
+  kindsOfFilter,
   useCatalogKinds,
   useEntityLabel,
   useKindDisplay,
@@ -98,8 +99,9 @@ interface FilterFormState {
   extraJson: string;
   /**
    * True when the stored filter can't be split into kinds plus extra
-   * criteria (e.g. an array of filters, which jsonfc ORs together), so it is
-   * edited as raw JSON to round-trip unchanged.
+   * criteria (e.g. an array of filters, which jsonfc ORs together, or an
+   * empty kind list, which matches nothing while an empty picker matches
+   * everything), so it is edited as raw JSON to round-trip unchanged.
    */
   raw: boolean;
 }
@@ -118,7 +120,9 @@ function toFilterFormState(filter: unknown): FilterFormState {
   if (
     typeof filter !== 'object' ||
     Array.isArray(filter) ||
-    ('kind' in filter && !isStringOrStringArray(filter.kind))
+    ('kind' in filter &&
+      (!isStringOrStringArray(filter.kind) ||
+        (Array.isArray(filter.kind) && filter.kind.length === 0)))
   ) {
     return { kinds: [], extraJson: JSON.stringify(filter, null, 2), raw: true };
   }
@@ -129,6 +133,19 @@ function toFilterFormState(filter: unknown): FilterFormState {
       Object.keys(rest).length > 0 ? JSON.stringify(rest, null, 2) : '',
     raw: false,
   };
+}
+
+/**
+ * The kinds a raw JSON filter narrows to, or none while it doesn't parse or
+ * matches every kind, so retriever coverage is judged on what it will save.
+ */
+function kindsOfRawFilter(json: string): string[] {
+  try {
+    const kinds = kindsOfFilter(JSON.parse(json));
+    return kinds === 'all' ? [] : kinds;
+  } catch {
+    return [];
+  }
 }
 
 export function CheckForm(props: CheckFormProps) {
@@ -149,7 +166,9 @@ export function CheckForm(props: CheckFormProps) {
   const [name, setName] = useState(check?.name ?? '');
   const [description, setDescription] = useState(check?.description ?? '');
   const [category, setCategory] = useState(
-    (check?.metadata?.category as string | undefined) ?? '',
+    typeof check?.metadata?.category === 'string'
+      ? check.metadata.category
+      : '',
   );
   const categoryOptions = Array.from(
     new Set([...DEFAULT_CHECK_CATEGORIES, ...existingCategories]),
@@ -229,6 +248,15 @@ export function CheckForm(props: CheckFormProps) {
   const [dryRunError, setDryRunError] = useState<string | null>(null);
   const [dryRunning, setDryRunning] = useState(false);
   const [dryRunResult, setDryRunResult] = useState<DryRunResult | null>(null);
+  // A result shown after its inputs change would be read as the edited
+  // check's result. Counting the changes also drops a dry run that was still
+  // in flight when one happened.
+  const inputChanges = useRef(0);
+  const clearDryRun = () => {
+    inputChanges.current += 1;
+    setDryRunResult(null);
+    setDryRunError(null);
+  };
 
   /**
    * Validates the form and builds the check, or records an error against
@@ -267,7 +295,7 @@ export function CheckForm(props: CheckFormProps) {
           'Must be a JSON object, e.g. {"spec.lifecycle": "production"}.';
       } else if (extra && 'kind' in extra) {
         found.filter =
-          'Set kinds with the "Entity kinds" field, not in these criteria.';
+          'Set kinds with the "Kinds" field, not in these criteria.';
       } else if (kinds.length > 0) {
         filter = { ...extra, kind: kinds.length === 1 ? kinds[0] : kinds };
       } else if (extra && Object.keys(extra).length > 0) {
@@ -355,11 +383,14 @@ export function CheckForm(props: CheckFormProps) {
     }
 
     setDryRunning(true);
+    const changesAtStart = inputChanges.current;
     try {
       const result = await api.dryRun(entityRef.trim(), input);
-      setDryRunResult(result);
+      if (inputChanges.current === changesAtStart) setDryRunResult(result);
     } catch (e) {
-      setDryRunError((e as Error).message);
+      if (inputChanges.current === changesAtStart) {
+        setDryRunError((e as Error).message);
+      }
     } finally {
       setDryRunning(false);
     }
@@ -368,7 +399,7 @@ export function CheckForm(props: CheckFormProps) {
   const title = check ? `Edit: ${check.name}` : 'New check';
 
   const coveredKinds = useCoveredKindsText();
-  const narrowingKinds = rawFilter ? [] : kinds;
+  const narrowingKinds = rawFilter ? kindsOfRawFilter(filterJson) : kinds;
   const covers = (schema: FactSchema) =>
     filterCoversKinds(schema.entityFilter, narrowingKinds);
   const retrieverOptions = factSchemas
@@ -455,9 +486,10 @@ export function CheckForm(props: CheckFormProps) {
               options={sortedKindOptions}
               getOptionLabel={kindLabel}
               value={kinds}
-              onChange={(_e, value) =>
-                setKinds(Array.from(new Set(value.map(kindOf))))
-              }
+              onChange={(_e, value) => {
+                setKinds(Array.from(new Set(value.map(kindOf))));
+                clearDryRun();
+              }}
               renderTags={(value, getTagProps) =>
                 value.map((option, index) => (
                   <Chip
@@ -496,6 +528,7 @@ export function CheckForm(props: CheckFormProps) {
             onChange={next => {
               setFilterJson(next);
               clearError('filter');
+              clearDryRun();
             }}
           />
         </Grid>
@@ -517,6 +550,7 @@ export function CheckForm(props: CheckFormProps) {
             onChange={(_e, value) => {
               setFactIds(value);
               clearError('factIds');
+              clearDryRun();
             }}
             renderOption={option => {
               const schema = factSchemas.find(f => f.id === option);
@@ -572,6 +606,7 @@ export function CheckForm(props: CheckFormProps) {
             onChange={next => {
               setRuleJson(next);
               clearError('rule');
+              clearDryRun();
             }}
             factIds={factIds}
             factSchemas={factSchemas}
@@ -599,6 +634,7 @@ export function CheckForm(props: CheckFormProps) {
             onChange={next => {
               setEntityRef(next);
               clearError('entityRef');
+              clearDryRun();
             }}
             error={errors.entityRef}
             action={
@@ -688,7 +724,10 @@ export function CheckForm(props: CheckFormProps) {
               />
               <IconButton
                 aria-label="Remove link"
-                onClick={() => setLinks(links.filter((_l, i) => i !== index))}
+                onClick={() => {
+                  setLinks(links.filter((_l, i) => i !== index));
+                  clearError('links');
+                }}
               >
                 <DeleteIcon />
               </IconButton>
@@ -725,6 +764,10 @@ export function CheckForm(props: CheckFormProps) {
             forcePopupIcon
             openOnFocus
             options={categoryOptions}
+            // Without a value, the Autocomplete clears its input on mount,
+            // which would drop an existing check's category.
+            value={category || null}
+            onChange={(_e, value) => setCategory(value ?? '')}
             inputValue={category}
             onInputChange={(_e, value) => setCategory(value)}
             renderInput={params => (

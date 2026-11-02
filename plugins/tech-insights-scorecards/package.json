@@ -84,9 +84,13 @@
     "@backstage/frontend-defaults": "^0.5.2",
     "@backstage/frontend-test-utils": "^0.6.0",
     "@backstage/plugin-catalog": "^2.0.5",
+    "@backstage/test-utils": "^1.7.18",
     "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "14.3.1",
+    "@testing-library/user-event": "14.6.1",
     "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "swr": "^2.0.0"
   },
   "files": [
     "dist",
