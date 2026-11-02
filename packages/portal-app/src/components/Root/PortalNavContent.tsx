@@ -6,7 +6,11 @@ import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
 import ChevronRightIcon from '@material-ui/icons/ChevronRight';
 import SearchIcon from '@material-ui/icons/Search';
 import GroupIcon from '@material-ui/icons/People';
-import { identityApiRef, useApi } from '@backstage/core-plugin-api';
+import {
+  configApiRef,
+  identityApiRef,
+  useApi,
+} from '@backstage/core-plugin-api';
 import {
   Sidebar,
   sidebarConfig,
@@ -157,6 +161,8 @@ const PLATFORM_ID = 'page:platform-engineer-core/platform-overview';
 const AUDIT_LOGS_ID = 'page:openchoreo-observability/audit-logs';
 const COST_INSIGHTS_ID = 'page:openchoreo-observability/cost-insights';
 const DELIVERY_INSIGHTS_ID = 'page:openchoreo-observability/delivery-insights';
+// Present only when the host adds @openchoreo/backstage-plugin-tech-insights-scorecards.
+const SCORING_ID = 'page:tech-insights-scorecards';
 const APIS_ID = 'page:api-docs';
 const CREATE_ID = 'page:scaffolder';
 
@@ -171,6 +177,13 @@ export function PortalNavContent({ navItems }: NavContentComponentProps) {
   // Taken either way, so the item does not fall through to the generic list
   // below when the feature is off; whether it is rendered is decided here.
   const deliveryInsightsEnabled = useDeliveryInsightsEnabled();
+  const scoring = navItems.take(SCORING_ID);
+  // The key and default the scorecards plugin reads, so the item is shown
+  // exactly when the page behind it is on.
+  const scoringEnabled =
+    useApi(configApiRef).getOptionalBoolean(
+      'techInsights.scorecards.enabled',
+    ) ?? true;
   const apis = navItems.take(APIS_ID);
   const create = navItems.take(CREATE_ID);
 
@@ -211,6 +224,7 @@ export function PortalNavContent({ navItems }: NavContentComponentProps) {
       {deliveryInsightsEnabled && deliveryInsights && (
         <NavItemLink item={deliveryInsights} />
       )}
+      {scoringEnabled && scoring && <NavItemLink item={scoring} />}
       <SidebarDivider />
       <SidebarSpace />
       <SidebarDivider />

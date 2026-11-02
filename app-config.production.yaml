@@ -147,6 +147,22 @@ techdocs:
   publisher:
     type: 'local' # Alternatives - 'googleGcs' or 'awsS3'. Read documentation for using alternatives.
 
+techInsights:
+  scorecards:
+    # The Tech Insights backend, fact collectors and checks, and the
+    # Scorecards page, sidebar item and entity tab. The plugin is on when this
+    # is unset, so the default keeps OpenChoreo opt-in.
+    # Environment variable: OPENCHOREO_FEATURES_SCORECARDS_ENABLED
+    enabled: ${OPENCHOREO_FEATURES_SCORECARDS_ENABLED:-false}
+    # The scorecards views use OpenChoreo's names for these catalog kinds,
+    # and for what checks run against in text that covers several kinds.
+    kindLabels:
+      System: Project
+      Domain: Namespace
+    entityLabel:
+      singular: resource
+      plural: resources
+
 auth:
   providers:
     # OpenChoreo Auth - Works with any OAuth2/OIDC-compliant identity provider
@@ -303,7 +319,7 @@ openchoreo:
       streamTimeoutSeconds: ${OPENCHOREO_OBSERVABILITY_WIRELOGS_STREAM_TIMEOUT_SECONDS}
 
   # Feature flags for enabling/disabling OpenChoreo functionality
-  # Environment variables: OPENCHOREO_FEATURES_WORKFLOWS_ENABLED, OPENCHOREO_FEATURES_OBSERVABILITY_ENABLED, OPENCHOREO_FEATURES_AUTH_ENABLED, OPENCHOREO_FEATURES_AUTHZ_ENABLED, OPENCHOREO_FEATURES_ASSISTANT_ENABLED, OPENCHOREO_FEATURES_COST_INSIGHTS_ENABLED, OPENCHOREO_FEATURES_SCORECARDS_ENABLED
+  # Environment variables: OPENCHOREO_FEATURES_WORKFLOWS_ENABLED, OPENCHOREO_FEATURES_OBSERVABILITY_ENABLED, OPENCHOREO_FEATURES_AUTH_ENABLED, OPENCHOREO_FEATURES_AUTHZ_ENABLED, OPENCHOREO_FEATURES_ASSISTANT_ENABLED, OPENCHOREO_FEATURES_COST_INSIGHTS_ENABLED
   features:
     # Workflow plane / Workflows functionality
     # When disabled, hides Workflows tab and WorkflowsOverviewCard from entity pages
@@ -343,10 +359,6 @@ openchoreo:
     # tab in the cost insights page
     costInsights:
       enabled: ${OPENCHOREO_FEATURES_COST_INSIGHTS_ENABLED}
-    # Scorecards: the Tech Insights backend, fact collectors and checks, and the
-    # Scorecards page, sidebar item and entity tab. Opt-in: defaults to false.
-    scorecards:
-      enabled: ${OPENCHOREO_FEATURES_SCORECARDS_ENABLED}
 
 thunder:
   # Environment variables are injected by Helm chart (see https://github.com/openchoreo/openchoreo install/helm/openchoreo/templates/backstage/deployment.yaml)

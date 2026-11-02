@@ -4,10 +4,12 @@ import {
 } from '@backstage/frontend-defaults';
 import assistantFeature from '@openchoreo/backstage-plugin-openchoreo-portal-assistant/alpha';
 import portalFeatureLoader from '@openchoreo/backstage-portal-app/alpha';
+import scorecardsFeatureLoader from '@openchoreo/backstage-plugin-tech-insights-scorecards/alpha';
 import pkg from '../package.json';
 
 const ASSISTANT = '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
 const SHELL = '@openchoreo/backstage-portal-app';
+const SCORECARDS = '@openchoreo/backstage-plugin-tech-insights-scorecards';
 
 /**
  * This app is composed entirely by frontend feature discovery — `App.tsx` has
@@ -25,6 +27,7 @@ describe('frontend feature discovery', () => {
   it.each([
     ['the portal shell', SHELL],
     ['the assistant', ASSISTANT],
+    ['the scorecards plugin', SCORECARDS],
   ])('keeps %s a direct dependency of this package', (_label, name) => {
     // Discovery scans only the app package's own `dependencies` — not
     // devDependencies, and not transitively.
@@ -42,6 +45,12 @@ describe('frontend feature discovery', () => {
 
   it('resolves the assistant default export as a frontend feature', () => {
     expect((assistantFeature as any)?.$$type).toBe('@backstage/FrontendModule');
+  });
+
+  it('resolves the scorecards default export as a feature loader', () => {
+    expect((scorecardsFeatureLoader as any)?.$$type).toBe(
+      '@backstage/FrontendFeatureLoader',
+    );
   });
 
   describe('with the build-time global in place', () => {

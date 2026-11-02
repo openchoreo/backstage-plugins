@@ -8,6 +8,10 @@ import { PageLoader } from '@openchoreo/backstage-design-system';
 //   @openchoreo/backstage-portal-app           the whole portal shell (a
 //                                              feature loader, ~24 features)
 //   ...-openchoreo-portal-assistant            the private Portal Assistant
+//   ...-tech-insights-scorecards               Scorecards, shown as turned off
+//                                              unless
+//                                              techInsights.scorecards.enabled
+//                                              is on
 //
 // Adding a plugin to this portal is therefore `yarn add` plus nothing. The
 // `loadingElement` stays here because it is the only piece a feature cannot
