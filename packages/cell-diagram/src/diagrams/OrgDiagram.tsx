@@ -1,4 +1,4 @@
-import { MouseEvent, useEffect, useState } from 'react';
+import { MouseEvent, useEffect, useLayoutEffect, useState } from 'react';
 import { DiagramEngine, DiagramModel } from '@projectstorm/react-diagrams';
 import { CanvasWidget } from '@projectstorm/react-canvas-core';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -73,7 +73,10 @@ export function OrgDiagram(props: OrgDiagramProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props]);
 
-  useEffect(() => {
+  // layout effect: the reveal classes must be on the nodes before the browser
+  // paints the first frame without the loader overlay, or the full diagram
+  // flashes for a frame before the animation starts
+  useLayoutEffect(() => {
     if (diagramEngine && animation && isDiagramLoaded) {
       animateOrgDiagram();
       diagramEngine.repaintCanvas();
