@@ -101,8 +101,9 @@ function EnvironmentCard({ env }: { env: EnvironmentImageSecurity }) {
           </Typography>
           {env.status === 'unverified' && (
             <Typography variant="body2" color="error">
-              The scan result is shown for information only: its signature did
-              not match the platform's signing key.
+              The scan result is shown for information only: its signature could
+              not be verified against the platform's signing key, or no signing
+              key is configured.
             </Typography>
           )}
           {report.vulnerabilities.length > 0 && (

@@ -22,8 +22,15 @@ const imageSecurityClientApi = ApiBlueprint.make({
     }),
 });
 
+// Off by default, like the backend, which only serves its routes when
+// `openchoreo.imageSecurity` is configured. Enable it together with that config:
+//
+//   app:
+//     extensions:
+//       - entity-content:openchoreo-image-security/security
 const securityEntityContent = EntityContentBlueprint.make({
   name: 'security',
+  disabled: true,
   params: {
     path: '/security',
     title: 'Security',

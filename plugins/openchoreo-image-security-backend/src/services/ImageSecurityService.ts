@@ -13,6 +13,7 @@ import {
 } from './registry';
 import {
   DsseEnvelope,
+  InTotoStatement,
   VULN_PREDICATE_TYPE,
   decodeStatement,
   statementCoversDigest,
@@ -152,13 +153,16 @@ export class ImageSecurityService {
       ref.digest ??
       (await registry.resolveDigest(ref.repository, ref.tag ?? 'latest'));
 
-    const cached = this.cache.get(digest);
+    // Attestations live next to the image in its repository, so the same digest
+    // in another repository is a separate lookup.
+    const cacheKey = `${ref.registry}/${ref.repository}@${digest}`;
+    const cached = this.cache.get(cacheKey);
     let result: DigestResult;
     if (cached && cached.expires > Date.now()) {
       result = cached.value;
     } else {
       result = await this.readVulnAttestation(registry, ref.repository, digest);
-      this.cache.set(digest, {
+      this.cache.set(cacheKey, {
         value: result,
         expires: Date.now() + this.options.cacheTtlSeconds * 1000,
       });
@@ -197,10 +201,20 @@ export class ImageSecurityService {
 
     let best: { report: VulnerabilityReport; verified: boolean } | undefined;
     for (const layer of layers) {
-      const envelope = JSON.parse(
-        (await registry.getBlob(repository, layer.digest)).toString('utf8'),
-      ) as DsseEnvelope;
-      const statement = decodeStatement(envelope);
+      const blob = await registry.getBlob(repository, layer.digest);
+      let envelope: DsseEnvelope;
+      let statement: InTotoStatement;
+      try {
+        envelope = JSON.parse(blob.toString('utf8')) as DsseEnvelope;
+        statement = decodeStatement(envelope);
+      } catch (e) {
+        // Unannotated layers may come from other tools; one that is not a DSSE
+        // envelope must not hide a valid scan in another layer.
+        this.logger.debug(
+          `Skipping layer ${layer.digest} of ${repository}: not a DSSE envelope (${e})`,
+        );
+        continue;
+      }
       if (
         statement.predicateType !== VULN_PREDICATE_TYPE ||
         !statementCoversDigest(statement, digest)
@@ -226,7 +240,8 @@ export class ImageSecurityService {
     }
 
     if (!best) return { status: 'not-scanned' };
-    if (this.options.publicKey && !best.verified) {
+    // Without a public key nothing can be verified, and the result must say so.
+    if (!best.verified) {
       return { status: 'unverified', report: best.report };
     }
     return {

@@ -23,15 +23,22 @@ export async function createRouter({
   // only sees components they may view.
   router.get('/vulnerabilities', async (req, res) => {
     const { namespaceName, componentName } = req.query;
-    if (!namespaceName || !componentName) {
+    // Repeated parameters (`?a=1&a=2`) arrive as arrays; reject them instead of
+    // passing them on into the API path.
+    if (
+      typeof namespaceName !== 'string' ||
+      typeof componentName !== 'string' ||
+      !namespaceName ||
+      !componentName
+    ) {
       throw new InputError(
-        'namespaceName and componentName are required query parameters',
+        'namespaceName and componentName are required single-valued query parameters',
       );
     }
     res.json(
       await imageSecurityService.getComponentImageSecurity(
-        namespaceName as string,
-        componentName as string,
+        namespaceName,
+        componentName,
         getUserTokenFromRequest(req),
       ),
     );
