@@ -193,6 +193,16 @@ describe('POST /dynamic-checks', () => {
 
   it.each([
     ['a link without a URL', { links: [{ title: 'Docs', url: '' }] }],
+    [
+      'a javascript: link',
+      // eslint-disable-next-line no-script-url
+      { links: [{ title: 'Docs', url: 'javascript:alert(1)' }] },
+    ],
+    [
+      'a data: link',
+      { links: [{ title: 'Docs', url: 'data:text/html,<b>x</b>' }] },
+    ],
+    ['a relative link', { links: [{ title: 'Docs', url: '/docs' }] }],
     ['links that are not an array', { links: { title: 'Docs' } }],
     ['failure metadata that is not an object', { failureMetadata: 'x' }],
     ['a rank in success metadata', { successMetadata: { rank: 3 } }],

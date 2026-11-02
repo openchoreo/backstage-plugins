@@ -37,6 +37,19 @@ interface RouterOptions {
   getEvaluation: () => CheckEvaluation | undefined;
 }
 
+/**
+ * Links are rendered as `href`s, so anything but an absolute http(s) URL,
+ * such as `javascript:` or `data:`, would run in the viewer's browser.
+ */
+function isHttpUrl(value: string): boolean {
+  try {
+    const { protocol } = new URL(value.trim());
+    return protocol === 'http:' || protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 function basicValidate(check: Partial<TechInsightJsonRuleCheck>) {
   if (!check.name) throw new InputError('A check needs a name.');
   if (!Array.isArray(check.factIds) || check.factIds.length === 0) {
@@ -53,10 +66,10 @@ function basicValidate(check: Partial<TechInsightJsonRuleCheck>) {
           typeof link?.title === 'string' &&
           link.title.trim() &&
           typeof link.url === 'string' &&
-          link.url.trim(),
+          isHttpUrl(link.url),
       )
     ) {
-      throw new InputError('Each link needs a title and a URL.');
+      throw new InputError('Each link needs a title and an http(s) URL.');
     }
   }
   for (const key of ['successMetadata', 'failureMetadata'] as const) {
