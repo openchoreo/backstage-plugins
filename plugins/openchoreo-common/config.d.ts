@@ -147,6 +147,21 @@ export interface Config {
          */
         enabled?: boolean;
       };
+
+      /**
+       * Scorecards configuration.
+       * @deepVisibility frontend
+       */
+      scorecards?: {
+        /**
+         * Enable or disable Scorecards: the Tech Insights backend and its
+         * fact collectors and dynamic checks, and the Scorecards page, sidebar
+         * item and entity tab. Opt-in: defaults to false. Turning it off keeps
+         * the stored checks and facts.
+         * @visibility frontend
+         */
+        enabled?: boolean;
+      };
     };
 
     /**
