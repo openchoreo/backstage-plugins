@@ -20,6 +20,10 @@ export {
 // Components
 export { SummaryWidgetWrapper } from './components/SummaryWidgetWrapper';
 export {
+  WorkflowRunDeleteDialog,
+  type WorkflowRunDeleteDialogProps,
+} from './components/WorkflowRunDeleteDialog';
+export {
   FeatureGate,
   FeatureGatedContent,
   withFeatureGate,

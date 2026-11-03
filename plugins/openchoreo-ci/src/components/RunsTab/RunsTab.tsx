@@ -1,10 +1,17 @@
+import { useState } from 'react';
 import { Table, TableColumn } from '@backstage/core-components';
 import { Typography, Box, IconButton, Tooltip } from '@material-ui/core';
 import Refresh from '@material-ui/icons/Refresh';
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
+import DeleteIcon from '@material-ui/icons/Delete';
+import { useApi, alertApiRef } from '@backstage/core-plugin-api';
 import { BuildStatusChip } from '../BuildStatusChip';
+import { openChoreoCiClientApiRef } from '../../api/OpenChoreoCiClientApi';
 import type { ModelsBuild } from '@openchoreo/backstage-plugin-common';
-import { formatRelativeTime } from '@openchoreo/backstage-plugin-react';
+import {
+  formatRelativeTime,
+  WorkflowRunDeleteDialog,
+} from '@openchoreo/backstage-plugin-react';
 import { extractGitFieldValues } from '../../utils/schemaExtensions';
 import type { GitFieldMapping } from '../../utils/schemaExtensions';
 import { formatRetentionDuration } from '../../hooks';
@@ -30,6 +37,51 @@ export const RunsTab = ({
   retentionTtl,
 }: RunsTabProps) => {
   const classes = useStyles();
+  const client = useApi(openChoreoCiClientApiRef);
+  const alertApi = useApi(alertApiRef);
+
+  const [deleteTarget, setDeleteTarget] = useState<ModelsBuild | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const deleteTargetGitValues = extractGitFieldValues(
+    deleteTarget?.parameters,
+    gitFieldMapping ?? {},
+  );
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget || isDeleting) return;
+
+    if (
+      !deleteTarget.namespaceName ||
+      !deleteTarget.projectName ||
+      !deleteTarget.componentName ||
+      !deleteTarget.name
+    ) {
+      alertApi.post({
+        message: 'Cannot delete run: missing required identifiers.',
+        severity: 'error',
+      });
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await client.deleteWorkflowRun(
+        deleteTarget.namespaceName,
+        deleteTarget.projectName,
+        deleteTarget.componentName,
+        deleteTarget.name,
+      );
+      onRefresh();
+    } catch (err) {
+      alertApi.post({
+        message: `Failed to delete run: ${err}`,
+        severity: 'error',
+      });
+    } finally {
+      setIsDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
 
   const columns: TableColumn[] = [
     {
@@ -120,8 +172,19 @@ export const RunsTab = ({
           search: true,
           paging: true,
           sorting: true,
+          actionsColumnIndex: -1,
         }}
         columns={columns}
+        actions={[
+          {
+            icon: () => <DeleteIcon />,
+            tooltip: 'Delete Run',
+            disabled: isDeleting,
+            onClick: (_event, rowData) => {
+              setDeleteTarget(rowData as ModelsBuild);
+            },
+          },
+        ]}
         data={sortedBuilds}
         onRowClick={(_, rowData) => {
           onRowClick(rowData as ModelsBuild);
@@ -154,6 +217,33 @@ export const RunsTab = ({
           </Box>
         }
       />
+
+      <WorkflowRunDeleteDialog
+        open={Boolean(deleteTarget)}
+        runName={deleteTarget?.name}
+        deleting={isDeleting}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+      >
+        {deleteTarget && (
+          <>
+            <BuildStatusChip status={deleteTarget.status} />
+            <Typography variant="body2">
+              {String(
+                deleteTargetGitValues.commit || deleteTarget.commit || 'latest',
+              ).substring(0, 8)}
+            </Typography>
+            {deleteTargetGitValues.branch && (
+              <Typography variant="body2">
+                {deleteTargetGitValues.branch}
+              </Typography>
+            )}
+            <Typography variant="body2">
+              {formatRelativeTime(deleteTarget.createdAt || '')}
+            </Typography>
+          </>
+        )}
+      </WorkflowRunDeleteDialog>
     </Box>
   );
 };
