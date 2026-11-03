@@ -311,7 +311,7 @@ openchoreo:
 
   # Feature flags for enabling/disabling OpenChoreo functionality
   # These can be controlled via Helm values: backstage.features.*
-  # Environment variables: OPENCHOREO_FEATURES_WORKFLOWS_ENABLED, OPENCHOREO_FEATURES_OBSERVABILITY_ENABLED, OPENCHOREO_FEATURES_AUTH_ENABLED, OPENCHOREO_FEATURES_AUTHZ_ENABLED, OPENCHOREO_FEATURES_SECRET_MANAGEMENT_ENABLED, OPENCHOREO_FEATURES_DELIVERY_INSIGHTS_ENABLED, OPENCHOREO_FEATURES_COST_INSIGHTS_ENABLED
+  # Environment variables: OPENCHOREO_FEATURES_WORKFLOWS_ENABLED, OPENCHOREO_FEATURES_OBSERVABILITY_ENABLED, OPENCHOREO_FEATURES_AUTH_ENABLED, OPENCHOREO_FEATURES_AUTHZ_ENABLED, OPENCHOREO_FEATURES_SECRET_MANAGEMENT_ENABLED, OPENCHOREO_FEATURES_DELIVERY_INSIGHTS_ENABLED, OPENCHOREO_FEATURES_COST_INSIGHTS_ENABLED, OPENCHOREO_FEATURES_SCORECARDS_ENABLED
   features:
     # Workflow plane / Workflows functionality
     # When disabled, hides Workflows tab and WorkflowsOverviewCard from entity pages
@@ -352,6 +352,10 @@ openchoreo:
     # tab in the cost insights page
     costInsights:
       enabled: ${OPENCHOREO_FEATURES_COST_INSIGHTS_ENABLED}
+    # Scorecards: the Tech Insights backend, fact collectors and checks, and the
+    # Scorecards page, sidebar item and entity tab. Opt-in: defaults to false.
+    scorecards:
+      enabled: ${OPENCHOREO_FEATURES_SCORECARDS_ENABLED}
 
   # Component Type Mappings (optional - defaults provided)
   # Maps OpenChoreo component types to Backstage page variants

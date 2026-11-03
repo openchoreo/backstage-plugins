@@ -7,6 +7,10 @@
  */
 
 import { createBackend } from '@backstage/backend-defaults';
+import {
+  coreServices,
+  createBackendFeatureLoader,
+} from '@backstage/backend-plugin-api';
 import { portalBackendFeatures } from '@openchoreo/backstage-portal-backend';
 
 // Guest mode: when OpenChoreo auth is explicitly disabled, the portal has no
@@ -38,6 +42,29 @@ backend.add(portalBackendFeatures);
 // (Private package — deliberately not part of the published portal bundle.)
 backend.add(
   import('@openchoreo/backstage-plugin-openchoreo-portal-assistant-backend'),
+);
+
+// Tech Insights scorecards (not part of the published portal bundle), behind
+// openchoreo.features.scorecards. Turned off, nothing is installed, so no
+// fact collector runs and no check route is served; the stored checks and
+// facts stay in the database. The jsonfc module is deliberately not added:
+// dynamic-checks calls setFactCheckerFactory itself, and that extension point
+// keeps only the last factory registered.
+backend.add(
+  createBackendFeatureLoader({
+    deps: { config: coreServices.rootConfig },
+    *loader({ config }) {
+      if (
+        !config.getOptionalBoolean('openchoreo.features.scorecards.enabled')
+      ) {
+        return;
+      }
+      yield import('@backstage-community/plugin-tech-insights-backend');
+      yield import(
+        '@openchoreo/backstage-plugin-tech-insights-backend-module-dynamic-checks'
+      );
+    },
+  }),
 );
 
 backend.start();

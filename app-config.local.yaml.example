@@ -79,6 +79,8 @@ openchoreo:
       enabled: true   # Opt-in. Set to true after deploying portal-assistant and OPENCHOREO_PORTAL_ASSISTANT_URL
     costInsights:  # Cost insights shown in catalog overviews and cost insight page's insight tab
       enabled: true
+    scorecards:  # Opt-in. Tech Insights collectors and checks, and the Scorecards page and tab
+      enabled: true
 
 # Thunder IDP configuration (k3d cluster)
 thunder:

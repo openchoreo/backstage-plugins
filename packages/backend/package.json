@@ -21,6 +21,7 @@
     "build-image": "docker buildx build ../.. -f Dockerfile --tag openchoreo-ui:local --load"
   },
   "dependencies": {
+    "@backstage-community/plugin-tech-insights-backend": "^3.0.1",
     "@backstage/backend-defaults": "^0.17.1",
     "@backstage/backend-plugin-api": "^1.9.1",
     "@backstage/config": "^1.3.8",
@@ -32,6 +33,7 @@
     "@backstage/plugin-search-backend-node": "^1.4.4",
     "@immobiliarelabs/backstage-plugin-gitlab-backend": "^6.13.0",
     "@openchoreo/backstage-plugin-openchoreo-portal-assistant-backend": "workspace:^",
+    "@openchoreo/backstage-plugin-tech-insights-backend-module-dynamic-checks": "workspace:^",
     "@openchoreo/backstage-portal-backend": "workspace:^",
     "app": "workspace:^",
     "better-sqlite3": "9.6.0",
