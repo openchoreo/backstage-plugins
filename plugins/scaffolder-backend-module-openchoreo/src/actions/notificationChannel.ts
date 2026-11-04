@@ -9,6 +9,9 @@ import {
   translateNotificationChannelToEntity,
 } from '@openchoreo/backstage-plugin-catalog-backend-module';
 
+/** Matches the maxLength of spec.emailConfig.fromName in the CRD. */
+const MAX_FROM_NAME_LENGTH = 128;
+
 export const createNotificationChannelAction = (
   config: Config,
   immediateCatalog: ImmediateCatalogService,
@@ -134,14 +137,20 @@ export const createNotificationChannelAction = (
           'Each webhook header must provide either `value` or both `secretName` and `secretKey`.',
         );
       }
+      // Checked here rather than in the input schema: the scaffolder validates input against a
+      // JSON Schema generated from it, which cannot trim before measuring the length.
+      const fromName = emailInput?.fromName?.trim();
+      if (fromName && fromName.length > MAX_FROM_NAME_LENGTH) {
+        throw new Error(
+          `emailConfig.fromName must be at most ${MAX_FROM_NAME_LENGTH} characters.`,
+        );
+      }
 
       const emailConfig =
         ctx.input.type === 'email' && emailInput
           ? {
               from: emailInput.from,
-              ...(emailInput.fromName?.trim() && {
-                fromName: emailInput.fromName.trim(),
-              }),
+              ...(fromName && { fromName }),
               to: emailInput.to,
               smtp: {
                 host: emailInput.smtpHost,

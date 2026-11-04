@@ -987,6 +987,37 @@ describe('NotificationChannelFormWithYamlExtension — YAML mode', () => {
     expect(latestFormData!.emailConfig!.from).toBe('alerts@example.com');
   });
 
+  it('reports a YAML error when the sender display name is not a string', async () => {
+    render(<Harness />);
+    await waitFor(() => expect(latestFormData).toBeDefined());
+    fireEvent.click(screen.getByText('switch-to-yaml'));
+
+    const before = latestFormData;
+    act(() => {
+      yamlEditorProps.onChange(
+        [
+          'metadata:',
+          '  name: bad-sender',
+          '  namespace: team-a',
+          'spec:',
+          '  environment: dev',
+          '  type: email',
+          '  emailConfig:',
+          '    from: alerts@example.com',
+          '    fromName: [Example Alerts]',
+          '    to: [team@example.com]',
+        ].join('\n'),
+      );
+    });
+
+    expect(latestFormData).toBe(before);
+    await waitFor(() =>
+      expect(yamlEditorProps.errorText).toContain(
+        'spec.emailConfig.fromName must be a string',
+      ),
+    );
+  });
+
   it('populates the editor with webhook config, headers, and payload template', async () => {
     render(
       <Harness
@@ -1306,6 +1337,22 @@ describe('notificationChannelFormWithYamlValidation', () => {
       } as any,
     });
     expect(errors).toContain('Sender name must be at most 128 characters');
+  });
+
+  it('measures the sender name after trimming surrounding whitespace', () => {
+    const errors = validate({
+      channel_name: 'ok',
+      namespace_name: 'a',
+      environment: 'b',
+      type: 'email',
+      emailConfig: {
+        from: 'a@b.com',
+        fromName: ` ${'x'.repeat(128)} `,
+        to: ['c@d.com'],
+        smtpHost: 'smtp.example.com',
+      } as any,
+    });
+    expect(errors).not.toContain('Sender name must be at most 128 characters');
   });
 
   it('rejects a "to" list containing a malformed address', () => {

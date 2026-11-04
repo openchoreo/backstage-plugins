@@ -289,6 +289,13 @@ function yamlToForm(
     parsed.spec?.type === 'webhook' ? 'webhook' : 'email';
 
   const emailSpec = parsed.spec?.emailConfig || {};
+  if (
+    emailSpec.fromName !== undefined &&
+    emailSpec.fromName !== null &&
+    typeof emailSpec.fromName !== 'string'
+  ) {
+    throw new Error('spec.emailConfig.fromName must be a string');
+  }
   const webhookSpec = parsed.spec?.webhookConfig || {};
   const headerEntries = Object.entries(webhookSpec.headers || {}) as [
     string,
@@ -1055,7 +1062,8 @@ export const notificationChannelFormWithYamlValidation = (
     } else if (!isValidEmail(value.emailConfig.from)) {
       validation.addError('Email "from" address must be a valid email address');
     }
-    if ((value.emailConfig?.fromName ?? '').length > MAX_FROM_NAME_LENGTH) {
+    const fromName = (value.emailConfig?.fromName ?? '').trim();
+    if (fromName.length > MAX_FROM_NAME_LENGTH) {
       validation.addError(
         `Sender name must be at most ${MAX_FROM_NAME_LENGTH} characters`,
       );
