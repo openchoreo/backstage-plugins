@@ -48,17 +48,18 @@ backend.add(
 // portal-template:strip-end
 
 // Tech Insights scorecards (not part of the published portal bundle), behind
-// openchoreo.features.scorecards. Turned off, nothing is installed, so no
-// fact collector runs and no check route is served; the stored checks and
-// facts stay in the database. The jsonfc module is deliberately not added:
-// dynamic-checks calls setFactCheckerFactory itself, and that extension point
-// keeps only the last factory registered.
+// techInsights.scorecards.enabled, the key the scorecards frontend reads, with
+// the same default so the page and its backend are never out of step. Turned
+// off, nothing is installed, so no fact collector runs and no check route is
+// served; the stored checks and facts stay in the database. The jsonfc module
+// is deliberately not added: dynamic-checks calls setFactCheckerFactory
+// itself, and that extension point keeps only the last factory registered.
 backend.add(
   createBackendFeatureLoader({
     deps: { config: coreServices.rootConfig },
     *loader({ config }) {
       if (
-        !config.getOptionalBoolean('openchoreo.features.scorecards.enabled')
+        !(config.getOptionalBoolean('techInsights.scorecards.enabled') ?? true)
       ) {
         return;
       }
