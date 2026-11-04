@@ -73,6 +73,21 @@ describe('WaterfallView', () => {
     expect(screen.queryByText('Status:')).not.toBeInTheDocument();
   });
 
+  it('shows span start and end times in the viewer locale with fractional seconds', async () => {
+    const user = userEvent.setup();
+    renderWaterfall([errorSpan]);
+
+    await user.hover(screen.getByText('1.500s'));
+
+    const startRow = (await screen.findByText('Start Time:')).parentElement;
+    const endRow = screen.getByText('End Time:').parentElement;
+
+    expect(startRow?.textContent).toContain('2024');
+    expect(startRow?.textContent).toContain('000');
+    expect(endRow?.textContent).toContain('2024');
+    expect(endRow?.textContent).toContain('500');
+  });
+
   it('shows a dedicated Status section in the span details panel', async () => {
     const user = userEvent.setup();
     const spanDetails = renderWaterfall([errorSpan], () =>

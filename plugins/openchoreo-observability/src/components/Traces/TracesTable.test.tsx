@@ -90,6 +90,20 @@ describe('TracesTable', () => {
     expect(screen.getByText('5')).toBeInTheDocument();
   });
 
+  it('renders the start time in the viewer locale instead of raw ISO', () => {
+    renderTable();
+
+    expect(
+      screen.getByText(
+        new Date(sampleTrace.startTime)
+          .toLocaleString()
+          .replace(/\s+/g, ' ')
+          .trim(),
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(sampleTrace.startTime)).not.toBeInTheDocument();
+  });
+
   it('shows empty state when no traces', () => {
     renderTable({ traces: [] });
 
