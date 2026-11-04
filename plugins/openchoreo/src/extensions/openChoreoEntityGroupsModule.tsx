@@ -10,9 +10,12 @@ const OC_ENTITY_CONTENT_GROUPS: EntityContentGroupDefinitions = {
   overview: { title: 'Overview' },
   documentation: { title: 'Documentation' },
   definition: { title: 'Definition' },
-  development: { title: 'Development' },
   build: { title: 'Build' },
   deploy: { title: 'Deploy' },
+  // After `deploy`: this is upstream's group for the api-docs "APIs" tab,
+  // which only shows on components that provide or consume an API, so ahead
+  // of Build and Deploy it shifts them from one component to the next.
+  development: { title: 'Development' },
   'cell-diagram': { title: 'Cell Diagram' },
   diagram: { title: 'Diagram' },
   logs: { title: 'Logs' },
