@@ -30,7 +30,10 @@
       "@openchoreo/cell-diagram",
       "@openchoreo/backstage-portal-backend",
       "@openchoreo/backstage-portal-app",
-      "@openchoreo/create-portal"
+      "@openchoreo/create-portal",
+      "@openchoreo/backstage-plugin-tech-insights-dynamic-checks-common",
+      "@openchoreo/backstage-plugin-tech-insights-backend-module-dynamic-checks",
+      "@openchoreo/backstage-plugin-tech-insights-scorecards"
     ]
   ],
   "access": "public",
