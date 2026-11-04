@@ -94,6 +94,14 @@ jobs:
               exit 1
             fi
             VERSION="${VERSION}-${PRERELEASE}"
+            STABLE_BRANCH="release-v${MAJOR}.${MINOR}"
+            if git ls-remote --exit-code origin "refs/heads/${STABLE_BRANCH}" 2>/dev/null; then
+              RELEASE_BRANCH="${STABLE_BRANCH}"
+            else
+              RELEASE_BRANCH="release-v${VERSION}"
+            fi
+          else
+            RELEASE_BRANCH="release-v${MAJOR}.${MINOR}"
           fi
 
           TAG="v${VERSION}"
@@ -102,6 +110,7 @@ jobs:
           echo "PRERELEASE=${PRERELEASE}" >> $GITHUB_ENV
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
           echo "RELEASE_TAG=${TAG}" >> $GITHUB_ENV
+          echo "RELEASE_BRANCH=${RELEASE_BRANCH}" >> $GITHUB_ENV
           echo "release-tag=${TAG}" >> $GITHUB_OUTPUT
           echo "release-version=${VERSION}" >> $GITHUB_OUTPUT
           echo "checkout-sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
@@ -110,7 +119,7 @@ jobs:
       - name: Check if release branch exists
         id: check-branch
         run: |
-          if git ls-remote origin "refs/heads/release-v${{ env.MAJOR }}.${{ env.MINOR }}" | head -1 | grep -q .; then
+          if git ls-remote origin "refs/heads/${{ env.RELEASE_BRANCH }}" | head -1 | grep -q .; then
             echo "branch-exists=true" >> $GITHUB_OUTPUT
             echo "BRANCH_EXISTS=true" >> $GITHUB_ENV
           else
@@ -121,7 +130,7 @@ jobs:
       - name: Fail if tag mode without release branch
         if: ${{ github.event.inputs.action == 'tag' && github.event.inputs.commit_sha == '' && steps.check-branch.outputs.branch-exists == 'false' }}
         run: |
-          echo "ERROR: action=tag requires an existing release branch (release-v${{ env.MAJOR }}.${{ env.MINOR }}), but it does not exist."
+          echo "ERROR: action=tag requires an existing release branch (${{ env.RELEASE_BRANCH }}), but it does not exist."
           exit 1
 
       - name: Validate VERSION file
@@ -133,7 +142,7 @@ jobs:
           if [ "$ACTION" = "tag" ] && [ -n "$IN_COMMIT_SHA" ]; then
             CONTENT=$(git show "${IN_COMMIT_SHA}:VERSION" | tr -d ' \n\r\t')
           elif [ "$BRANCH_EXISTS" = "true" ]; then
-            CONTENT=$(git show "origin/release-v${{ env.MAJOR }}.${{ env.MINOR }}:VERSION" | tr -d ' \n\r\t')
+            CONTENT=$(git show "origin/${{ env.RELEASE_BRANCH }}:VERSION" | tr -d ' \n\r\t')
           else
             CONTENT=$(tr -d ' \n\r\t' < VERSION)
           fi
@@ -167,8 +176,8 @@ jobs:
             # Branch will be created from checkout-sha; use it as the tag target
             RESOLVED_SHA="${CHECKOUT_SHA}"
           elif [ "$BRANCH_EXISTS" = "true" ]; then
-            git fetch origin "refs/heads/release-v${{ env.MAJOR }}.${{ env.MINOR }}"
-            RESOLVED_SHA=$(git rev-parse "origin/release-v${{ env.MAJOR }}.${{ env.MINOR }}")
+            git fetch origin "refs/heads/${{ env.RELEASE_BRANCH }}"
+            RESOLVED_SHA=$(git rev-parse "origin/${{ env.RELEASE_BRANCH }}")
           else
             RESOLVED_SHA="${CHECKOUT_SHA}"
           fi
