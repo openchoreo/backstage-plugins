@@ -46,6 +46,7 @@ export const createNotificationChannelAction = (
           z
             .object({
               from: z.string(),
+              fromName: z.string().optional(),
               to: z.array(z.string()),
               smtpHost: z.string(),
               smtpPort: z.number(),
@@ -138,6 +139,9 @@ export const createNotificationChannelAction = (
         ctx.input.type === 'email' && emailInput
           ? {
               from: emailInput.from,
+              ...(emailInput.fromName?.trim() && {
+                fromName: emailInput.fromName.trim(),
+              }),
               to: emailInput.to,
               smtp: {
                 host: emailInput.smtpHost,

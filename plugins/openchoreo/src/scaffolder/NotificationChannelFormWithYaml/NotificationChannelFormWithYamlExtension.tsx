@@ -42,6 +42,7 @@ export interface WebhookHeaderFormData {
 
 export interface NotificationChannelEmailConfigFormData {
   from: string;
+  fromName?: string;
   to: string[];
   smtpHost: string;
   smtpPort: number;
@@ -95,6 +96,7 @@ const DEFAULT_FORM_DATA: NotificationChannelWorkingData = {
   type: 'email',
   emailConfig: {
     from: '',
+    fromName: '',
     to: [],
     smtpHost: '',
     smtpPort: 587,
@@ -181,6 +183,9 @@ function isValidAbsoluteUri(value: string): boolean {
   }
 }
 
+/** Matches the maxLength of spec.emailConfig.fromName in the CRD. */
+const MAX_FROM_NAME_LENGTH = 128;
+
 /** Basic email shape check — not RFC 5322-exhaustive, just enough to catch typos/garbage input. */
 function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -196,6 +201,9 @@ function formToYaml(data: NotificationChannelWorkingData): string {
   if (data.type === 'email') {
     spec.emailConfig = {
       from: data.emailConfig.from,
+      ...(data.emailConfig.fromName?.trim() && {
+        fromName: data.emailConfig.fromName.trim(),
+      }),
       to: data.emailConfig.to,
       smtp: {
         host: data.emailConfig.smtpHost,
@@ -295,6 +303,7 @@ function yamlToForm(
     type,
     emailConfig: {
       from: emailSpec.from || '',
+      fromName: emailSpec.fromName || '',
       to: emailSpec.to || [],
       smtpHost: emailSpec.smtp?.host || '',
       smtpPort: emailSpec.smtp?.port || 587,
@@ -711,9 +720,21 @@ export const NotificationChannelFormWithYamlExtension = ({
                     fullWidth
                     variant="outlined"
                     required
+                    helperText="Bare sender email address, e.g. alerts@example.com"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Sender Name"
+                    value={data.emailConfig.fromName ?? ''}
+                    onChange={e => updateEmailField('fromName', e.target.value)}
+                    fullWidth
+                    variant="outlined"
+                    inputProps={{ maxLength: MAX_FROM_NAME_LENGTH }}
+                    helperText="Optional display name, shown as “Sender Name <from>”"
+                  />
+                </Grid>
+                <Grid item xs={12}>
                   <TextField
                     label="To Addresses"
                     value={data.emailConfig.to.join(', ')}
@@ -1033,6 +1054,11 @@ export const notificationChannelFormWithYamlValidation = (
       validation.addError('Email "from" address is required');
     } else if (!isValidEmail(value.emailConfig.from)) {
       validation.addError('Email "from" address must be a valid email address');
+    }
+    if ((value.emailConfig?.fromName ?? '').length > MAX_FROM_NAME_LENGTH) {
+      validation.addError(
+        `Sender name must be at most ${MAX_FROM_NAME_LENGTH} characters`,
+      );
     }
     if (!value.emailConfig?.to || value.emailConfig.to.length === 0) {
       validation.addError('At least one "to" address is required');

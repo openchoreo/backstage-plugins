@@ -19,6 +19,7 @@ interface NotificationChannelSpec {
   type: 'email' | 'webhook';
   emailConfig?: {
     from: string;
+    fromName?: string;
     to: string[];
     smtp: {
       host: string;
@@ -150,7 +151,9 @@ export const NotificationChannelConfigCard = () => {
           <Box className={classes.infoRow}>
             <Typography className={classes.infoLabel}>From</Typography>
             <Typography className={classes.infoValue}>
-              {spec.emailConfig.from}
+              {spec.emailConfig.fromName
+                ? `${spec.emailConfig.fromName} <${spec.emailConfig.from}>`
+                : spec.emailConfig.from}
             </Typography>
           </Box>
           <Box className={classes.infoRow}>

@@ -103,6 +103,35 @@ describe('createNotificationChannelAction', () => {
     expect(ctx.output).toHaveBeenCalledWith('namespaceName', 'my-ns');
   });
 
+  it('passes the sender display name through when set', async () => {
+    mockPOST.mockResolvedValueOnce(successResponse());
+    const action = createNotificationChannelAction(
+      buildConfig(),
+      mockCatalog as any,
+    );
+    const ctx = buildCtx();
+    (ctx.input.emailConfig as any).fromName = '  Example Alerts  ';
+    await action.handler(ctx as any);
+
+    const body = mockPOST.mock.calls[0][1].body;
+    expect(body.spec.emailConfig.from).toBe('alerts@example.com');
+    expect(body.spec.emailConfig.fromName).toBe('Example Alerts');
+  });
+
+  it('omits the sender display name when it is empty', async () => {
+    mockPOST.mockResolvedValueOnce(successResponse());
+    const action = createNotificationChannelAction(
+      buildConfig(),
+      mockCatalog as any,
+    );
+    const ctx = buildCtx();
+    (ctx.input.emailConfig as any).fromName = '   ';
+    await action.handler(ctx as any);
+
+    const body = mockPOST.mock.calls[0][1].body;
+    expect(body.spec.emailConfig).not.toHaveProperty('fromName');
+  });
+
   it('defaults the email template content type to text/plain', async () => {
     mockPOST.mockResolvedValueOnce(successResponse());
     const action = createNotificationChannelAction(
