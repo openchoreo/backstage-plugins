@@ -1068,6 +1068,9 @@ export const notificationChannelFormWithYamlValidation = (
         `Sender name must be at most ${MAX_FROM_NAME_LENGTH} characters`,
       );
     }
+    if (/[\r\n]/.test(fromName)) {
+      validation.addError('Sender name must not contain line breaks');
+    }
     if (!value.emailConfig?.to || value.emailConfig.to.length === 0) {
       validation.addError('At least one "to" address is required');
     } else if (value.emailConfig.to.some(addr => !isValidEmail(addr))) {

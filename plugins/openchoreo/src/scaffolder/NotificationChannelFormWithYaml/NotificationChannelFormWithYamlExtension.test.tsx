@@ -1339,6 +1339,38 @@ describe('notificationChannelFormWithYamlValidation', () => {
     expect(errors).toContain('Sender name must be at most 128 characters');
   });
 
+  it('rejects a sender name containing a line break', () => {
+    const errors = validate({
+      channel_name: 'ok',
+      namespace_name: 'a',
+      environment: 'b',
+      type: 'email',
+      emailConfig: {
+        from: 'a@b.com',
+        fromName: 'Ops\nAlerts',
+        to: ['c@d.com'],
+        smtpHost: 'smtp.example.com',
+      } as any,
+    });
+    expect(errors).toContain('Sender name must not contain line breaks');
+  });
+
+  it('allows a trailing line break that trimming removes', () => {
+    const errors = validate({
+      channel_name: 'ok',
+      namespace_name: 'a',
+      environment: 'b',
+      type: 'email',
+      emailConfig: {
+        from: 'a@b.com',
+        fromName: 'Ops Alerts\n',
+        to: ['c@d.com'],
+        smtpHost: 'smtp.example.com',
+      } as any,
+    });
+    expect(errors).not.toContain('Sender name must not contain line breaks');
+  });
+
   it('measures the sender name after trimming surrounding whitespace', () => {
     const errors = validate({
       channel_name: 'ok',

@@ -146,6 +146,26 @@ describe('createNotificationChannelAction', () => {
     expect(mockPOST).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['a line feed', 'Example\nAlerts'],
+    ['a carriage return', 'Example\rAlerts'],
+  ])(
+    'rejects a sender display name containing %s',
+    async (_label, fromName) => {
+      const action = createNotificationChannelAction(
+        buildConfig(),
+        mockCatalog as any,
+      );
+      const ctx = buildCtx();
+      (ctx.input.emailConfig as any).fromName = fromName;
+
+      await expect(action.handler(ctx as any)).rejects.toThrow(
+        /fromName must not contain line breaks/,
+      );
+      expect(mockPOST).not.toHaveBeenCalled();
+    },
+  );
+
   it('measures the sender display name after trimming', async () => {
     mockPOST.mockResolvedValueOnce(successResponse());
     const action = createNotificationChannelAction(

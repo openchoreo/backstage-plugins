@@ -145,6 +145,9 @@ export const createNotificationChannelAction = (
           `emailConfig.fromName must be at most ${MAX_FROM_NAME_LENGTH} characters.`,
         );
       }
+      if (fromName && /[\r\n]/.test(fromName)) {
+        throw new Error('emailConfig.fromName must not contain line breaks.');
+      }
 
       const emailConfig =
         ctx.input.type === 'email' && emailInput
