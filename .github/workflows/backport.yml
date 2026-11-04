@@ -1,0 +1,69 @@
+# Backport merged pull requests to release branches using cherry-pick.
+#
+# Backports are triggered automatically when a PR with a `backport/<branch>`
+# label is merged. For example, adding the label `backport/release-v1.2`
+# before merging will create a backport PR targeting the `release-v1.2` branch.
+#
+# Labels can also be added after a PR is merged to trigger a backport.
+#
+# The action will create a new PR with the cherry-picked changes targeting
+# the specified branch. If there are conflicts, the action will comment
+# with instructions to resolve them manually.
+
+name: Backport merged pull request
+
+on:
+  pull_request_target:
+    types: [closed, labeled]
+
+permissions:
+  contents: read
+
+jobs:
+  backport:
+    name: Backport pull request
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pull-requests: write
+    # Only run for merged PRs that carry a `backport/` label.
+    if: >-
+      github.event.pull_request.merged &&
+      contains(toJSON(github.event.pull_request.labels.*.name), '"backport/')
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          # Check out the base branch, not the PR merge commit — backport
+          # only needs base history.
+          ref: ${{ github.event.pull_request.base.ref }}
+
+      - name: Create backport pull requests
+        id: backport
+        uses: korthout/backport-action@2e830a1d0b8269505846ddd407a70876913ad1f8 # v4.6.0
+        with:
+          # Match labels like `backport/release-v1.2` and extract `release-v1.2`
+          # as the target branch.
+          label_pattern: '^backport/(.+)$'
+          # Copy all labels from the original PR to the backport PR.
+          copy_labels_pattern: '.*'
+          # Copy reviewers so the backport PR gets reviewed by the same people.
+          copy_requested_reviewers: true
+          # Suffix format keeps the conventional commit prefix intact.
+          pull_title: '${pull_title} (backport to ${target_branch})'
+          # Link back to the original PR and include its description for context.
+          pull_description: |-
+            Backport of #${pull_number} to `${target_branch}`.
+
+            ## Original description
+
+            ${pull_description}
+
+      - name: Comment on failure
+        if: failure() || steps.backport.outputs.was_successful == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment "${{ github.event.pull_request.number }}" \
+            --repo "${{ github.repository }}" \
+            --body "Backport failed. See the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
