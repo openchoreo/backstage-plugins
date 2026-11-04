@@ -422,7 +422,8 @@ function generateTemplate({
     `${yarnrc}\n\n` +
       `npmScopes:\n` +
       `  openchoreo:\n` +
-      `    npmRegistryServer: '{{registry}}'\n` +
+      // Triple braces: handlebars would HTML-escape `&` in a query string.
+      `    npmRegistryServer: '{{{registry}}}'\n` +
       // Only rendered for a plain-http --registry, which Yarn otherwise refuses.
       `{{#if unsafeHttpHost}}\n` +
       `\nunsafeHttpWhitelist:\n` +

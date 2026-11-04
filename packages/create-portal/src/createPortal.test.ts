@@ -5,7 +5,13 @@ import { join as joinPath } from 'node:path';
 import { version } from '../package.json';
 import { exec } from 'node:child_process';
 import { createPortal } from './createPortal';
-import { Task, buildAppTask } from './lib/tasks';
+import {
+  Task,
+  buildAppTask,
+  checkYarnTask,
+  commitLockfileTask,
+  tryInitGitRepository,
+} from './lib/tasks';
 
 // Only the registry lookup (`npm config get`) shells out from createPortal;
 // git and yarn go through the mocked tasks below.
@@ -27,6 +33,8 @@ jest.mock('./lib/tasks', () => ({
   ...jest.requireActual('./lib/tasks'),
   tryInitGitRepository: jest.fn().mockResolvedValue(false),
   buildAppTask: jest.fn().mockResolvedValue(undefined),
+  checkYarnTask: jest.fn().mockResolvedValue(undefined),
+  commitLockfileTask: jest.fn().mockResolvedValue(undefined),
 }));
 
 describe('createPortal', () => {
@@ -61,6 +69,8 @@ describe('createPortal', () => {
     process.chdir(cwd);
     jest.restoreAllMocks();
     jest.mocked(buildAppTask).mockClear();
+    jest.mocked(checkYarnTask).mockClear();
+    jest.mocked(commitLockfileTask).mockClear();
     jest.mocked(exec).mockReset();
     delete process.env.OPENCHOREO_PORTAL_NAME;
     await fs.rm(root, { recursive: true, force: true });
@@ -87,6 +97,7 @@ describe('createPortal', () => {
     ).toBe('app: {}\n');
     expect(exitSpy).toHaveBeenCalledWith();
     expect(buildAppTask).not.toHaveBeenCalled();
+    expect(checkYarnTask).not.toHaveBeenCalled();
   });
 
   it('scaffolds into an explicit --path and takes the name from the environment', async () => {
@@ -97,6 +108,16 @@ describe('createPortal', () => {
     expect(
       (await fs.readJson(joinPath(root, 'elsewhere/package.json'))).name,
     ).toBe('env-portal');
+  });
+
+  it('empties an explicit --path again when rendering fails', async () => {
+    // Sorts after the files that render fine, so some are already written.
+    await fs.outputFile(joinPath(templateDir, 'z-broken.hbs'), '{{missing}}');
+
+    await createPortal({ ...baseOpts(), name: 'acme-portal', path: 'out' });
+
+    expect(exitSpy).toHaveBeenCalledWith(1);
+    expect(await fs.readdir(joinPath(root, 'out'))).toEqual([]);
   });
 
   describe('without --registry', () => {
@@ -160,8 +181,9 @@ describe('createPortal', () => {
   });
 
   it.each([
-    ['not a url', /Invalid --registry URL/],
+    ['not-a-url', /Invalid --registry URL/],
     ['ftp://registry.example.com', /must be an http\(s\) URL/],
+    ["https://registry.example.com/it's", /quotes or whitespace/],
   ])('rejects the registry %s', async (registry, message) => {
     await expect(
       createPortal({ ...baseOpts(), name: 'acme-portal', registry }),
@@ -193,13 +215,28 @@ describe('createPortal', () => {
     expect(exitSpy).toHaveBeenCalledWith(1);
   });
 
-  it('installs and type-checks unless --skip-install is passed', async () => {
+  it('checks for Yarn, installs, and commits the lockfile unless --skip-install is passed', async () => {
+    jest.mocked(tryInitGitRepository).mockResolvedValueOnce(true);
+
     await createPortal({
       ...baseOpts(),
       name: 'acme-portal',
       skipInstall: false,
     });
 
-    expect(buildAppTask).toHaveBeenCalledWith(joinPath(root, 'acme-portal'));
+    const appDir = joinPath(root, 'acme-portal');
+    expect(checkYarnTask).toHaveBeenCalled();
+    expect(buildAppTask).toHaveBeenCalledWith(appDir);
+    expect(commitLockfileTask).toHaveBeenCalledWith(appDir);
+  });
+
+  it('does not commit the lockfile when it created no repository', async () => {
+    await createPortal({
+      ...baseOpts(),
+      name: 'acme-portal',
+      skipInstall: false,
+    });
+
+    expect(commitLockfileTask).not.toHaveBeenCalled();
   });
 });

@@ -144,6 +144,22 @@ describe('generateTemplate', () => {
     }
   });
 
+  it('wires the portal shell through feature discovery', async () => {
+    const app = await fs.readJson(
+      joinPath(outputDir, 'packages/app/package.json'),
+    );
+    expect(app.dependencies['@openchoreo/backstage-portal-app']).toBe(
+      cliVersion,
+    );
+    for (const file of ['app-config.yaml', 'app-config.production.yaml']) {
+      const config = await fs.readFile(joinPath(outputDir, file), 'utf8');
+      expect({ file, discovery: /^ {2}packages: all$/m.test(config) }).toEqual({
+        file,
+        discovery: true,
+      });
+    }
+  });
+
   it('keeps Backstage scaffolder templates untouched by handlebars', async () => {
     const template = await fs.readFile(
       joinPath(
@@ -237,6 +253,15 @@ describe('generateTemplate', () => {
     });
     expect(httpYarnrc).toMatch(
       /^unsafeHttpWhitelist:\n {2}- 'verdaccio\.internal'$/m,
+    );
+
+    // Written raw: handlebars escaping would turn `&` into `&amp;`.
+    const queryYarnrc = handlebars.compile(
+      await fs.readFile(joinPath(outputDir, '.yarnrc.yml.hbs'), 'utf8'),
+      { strict: true },
+    )({ ...SAMPLE_CONTEXT, registry: 'https://r.example.com/npm?a=1&b=2' });
+    expect(queryYarnrc).toContain(
+      "npmRegistryServer: 'https://r.example.com/npm?a=1&b=2'",
     );
 
     const anchor = JSON.parse(

@@ -173,16 +173,15 @@ export async function moveAppTask(
   id: string,
 ) {
   await Task.forItem('moving', id, async () => {
-    await fs
-      .move(tempDir, destination)
-      .catch(error => {
-        throw new Error(
-          `Failed to move portal from ${tempDir} to ${destination}: ${error.message}`,
-        );
-      })
-      .finally(() => {
-        fs.removeSync(tempDir);
-      });
+    // fs.move removes the source on success. On failure, keep both paths:
+    // a cross-device move copies first, so either may hold the only
+    // complete copy.
+    await fs.move(tempDir, destination).catch(error => {
+      throw new Error(
+        `Failed to move portal from ${tempDir} to ${destination}: ${error.message}. ` +
+          'Both paths may hold part of the portal; check them before removing either.',
+      );
+    });
   });
 }
 
@@ -216,6 +215,46 @@ export async function tryInitGitRepository(dir: string) {
   }
 }
 
+/** Throws before anything is written if Yarn cannot run. */
+export async function checkYarnTask() {
+  await Task.forItem('checking', 'yarn', async () => {
+    await exec('yarn --version').catch(() => {
+      throw new Error(
+        'Yarn is not available. Run `corepack enable` (bundled with Node.js) ' +
+          'or install Yarn, or pass --skip-install to install later.',
+      );
+    });
+  });
+}
+
+/**
+ * Commits the lockfile the first install trimmed, so the repository installs
+ * with `--immutable` (Yarn's default on CI).
+ */
+export async function commitLockfileTask(dir: string) {
+  const changed = await exec('git diff --quiet -- yarn.lock', { cwd: dir })
+    .then(() => false)
+    .catch(() => true);
+  if (!changed) {
+    return;
+  }
+  try {
+    await exec('git add yarn.lock', { cwd: dir });
+    await exec('git commit -m "chore: lock dependencies"', { cwd: dir });
+    Task.log(
+      `  ${chalk.green('committing'.padEnd(14))}${chalk.cyan(
+        'yarn.lock',
+      )} ${chalk.green('✔')}`,
+    );
+  } catch {
+    Task.log(
+      chalk.yellow(
+        '  Could not commit the updated yarn.lock; commit it yourself before pushing.',
+      ),
+    );
+  }
+}
+
 /**
  * Runs `yarn install` and `yarn tsc` in the scaffolded portal.
  */
@@ -243,12 +282,12 @@ export async function buildAppTask(appDir: string) {
   } catch (error) {
     Task.error(
       [
-        'Dependency installation failed. Check your network and registry',
-        'access, then retry:',
+        'Dependency installation failed; the output above shows why. Fix the',
+        'cause, then retry:',
         '',
         `  ${chalk.cyan(`cd ${appDir} && yarn install`)}`,
         '',
-        'If the scaffold resolves @openchoreo/* from a private registry, set',
+        'If the registry refused the request and it is a private registry, set',
         'an npmAuthToken for the openchoreo scope in your user-level',
         '~/.yarnrc.yml — never commit a registry token to the repo.',
       ].join('\n'),

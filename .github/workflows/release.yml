@@ -354,28 +354,43 @@ jobs:
             echo "::notice::portal-template already has ${RELEASE_TAG} — skipping the template publish"
             exit 0
           fi
-          # A back-line patch builds on the previous tag of its own line, not
-          # on main: otherwise its history would contain the newer release,
-          # and portals merging it would later see that release as merged.
-          if [ "${IS_PRERELEASE}" != "true" ] && [ "${LATEST}" != "true" ]; then
-            line_base=$(git tag -l "${RELEASE_TAG%.*}.*" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)
-            if [ -n "${line_base}" ]; then
-              git checkout -q --detach "${line_base}"
-            fi
+          # Build on the newest earlier tag in semver order (a prerelease
+          # sorts before its release; `~` makes sort -V do that). Consecutive
+          # prereleases then chain, a release follows its prereleases, and a
+          # back-line patch never carries a newer release in its history,
+          # which portals merging it would otherwise see as already merged.
+          base=$({ git tag -l 'v*'; echo "${RELEASE_TAG}"; } |
+            grep -E '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$' |
+            sed 's/-/~/' | sort -V -u | sed 's/~/-/' |
+            grep -B1 -x -F "${RELEASE_TAG}" | grep -v -x -F "${RELEASE_TAG}" || true)
+          if [ -n "${base}" ]; then
+            git checkout -q --detach "${base}"
+          elif git rev-parse -q --verify HEAD > /dev/null; then
+            # Only an empty repository may start without a base.
+            echo "::warning::No earlier tag to base ${RELEASE_TAG} on — skipping the portal-template publish"
+            exit 0
+          fi
+          git_bot() { git -c user.name=openchoreo-bot -c user.email=bot@openchoreo.dev "$@"; }
+          # main must fast-forward. When the base is a prerelease chain that
+          # started before main's latest release, record main as merged
+          # (no file changes) so the new release contains it.
+          if [ "${IS_PRERELEASE}" != "true" ] && [ "${LATEST}" = "true" ] &&
+            git rev-parse -q --verify origin/main > /dev/null &&
+            ! git merge-base --is-ancestor origin/main HEAD; then
+            git_bot merge -q -s ours --no-edit origin/main
           fi
           # --checksum: a version bump keeps file sizes, and mtimes can match.
           rsync -a --checksum --delete --exclude .git /tmp/portal-template-render/ ./
           git add -A
-          git -c user.name=openchoreo-bot -c user.email=bot@openchoreo.dev \
-            commit -m "chore: portal template for ${RELEASE_TAG}" --allow-empty
+          git_bot commit -m "chore: portal template for ${RELEASE_TAG}" --allow-empty
           git tag "${RELEASE_TAG}"
           # main only ever holds the highest stable release; prereleases
           # advance a force-pushed `next` branch, and back-line patches are
           # published as tags only.
           if [ "${IS_PRERELEASE}" = "true" ]; then
-            git push --force origin HEAD:next "${RELEASE_TAG}"
+            git push --force origin HEAD:refs/heads/next "${RELEASE_TAG}"
           elif [ "${LATEST}" = "true" ]; then
-            git push origin HEAD:main "${RELEASE_TAG}"
+            git push origin HEAD:refs/heads/main "${RELEASE_TAG}"
           else
             git push origin "${RELEASE_TAG}"
           fi

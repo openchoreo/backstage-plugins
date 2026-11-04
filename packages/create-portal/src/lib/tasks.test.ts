@@ -101,4 +101,16 @@ describe('scaffolding tasks', () => {
     ]);
     expect(await fs.pathExists(temp)).toBe(false);
   });
+
+  it('moveAppTask keeps the rendered tree when the move fails', async () => {
+    const temp = joinPath(root, 'temp');
+    await fs.outputFile(joinPath(temp, 'a.txt'), 'a');
+    const destination = joinPath(root, 'taken');
+    await fs.outputFile(destination, 'not a directory');
+
+    await expect(moveAppTask(temp, destination, 'taken')).rejects.toThrow(
+      /Both paths may hold part of the portal/,
+    );
+    expect(await fs.pathExists(joinPath(temp, 'a.txt'))).toBe(true);
+  });
 });

@@ -12,6 +12,8 @@ import {
   buildAppTask,
   checkAppExistsTask,
   checkPathExistsTask,
+  checkYarnTask,
+  commitLockfileTask,
   createTemporaryPortalFolderTask,
   moveAppTask,
   templatingTask,
@@ -92,6 +94,12 @@ async function resolveRegistry(flag: string | undefined): Promise<string> {
  * mirrors) gets its host added to the scaffold's `unsafeHttpWhitelist`.
  */
 function parseRegistry(registry: string): { unsafeHttpHost: string } {
+  // The URL is written raw into a single-quoted YAML value.
+  if (/['\s]/.test(registry)) {
+    throw new Error(
+      `--registry must not contain quotes or whitespace: ${registry}`,
+    );
+  }
   let url: URL;
   try {
     url = new URL(registry);
@@ -143,12 +151,21 @@ export async function createPortal(opts: OptionValues): Promise<void> {
   Task.log(`Resolving @openchoreo/* packages from ${registry}`);
 
   try {
+    if (!opts.skipInstall) {
+      await checkYarnTask();
+    }
+
     if (opts.path) {
       Task.section('Checking that supplied path exists');
       await checkPathExistsTask(appDir);
 
       Task.section('Preparing files');
-      await templatingTask(templateDir, appDir, context);
+      // The directory was empty, so everything in it is ours to remove: a
+      // retry must not trip over a half-written portal.
+      await templatingTask(templateDir, appDir, context).catch(async error => {
+        await fs.emptyDir(appDir);
+        throw error;
+      });
     } else {
       Task.section('Checking if the directory is available');
       await checkAppExistsTask(process.cwd(), name);
@@ -178,13 +195,17 @@ export async function createPortal(opts: OptionValues): Promise<void> {
       });
     }
 
-    if (await tryInitGitRepository(appDir)) {
+    const gitCreated = await tryInitGitRepository(appDir);
+    if (gitCreated) {
       await Task.forItem('init', 'git repository', async () => {});
     }
 
     if (!opts.skipInstall) {
       Task.section('Installing dependencies');
       await buildAppTask(appDir);
+      if (gitCreated) {
+        await commitLockfileTask(appDir);
+      }
     }
 
     Task.log();

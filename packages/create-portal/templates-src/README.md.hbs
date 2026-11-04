@@ -13,7 +13,7 @@ forking the OpenChoreo monorepo.
 
 - Node.js 20 or 22, and Yarn (via `corepack enable`; the repo pins its own
   Yarn under `.yarn/releases`).
-- `@openchoreo/*` packages resolve from `{{registry}}` (see `.yarnrc.yml`).
+- `@openchoreo/*` packages resolve from `{{{registry}}}` (see `.yarnrc.yml`).
   If you point that at a private registry, set an `npmAuthToken` for the
   `openchoreo` scope in your user-level `~/.yarnrc.yml` — don't commit
   registry tokens to this repo. Only the `openchoreo` scope uses it; to
@@ -130,7 +130,8 @@ and are yours to replace.
 
 The scaffold ships a `yarn.lock` seeded with the dependency set portal
 release `{{version}}` was tested with; the first `yarn install` trims it to
-what this portal uses. Commit the updated lockfile, then:
+what this portal uses. The CLI commits that change; if you created the
+portal with `--skip-install`, commit the updated lockfile yourself. Then:
 
 ```sh
 docker build . -f packages/backend/Dockerfile \

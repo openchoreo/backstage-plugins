@@ -2,7 +2,12 @@ import fs from 'fs-extra';
 import os from 'node:os';
 import { join as joinPath } from 'node:path';
 import { exec } from 'node:child_process';
-import { buildAppTask, tryInitGitRepository } from './tasks';
+import {
+  buildAppTask,
+  checkYarnTask,
+  commitLockfileTask,
+  tryInitGitRepository,
+} from './tasks';
 
 // The tasks shell out through `exec`; mocking it keeps these tests independent
 // of the host's git/yarn setup (identity, global config, CI sandboxing).
@@ -45,9 +50,11 @@ describe('exec-backed tasks', () => {
   describe('buildAppTask', () => {
     it('installs dependencies, then type-checks, inside the portal', async () => {
       execResults();
+      const chdir = jest.spyOn(process, 'chdir');
 
       await buildAppTask(os.tmpdir());
 
+      expect(chdir).toHaveBeenCalledWith(os.tmpdir());
       expect(execCommands()).toEqual(['yarn install', 'yarn tsc']);
     });
 
@@ -58,9 +65,59 @@ describe('exec-backed tasks', () => {
         /Could not execute command/,
       );
       expect(output).toContain('registry said no');
-      expect(output).toContain('Dependency installation failed');
+      expect(output).toContain('the output above shows why');
       expect(output).toContain('npmAuthToken');
       expect(execCommands()).toEqual(['yarn install']);
+    });
+  });
+
+  describe('checkYarnTask', () => {
+    it('passes when yarn runs', async () => {
+      execResults();
+
+      await expect(checkYarnTask()).resolves.toBeUndefined();
+      expect(execCommands()).toEqual(['yarn --version']);
+    });
+
+    it('explains how to get yarn when it is missing', async () => {
+      execResults('yarn --version');
+
+      await expect(checkYarnTask()).rejects.toThrow(/corepack enable/);
+    });
+  });
+
+  describe('commitLockfileTask', () => {
+    it('commits yarn.lock when the install changed it', async () => {
+      execResults('git diff --quiet -- yarn.lock');
+
+      await commitLockfileTask(os.tmpdir());
+
+      expect(execCommands()).toEqual([
+        'git diff --quiet -- yarn.lock',
+        'git add yarn.lock',
+        'git commit -m "chore: lock dependencies"',
+      ]);
+    });
+
+    it('does nothing when yarn.lock is unchanged', async () => {
+      execResults();
+
+      await commitLockfileTask(os.tmpdir());
+
+      expect(execCommands()).toEqual(['git diff --quiet -- yarn.lock']);
+    });
+
+    it('asks the user to commit it when the commit fails', async () => {
+      jest.mocked(exec).mockImplementation(((
+        cmd: string,
+        ...rest: unknown[]
+      ) => {
+        const cb = rest[rest.length - 1] as ExecCallback;
+        cb(cmd.startsWith('git add') ? null : new Error('no'), '');
+      }) as unknown as typeof exec);
+
+      await expect(commitLockfileTask(os.tmpdir())).resolves.toBeUndefined();
+      expect(output).toContain('commit it yourself');
     });
   });
 
