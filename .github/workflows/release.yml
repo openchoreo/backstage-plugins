@@ -242,6 +242,159 @@ jobs:
 
           echo "Published ${published}, skipped ${skipped}."
 
+  verify-template:
+    name: Verify scaffold and render template
+    needs: [build, publish-npm]
+    runs-on: ubuntu-24.04
+    # Runs the packed CLI exactly as users get it from npm (the dist/ entry
+    # point and its bundled template), so it needs no checkout and no
+    # `yarn install` of this repository. It holds no credentials: npm
+    # publishing already finished in `publish-npm`, and the template push
+    # token is only given to `publish-template`.
+    permissions: {}
+    steps:
+      - name: Download package tarballs
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: npm-tarballs
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: Install the packed CLI
+        run: |
+          corepack enable
+          npm install --prefix "${RUNNER_TEMP}/cli" "${PWD}/packages/create-portal/package.tgz"
+          echo "${RUNNER_TEMP}/cli/node_modules/.bin" >> "$GITHUB_PATH"
+
+      - name: Wait for the release on npm
+        # A just-published version can take a while to show up in the
+        # registry's metadata, and the scaffold pins every @openchoreo/*
+        # package to it.
+        run: |
+          while read -r loc; do
+            spec=$(tar -xzOf "${loc}/package.tgz" package/package.json |
+              node -p 'const m = JSON.parse(require("fs").readFileSync(0)); `${m.name}@${m.version}`')
+            for attempt in $(seq 1 30); do
+              npm view "${spec}" version --registry https://registry.npmjs.org >/dev/null 2>&1 && break
+              if [ "${attempt}" -eq 30 ]; then
+                echo "::error::${spec} is still not visible on npm"
+                exit 1
+              fi
+              sleep 10
+            done
+          done < publish-order.txt
+
+      # Runs after publish, because the scaffold installs the just-published
+      # @openchoreo/* versions. By then those packages are already on npm, so
+      # a failure here stops only the template push, not the npm release or
+      # the image retag.
+      - name: Smoke-test the portal scaffold
+        run: |
+          create-portal --name openchoreo-portal --path /tmp/verify-portal --skip-install
+          cd /tmp/verify-portal
+          yarn install --no-immutable
+          yarn tsc
+
+      - name: Package the template for publishing
+        # Tarred so file modes survive the artifact round trip.
+        run: |
+          create-portal --name openchoreo-portal --path /tmp/portal-template-render --skip-install
+          rm -rf /tmp/portal-template-render/.git
+          tar -czf portal-template.tgz -C /tmp/portal-template-render .
+
+      - name: Upload the template
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: portal-template
+          path: portal-template.tgz
+          retention-days: 7
+          if-no-files-found: error
+
+  publish-template:
+    name: Push template to openchoreo/portal-template
+    needs: [build, verify-template]
+    runs-on: ubuntu-24.04
+    # Holds the push token, so it neither checks out the repository nor
+    # installs or runs anything from it; it only commits the template that
+    # `verify-template` rendered and tested.
+    permissions: {}
+    env:
+      RELEASE_TAG: ${{ needs.build.outputs.release-tag }}
+      IS_PRERELEASE: ${{ needs.build.outputs.is-prerelease }}
+      LATEST: ${{ needs.build.outputs.latest }}
+    steps:
+      - name: Download the template
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: portal-template
+
+      - name: Push template to openchoreo/portal-template
+        env:
+          TEMPLATE_PUSH_TOKEN: ${{ secrets.PORTAL_TEMPLATE_PUSH_TOKEN }}
+        run: |
+          if [ -z "${TEMPLATE_PUSH_TOKEN}" ]; then
+            echo "::warning::PORTAL_TEMPLATE_PUSH_TOKEN not set — skipping the portal-template publish"
+            exit 0
+          fi
+          mkdir /tmp/portal-template-render
+          tar -xzf portal-template.tgz -C /tmp/portal-template-render
+          # A missing repo or a token without access must not fail the
+          # release: npm packages are already published by this point.
+          if ! git clone "https://x-access-token:${TEMPLATE_PUSH_TOKEN}@github.com/openchoreo/portal-template.git" /tmp/portal-template-repo; then
+            echo "::warning::Could not clone openchoreo/portal-template — skipping the portal-template publish"
+            exit 0
+          fi
+          cd /tmp/portal-template-repo
+          # Release retries re-run this step; the tag from the first attempt
+          # already exists, so skip instead of failing the whole release.
+          if git rev-parse -q --verify "refs/tags/${RELEASE_TAG}" > /dev/null; then
+            echo "::notice::portal-template already has ${RELEASE_TAG} — skipping the template publish"
+            exit 0
+          fi
+          # Build on the newest earlier tag in semver order (a prerelease
+          # sorts before its release; `~` makes sort -V do that). Consecutive
+          # prereleases then chain, a release follows its prereleases, and a
+          # back-line patch never carries a newer release in its history,
+          # which portals merging it would otherwise see as already merged.
+          base=$({ git tag -l 'v*'; echo "${RELEASE_TAG}"; } |
+            grep -E '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$' |
+            sed 's/-/~/' | sort -V -u | sed 's/~/-/' |
+            grep -B1 -x -F "${RELEASE_TAG}" | grep -v -x -F "${RELEASE_TAG}" || true)
+          if [ -n "${base}" ]; then
+            git checkout -q --detach "${base}"
+          elif git rev-parse -q --verify HEAD > /dev/null; then
+            # Only an empty repository may start without a base.
+            echo "::warning::No earlier tag to base ${RELEASE_TAG} on — skipping the portal-template publish"
+            exit 0
+          fi
+          git_bot() { git -c user.name=openchoreo-bot -c user.email=bot@openchoreo.dev "$@"; }
+          # main must fast-forward. When the base is a prerelease chain that
+          # started before main's latest release, record main as merged
+          # (no file changes) so the new release contains it.
+          if [ "${IS_PRERELEASE}" != "true" ] && [ "${LATEST}" = "true" ] &&
+            git rev-parse -q --verify origin/main > /dev/null &&
+            ! git merge-base --is-ancestor origin/main HEAD; then
+            git_bot merge -q -s ours --no-edit origin/main
+          fi
+          # --checksum: a version bump keeps file sizes, and mtimes can match.
+          rsync -a --checksum --delete --exclude .git /tmp/portal-template-render/ ./
+          git add -A
+          git_bot commit -m "chore: portal template for ${RELEASE_TAG}" --allow-empty
+          git tag "${RELEASE_TAG}"
+          # main only ever holds the highest stable release; prereleases
+          # advance a force-pushed `next` branch, and back-line patches are
+          # published as tags only.
+          if [ "${IS_PRERELEASE}" = "true" ]; then
+            git push --force origin HEAD:refs/heads/next "${RELEASE_TAG}"
+          elif [ "${LATEST}" = "true" ]; then
+            git push origin HEAD:refs/heads/main "${RELEASE_TAG}"
+          else
+            git push origin "${RELEASE_TAG}"
+          fi
+
   retag-image:
     name: Retag release image
     needs: [build, publish-npm]
