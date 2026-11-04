@@ -17,7 +17,7 @@ import { InfoCard } from '@backstage/core-components';
 import { useApi } from '@backstage/core-plugin-api';
 import useAsync from 'react-use/lib/useAsync';
 import { dynamicChecksApiRef } from '../../api/DynamicChecksApi';
-import { DEFAULT_CHECK_CATEGORIES } from '../../constants';
+import { useCheckCategories } from '../useCheckCategories';
 import {
   NOT_ALLOWED_TOOLTIP,
   useCheckPermissions,
@@ -171,8 +171,9 @@ export function CheckForm(props: CheckFormProps) {
       ? check.metadata.category
       : '',
   );
+  const suggestedCategories = useCheckCategories();
   const categoryOptions = Array.from(
-    new Set([...DEFAULT_CHECK_CATEGORIES, ...existingCategories]),
+    new Set([...suggestedCategories, ...existingCategories]),
   ).sort();
   const [rank, setRank] = useState<string>(
     check?.metadata?.rank !== undefined ? String(check.metadata.rank) : '',

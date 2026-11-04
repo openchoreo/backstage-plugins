@@ -114,6 +114,21 @@ describe('CheckForm', () => {
     );
   });
 
+  it.each([
+    ['no categories of its own when none are configured', {}, ['Compliance']],
+    [
+      'the configured categories',
+      { techInsights: { scorecards: { categories: ['Quality'] } } },
+      ['Compliance', 'Quality'],
+    ],
+  ])('suggests %s, and those already in use', async (_name, config, names) => {
+    await renderForm(null, { config });
+
+    await userEvent.click(screen.getByLabelText('Category'));
+    const options = await screen.findAllByRole('option');
+    expect(options.map(option => option.textContent)).toEqual(names);
+  });
+
   it('publishes a draft after saving it', async () => {
     const { api, onPublished } = await renderForm(draft);
 

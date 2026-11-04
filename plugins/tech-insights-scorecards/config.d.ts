@@ -24,6 +24,13 @@ export interface Config {
        * @deepVisibility frontend
        */
       entityLabel?: { singular?: string; plural?: string };
+      /**
+       * Categories the check editor suggests, for example
+       * `[Security, Reliability, Documentation]`. Categories already on a
+       * check are suggested too, and an author can still type a new one.
+       * @deepVisibility frontend
+       */
+      categories?: string[];
     };
     maturity?: {
       /**

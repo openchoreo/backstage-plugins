@@ -518,3 +518,5 @@ techInsights:
     entityLabel:
       singular: resource
       plural: resources
+    # Suggested in the check editor, which also accepts new ones.
+    categories: [Security, Reliability, Documentation]

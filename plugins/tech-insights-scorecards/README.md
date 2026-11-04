@@ -55,6 +55,15 @@ techInsights:
 Tier colours are adjusted against the theme's paper surface until they reach WCAG AA contrast,
 so they read in light and dark themes alike.
 
+The check editor suggests the categories in `categories`, along with any category an existing
+check already uses. Authors can still type a new one:
+
+```yaml
+techInsights:
+  scorecards:
+    categories: [Security, Reliability, Documentation]
+```
+
 ## Turn it off
 
 A host that installs the plugin but switches Scorecards at deploy time sets
