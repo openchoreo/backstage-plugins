@@ -163,6 +163,27 @@ describe('CheckPolicyTable', () => {
     );
   });
 
+  it('hands a new check the fact schemas once they have loaded', async () => {
+    const onNewCheck = jest.fn();
+    const api = apiWith(readme);
+    let loadSchemas: (schemas: (typeof repoSchema)[]) => void = () => {};
+    api.listFactSchemas.mockReturnValue(
+      new Promise(resolve => {
+        loadSchemas = resolve;
+      }),
+    );
+    await renderWithApis(<CheckPolicyTable onNewCheck={onNewCheck} />, {
+      api,
+    });
+
+    const newCheck = screen.getByRole('button', { name: 'New check' });
+    expect(newCheck).toBeDisabled();
+    loadSchemas([repoSchema]);
+    await waitFor(() => expect(newCheck).toBeEnabled());
+    await userEvent.click(newCheck);
+    expect(onNewCheck).toHaveBeenCalledWith([repoSchema], ['Documentation']);
+  });
+
   it('opens its own editor when the host has none', async () => {
     await renderWithApis(<CheckPolicyTable />, { api: apiWith(readme) });
 

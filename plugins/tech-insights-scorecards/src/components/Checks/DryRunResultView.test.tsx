@@ -55,13 +55,53 @@ describe('DryRunResultView', () => {
       within(readme)
         .getAllByRole('cell')
         .map(cell => cell.textContent),
-    ).toEqual(['hasReadme', 'false', 'equal true', '']);
+    ).toEqual(['hasReadme', 'false', 'equal true', 'Failed']);
     expect(
       within(owner)
         .getAllByRole('cell')
         .map(cell => cell.textContent),
     ).toEqual(['owner', 'No value', 'not equal "nobody"', '—']);
     expect(screen.getByText(/repoFacts: facts collected/)).toBeInTheDocument();
+  });
+
+  it('shows the result of a negated condition, not of the condition it negates', async () => {
+    await renderWithApis(
+      <DryRunResultView
+        result={{
+          ...result,
+          conditions: {
+            not: {
+              fact: 'hasReadme',
+              operator: 'equal',
+              value: true,
+              factResult: true,
+              result: true,
+            },
+          },
+        }}
+      />,
+    );
+    const [, row] = screen.getAllByRole('row');
+    expect(
+      within(row)
+        .getAllByRole('cell')
+        .map(cell => cell.textContent),
+    ).toEqual(['hasReadme', 'true', 'not equal true', 'Failed']);
+  });
+
+  it('shows a status it does not recognise', async () => {
+    await renderWithApis(
+      <DryRunResultView
+        result={{
+          ...result,
+          status: 'stale' as DryRunResult['status'],
+          conditions: undefined,
+        }}
+      />,
+    );
+    expect(
+      screen.getByText('Unrecognised result for component:default/api'),
+    ).toBeInTheDocument();
   });
 
   it('collects missing facts now', async () => {

@@ -38,6 +38,15 @@ describe('filterShapeLinter', () => {
     ]);
   });
 
+  it('marks a kind key written in another case', () => {
+    expect(marks('{ "Kind": "API" }')).toEqual([
+      {
+        text: '"Kind"',
+        message: 'Set kinds with the "Kinds" field, not in these criteria.',
+      },
+    ]);
+  });
+
   it('marks a filter that is not an object', () => {
     expect(marks('[{ "spec.type": "service" }]')).toEqual([
       expect.objectContaining({

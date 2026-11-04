@@ -1,6 +1,7 @@
 import { jsonParseLinter } from '@codemirror/lang-json';
 import type { Diagnostic, LintSource } from '@codemirror/lint';
 import type { EditorView } from '@codemirror/view';
+import { isKindKey } from '../../kinds';
 import { nodeAtPointer, propertyKey } from './jsonTree';
 
 const parseLinter = jsonParseLinter();
@@ -39,7 +40,7 @@ export function filterShapeLinter(raw: boolean): LintSource {
     }
     return root
       .getChildren('Property')
-      .filter(property => propertyKey(state, property) === 'kind')
+      .filter(property => isKindKey(propertyKey(state, property) ?? ''))
       .map(property => {
         const name = property.getChild('PropertyName')!;
         return {

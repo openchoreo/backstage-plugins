@@ -42,7 +42,7 @@ async function renderNav(config: JsonObject) {
         [identityApiRef, mockApis.identity()],
       ]}
     >
-      <PortalNavContent navItems={scorecardsNavItems()} />
+      <PortalNavContent navItems={scorecardsNavItems()} items={[]} />
     </TestApiProvider>,
   );
 }

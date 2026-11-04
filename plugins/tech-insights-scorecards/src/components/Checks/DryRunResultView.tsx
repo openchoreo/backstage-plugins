@@ -50,13 +50,17 @@ function evaluatedConditions(
     return n.any.flatMap(c => evaluatedConditions(c, negated));
   if ('not' in n) return evaluatedConditions(n.not, !negated);
   if (typeof n.fact !== 'string') return [];
+  // json-rules-engine reports a leaf's result before any enclosing `not`, so
+  // it is flipped to match the negated condition the row shows.
+  const result =
+    typeof n.result === 'boolean' ? n.result !== negated : undefined;
   return [
     {
       fact: n.fact,
       operator: String(n.operator),
       value: n.value,
       factResult: n.factResult,
-      result: typeof n.result === 'boolean' ? n.result : undefined,
+      result,
       negated,
     },
   ];
@@ -78,7 +82,11 @@ export function DryRunResultView({ result }: { result: DryRunResult }) {
   const codeClasses = useCodeStyles();
   const { canManage } = useCheckPermissions();
   const [collect, setCollect] = useState<Record<string, CollectState>>({});
-  const { severity, title } = STATUS_DISPLAY[result.status];
+  // A newer backend may report a status this view doesn't know yet.
+  const { severity, title } = STATUS_DISPLAY[result.status] ?? {
+    severity: 'info',
+    title: 'Unrecognised result',
+  };
   const conditions = evaluatedConditions(result.conditions);
 
   async function collectNow(retrieverId: string) {
@@ -169,8 +177,12 @@ export function DryRunResultView({ result }: { result: DryRunResult }) {
                 </TableCell>
                 <TableCell align="right">
                   {c.result === undefined && '—'}
-                  {c.result === true && <CheckIcon fontSize="small" />}
-                  {c.result === false && <CloseIcon fontSize="small" />}
+                  {c.result === true && (
+                    <CheckIcon fontSize="small" titleAccess="Passed" />
+                  )}
+                  {c.result === false && (
+                    <CloseIcon fontSize="small" titleAccess="Failed" />
+                  )}
                 </TableCell>
               </TableRow>
             ))}

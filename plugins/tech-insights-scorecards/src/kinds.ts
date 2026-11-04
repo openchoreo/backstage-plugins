@@ -159,6 +159,11 @@ export function useKindDisplay(): (kind: string) => string {
   );
 }
 
+/** Whether a filter key names the kind, in any case, as `Kind` or `KIND`. */
+export function isKindKey(key: string): boolean {
+  return key.toLocaleLowerCase('en-US') === 'kind';
+}
+
 /**
  * The kinds an entity filter matches, spelled as the filter first writes
  * each, or `'all'` when there is no filter or a filter object without a kind.
@@ -176,9 +181,7 @@ export function kindsOfFilter(filter: unknown): string[] | 'all' {
   for (const entry of filters) {
     if (typeof entry !== 'object' || entry === null) return 'all';
     const record = entry as Record<string, unknown>;
-    const key = Object.keys(record).find(
-      k => k.toLocaleLowerCase('en-US') === 'kind',
-    );
+    const key = Object.keys(record).find(isKindKey);
     const values = key ? [record[key]].flat() : [];
     const named = values.filter((v): v is string => typeof v === 'string');
     if (named.length === 0) return 'all';

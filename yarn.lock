@@ -10398,7 +10398,6 @@ __metadata:
     "@backstage/core-components": "npm:^0.18.10"
     "@backstage/core-plugin-api": "npm:^1.12.6"
     "@backstage/dev-utils": "npm:^1.1.23"
-    "@backstage/errors": "npm:^1.3.1"
     "@backstage/frontend-defaults": "npm:^0.5.2"
     "@backstage/frontend-plugin-api": "npm:^0.17.0"
     "@backstage/frontend-test-utils": "npm:^0.6.0"

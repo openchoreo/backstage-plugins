@@ -372,7 +372,9 @@ export function CheckPolicyTable(props: CheckPolicyTableProps) {
                 color="primary"
                 size="small"
                 startIcon={<AddIcon />}
-                disabled={!permissions.canManage}
+                // The host's editor keeps the fact schemas it's handed, so
+                // they have to be loaded first.
+                disabled={!permissions.canManage || loading}
                 onClick={openNewCheck}
               >
                 New check

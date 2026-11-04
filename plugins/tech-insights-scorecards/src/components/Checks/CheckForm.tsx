@@ -24,6 +24,7 @@ import {
 } from '../useCheckPermissions';
 import {
   filterCoversKinds,
+  isKindKey,
   kindsOfFilter,
   useCatalogKinds,
   useEntityLabel,
@@ -293,7 +294,9 @@ export function CheckForm(props: CheckFormProps) {
       ) {
         found.filter =
           'Must be a JSON object, e.g. {"spec.lifecycle": "production"}.';
-      } else if (extra && 'kind' in extra) {
+      } else if (extra && Object.keys(extra).some(isKindKey)) {
+        // jsonfc matches filter keys exactly, so a `Kind` key would match
+        // nothing while the coverage warnings read it as the kind.
         found.filter =
           'Set kinds with the "Kinds" field, not in these criteria.';
       } else if (kinds.length > 0) {

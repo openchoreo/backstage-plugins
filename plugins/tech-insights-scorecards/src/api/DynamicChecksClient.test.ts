@@ -164,7 +164,16 @@ describe('DynamicChecksClient', () => {
   it('throws when a collection fails to start', async () => {
     const { client } = setup(response(500));
     await expect(client.triggerFactCollector('repoFacts')).rejects.toThrow(
-      'Request failed with status 500 Internal Server Error',
+      'The request failed (500 Internal Server Error).',
+    );
+  });
+
+  it('describes the status instead of showing an HTML error page', async () => {
+    const { client } = setup(
+      response(502, '<html><body>Bad Gateway</body></html>', 'text/html'),
+    );
+    await expect(client.listChecks()).rejects.toThrow(
+      /^The request failed \(502 Status\)\.$/,
     );
   });
 

@@ -314,6 +314,20 @@ describe('CheckForm', () => {
     );
   });
 
+  it('refuses a kind key in the criteria, whatever its case', async () => {
+    const { api } = await renderForm(check({ filter: { Kind: 'API' } }));
+
+    await userEvent.click(await enabledButton('Save draft'));
+    expect(
+      (
+        await screen.findAllByText(
+          'Set kinds with the "Kinds" field, not in these criteria.',
+        )
+      ).length,
+    ).toBeGreaterThan(0);
+    expect(api.updateCheck).not.toHaveBeenCalled();
+  });
+
   it('warns about a retriever that does not cover the chosen kinds', async () => {
     await renderForm(check({ factIds: ['apiFacts'] }));
     expect(

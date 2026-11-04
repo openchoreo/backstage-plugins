@@ -1,5 +1,4 @@
 import { DiscoveryApi, FetchApi } from '@backstage/core-plugin-api';
-import { parseErrorResponseBody } from '@backstage/errors';
 import type { DynamicChecksApi } from './DynamicChecksApi';
 import type {
   CheckProblem,
@@ -38,13 +37,29 @@ async function toError(response: Response): Promise<Error> {
   if (response.status === 403) {
     return new Error("You don't have permission to do this.");
   }
-  const { error } = await parseErrorResponseBody(response);
-  const message = error.message?.trim();
   return new Error(
-    message && !message.startsWith('<')
-      ? message
-      : `The request failed (${response.status} ${response.statusText}).`,
+    (await backendMessage(response)) ??
+      `The request failed (${response.status} ${response.statusText}).`,
   );
+}
+
+/**
+ * The message from Backstage's JSON error body. parseErrorResponseBody isn't
+ * used because, for any other body, it builds a message that embeds the raw
+ * text, such as a proxy's HTML error page.
+ */
+async function backendMessage(response: Response): Promise<string | undefined> {
+  if (!response.headers.get('content-type')?.startsWith('application/json')) {
+    return undefined;
+  }
+  try {
+    const message = JSON.parse(await response.text())?.error?.message;
+    return typeof message === 'string' && message.trim()
+      ? message.trim()
+      : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export class DynamicChecksClient implements DynamicChecksApi {
