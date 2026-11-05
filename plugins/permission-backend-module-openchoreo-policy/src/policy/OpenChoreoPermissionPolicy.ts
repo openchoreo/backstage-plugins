@@ -302,11 +302,13 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
           action,
         );
 
-        // Catalog visibility has no environment context, so we cannot satisfy
-        // ABAC CEL expressions here. Drop constrained entries — entity-level
-        // actions are gated separately by matchesCapability + env-aware hooks.
-        const allowedPaths = unconstrainedPaths(actionCapability?.allowed);
-        const deniedPaths = unconstrainedPaths(actionCapability?.denied);
+        // Catalog visibility controls which entities appear in the catalog by
+        // matching their hierarchical scope (namespace, project, component).
+        // Scoped capability paths are preserved and passed to matchesCatalogEntityCapability;
+        // fine-grained environment/resource-action authorization is enforced downstream
+        // by matchesCapability and env-aware hooks.
+        const allowedPaths = extractPaths(actionCapability?.allowed);
+        const deniedPaths = extractPaths(actionCapability?.denied);
 
         kindCapabilities[kindLower] = {
           action,
