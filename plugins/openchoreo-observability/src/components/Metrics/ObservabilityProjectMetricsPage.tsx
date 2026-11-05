@@ -273,12 +273,6 @@ const ObservabilityProjectMetricsContent = () => {
     <Box position="relative">
       <RefreshOverlay active={isRefetching} label="Refreshing metrics" />
 
-      <ReleaseLineFilter
-        namespace={namespace}
-        component={
-          filters.components?.length === 1 ? filters.components[0] : undefined
-        }
-      />
       <MetricsFilters
         filters={filters}
         onFiltersChange={handleFiltersChange}
@@ -295,6 +289,17 @@ const ObservabilityProjectMetricsContent = () => {
             : undefined
         }
         disabled={metricsLoading}
+        releaseLineFilter={
+          <ReleaseLineFilter
+            gridItem
+            namespace={namespace}
+            component={
+              filters.components?.length === 1
+                ? filters.components[0]
+                : undefined
+            }
+          />
+        }
       />
 
       {filters.environment &&
