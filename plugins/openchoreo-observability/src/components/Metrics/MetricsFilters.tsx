@@ -1,4 +1,4 @@
-import { ChangeEvent } from 'react';
+import { ChangeEvent, ReactNode } from 'react';
 import {
   Checkbox,
   FormControl,
@@ -18,6 +18,7 @@ import {
   Environment,
 } from '@openchoreo/backstage-plugin-react';
 import { useMetricsViewToggleStyles } from './styles';
+import { useFilterRowStyles } from '../common/styles';
 
 interface MetricsFiltersProps {
   filters: Filters;
@@ -34,6 +35,8 @@ interface MetricsFiltersProps {
   viewMode?: MetricsViewMode;
   onViewModeChange?: (view: MetricsViewMode) => void;
   disabled?: boolean;
+  /** Release line filter, placed before the environment. */
+  releaseLineFilter?: ReactNode;
 }
 
 export const MetricsFilters = ({
@@ -46,8 +49,10 @@ export const MetricsFilters = ({
   viewMode = 'total',
   onViewModeChange,
   disabled = false,
+  releaseLineFilter,
 }: MetricsFiltersProps) => {
   const classes = useMetricsViewToggleStyles();
+  const filterRowClasses = useFilterRowStyles();
 
   const handleComponentChange = (event: ChangeEvent<{ value: unknown }>) => {
     onFiltersChange({ components: event.target.value as string[] });
@@ -59,7 +64,7 @@ export const MetricsFilters = ({
     components.length > 0 && (!onViewModeChange || viewMode === 'breakdown');
 
   return (
-    <Grid container spacing={3}>
+    <Grid container spacing={2} className={filterRowClasses.row}>
       {onViewModeChange && (
         <Grid item xs={12} md={3}>
           <ToggleButtonGroup
@@ -90,8 +95,8 @@ export const MetricsFilters = ({
         </Grid>
       )}
 
-      <Grid item xs={12} md={3}>
-        {showComponentSelector && (
+      {showComponentSelector && (
+        <Grid item xs={12} md={3}>
           <FormControl
             fullWidth
             disabled={disabled || componentsLoading}
@@ -133,12 +138,14 @@ export const MetricsFilters = ({
               </Select>
             )}
           </FormControl>
-        )}
-      </Grid>
+        </Grid>
+      )}
 
       {/* TODO: Add Filters for Metrics */}
 
-      <Grid item xs={12} md={3}>
+      {releaseLineFilter}
+
+      <Grid item xs={12} md={2}>
         <EnvironmentFilter
           environments={environments}
           loading={environmentsLoading}
@@ -151,7 +158,7 @@ export const MetricsFilters = ({
         />
       </Grid>
 
-      <Grid item xs={12} md={3}>
+      <Grid item xs={12} md={2}>
         <TimeRangeFilter
           value={filters.timeRange}
           customStartTime={filters.customStartTime}

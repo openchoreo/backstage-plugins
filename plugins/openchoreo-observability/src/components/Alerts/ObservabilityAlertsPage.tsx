@@ -20,6 +20,7 @@ import {
   useProjectEnvironments,
 } from '@openchoreo/backstage-plugin-react';
 import { EnvironmentsStatusNotice, ReleaseLineFilter } from '../common';
+import { componentDefaultReleaseLine } from '../../hooks/useSelectedReleaseLine';
 import { useRuntimeLogsStyles } from '../RuntimeLogs/styles';
 import type { AlertSummary } from '../../types';
 
@@ -234,17 +235,21 @@ const ObservabilityAlertsContent = () => {
   return (
     <Box position="relative">
       <RefreshOverlay active={isRefetching} label="Refreshing alerts" />
-      <ReleaseLineFilter
-        namespace={namespace}
-        component={componentName}
-        disabled={alertsLoading}
-      />
       <AlertsFilter
         filters={filters}
         onFiltersChange={handleFiltersChange}
         environments={environments}
         environmentsLoading={environmentsLoading}
         disabled={alertsLoading}
+        releaseLineFilter={
+          <ReleaseLineFilter
+            gridItem
+            defaultLine={componentDefaultReleaseLine(entity)}
+            namespace={namespace}
+            component={componentName}
+            disabled={alertsLoading}
+          />
+        }
       />
 
       {alertsError && renderError(alertsError)}

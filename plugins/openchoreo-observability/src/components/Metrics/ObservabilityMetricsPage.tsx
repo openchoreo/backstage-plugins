@@ -22,6 +22,7 @@ import {
 } from '../../hooks';
 import { useProjectEnvironments } from '@openchoreo/backstage-plugin-react';
 import { EnvironmentsStatusNotice, ReleaseLineFilter } from '../common';
+import { componentDefaultReleaseLine } from '../../hooks/useSelectedReleaseLine';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { useEntity } from '@backstage/plugin-catalog-react';
@@ -150,17 +151,21 @@ const ObservabilityMetricsContent = () => {
 
       {!isLoading && (
         <>
-          <ReleaseLineFilter
-            namespace={namespace}
-            component={
-              entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT]
-            }
-          />
           <MetricsFilters
             filters={filters}
             onFiltersChange={handleFiltersChange}
             environments={environments}
             disabled={isLoading}
+            releaseLineFilter={
+              <ReleaseLineFilter
+                gridItem
+                defaultLine={componentDefaultReleaseLine(entity)}
+                namespace={namespace}
+                component={
+                  entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT]
+                }
+              />
+            }
           />
           {filters.environment &&
             !envPermissionLoading &&

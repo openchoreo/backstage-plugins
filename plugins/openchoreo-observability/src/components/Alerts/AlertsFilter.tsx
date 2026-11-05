@@ -1,4 +1,4 @@
-import { FC, ChangeEvent } from 'react';
+import { FC, ChangeEvent, ReactNode } from 'react';
 import {
   FormControl,
   InputLabel,
@@ -6,6 +6,7 @@ import {
   MenuItem,
   Checkbox,
   Grid,
+  OutlinedInput,
   TextField,
 } from '@material-ui/core';
 import { type AlertsFilters, ALERT_SEVERITIES } from './types';
@@ -15,6 +16,7 @@ import {
   TimeRangeFilter,
 } from '@openchoreo/backstage-plugin-react';
 import { useDebouncedSearch } from '../../hooks/useDebouncedSearch';
+import { useFilterRowStyles } from '../common/styles';
 
 interface AlertsFilterProps {
   filters: AlertsFilters;
@@ -22,6 +24,8 @@ interface AlertsFilterProps {
   environments: Environment[];
   environmentsLoading: boolean;
   disabled?: boolean;
+  /** Release line filter, placed before the environment. */
+  releaseLineFilter?: ReactNode;
 }
 
 export const AlertsFilter: FC<AlertsFilterProps> = ({
@@ -30,7 +34,9 @@ export const AlertsFilter: FC<AlertsFilterProps> = ({
   environments,
   environmentsLoading,
   disabled = false,
+  releaseLineFilter,
 }) => {
+  const filterRowClasses = useFilterRowStyles();
   const [searchInput, handleSearchChange] = useDebouncedSearch(
     filters.searchQuery,
     value => onFiltersChange({ searchQuery: value }),
@@ -41,7 +47,7 @@ export const AlertsFilter: FC<AlertsFilterProps> = ({
   };
 
   return (
-    <Grid container spacing={2}>
+    <Grid container spacing={2} className={filterRowClasses.row}>
       <Grid item xs={12} md={6}>
         <TextField
           fullWidth
@@ -55,13 +61,16 @@ export const AlertsFilter: FC<AlertsFilterProps> = ({
 
       <Grid item xs={12} md={2}>
         <FormControl fullWidth disabled={disabled} variant="outlined">
-          <InputLabel id="severity-label">Severity</InputLabel>
+          <InputLabel id="severity-label" shrink>
+            Severity
+          </InputLabel>
           <Select
             multiple
+            displayEmpty
+            input={<OutlinedInput notched label="Severity" />}
             value={filters.severity || []}
             onChange={handleSeverityChange}
             labelId="severity-label"
-            label="Severity"
             renderValue={selected =>
               (selected as string[]).length === 0
                 ? 'All'
@@ -79,6 +88,8 @@ export const AlertsFilter: FC<AlertsFilterProps> = ({
           </Select>
         </FormControl>
       </Grid>
+
+      {releaseLineFilter}
 
       <Grid item xs={12} md={2}>
         <EnvironmentFilter
