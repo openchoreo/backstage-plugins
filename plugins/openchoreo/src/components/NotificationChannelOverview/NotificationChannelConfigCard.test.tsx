@@ -68,6 +68,42 @@ describe('NotificationChannelConfigCard', () => {
     expect(screen.getByText('text/html')).toBeInTheDocument();
   });
 
+  it('renders the sender display name with the from address', () => {
+    mockEntity = baseEntity({
+      environment: 'dev',
+      type: 'email',
+      emailConfig: {
+        from: 'alerts@example.com',
+        fromName: 'Example Alerts',
+        to: ['team@example.com'],
+        smtp: { host: 'smtp.example.com', port: 587 },
+      },
+    });
+
+    render(<NotificationChannelConfigCard />);
+
+    expect(
+      screen.getByText('Example Alerts <alerts@example.com>'),
+    ).toBeInTheDocument();
+  });
+
+  it('shows only the from address when the sender display name is blank', () => {
+    mockEntity = baseEntity({
+      environment: 'dev',
+      type: 'email',
+      emailConfig: {
+        from: 'alerts@example.com',
+        fromName: '   ',
+        to: ['team@example.com'],
+        smtp: { host: 'smtp.example.com', port: 587 },
+      },
+    });
+
+    render(<NotificationChannelConfigCard />);
+
+    expect(screen.getByText('alerts@example.com')).toBeInTheDocument();
+  });
+
   it('defaults the content type to text/plain when the template omits it', () => {
     mockEntity = baseEntity({
       environment: 'dev',
