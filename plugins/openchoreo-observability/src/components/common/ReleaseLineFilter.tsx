@@ -2,12 +2,16 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useEffect } from 'react';
+import Grid from '@material-ui/core/Grid';
 import MenuItem from '@material-ui/core/MenuItem';
 import TextField from '@material-ui/core/TextField';
 import { MAIN_RELEASE_LINE } from '@openchoreo/backstage-plugin-common';
 import { useReleaseLine } from '@openchoreo/backstage-plugin-react';
 import { useComponentReleaseLineState } from '../../hooks/useComponentReleaseLines';
-import { useReleaseLineParam } from '../../hooks/useSelectedReleaseLine';
+import {
+  ALL_RELEASE_LINES,
+  useReleaseLineParam,
+} from '../../hooks/useSelectedReleaseLine';
 import { useReleaseLineFilterStyles } from './styles';
 
 export interface ReleaseLineFilterProps {
@@ -22,6 +26,13 @@ export interface ReleaseLineFilterProps {
   /** True while the given `lines` are still loading, so a URL line is kept. */
   linesLoading?: boolean;
   disabled?: boolean;
+  /**
+   * Line shown while the URL names none, the one the view's data falls back
+   * to, such as `componentDefaultReleaseLine`. Every line when absent.
+   */
+  defaultLine?: string;
+  /** Render as a cell of a filter bar's grid instead of a row of its own. */
+  gridItem?: boolean;
 }
 
 /**
@@ -36,6 +47,8 @@ export function ReleaseLineFilter({
   lines: givenLines,
   linesLoading,
   disabled,
+  defaultLine = ALL_RELEASE_LINES,
+  gridItem,
 }: ReleaseLineFilterProps) {
   const classes = useReleaseLineFilterStyles();
   const { releaseLine: pageLine } = useReleaseLine();
@@ -54,7 +67,9 @@ export function ReleaseLineFilter({
     (!scoped ||
       (!loading &&
         (lines.length === 0 ||
-          (value !== MAIN_RELEASE_LINE && !lines.includes(value)))));
+          (value !== MAIN_RELEASE_LINE &&
+            value !== ALL_RELEASE_LINES &&
+            !lines.includes(value)))));
 
   // A line left over from another component no longer applies.
   useEffect(() => {
@@ -63,21 +78,22 @@ export function ReleaseLineFilter({
 
   if (!offered) return null;
 
-  return (
+  const select = (
     <TextField
       select
-      size="small"
+      fullWidth={gridItem}
       variant="outlined"
       id="observability-release-line"
-      label="Release line"
-      className={classes.select}
-      value={stale ? '' : value}
-      onChange={event => setValue(event.target.value)}
-      SelectProps={{ displayEmpty: true }}
+      label="Release Line"
+      className={gridItem ? undefined : classes.select}
+      value={stale || !value ? defaultLine : value}
+      onChange={event =>
+        setValue(event.target.value === defaultLine ? '' : event.target.value)
+      }
       InputLabelProps={{ shrink: true }}
       disabled={disabled}
     >
-      <MenuItem value="">All lines</MenuItem>
+      <MenuItem value={ALL_RELEASE_LINES}>All lines</MenuItem>
       <MenuItem value={MAIN_RELEASE_LINE}>{MAIN_RELEASE_LINE}</MenuItem>
       {lines.map(line => (
         <MenuItem key={line} value={line}>
@@ -85,5 +101,13 @@ export function ReleaseLineFilter({
         </MenuItem>
       ))}
     </TextField>
+  );
+
+  if (!gridItem) return select;
+
+  return (
+    <Grid item xs={12} md={2}>
+      {select}
+    </Grid>
   );
 }

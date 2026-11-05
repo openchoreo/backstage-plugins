@@ -1,4 +1,4 @@
-import { FC, ChangeEvent } from 'react';
+import { FC, ChangeEvent, ReactNode } from 'react';
 import { Skeleton } from '@openchoreo/backstage-design-system';
 import {
   FormControl,
@@ -23,6 +23,7 @@ import {
   SELECTED_FIELDS,
   LogEntryField,
 } from './types';
+import { useFilterRowStyles } from '../common/styles';
 
 interface LogsFilterProps {
   filters: RuntimeLogsFilters;
@@ -32,6 +33,8 @@ interface LogsFilterProps {
   components?: Component[];
   componentsLoading?: boolean;
   disabled?: boolean;
+  /** Release line filter, placed before the environment. */
+  releaseLineFilter?: ReactNode;
 }
 
 export const LogsFilter: FC<LogsFilterProps> = ({
@@ -42,7 +45,9 @@ export const LogsFilter: FC<LogsFilterProps> = ({
   components = [],
   componentsLoading = false,
   disabled = false,
+  releaseLineFilter,
 }) => {
+  const filterRowClasses = useFilterRowStyles();
   const [searchInput, handleSearchChange] = useDebouncedSearch(
     filters.searchQuery,
     value => onFiltersChange({ searchQuery: value }),
@@ -88,7 +93,7 @@ export const LogsFilter: FC<LogsFilterProps> = ({
   };
 
   return (
-    <Grid container spacing={2}>
+    <Grid container spacing={2} className={filterRowClasses.row}>
       <Grid item xs={12} md={4}>
         <TextField
           fullWidth
@@ -206,6 +211,8 @@ export const LogsFilter: FC<LogsFilterProps> = ({
           </Select>
         </FormControl>
       </Grid>
+
+      {releaseLineFilter}
 
       <Grid item xs={12} md={2}>
         <EnvironmentFilter

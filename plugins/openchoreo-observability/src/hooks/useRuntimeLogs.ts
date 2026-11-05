@@ -7,7 +7,10 @@ import {
   calculateTimeRange,
   useOpenChoreoInfiniteQuery,
 } from '@openchoreo/backstage-plugin-react';
-import { useSelectedReleaseLine } from './useSelectedReleaseLine';
+import {
+  componentDefaultReleaseLine,
+  useSelectedReleaseLine,
+} from './useSelectedReleaseLine';
 
 export interface UseRuntimeLogsOptions {
   environment: string;
@@ -63,7 +66,9 @@ export function useRuntimeLogs(
   enabled: boolean = true,
 ): UseRuntimeLogsResult {
   const observabilityApi = useApi(observabilityApiRef);
-  const releaseLine = useSelectedReleaseLine();
+  const releaseLine = useSelectedReleaseLine(
+    componentDefaultReleaseLine(entity),
+  );
 
   const componentName =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
