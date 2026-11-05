@@ -84,6 +84,9 @@ export const portalFeatureLoaders = [
   () => import('@openchoreo/backstage-plugin-platform-engineer-core-backend'),
   () => import('@openchoreo/backstage-plugin-openchoreo-observability-backend'),
   () => import('@openchoreo/backstage-plugin-openchoreo-ci-backend'),
+  // Disabled unless openchoreo.imageSecurity is configured.
+  () =>
+    import('@openchoreo/backstage-plugin-openchoreo-image-security-backend'),
 
   // External CI Platform Integrations
   // Jenkins: Handles missing config gracefully (API calls fail, not startup)
