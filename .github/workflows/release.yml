@@ -35,6 +35,7 @@ jobs:
       is-prerelease: ${{ steps.release-vars.outputs.is-prerelease }}
       latest: ${{ steps.release-vars.outputs.latest }}
       dist-tag: ${{ steps.release-vars.outputs.dist-tag }}
+      skip-npm: ${{ steps.release-vars.outputs.skip-npm }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -71,12 +72,20 @@ jobs:
             DIST_TAG="release-${VERSION%.*}"
           fi
 
+          # Only an annotated tag has %(contents) to check.
+          SKIP_NPM=false
+          if [ "$(git for-each-ref --format='%(objecttype)' "refs/tags/${RELEASE_TAG}")" = "tag" ] &&
+             git for-each-ref --format='%(contents)' "refs/tags/${RELEASE_TAG}" | grep -qFx "skip-npm-publish"; then
+            SKIP_NPM=true
+          fi
+
           {
             echo "release-tag=${RELEASE_TAG}"
             echo "git-sha-short=${GIT_SHA_SHORT}"
             echo "is-prerelease=${IS_PRERELEASE}"
             echo "latest=${LATEST}"
             echo "dist-tag=${DIST_TAG}"
+            echo "skip-npm=${SKIP_NPM}"
           } >> $GITHUB_OUTPUT
 
       - name: Setup Node.js
@@ -160,6 +169,7 @@ jobs:
   publish-npm:
     name: Publish to npm
     needs: build
+    if: needs.build.outputs.skip-npm != 'true'
     runs-on: ubuntu-24.04
     # Bound to a protected environment with required reviewers. npm matches the
     # OIDC claim against repository + workflow filename + THIS environment name,
@@ -398,6 +408,8 @@ jobs:
   retag-image:
     name: Retag release image
     needs: [build, publish-npm]
+    # Still runs when publish-npm was skipped (not failed).
+    if: ${{ !cancelled() && needs.build.result == 'success' && (needs.publish-npm.result == 'success' || needs.publish-npm.result == 'skipped') }}
     runs-on: ubuntu-24.04
     permissions:
       packages: write

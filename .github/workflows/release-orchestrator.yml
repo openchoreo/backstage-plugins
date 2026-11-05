@@ -31,6 +31,11 @@ on:
         description: 'Pin the tag to a specific commit SHA (overrides automatic resolution)'
         required: false
         type: string
+      skip_npm_publish:
+        description: 'Skip npm publish for this release'
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: release-orchestrator-${{ github.event.inputs.major }}-${{ github.event.inputs.minor }}
@@ -301,10 +306,19 @@ jobs:
       - name: Create and push annotated tag
         env:
           PAT: ${{ steps.app-token.outputs.token }}
+          SKIP_NPM_PUBLISH: ${{ github.event.inputs.skip_npm_publish }}
         run: |
           TAG="${{ needs.validate.outputs.release-tag }}"
           TARGET="${{ needs.validate.outputs.target-commit }}"
           VERSION="${{ needs.validate.outputs.release-version }}"
-          git tag -a "${TAG}" -m "Release ${VERSION}" "${TARGET}"
+          MESSAGE="Release ${VERSION}"
+          if [ "${SKIP_NPM_PUBLISH}" = "true" ]; then
+            if ! grep -qF 'skip-npm-publish' .github/workflows/release.yml; then
+              echo "ERROR: ${TARGET} has a release.yml without skip-npm-publish support."
+              exit 1
+            fi
+            MESSAGE=$(printf '%s\n\nskip-npm-publish' "${MESSAGE}")
+          fi
+          git tag -a "${TAG}" -m "${MESSAGE}" "${TARGET}"
           git push "https://x-access-token:${PAT}@github.com/${GITHUB_REPOSITORY}.git" "${TAG}"
           echo "Tag pushed: ${TAG} (commit: ${TARGET})"
