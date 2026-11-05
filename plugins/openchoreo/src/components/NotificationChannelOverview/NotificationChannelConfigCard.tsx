@@ -19,6 +19,7 @@ interface NotificationChannelSpec {
   type: 'email' | 'webhook';
   emailConfig?: {
     from: string;
+    fromName?: string;
     to: string[];
     smtp: {
       host: string;
@@ -90,6 +91,7 @@ export const NotificationChannelConfigCard = () => {
     ? `/catalog/${namespace}/environment/${spec.environment}`
     : undefined;
 
+  const fromName = spec.emailConfig?.fromName?.trim();
   const smtpAuth = spec.emailConfig?.smtp?.auth;
   const smtpUsernameRef = smtpAuth?.username?.secretKeyRef;
   const smtpPasswordRef = smtpAuth?.password?.secretKeyRef;
@@ -150,7 +152,9 @@ export const NotificationChannelConfigCard = () => {
           <Box className={classes.infoRow}>
             <Typography className={classes.infoLabel}>From</Typography>
             <Typography className={classes.infoValue}>
-              {spec.emailConfig.from}
+              {fromName
+                ? `${fromName} <${spec.emailConfig.from}>`
+                : spec.emailConfig.from}
             </Typography>
           </Box>
           <Box className={classes.infoRow}>

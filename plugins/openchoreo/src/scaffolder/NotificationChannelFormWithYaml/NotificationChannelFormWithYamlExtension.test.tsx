@@ -503,6 +503,13 @@ describe('NotificationChannelFormWithYamlExtension — email fields', () => {
       expect(latestFormData!.emailConfig!.from).toBe('alerts@example.com'),
     );
 
+    fireEvent.change(getFieldByLabel('Sender Name'), {
+      target: { value: 'Example Alerts' },
+    });
+    await waitFor(() =>
+      expect(latestFormData!.emailConfig!.fromName).toBe('Example Alerts'),
+    );
+
     fireEvent.change(getFieldByLabel('To Addresses'), {
       target: { value: 'a@example.com, b@example.com' },
     });
@@ -915,6 +922,100 @@ describe('NotificationChannelFormWithYamlExtension — YAML mode', () => {
     expect(yamlEditorProps.content).toContain('name: dev-email');
     expect(yamlEditorProps.content).toContain('environment: dev');
     expect(yamlEditorProps.content).toContain('contentType: text/html');
+    expect(yamlEditorProps.content).not.toContain('fromName');
+  });
+
+  it('serializes the sender display name to YAML when set', async () => {
+    render(
+      <Harness
+        initialFormData={{
+          namespace_name: 'domain:default/team-a',
+          channel_name: 'dev-email',
+          environment: 'environment:team-a/dev',
+          isEnvDefault: false,
+          type: 'email',
+          emailConfig: {
+            from: 'alerts@example.com',
+            fromName: 'Example Alerts',
+            to: ['team@example.com'],
+            smtpHost: 'smtp.example.com',
+            smtpPort: 587,
+            smtpUsernameSecretName: 'smtp-auth',
+            smtpUsernameSecretKey: 'username',
+            smtpPasswordSecretName: 'smtp-auth',
+            smtpPasswordSecretKey: 'password',
+            insecureSkipVerify: false,
+            subjectTemplate: 'Alert',
+            bodyTemplate: 'Body',
+            contentType: 'text/plain',
+          },
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByText('switch-to-yaml'));
+
+    expect(yamlEditorProps.content).toContain('from: alerts@example.com');
+    expect(yamlEditorProps.content).toContain('fromName: Example Alerts');
+  });
+
+  it('parses the sender display name from YAML', async () => {
+    render(<Harness />);
+    await waitFor(() => expect(latestFormData).toBeDefined());
+    fireEvent.click(screen.getByText('switch-to-yaml'));
+
+    act(() => {
+      yamlEditorProps.onChange(
+        [
+          'metadata:',
+          '  name: named-sender',
+          '  namespace: team-a',
+          'spec:',
+          '  environment: dev',
+          '  type: email',
+          '  emailConfig:',
+          '    from: alerts@example.com',
+          '    fromName: Example Alerts',
+          '    to: [team@example.com]',
+        ].join('\n'),
+      );
+    });
+
+    await waitFor(() =>
+      expect(latestFormData!.emailConfig!.fromName).toBe('Example Alerts'),
+    );
+    expect(latestFormData!.emailConfig!.from).toBe('alerts@example.com');
+  });
+
+  it('reports a YAML error when the sender display name is not a string', async () => {
+    render(<Harness />);
+    await waitFor(() => expect(latestFormData).toBeDefined());
+    fireEvent.click(screen.getByText('switch-to-yaml'));
+
+    const before = latestFormData;
+    act(() => {
+      yamlEditorProps.onChange(
+        [
+          'metadata:',
+          '  name: bad-sender',
+          '  namespace: team-a',
+          'spec:',
+          '  environment: dev',
+          '  type: email',
+          '  emailConfig:',
+          '    from: alerts@example.com',
+          '    fromName: [Example Alerts]',
+          '    to: [team@example.com]',
+        ].join('\n'),
+      );
+    });
+
+    expect(latestFormData).toBe(before);
+    await waitFor(() =>
+      expect(yamlEditorProps.errorText).toContain(
+        'spec.emailConfig.fromName must be a string',
+      ),
+    );
   });
 
   it('populates the editor with webhook config, headers, and payload template', async () => {
@@ -1220,6 +1321,70 @@ describe('notificationChannelFormWithYamlValidation', () => {
     expect(errors).toContain(
       'Email "from" address must be a valid email address',
     );
+  });
+
+  it('rejects a sender name longer than 128 characters', () => {
+    const errors = validate({
+      channel_name: 'ok',
+      namespace_name: 'a',
+      environment: 'b',
+      type: 'email',
+      emailConfig: {
+        from: 'a@b.com',
+        fromName: 'x'.repeat(129),
+        to: ['c@d.com'],
+        smtpHost: 'smtp.example.com',
+      } as any,
+    });
+    expect(errors).toContain('Sender name must be at most 128 characters');
+  });
+
+  it('rejects a sender name containing a line break', () => {
+    const errors = validate({
+      channel_name: 'ok',
+      namespace_name: 'a',
+      environment: 'b',
+      type: 'email',
+      emailConfig: {
+        from: 'a@b.com',
+        fromName: 'Ops\nAlerts',
+        to: ['c@d.com'],
+        smtpHost: 'smtp.example.com',
+      } as any,
+    });
+    expect(errors).toContain('Sender name must not contain line breaks');
+  });
+
+  it('allows a trailing line break that trimming removes', () => {
+    const errors = validate({
+      channel_name: 'ok',
+      namespace_name: 'a',
+      environment: 'b',
+      type: 'email',
+      emailConfig: {
+        from: 'a@b.com',
+        fromName: 'Ops Alerts\n',
+        to: ['c@d.com'],
+        smtpHost: 'smtp.example.com',
+      } as any,
+    });
+    expect(errors).not.toContain('Sender name must not contain line breaks');
+  });
+
+  it('measures the sender name after trimming surrounding whitespace', () => {
+    const errors = validate({
+      channel_name: 'ok',
+      namespace_name: 'a',
+      environment: 'b',
+      type: 'email',
+      emailConfig: {
+        from: 'a@b.com',
+        fromName: ` ${'x'.repeat(128)} `,
+        to: ['c@d.com'],
+        smtpHost: 'smtp.example.com',
+      } as any,
+    });
+    expect(errors).not.toContain('Sender name must be at most 128 characters');
   });
 
   it('rejects a "to" list containing a malformed address', () => {
