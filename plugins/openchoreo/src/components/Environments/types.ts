@@ -42,6 +42,7 @@ export interface ActionTrackers {
   promotionTracker: ItemActionTracker;
   suspendTracker: ItemActionTracker;
   rolloutRestartTracker?: ItemActionTracker;
+  runNowTracker?: ItemActionTracker;
   removeDeploymentTracker?: ItemActionTracker;
 }
 
@@ -116,7 +117,14 @@ export interface EnvironmentActionsProps {
    */
   canRolloutRestart?: boolean;
   rolloutRestartDeniedTooltip?: string;
+  runNowTracker?: ItemActionTracker;
   onSuspend: () => Promise<void>;
   onRedeploy: () => Promise<void>;
   onRolloutRestart?: () => void | Promise<void>;
+  /**
+   * Runs the CronJob once. Set instead of `onRolloutRestart` for cronjob
+   * workloads, which have no pods to restart. Gated by the same
+   * `releasebinding:update` permission as `canRolloutRestart`.
+   */
+  onRunNow?: () => void | Promise<void>;
 }

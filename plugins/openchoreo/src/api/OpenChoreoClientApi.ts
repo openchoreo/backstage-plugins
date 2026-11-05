@@ -14,6 +14,13 @@ import type { Environment } from '../components/RuntimeLogs/types';
 // Response Types
 // ============================================
 
+/** Job created by a manual cronjob trigger */
+export interface CronJobTriggerResult {
+  jobName: string;
+  namespace: string;
+  cronJobName: string;
+}
+
 /** Kubernetes Secret type supported by the create/update API */
 export type SecretType =
   | 'Opaque'
@@ -686,6 +693,12 @@ export interface OpenChoreoClientApi {
     bindingName: string,
     releaseLine?: string,
   ): Promise<any>;
+
+  /** Run the binding's CronJob once, outside its schedule (cronjob workloads only) */
+  triggerReleaseBindingCronJob(
+    entity: Entity,
+    bindingName: string,
+  ): Promise<CronJobTriggerResult>;
 
   /** Patch component settings (e.g., autoDeploy) */
   patchComponent(entity: Entity, autoDeploy: boolean): Promise<any>;

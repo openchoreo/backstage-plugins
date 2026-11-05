@@ -111,6 +111,31 @@ describe('OpenChoreoClient — cell diagram', () => {
       expect(body.namespaceName).toBe('test-ns');
     });
   });
+
+  describe('triggerReleaseBindingCronJob', () => {
+    it('POSTs to /trigger-cronjob-binding with entity metadata and bindingName', async () => {
+      const result = {
+        jobName: 'my-task-abc12',
+        namespace: 'dp-test-ns',
+        cronJobName: 'my-task',
+      };
+      fetchMock.mockResolvedValueOnce(makeJsonResponse(result));
+
+      const response = await client.triggerReleaseBindingCronJob(
+        BASE_ENTITY as any,
+        'my-binding',
+      );
+
+      expect(response).toEqual(result);
+      const [calledUrl, opts] = fetchMock.mock.calls[0];
+      expect(calledUrl).toContain('/trigger-cronjob-binding');
+      expect(opts.method).toBe('POST');
+      const body = JSON.parse(opts.body);
+      expect(body.bindingName).toBe('my-binding');
+      expect(body.componentName).toBe('test-component');
+      expect(body.namespaceName).toBe('test-ns');
+    });
+  });
 });
 
 describe('OpenChoreoClient — secrets', () => {

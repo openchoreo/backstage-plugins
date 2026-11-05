@@ -19,6 +19,7 @@ import { useEnvironmentsContext, type Selection } from '../EnvironmentsContext';
 import { useIncidentsSummary } from '../hooks/useIncidentsSummary';
 import { isForbiddenError, getErrorMessage } from '../../../utils/errorUtils';
 import { ForbiddenState } from '@openchoreo/backstage-plugin-react';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import {
   Card,
   useChoreoTokens,
@@ -152,7 +153,15 @@ export const PipelineCanvas: FC = () => {
   const promotionTracker = useItemActionTracker<string>();
   const suspendTracker = useItemActionTracker<string>();
   const rolloutRestartTracker = useItemActionTracker<string>();
+  const runNowTracker = useItemActionTracker<string>();
   const removeDeploymentTracker = useItemActionTracker<string>();
+
+  // Cronjob workloads have no running pods to restart; they get "Run now"
+  // instead. The component type is "<workloadType>/<name>".
+  const isCronJob =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT_TYPE]?.split(
+      '/',
+    )[0] === 'cronjob';
 
   // Selection lives on the EnvironmentsContext (lifted from local state)
   // so it survives navigation to/from intermediate pages
@@ -225,6 +234,7 @@ export const PipelineCanvas: FC = () => {
     handleUndeploy,
     handleRedeploy,
     handleRolloutRestart,
+    handleRunNow,
     handleRemoveDeployment,
   } = useEnvironmentActions(entity, refetch, notification, refreshTracker);
 
@@ -332,6 +342,24 @@ export const PipelineCanvas: FC = () => {
     [handleRolloutRestart, rolloutRestartTracker, notification],
   );
 
+  const handleRunNowEnv = useCallback(
+    async (env: Environment) => {
+      const targetId = env.bindingName ?? `${env.resourceName ?? env.name}`;
+      try {
+        await runNowTracker.withTracking(targetId, () =>
+          handleRunNow(targetId),
+        );
+      } catch (err) {
+        notification.showError(
+          isForbiddenError(err)
+            ? 'You do not have permission to run this task. Contact your administrator.'
+            : `Error running task: ${getErrorMessage(err)}`,
+        );
+      }
+    },
+    [handleRunNow, runNowTracker, notification],
+  );
+
   const handleRemoveDeploymentEnv = useCallback(
     async (env: Environment) => {
       const targetId = env.bindingName ?? `${env.resourceName ?? env.name}`;
@@ -363,6 +391,7 @@ export const PipelineCanvas: FC = () => {
     promotionTracker,
     suspendTracker,
     rolloutRestartTracker,
+    runNowTracker,
     removeDeploymentTracker,
   };
 
@@ -504,10 +533,22 @@ export const PipelineCanvas: FC = () => {
                 if (!selectedEnv) return;
                 await handleRedeployEnv(selectedEnv);
               }}
-              onRolloutRestart={async () => {
-                if (!selectedEnv) return;
-                await handleRolloutRestartEnv(selectedEnv);
-              }}
+              onRolloutRestart={
+                isCronJob
+                  ? undefined
+                  : async () => {
+                      if (!selectedEnv) return;
+                      await handleRolloutRestartEnv(selectedEnv);
+                    }
+              }
+              onRunNow={
+                isCronJob
+                  ? async () => {
+                      if (!selectedEnv) return;
+                      await handleRunNowEnv(selectedEnv);
+                    }
+                  : undefined
+              }
               onRemoveDeployment={async () => {
                 if (!selectedEnv) return;
                 await handleRemoveDeploymentEnv(selectedEnv);
