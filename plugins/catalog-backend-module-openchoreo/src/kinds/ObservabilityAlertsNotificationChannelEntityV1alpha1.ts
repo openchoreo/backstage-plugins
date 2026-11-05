@@ -79,6 +79,8 @@ export interface NotificationEmailTemplate {
  */
 export interface NotificationEmailConfig {
   from: string;
+  /** Optional sender display name shown in the From header. */
+  fromName?: string;
   to: string[];
   smtp: NotificationSmtpConfig;
   template: NotificationEmailTemplate;

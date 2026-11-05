@@ -6706,10 +6706,15 @@ export interface components {
     /** @description Configuration for email notification channels */
     NotificationEmailConfig: {
       /**
-       * @description Sender email address
+       * @description Sender email address. Must be a bare address; it is also used as the SMTP envelope sender.
        * @example alerts@example.com
        */
       from: string;
+      /**
+       * @description Optional sender display name. When set, the From header is rendered as "fromName <from>".
+       * @example Example Alerts
+       */
+      fromName?: string;
       /**
        * @description List of recipient email addresses
        * @example [
