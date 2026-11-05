@@ -57,7 +57,7 @@ describe('ReleaseLineFilter', () => {
     mockLines.lines = [];
     renderFilter('/?releaseLine=next');
 
-    expect(screen.queryByLabelText('Release line')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Release Line')).not.toBeInTheDocument();
     expect(screen.getByTestId('search')).toHaveTextContent('');
   });
 
@@ -83,6 +83,27 @@ describe('ReleaseLineFilter', () => {
     expect(screen.getByTestId('search')).toHaveTextContent('');
   });
 
+  it('shows a default line while the URL names none, and keeps it out of the URL', () => {
+    render(
+      <MemoryRouter>
+        <ReleaseLineFilter
+          namespace="default"
+          component="hello"
+          defaultLine="main"
+        />
+        <Search />
+      </MemoryRouter>,
+    );
+
+    fireEvent.mouseDown(screen.getByRole('button', { name: /main/ }));
+    fireEvent.click(screen.getByRole('option', { name: 'All lines' }));
+    expect(screen.getByTestId('search')).toHaveTextContent('?releaseLine=*');
+
+    fireEvent.mouseDown(screen.getByRole('button', { name: /All lines/ }));
+    fireEvent.click(screen.getByRole('option', { name: 'main' }));
+    expect(screen.getByTestId('search')).toHaveTextContent('');
+  });
+
   it('keeps main in the URL', () => {
     renderFilter('/?releaseLine=main');
     expect(screen.getByTestId('search')).toHaveTextContent('?releaseLine=main');
@@ -93,11 +114,32 @@ describe('ReleaseLineFilter', () => {
     expect(screen.getByTestId('search')).toHaveTextContent('');
   });
 
+  it('fills a grid cell of a filter bar, and leaves no empty cell when hidden', () => {
+    const { container, rerender } = render(
+      <MemoryRouter>
+        <ReleaseLineFilter namespace="default" component="hello" gridItem />
+      </MemoryRouter>,
+    );
+    expect(
+      screen
+        .getByRole('button', { name: /All lines/ })
+        .closest('.MuiGrid-item'),
+    ).toBeInTheDocument();
+
+    mockLines.lines = [];
+    rerender(
+      <MemoryRouter>
+        <ReleaseLineFilter namespace="default" component="hello" gridItem />
+      </MemoryRouter>,
+    );
+    expect(container.querySelector('.MuiGrid-item')).toBeNull();
+  });
+
   it('is hidden on a release line page, which is scoped to its line', () => {
     mockPageLine = 'next';
     renderFilter('/?releaseLine=canary');
 
-    expect(screen.queryByLabelText('Release line')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Release Line')).not.toBeInTheDocument();
     expect(screen.getByTestId('search')).toHaveTextContent(
       '?releaseLine=canary',
     );

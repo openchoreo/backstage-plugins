@@ -1,4 +1,4 @@
-import { FC, ChangeEvent } from 'react';
+import { FC, ChangeEvent, ReactNode } from 'react';
 import {
   FormControl,
   InputLabel,
@@ -17,6 +17,7 @@ import {
   SELECTED_FIELDS,
   EventEntryField,
 } from './types';
+import { useFilterRowStyles } from '../common/styles';
 
 interface EventsFilterProps {
   filters: RuntimeEventsFilters;
@@ -24,6 +25,8 @@ interface EventsFilterProps {
   environments: Environment[];
   environmentsLoading: boolean;
   disabled?: boolean;
+  /** Release line filter, placed before the environment. */
+  releaseLineFilter?: ReactNode;
 }
 
 export const EventsFilter: FC<EventsFilterProps> = ({
@@ -32,7 +35,9 @@ export const EventsFilter: FC<EventsFilterProps> = ({
   environments,
   environmentsLoading,
   disabled = false,
+  releaseLineFilter,
 }) => {
+  const filterRowClasses = useFilterRowStyles();
   const handleSelectedFieldsChange = (
     event: ChangeEvent<{ value: unknown }>,
   ) => {
@@ -50,7 +55,7 @@ export const EventsFilter: FC<EventsFilterProps> = ({
   };
 
   return (
-    <Grid container spacing={2}>
+    <Grid container spacing={2} className={filterRowClasses.row}>
       <Grid item xs={12} md={3}>
         <FormControl fullWidth disabled={disabled} variant="outlined">
           <InputLabel id="selected-fields-label">Selected Fields</InputLabel>
@@ -78,6 +83,8 @@ export const EventsFilter: FC<EventsFilterProps> = ({
           </Select>
         </FormControl>
       </Grid>
+
+      {releaseLineFilter}
 
       <Grid item xs={12} md={2}>
         <EnvironmentFilter
