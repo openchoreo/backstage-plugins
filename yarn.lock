@@ -10515,6 +10515,7 @@ __metadata:
     "@backstage/catalog-client": "npm:^1.15.1"
     "@backstage/catalog-model": "npm:^1.9.0"
     "@backstage/cli": "npm:^0.36.2"
+    "@openchoreo/backstage-plugin-common": "workspace:^"
     "@openchoreo/openchoreo-auth": "workspace:^"
     "@openchoreo/openchoreo-client-node": "workspace:^"
     luxon: "npm:^3.7.2"
