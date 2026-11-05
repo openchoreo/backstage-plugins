@@ -34,11 +34,13 @@
     "@backstage/backend-plugin-api": "^1.9.1",
     "@backstage/catalog-client": "^1.15.1",
     "@backstage/catalog-model": "^1.9.0",
+    "@openchoreo/backstage-plugin-common": "workspace:^",
     "@openchoreo/openchoreo-auth": "workspace:^",
     "@openchoreo/openchoreo-client-node": "workspace:^",
     "luxon": "^3.7.2"
   },
   "devDependencies": {
+    "@backstage/backend-test-utils": "^1.11.3",
     "@backstage/cli": "^0.36.2"
   },
   "files": [
