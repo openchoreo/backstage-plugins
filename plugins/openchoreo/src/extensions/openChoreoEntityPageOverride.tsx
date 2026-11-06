@@ -8,6 +8,7 @@ import catalogPluginAlphaBase from '@backstage/plugin-catalog/alpha';
 import { EntityContentBlueprint } from '@backstage/plugin-catalog-react/alpha';
 import type { Entity } from '@backstage/catalog-model';
 import type { OpenChoreoRoute } from './OpenChoreoCatalogEntityPageContent';
+import { sortByGroupOrder } from './entityContentGroupOrder';
 
 // Handles callable filters + simple `kind:x,y` / `type:x,y` expressions.
 // Other expression shapes warn and hide the tab.
@@ -46,32 +47,6 @@ function buildFilterFn(
 // TODO(nfs-native): replace with `EntityHeaderLayoutBlueprint` once we're
 // on Backstage >= 1.52; drops this file + OpenChoreoCatalogEntityPageContent.
 
-// Tab-group order for the flat tab bar. Tabs whose `group` is missing here
-// fall to the end in registration order.
-const GROUP_ORDER = [
-  'overview',
-  'documentation',
-  'definition',
-  'api-try-out',
-  'development',
-  'build',
-  'deploy',
-  'cell-diagram',
-  'diagram',
-  'logs',
-  'events',
-  'metrics',
-  'alerts',
-  'wirelogs',
-  'traces',
-  'incidents',
-  'rca-reports',
-  'cost-analysis',
-  'deployment',
-  'operation',
-  'observability',
-  'external',
-] as const;
 export const openChoreoEntityPageOverride = createFrontendModule({
   pluginId: 'catalog',
   extensions: [
@@ -100,22 +75,13 @@ export const openChoreoEntityPageOverride = createFrontendModule({
               ),
             } satisfies OpenChoreoRoute,
             group,
-            registrationIndex,
           };
         });
 
-        // Sort by GROUP_ORDER (unknown → end), tie-break on registration order.
-        const groupPriority = (group: string) => {
-          const i = (GROUP_ORDER as readonly string[]).indexOf(group);
-          return i === -1 ? GROUP_ORDER.length : i;
-        };
-        decorated.sort((a, b) => {
-          const gp = groupPriority(a.group) - groupPriority(b.group);
-          if (gp !== 0) return gp;
-          return a.registrationIndex - b.registrationIndex;
-        });
-
-        const routes: OpenChoreoRoute[] = decorated.map(d => d.route);
+        const routes: OpenChoreoRoute[] = sortByGroupOrder(
+          decorated,
+          d => d.group,
+        ).map(d => d.route);
 
         return originalFactory({
           params: {
