@@ -21,6 +21,17 @@ app:
   # For local k3d: http://openchoreo.localhost (set via https://github.com/openchoreo/openchoreo install/dev/openchoreo-values.yaml)
   # For production: external ingress URL (set via https://github.com/openchoreo/openchoreo install/helm/openchoreo/values.yaml backstage.baseUrl)
   baseUrl: ${BACKSTAGE_BASE_URL}
+  # Support links behind the Support button in the Catalog, APIs and Create
+  # page headers. The button renders only when this block is set, so leaving
+  # it out (the default) keeps those headers as they are.
+  # support:
+  #   url: https://github.com/openchoreo/openchoreo/issues
+  #   items:
+  #     - title: Issue tracker
+  #       icon: github
+  #       links:
+  #         - url: https://github.com/openchoreo/openchoreo/issues
+  #           title: Report a problem
   # Frontend feature discovery, and the whole of this portal's composition.
   # Installs any dependency of `packages/app` whose `backstage.role` is
   # frontend-plugin/frontend-plugin-module and whose root or `./alpha` entry
