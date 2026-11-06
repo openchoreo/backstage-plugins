@@ -83,6 +83,9 @@ export function ProjectDiagram(props: ProjectDiagramProps) {
 
   const cellNodeWidth = useRef<number>(0); // INFO: use this reference to check if cell node width should change
   const observationSummary = useRef<ObservationSummary | null>(null);
+  // The pending layout pass of the latest draw. A draw replaces the one before it,
+  // so its pass is cancelled rather than left to lay out a model no longer shown.
+  const drawTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const styles = useStyles();
 
@@ -92,6 +95,7 @@ export function ProjectDiagram(props: ProjectDiagramProps) {
       drawDiagram();
     }
     return () => {
+      clearTimeout(drawTimer.current);
       diagramEngine
         .getModel()
         ?.getNodes()
@@ -212,7 +216,8 @@ export function ProjectDiagram(props: ProjectDiagramProps) {
     // update observability summary
     observationSummary.current = diagramData.observationSummary;
 
-    setTimeout(() => {
+    clearTimeout(drawTimer.current);
+    drawTimer.current = setTimeout(() => {
       // manual distribute - update empty node, external node and connector node position based on cell node position
       manualDistribute(model);
       if (diagramEngine.getCanvas()?.getBoundingClientRect !== undefined) {
