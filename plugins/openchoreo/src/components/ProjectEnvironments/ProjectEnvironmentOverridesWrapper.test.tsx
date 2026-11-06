@@ -13,11 +13,13 @@ jest.mock('./ProjectEnvironmentOverridesPage', () => ({
   ProjectEnvironmentOverridesPage: ({
     envName,
     releaseFromUrl,
+    action,
     onBack,
   }: any) => (
     <div>
       <span data-testid="envName">{envName}</span>
       <span data-testid="release">{releaseFromUrl ?? '(none)'}</span>
+      <span data-testid="action">{action ?? '(none)'}</span>
       <button onClick={onBack}>back</button>
     </div>
   ),
@@ -45,7 +47,14 @@ describe('ProjectEnvironmentOverridesWrapper', () => {
     expect(screen.getByTestId('release').textContent).toBe('rel-2');
   });
 
-  it('omits releaseFromUrl when action is not deploy', () => {
+  it('passes the selected release and promotion action from the route', () => {
+    renderAt('/overrides/staging?action=promote&release=rel-2');
+    expect(screen.getByTestId('envName').textContent).toBe('staging');
+    expect(screen.getByTestId('release').textContent).toBe('rel-2');
+    expect(screen.getByTestId('action').textContent).toBe('promote');
+  });
+
+  it('omits releaseFromUrl when no deployment or promotion action is selected', () => {
     renderAt('/overrides/development?release=rel-2');
     expect(screen.getByTestId('release').textContent).toBe('(none)');
   });
