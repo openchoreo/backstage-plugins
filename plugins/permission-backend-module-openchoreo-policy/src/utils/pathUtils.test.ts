@@ -2,6 +2,7 @@ import {
   parseCapabilityPath,
   isPathCoveredBy,
   hasUncoveredAllowedPath,
+  collapsePaths,
 } from './pathUtils';
 
 describe('parseCapabilityPath', () => {
@@ -183,5 +184,54 @@ describe('hasUncoveredAllowedPath', () => {
         ['ns/acme'],
       ),
     ).toBe(true);
+  });
+});
+
+describe('collapsePaths', () => {
+  it('keeps unrelated paths and drops duplicates', () => {
+    expect(collapsePaths([])).toEqual([]);
+    expect(
+      collapsePaths(['ns/acme/project/foo', 'ns/other', 'ns/acme/project/foo']),
+    ).toEqual(['ns/acme/project/foo', 'ns/other']);
+  });
+
+  it('collapses to the global wildcard when present', () => {
+    expect(collapsePaths(['ns/acme/project/foo', '*', 'ns/other'])).toEqual([
+      '*',
+    ]);
+  });
+
+  it('drops paths implied by a broader path', () => {
+    // A project-scoped role bound per project collapses into the namespace
+    // grant a namespace-wide role already provides.
+    expect(
+      collapsePaths([
+        'ns/acme',
+        'ns/acme/project/foo',
+        'ns/acme/project/bar',
+        'ns/acme/project/baz/component/svc',
+      ]),
+    ).toEqual(['ns/acme']);
+
+    expect(collapsePaths(['ns/*', 'ns/acme/project/foo'])).toEqual(['ns/*']);
+    expect(
+      collapsePaths(['ns/acme/project/foo', 'ns/acme/project/foo/component/a']),
+    ).toEqual(['ns/acme/project/foo']);
+  });
+
+  it('keeps one of two paths describing the same scope', () => {
+    expect(collapsePaths(['ns/acme', 'ns/acme/project/*'])).toEqual([
+      'ns/acme',
+    ]);
+    expect(collapsePaths(['ns/acme/project/*', 'ns/acme'])).toEqual([
+      'ns/acme/project/*',
+    ]);
+  });
+
+  it('leaves malformed paths in place', () => {
+    expect(collapsePaths(['ns/acme', 'garbage'])).toEqual([
+      'ns/acme',
+      'garbage',
+    ]);
   });
 });
