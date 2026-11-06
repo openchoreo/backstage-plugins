@@ -514,6 +514,19 @@ permission:
 
 # Tech Insights — scorecards/checks against catalog entities.
 techInsights:
+  factRetrievers:
+    # None of the built-in retrievers are enabled; a built-in with no entry
+    # here is never scheduled. Retrievers added via the
+    # techInsightsFactRetrieversExtensionPoint are likewise silently dropped
+    # unless listed here.
+    #
+    # timeToLive is enforced on every run across all entities, so it is kept
+    # at several cadences: an entity skipped by a transient failure keeps
+    # its last facts instead of losing them after one missed run.
+    openchoreoComponentTypeFactRetriever:
+      cadence: '0 * * * *'
+      initialDelay: { seconds: 20 }
+      lifecycle: { timeToLive: { days: 1 } }
   # No factChecker.checks: checks are stored by
   # tech-insights-backend-module-dynamic-checks and managed on the
   # Scorecards page.
