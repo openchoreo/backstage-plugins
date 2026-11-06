@@ -4,6 +4,7 @@ import {
   filterCoversKinds,
   humanizeKind,
   inSentence,
+  kindsFromChecks,
   kindsOfFilter,
   pluralOf,
   titleCase,
@@ -21,6 +22,50 @@ describe('titleCase', () => {
 
   it('capitalizes a minor word that comes first', () => {
     expect(titleCase('the check')).toBe('The Check');
+  });
+});
+
+function check(filter?: unknown) {
+  return {
+    id: 'c',
+    type: 'json-rules-engine',
+    name: 'c',
+    description: '',
+    factIds: [],
+    filter,
+  } as Parameters<typeof kindsFromChecks>[0][number];
+}
+
+describe('kindsFromChecks', () => {
+  it('collects kinds from string and array filters, lowercased', () => {
+    expect(
+      kindsFromChecks([
+        check({ kind: 'Component' }),
+        check({ kind: ['System', 'group'] }),
+      ]),
+    ).toEqual(['component', 'group', 'system']);
+  });
+
+  it('reads every object of an array filter', () => {
+    expect(
+      kindsFromChecks([check([{ kind: 'API' }, { kind: 'Component' }])]),
+    ).toEqual(['api', 'component']);
+  });
+
+  it('treats a missing filter as every kind', () => {
+    expect(kindsFromChecks([check({ kind: 'Component' }), check()])).toBe(
+      'all',
+    );
+  });
+
+  it('treats a filter object without a kind as every kind', () => {
+    expect(
+      kindsFromChecks([check([{ kind: 'Component' }, { 'spec.type': 'x' }])]),
+    ).toBe('all');
+  });
+
+  it('matches the kind key without regard to case', () => {
+    expect(kindsFromChecks([check({ Kind: 'Domain' })])).toEqual(['domain']);
   });
 });
 

@@ -19,6 +19,7 @@
     "lint": "backstage-cli package lint"
   },
   "dependencies": {
+    "@backstage-community/plugin-tech-insights-maturity": "^0.9.2",
     "@backstage/cli": "^0.36.2",
     "@backstage/frontend-defaults": "^0.5.2",
     "@backstage/ui": "^0.15.0",

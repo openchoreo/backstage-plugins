@@ -29,10 +29,23 @@ describe('ScorecardsGate', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('shows its fallback instead of the notice when given one', async () => {
+    await renderWithApis(
+      <ScorecardsGate fallback={null}>
+        <p>Scores</p>
+      </ScorecardsGate>,
+      { config: turnedOff },
+    );
+    expect(screen.queryByText('Scores')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Scorecards is turned off'),
+    ).not.toBeInTheDocument();
+  });
+
   it('keeps the page heading and calls no backend when turned off', async () => {
     const { api } = await renderWithApis(
       <ScorecardsGate pageTitle="Scorecards">
-        <ScorecardsPage title="Scorecards" />
+        <ScorecardsPage title="Scorecards" showChecks />
       </ScorecardsGate>,
       { config: turnedOff },
     );
