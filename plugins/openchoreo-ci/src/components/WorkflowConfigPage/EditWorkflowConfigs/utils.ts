@@ -47,26 +47,44 @@ const isEmptyValue = (value: unknown): boolean =>
   (Array.isArray(value) && value.length === 0) ||
   (isPlainObject(value) && Object.keys(value).length === 0);
 
+const asSchema = (definition: unknown): JSONSchema7 | undefined =>
+  isPlainObject(definition) ? (definition as JSONSchema7) : undefined;
+
 /**
- * Drops empty values ('' / null / undefined / [] / {}) that are not present in
- * `initial`. RJSF injects schema defaults into formData on change; without
- * this, untouched optional fields show up as new changes and get persisted.
- * Keys present in `initial` are always kept, so an intentional clear survives.
+ * Removes values that RJSF injected from schema defaults but the user never
+ * set, so untouched optional fields are neither shown as changes nor saved.
+ *
+ * A value is dropped only when it is absent from `initial`, empty
+ * ('' / null / undefined / [] / {}), and its schema default is empty or
+ * missing. Values present in `initial` are always kept, and so is an explicit
+ * empty value that overrides a non-empty schema default (e.g. clearing an
+ * array whose default has items). Array items are pruned against the stored
+ * item at the same index; items themselves are never removed.
  */
 export function pruneUnsetEmptyValues(
   current: unknown,
   initial: unknown,
+  schema?: JSONSchema7,
 ): unknown {
+  if (Array.isArray(current)) {
+    const itemSchema = asSchema(schema?.items);
+    const baseItems = Array.isArray(initial) ? initial : [];
+    return current.map((item, index) =>
+      pruneUnsetEmptyValues(item, baseItems[index], itemSchema),
+    );
+  }
   if (!isPlainObject(current)) return current;
+
   const base = isPlainObject(initial) ? initial : {};
   const result: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(current)) {
+    const propertySchema = asSchema(schema?.properties?.[key]);
+    const pruned = pruneUnsetEmptyValues(value, base[key], propertySchema);
     const existed = Object.prototype.hasOwnProperty.call(base, key);
-    const pruned = isPlainObject(value)
-      ? pruneUnsetEmptyValues(value, base[key])
-      : value;
-    if (!existed && isEmptyValue(pruned)) continue;
+    const isInjectedDefault =
+      isEmptyValue(pruned) && isEmptyValue(propertySchema?.default);
+    if (!existed && (pruned === undefined || isInjectedDefault)) continue;
     result[key] = pruned;
   }
 

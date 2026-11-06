@@ -391,11 +391,12 @@ export const WorkflowConfigPage = ({
   // changes nor saved.
   const effectiveFormData = useMemo(
     () =>
-      pruneUnsetEmptyValues(formData, initialFormData) as Record<
-        string,
-        unknown
-      >,
-    [formData, initialFormData],
+      pruneUnsetEmptyValues(
+        formData,
+        initialFormData,
+        schema ?? undefined,
+      ) as Record<string, unknown>,
+    [formData, initialFormData, schema],
   );
 
   // Use shared change detection hook
