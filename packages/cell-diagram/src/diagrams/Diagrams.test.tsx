@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom';
 import { act, render } from '@testing-library/react';
-import { ReactNode } from 'react';
+import { ReactNode, StrictMode } from 'react';
+import { DiagramEngine, DiagramModel } from '@projectstorm/react-diagrams';
 import { CellDiagramThemeProvider } from '../theme';
 import { ComponentType, Organization, Project } from '../types';
 import { MAIN_CELL, PROJECT_NODE } from '../resources';
@@ -52,12 +53,30 @@ function finishLoading() {
   });
 }
 
+/**
+ * Whether a model was set on the engine again after another had replaced it:
+ * a stale draw laying out its model over the newer one.
+ */
+function setStaleModel(models: DiagramModel[]) {
+  const replaced = new Set<DiagramModel>();
+  return models.some((model, i) => {
+    if (replaced.has(model)) return true;
+    if (i > 0 && models[i - 1] !== model) replaced.add(models[i - 1]);
+    return false;
+  });
+}
+
+function modelsSet(setModel: jest.SpyInstance) {
+  return setModel.mock.calls.map(([model]) => model as DiagramModel);
+}
+
 beforeEach(() => {
   jest.useFakeTimers();
 });
 
 afterEach(() => {
   jest.useRealTimers();
+  jest.restoreAllMocks();
 });
 
 describe('ProjectDiagram', () => {
@@ -81,6 +100,48 @@ describe('ProjectDiagram', () => {
     expect(
       container.querySelector(`div[data-nodeid="${MAIN_CELL}"]`),
     ).not.toHaveClass(RevealClass.SCALE);
+  });
+});
+
+describe('drawing again before the diagram has loaded', () => {
+  it('lays out only the latest project model under StrictMode', () => {
+    const setModel = jest.spyOn(DiagramEngine.prototype, 'setModel');
+    render(
+      <StrictMode>
+        <ProjectDiagram project={project} />
+      </StrictMode>,
+      { wrapper: Wrapper },
+    );
+    finishLoading();
+
+    expect(setStaleModel(modelsSet(setModel))).toBe(false);
+  });
+
+  it('lays out only the latest project model when the project changes', () => {
+    const setModel = jest.spyOn(DiagramEngine.prototype, 'setModel');
+    const { rerender } = render(<ProjectDiagram project={project} />, {
+      wrapper: Wrapper,
+    });
+    act(() => {
+      jest.advanceTimersByTime(500);
+    });
+    rerender(<ProjectDiagram project={{ ...project, id: 'B', name: 'B' }} />);
+    finishLoading();
+
+    expect(setStaleModel(modelsSet(setModel))).toBe(false);
+  });
+
+  it('lays out only the latest organization model under StrictMode', () => {
+    const setModel = jest.spyOn(DiagramEngine.prototype, 'setModel');
+    render(
+      <StrictMode>
+        <OrgDiagram organization={organization} />
+      </StrictMode>,
+      { wrapper: Wrapper },
+    );
+    finishLoading();
+
+    expect(setStaleModel(modelsSet(setModel))).toBe(false);
   });
 });
 

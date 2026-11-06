@@ -1,4 +1,10 @@
-import { MouseEvent, useEffect, useLayoutEffect, useState } from 'react';
+import {
+  MouseEvent,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { DiagramEngine, DiagramModel } from '@projectstorm/react-diagrams';
 import { CanvasWidget } from '@projectstorm/react-canvas-core';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -56,6 +62,9 @@ export function OrgDiagram(props: OrgDiagramProps) {
   const [isDiagramLoaded, setIsDiagramLoaded] = useState(false);
 
   const styles = useStyles();
+  // The pending layout pass of the latest draw. A draw replaces the one before it,
+  // so its pass is cancelled rather than left to lay out a model no longer shown.
+  const drawTimer = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     if (diagramEngine) {
@@ -63,6 +72,7 @@ export function OrgDiagram(props: OrgDiagramProps) {
       drawDiagram();
     }
     return () => {
+      clearTimeout(drawTimer.current);
       diagramEngine
         .getModel()
         ?.getNodes()
@@ -127,7 +137,8 @@ export function OrgDiagram(props: OrgDiagramProps) {
     diagramEngine.setModel(model);
     setDiagramModel(model);
 
-    setTimeout(() => {
+    clearTimeout(drawTimer.current);
+    drawTimer.current = setTimeout(() => {
       const dagreEngine = new DagreEngine({
         graph: {
           rankdir: 'LR',
