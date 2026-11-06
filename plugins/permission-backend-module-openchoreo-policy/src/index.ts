@@ -33,6 +33,8 @@ export {
   // Catalog entity permission rule (for catalog-entity resource type)
   matchesCatalogEntityCapability,
   openchoreoСatalogPermissionRules,
+  encodeKindCapabilities,
+  decodeKindCapabilities,
 } from './rules';
 export type {
   MatchesCapabilityParams,

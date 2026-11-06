@@ -138,3 +138,38 @@ export function hasUncoveredAllowedPath(
     ap => !deniedPaths.some(dp => isPathCoveredBy(ap, dp)),
   );
 }
+
+/**
+ * Removes paths that are already implied by a broader path in the same list.
+ *
+ * Both the allow and the deny check are "does **any** path in this list match
+ * the entity scope", so a path covered by another path in the same list can
+ * never change the outcome. Dropping it keeps the serialized capability
+ * payload — which the permission framework repeats once per authorized
+ * resource — from growing with every role binding a user accumulates.
+ *
+ * Invalid paths are left untouched: they match nothing, but silently dropping
+ * them would hide a malformed capability.
+ *
+ * @example
+ * collapsePaths(["*", "ns/acme", "ns/acme/project/foo"]) // ["*"]
+ * collapsePaths(["ns/acme", "ns/acme/project/foo"]) // ["ns/acme"]
+ * collapsePaths(["ns/acme/project/foo", "ns/other"]) // unchanged
+ */
+export function collapsePaths(paths: string[]): string[] {
+  const unique = [...new Set(paths)];
+  if (unique.includes('*')) {
+    return ['*'];
+  }
+
+  return unique.filter((path, index) =>
+    unique.every((other, otherIndex) => {
+      if (otherIndex === index || !isPathCoveredBy(path, other)) {
+        return true;
+      }
+      // Mutually covering paths (e.g. "ns/acme" and "ns/acme/project/*")
+      // describe the same scope — keep the first and drop the rest.
+      return isPathCoveredBy(other, path) && otherIndex > index;
+    }),
+  );
+}

@@ -4,7 +4,14 @@ import { RESOURCE_TYPE_CATALOG_ENTITY } from '@backstage/plugin-catalog-common/a
 import { EntitiesSearchFilter } from '@backstage/plugin-catalog-node';
 import { makeCreatePermissionRule } from '@backstage/plugin-permission-node';
 import { PermissionCriteria } from '@backstage/plugin-permission-common';
-import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import {
+  CHOREO_ANNOTATIONS,
+  OPENCHOREO_MANAGED_ENTITY_KINDS,
+} from '@openchoreo/backstage-plugin-common';
+import {
+  decodeKindCapabilities,
+  type KindCapabilities,
+} from './kindCapabilityCodec';
 
 /**
  * Helper to create catalog permission rules with correct typing.
@@ -15,21 +22,7 @@ const createCatalogPermissionRule = makeCreatePermissionRule<
   typeof RESOURCE_TYPE_CATALOG_ENTITY
 >();
 
-/**
- * Type for kind-specific capability data.
- * Each managed entity kind (Component, System, Domain) can have different
- * allowed/denied paths based on the corresponding OpenChoreo action.
- */
-export interface KindCapability {
-  /** The OpenChoreo action for this kind (e.g., 'component:view', 'project:view') */
-  action: string;
-  /** Allowed paths from user's capabilities for this action */
-  allowedPaths: string[];
-  /** Denied paths from user's capabilities for this action */
-  deniedPaths: string[];
-}
-
-export type KindCapabilities = Record<string, KindCapability>;
+export type { KindCapability, KindCapabilities } from './kindCapabilityCodec';
 
 /**
  * Params for the `matchesCatalogEntityCapability` rule. Hand-written rather
@@ -42,13 +35,19 @@ export type KindCapabilities = Record<string, KindCapability>;
  */
 export type MatchesCatalogEntityCapabilityParams = {
   /**
-   * JSON-serialized kind-specific capability mappings.
-   * Keys are lowercase entity kinds (e.g., 'component', 'system', 'domain').
-   * Values contain the action and paths for that kind.
+   * Serialized kind-specific capability mappings, keyed by lowercase entity
+   * kind (e.g. 'component', 'system', 'domain'). Produce it with
+   * `encodeKindCapabilities` — the compact form keeps the condition small,
+   * which matters because the permission framework repeats these params once
+   * per authorized resource.
    */
   kindCapabilitiesJson: string;
-  /** Entity kinds this rule applies to (e.g., ['Component', 'System', 'Domain']) */
-  kinds: string[];
+  /**
+   * Entity kinds this rule applies to (e.g., ['Component', 'System', 'Domain']).
+   * Defaults to all OpenChoreo-managed kinds when omitted; omitting it keeps
+   * the kind list out of the serialized condition.
+   */
+  kinds?: string[];
 };
 
 /**
@@ -372,13 +371,14 @@ export const matchesCatalogEntityCapability = createCatalogPermissionRule({
   resourceType: RESOURCE_TYPE_CATALOG_ENTITY,
   paramsSchema: z.object({
     kindCapabilitiesJson: z.string(),
-    kinds: z.array(z.string()),
+    kinds: z.array(z.string()).optional(),
   }),
   apply: (entity, params) => {
-    const { kindCapabilitiesJson, kinds } = params;
+    const { kindCapabilitiesJson } = params;
+    const kinds = params.kinds ?? OPENCHOREO_MANAGED_ENTITY_KINDS;
 
-    // Parse the JSON-serialized kindCapabilities
-    const kindCapabilities: KindCapabilities = JSON.parse(kindCapabilitiesJson);
+    const kindCapabilities: KindCapabilities =
+      decodeKindCapabilities(kindCapabilitiesJson);
 
     // First check if entity kind matches
     const entityKind = entity.kind.toLowerCase();
@@ -469,11 +469,11 @@ export const matchesCatalogEntityCapability = createCatalogPermissionRule({
     return false;
   },
   toQuery: ({
-    kinds,
+    kinds = OPENCHOREO_MANAGED_ENTITY_KINDS,
     kindCapabilitiesJson,
   }): PermissionCriteria<EntitiesSearchFilter> => {
-    // Parse the JSON-serialized kindCapabilities
-    const kindCapabilities: KindCapabilities = JSON.parse(kindCapabilitiesJson);
+    const kindCapabilities: KindCapabilities =
+      decodeKindCapabilities(kindCapabilitiesJson);
     const managedKindFilter: EntitiesSearchFilter = {
       key: 'kind',
       values: kinds.map(k => k.toLowerCase()),
