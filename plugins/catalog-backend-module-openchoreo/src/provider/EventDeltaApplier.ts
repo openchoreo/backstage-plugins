@@ -132,6 +132,7 @@ export class EventDeltaApplier {
   private readonly defaultOwner: string;
   private readonly translatorContext: NewApiTranslatorContext;
   private readonly getConnection: () => EntityProviderConnection | undefined;
+  private readonly onEntitiesRemoved?: (entityRefs: string[]) => void;
   private readonly ctdConverter: CtdToTemplateConverter;
   private readonly rtdConverter: RtdToTemplateConverter;
   private readonly ptdConverter: PtdToTemplateConverter;
@@ -146,6 +147,11 @@ export class EventDeltaApplier {
     defaultOwner: string;
     translatorContext: NewApiTranslatorContext;
     getConnection: () => EntityProviderConnection | undefined;
+    /**
+     * Notified with the refs of every entity a delete event removes, before
+     * the removal is applied, so the provider can stop tracking them.
+     */
+    onEntitiesRemoved?: (entityRefs: string[]) => void;
     ctdConverter: CtdToTemplateConverter;
     rtdConverter: RtdToTemplateConverter;
     ptdConverter: PtdToTemplateConverter;
@@ -174,6 +180,7 @@ export class EventDeltaApplier {
     this.ptdConverter = opts.ptdConverter;
     this.remoteTemplateFetcher = opts.remoteTemplateFetcher;
     this.getConnection = opts.getConnection;
+    this.onEntitiesRemoved = opts.onEntitiesRemoved;
     this.catalogService = opts.catalogService;
     this.auth = opts.auth;
   }
@@ -234,6 +241,7 @@ export class EventDeltaApplier {
     if (!connection || refs.length === 0) {
       return;
     }
+    this.onEntitiesRemoved?.(refs);
     await connection.applyMutation({
       type: 'delta',
       added: [],

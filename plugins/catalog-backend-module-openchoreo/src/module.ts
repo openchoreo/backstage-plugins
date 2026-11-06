@@ -8,7 +8,6 @@ import {
   catalogServiceRef,
 } from '@backstage/plugin-catalog-node';
 import { OpenChoreoEntityProvider } from './provider/OpenChoreoEntityProvider';
-import { ScaffolderEntityProvider } from './provider/ScaffolderEntityProvider';
 import {
   EnvironmentEntityProcessor,
   DataplaneEntityProcessor,
@@ -39,6 +38,7 @@ import {
   immediateCatalogServiceRef,
   ImmediateCatalogService,
 } from './service/ImmediateCatalogService';
+import { immediateCatalogBridgeRef } from './service/ImmediateCatalogBridge';
 import {
   annotationStoreRef,
   AnnotationStore,
@@ -49,10 +49,6 @@ import { openChoreoTokenServiceRef } from '@openchoreo/openchoreo-auth';
 import { matchesCatalogEntityCapability } from '@openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy';
 import { eventsServiceRef } from '@backstage/plugin-events-node';
 import { OpenChoreoEventRouter } from './events/OpenChoreoEventRouter';
-
-// Singleton instance of the ScaffolderEntityProvider
-// This will be shared across the module and the service
-let scaffolderProviderInstance: ScaffolderEntityProvider | undefined;
 
 // Singleton promise for the AnnotationStore
 // Shared between the catalog module (processor) and the service factory (API routes)
@@ -82,6 +78,7 @@ export const catalogModuleOpenchoreo = createBackendModule({
         annotationStore: annotationStoreRef,
         events: eventsServiceRef,
         urlReader: coreServices.urlReader,
+        immediateCatalogBridge: immediateCatalogBridgeRef,
       },
       async init({
         catalog,
@@ -95,6 +92,7 @@ export const catalogModuleOpenchoreo = createBackendModule({
         annotationStore,
         events,
         urlReader,
+        immediateCatalogBridge,
       }) {
         const openchoreoConfig = config.getOptionalConfig('openchoreo');
         const frequency =
@@ -209,28 +207,24 @@ export const catalogModuleOpenchoreo = createBackendModule({
         // Register the scheduled OpenChoreo entity provider. When
         // events are disabled we pass `undefined` so the provider's
         // `connect()` skips its event subscriptions.
-        catalog.addEntityProvider(
-          new OpenChoreoEntityProvider(
-            taskRunner,
-            logger,
-            config,
-            tokenService,
-            eventsEnabled ? events : undefined,
-            catalogService,
-            auth,
-            urlReader,
-          ),
+        const openChoreoProvider = new OpenChoreoEntityProvider(
+          taskRunner,
+          logger,
+          config,
+          tokenService,
+          eventsEnabled ? events : undefined,
+          catalogService,
+          auth,
+          urlReader,
         );
+        catalog.addEntityProvider(openChoreoProvider);
 
-        // Create and register the ScaffolderEntityProvider for immediate insertions
-        // Pass 'OpenChoreoEntityProvider' so it uses the same location key bucket
-        if (!scaffolderProviderInstance) {
-          scaffolderProviderInstance = new ScaffolderEntityProvider(
-            logger,
-            'OpenChoreoEntityProvider',
-          );
-        }
-        catalog.addEntityProvider(scaffolderProviderInstance);
+        // Route ImmediateCatalogService writes (scaffolder actions) through
+        // this provider, so it owns those entities and its delete events and
+        // full sync remove them. Rows left by the former
+        // ScaffolderEntityProvider are evicted by the catalog's
+        // orphaned-provider cleanup on startup.
+        immediateCatalogBridge.attach(openChoreoProvider);
 
         // Register OpenChoreo permission rule for catalog entities.
         // v1.51 `addPermissionRules` types its arg as
@@ -248,26 +242,18 @@ export const catalogModuleOpenchoreo = createBackendModule({
 /**
  * Factory for the ImmediateCatalogService.
  * This creates and provides the service instance that can be used by other modules.
+ * Calls are forwarded through the root-scoped bridge to the
+ * OpenChoreoEntityProvider registered by the catalog module.
  */
 export const immediateCatalogServiceFactory = createServiceFactory({
   service: immediateCatalogServiceRef,
   deps: {
-    logger: coreServices.logger,
+    bridge: immediateCatalogBridgeRef,
   },
-  async factory({ logger }): Promise<ImmediateCatalogService> {
-    // Ensure singleton instance exists
-    if (!scaffolderProviderInstance) {
-      scaffolderProviderInstance = new ScaffolderEntityProvider(
-        logger,
-        'OpenChoreoEntityProvider',
-      );
-    }
-
+  async factory({ bridge }): Promise<ImmediateCatalogService> {
     return {
-      insertEntity: async entity =>
-        scaffolderProviderInstance!.insertEntity(entity),
-      removeEntity: async entityRef =>
-        scaffolderProviderInstance!.removeEntity(entityRef),
+      insertEntity: async entity => bridge.insertEntity(entity),
+      removeEntity: async entityRef => bridge.removeEntity(entityRef),
     };
   },
 });

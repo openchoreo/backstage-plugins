@@ -7,12 +7,16 @@ import { LoggerService } from '@backstage/backend-plugin-api';
 
 /**
  * EntityProvider that supports immediate entity insertion via delta mutations.
- * This provider is used by the scaffolder to immediately add newly created
- * components to the catalog without waiting for the scheduled sync.
  *
- * IMPORTANT: This provider uses the same location key as OpenChoreoEntityProvider
- * to ensure that entities are managed in the same bucket. This allows the scheduled
- * full sync to naturally remove deleted components.
+ * The catalog records the provider that applies a mutation as the owner of
+ * the entities, regardless of the location key. Entities inserted here are
+ * therefore owned by this provider, and OpenChoreoEntityProvider's delete
+ * events and full sync cannot remove them. The location key only decides
+ * which provider may claim an entity whose ref conflicts.
+ *
+ * @deprecated No longer registered by the catalog module.
+ * `ImmediateCatalogService` now writes through `OpenChoreoEntityProvider`
+ * (see `OpenChoreoEntityProvider.insertEntity`).
  */
 export class ScaffolderEntityProvider implements EntityProvider {
   private connection?: EntityProviderConnection;
@@ -40,10 +44,7 @@ export class ScaffolderEntityProvider implements EntityProvider {
    * Immediately inserts an entity into the catalog using delta mutation.
    * This bypasses the scheduled sync and makes the entity visible immediately.
    *
-   * Uses the same location key as the main OpenChoreoEntityProvider to ensure
-   * that the entity is managed in the same bucket. When the scheduled sync runs,
-   * it will perform a full mutation that replaces all entities from the API,
-   * which naturally removes any deleted components.
+   * The entity is owned by this provider; see the class note.
    *
    * @param entity - The Backstage entity to insert
    */
@@ -59,8 +60,8 @@ export class ScaffolderEntityProvider implements EntityProvider {
     );
 
     try {
-      // Use the same location key as OpenChoreoEntityProvider
-      // This ensures entities are in the same bucket and full sync will manage them
+      // Lets OpenChoreoEntityProvider claim the entity on conflict; it does
+      // not change which provider owns it.
       const locationKey = `provider:${this.mainProviderName}`;
 
       await this.connection.applyMutation({
@@ -86,10 +87,8 @@ export class ScaffolderEntityProvider implements EntityProvider {
   }
 
   /**
-   * Immediately removes an entity from the catalog using delta mutation.
-   *
-   * Note: This is rarely needed since the scheduled full sync will automatically
-   * remove entities that no longer exist in the OpenChoreo API.
+   * Immediately removes an entity inserted by this provider using delta
+   * mutation.
    *
    * @param entityRef - The entity reference to remove
    */
@@ -101,7 +100,6 @@ export class ScaffolderEntityProvider implements EntityProvider {
     this.logger.info(`Removing entity immediately: ${entityRef}`);
 
     try {
-      // Use the same location key as OpenChoreoEntityProvider
       const locationKey = `provider:${this.mainProviderName}`;
 
       await this.connection.applyMutation({
