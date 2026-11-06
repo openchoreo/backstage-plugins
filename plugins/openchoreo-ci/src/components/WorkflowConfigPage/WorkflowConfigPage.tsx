@@ -49,7 +49,10 @@ import {
   DetailPageLayout,
 } from '@openchoreo/backstage-plugin-react';
 import { ChangesPreview } from './EditWorkflowConfigs/ChangesPreview';
-import { addTitlesToSchema } from './EditWorkflowConfigs/utils';
+import {
+  addTitlesToSchema,
+  pruneUnsetEmptyValues,
+} from './EditWorkflowConfigs/utils';
 import { walkSchemaForGitFields } from '../../utils/schemaExtensions';
 import { useStyles } from './styles';
 
@@ -383,10 +386,22 @@ export const WorkflowConfigPage = ({
     [],
   );
 
+  // RJSF fills schema defaults (e.g. secretRef: '') into formData on change.
+  // Strip the empty ones the user never set so they are neither shown as
+  // changes nor saved.
+  const effectiveFormData = useMemo(
+    () =>
+      pruneUnsetEmptyValues(formData, initialFormData) as Record<
+        string,
+        unknown
+      >,
+    [formData, initialFormData],
+  );
+
   // Use shared change detection hook
   const { changes, hasChanges, changeCount } = useChangeDetection(
     initialFormData,
-    formData,
+    effectiveFormData,
   );
 
   const handleSaveClick = () => {
@@ -438,13 +453,16 @@ export const WorkflowConfigPage = ({
             spec: {
               ...releaseLineResource.spec!,
               workflow: {
-                parameters: diffOverrides(formData, parameters ?? {}),
+                parameters: diffOverrides(effectiveFormData, parameters ?? {}),
               },
             },
           },
         );
       } else {
-        await client.updateComponentWorkflowParameters(entity, formData);
+        await client.updateComponentWorkflowParameters(
+          entity,
+          effectiveFormData,
+        );
       }
 
       setShowSaveConfirm(false);

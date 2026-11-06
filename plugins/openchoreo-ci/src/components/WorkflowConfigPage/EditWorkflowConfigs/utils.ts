@@ -36,3 +36,39 @@ export function addTitlesToSchema(schema: JSONSchema7): JSONSchema7 {
 
   return result;
 }
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const isEmptyValue = (value: unknown): boolean =>
+  value === undefined ||
+  value === null ||
+  value === '' ||
+  (Array.isArray(value) && value.length === 0) ||
+  (isPlainObject(value) && Object.keys(value).length === 0);
+
+/**
+ * Drops empty values ('' / null / undefined / [] / {}) that are not present in
+ * `initial`. RJSF injects schema defaults into formData on change; without
+ * this, untouched optional fields show up as new changes and get persisted.
+ * Keys present in `initial` are always kept, so an intentional clear survives.
+ */
+export function pruneUnsetEmptyValues(
+  current: unknown,
+  initial: unknown,
+): unknown {
+  if (!isPlainObject(current)) return current;
+  const base = isPlainObject(initial) ? initial : {};
+  const result: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(current)) {
+    const existed = Object.prototype.hasOwnProperty.call(base, key);
+    const pruned = isPlainObject(value)
+      ? pruneUnsetEmptyValues(value, base[key])
+      : value;
+    if (!existed && isEmptyValue(pruned)) continue;
+    result[key] = pruned;
+  }
+
+  return result;
+}
