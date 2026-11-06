@@ -19,6 +19,7 @@ import {
   StaticCheckRegistry,
 } from './EvaluableCheckRegistry';
 import type { CheckEvaluation } from './dryRun';
+import { createEntityAccessGate } from './entityAccess';
 import { createDynamicChecksRouter } from './router';
 import { CheckValidator } from './validation';
 
@@ -106,6 +107,9 @@ export const techInsightsModuleDynamicChecks = createBackendModule({
           },
         });
 
+        httpRouter.use(
+          createEntityAccessGate({ catalog, httpAuth, permissions }),
+        );
         httpRouter.use(
           await createDynamicChecksRouter({
             logger,

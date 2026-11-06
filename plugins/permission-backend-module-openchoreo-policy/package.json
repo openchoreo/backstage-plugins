@@ -40,6 +40,7 @@
     "@backstage/plugin-permission-common": "^0.9.9",
     "@backstage/plugin-permission-node": "^0.11.0",
     "@openchoreo/backstage-plugin-common": "workspace:^",
+    "@openchoreo/backstage-plugin-tech-insights-dynamic-checks-common": "workspace:^",
     "@openchoreo/openchoreo-auth": "workspace:^",
     "@openchoreo/openchoreo-client-node": "workspace:^",
     "express": "4.21.2",
