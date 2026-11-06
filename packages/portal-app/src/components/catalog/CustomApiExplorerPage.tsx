@@ -4,7 +4,14 @@ import FilterListIcon from '@material-ui/icons/FilterList';
 import { useRouteRef } from '@backstage/core-plugin-api';
 import { catalogImportPlugin } from '@backstage/plugin-catalog-import';
 import { Link } from 'react-router-dom';
-import { PageWithHeader, Content } from '@backstage/core-components';
+import {
+  Page,
+  Header,
+  Content,
+  SupportButton,
+} from '@backstage/core-components';
+import { useTranslationRef } from '@backstage/frontend-plugin-api';
+import { apiDocsTranslationRef } from '@backstage/plugin-api-docs/alpha';
 import {
   EntityKindPicker,
   EntityListProvider,
@@ -15,11 +22,17 @@ import { useStyles } from './styles';
 
 export const CustomApiExplorerPage = () => {
   const classes = useStyles();
+  const { t } = useTranslationRef(apiDocsTranslationRef);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const registerApiLink = useRouteRef(catalogImportPlugin.routes.importPage);
 
   return (
-    <PageWithHeader title="APIs" themeId="home">
+    <Page themeId="home">
+      <Header title="APIs">
+        <SupportButton>
+          {t('defaultApiExplorerPage.supportButtonTitle')}
+        </SupportButton>
+      </Header>
       <Content>
         <EntityListProvider pagination={{ mode: 'offset', limit: 25 }}>
           <EntityKindPicker initialFilter="api" hidden />
@@ -74,6 +87,6 @@ export const CustomApiExplorerPage = () => {
           </Box>
         </EntityListProvider>
       </Content>
-    </PageWithHeader>
+    </Page>
   );
 };

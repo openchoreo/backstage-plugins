@@ -1,7 +1,14 @@
 import { useState } from 'react';
 import { Box, Drawer, Grid } from '@material-ui/core';
 import FilterListIcon from '@material-ui/icons/FilterList';
-import { PageWithHeader, Content } from '@backstage/core-components';
+import {
+  Page,
+  Header,
+  Content,
+  SupportButton,
+} from '@backstage/core-components';
+import { useTranslationRef } from '@backstage/frontend-plugin-api';
+import { catalogTranslationRef } from '@backstage/plugin-catalog/alpha';
 import { EntityListProvider } from '@backstage/plugin-catalog-react';
 import { ChoreoEntityKindPicker } from './ChoreoEntityKindPicker';
 import { StarredFilter } from './CustomPersonalFilters';
@@ -18,10 +25,14 @@ export const CustomCatalogPage = ({
   initialKind = 'system',
 }: CustomCatalogPageProps) => {
   const classes = useStyles();
+  const { t } = useTranslationRef(catalogTranslationRef);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   return (
-    <PageWithHeader title="Catalog" themeId="home">
+    <Page themeId="home">
+      <Header title="Catalog">
+        <SupportButton>{t('indexPage.supportButtonContent')}</SupportButton>
+      </Header>
       <Content>
         <EntityListProvider pagination={{ mode: 'offset', limit: 25 }}>
           <SelectedKindProvider>
@@ -77,6 +88,6 @@ export const CustomCatalogPage = ({
           </SelectedKindProvider>
         </EntityListProvider>
       </Content>
-    </PageWithHeader>
+    </Page>
   );
 };

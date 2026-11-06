@@ -14,7 +14,13 @@ import WidgetsOutlinedIcon from '@material-ui/icons/WidgetsOutlined';
 import StorageOutlinedIcon from '@material-ui/icons/StorageOutlined';
 import AccountTreeOutlinedIcon from '@material-ui/icons/AccountTreeOutlined';
 import { useRouteRef, useApp } from '@backstage/core-plugin-api';
-import { DocsIcon, Page, Header, Content } from '@backstage/core-components';
+import {
+  DocsIcon,
+  Page,
+  Header,
+  Content,
+  SupportButton,
+} from '@backstage/core-components';
 import {
   EntityListProvider,
   EntityKindPicker,
@@ -25,6 +31,8 @@ import {
   TemplateGroups,
 } from '@backstage/plugin-scaffolder-react/alpha';
 import { scaffolderPlugin } from '@backstage/plugin-scaffolder';
+import { scaffolderTranslationRef } from '@backstage/plugin-scaffolder/alpha';
+import { useTranslationRef } from '@backstage/frontend-plugin-api';
 import { parseEntityRef, stringifyEntityRef } from '@backstage/catalog-model';
 import { buildTechDocsURL } from '@backstage/plugin-techdocs-react';
 import {
@@ -143,6 +151,8 @@ const RegisterExistingButton = ({ to }: { to: string | undefined }) => {
 /** Inner component that has access to EntityListProvider context */
 const TemplateListContent = (props: TemplateListPageProps) => {
   const classes = useStyles();
+  // Aliased: `t` is already used as a template-entity loop variable below.
+  const { t: translate } = useTranslationRef(scaffolderTranslationRef);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const isComponentsView = searchParams.get('view') === 'components';
@@ -920,6 +930,9 @@ const TemplateListContent = (props: TemplateListPageProps) => {
           'Create new software components using standard templates in your organization'
         }
       >
+        <SupportButton>
+          {translate('templateListPage.contentHeader.supportButtonTitle')}
+        </SupportButton>
         <ScaffolderPageContextMenu {...scaffolderPageContextMenuProps} />
       </Header>
       <Content>
