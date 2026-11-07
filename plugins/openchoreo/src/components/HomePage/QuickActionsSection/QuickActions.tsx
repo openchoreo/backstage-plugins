@@ -17,46 +17,61 @@ interface QuickActionsSectionProps {
   hideTitle?: boolean;
 }
 
-export const QuickActionsSection = ({
-  hideTitle = false,
-}: QuickActionsSectionProps = {}) => {
-  const classes = useStyles();
-  const { canCreate, loading: createPermLoading } =
-    useComponentCreatePermission();
+interface QuickAction {
+  title: string;
+  description: string;
+  link: string;
+  disabled?: boolean;
+  tooltip?: string;
+}
 
-  const quickActions = [
-    {
-      title: 'Create Component',
-      description: 'Start a new service',
-      link: '/create/templates/default/create-openchoreo-component',
-      disabled: !canCreate && !createPermLoading,
-      tooltip:
-        !canCreate && !createPermLoading
-          ? 'You do not have permission to create a component'
-          : '',
-    },
-    {
-      title: 'View My Projects',
-      description: 'Manage your work',
-      link: '/catalog?filters[kind]=System&filters[user]=owned',
-    },
-    {
-      title: 'View My Components',
-      description: 'View your components',
-      link: '/catalog?filters[kind]=Component&filters[user]=owned',
-    },
-    {
-      title: 'Browse Templates',
-      description: 'Available Golden Paths',
-      link: '/create',
-    },
-  ];
+const getQuickActions = (
+  canCreate: boolean,
+  createPermLoading: boolean,
+): QuickAction[] => [
+  {
+    title: 'Create Component',
+    description: 'Start a new service',
+    link: '/create/templates/default/create-openchoreo-component',
+    disabled: !canCreate && !createPermLoading,
+    tooltip:
+      !canCreate && !createPermLoading
+        ? 'You do not have permission to create a component'
+        : '',
+  },
+  {
+    title: 'View My Projects',
+    description: 'Manage your work',
+    link: '/catalog?filters[kind]=System&filters[user]=owned',
+  },
+  {
+    title: 'View My Components',
+    description: 'View your components',
+    link: '/catalog?filters[kind]=Component&filters[user]=owned',
+  },
+  {
+    title: 'Browse Templates',
+    description: 'Available Golden Paths',
+    link: '/create',
+  },
+];
+
+// Display only: takes the actions as props, so it can be shown without
+// checking permissions.
+const QuickActionsView = ({
+  actions,
+  hideTitle,
+}: {
+  actions: QuickAction[];
+  hideTitle: boolean;
+}) => {
+  const classes = useStyles();
 
   return (
     <Box className={classes.overviewSection}>
       {!hideTitle && <Typography variant="h3">Quick Actions</Typography>}
       <Grid container spacing={2} className={classes.quickActionsContainer}>
-        {quickActions.map((action, index) => (
+        {actions.map((action, index) => (
           <Grid item xs={12} sm={6} md={6} key={index}>
             <Tooltip title={action.tooltip ?? ''}>
               <Card
@@ -96,3 +111,28 @@ export const QuickActionsSection = ({
     </Box>
   );
 };
+
+export const QuickActionsSection = ({
+  hideTitle = false,
+}: QuickActionsSectionProps = {}) => {
+  const { canCreate, loading: createPermLoading } =
+    useComponentCreatePermission();
+
+  return (
+    <QuickActionsView
+      actions={getQuickActions(canCreate, createPermLoading)}
+      hideTitle={hideTitle}
+    />
+  );
+};
+
+// Static preview for the home page "Add widget" gallery. It never checks
+// permissions or calls an API, so every action is shown as available.
+export const QuickActionsSectionPreview = ({
+  hideTitle = false,
+}: QuickActionsSectionProps = {}) => (
+  <QuickActionsView
+    actions={getQuickActions(true, false)}
+    hideTitle={hideTitle}
+  />
+);

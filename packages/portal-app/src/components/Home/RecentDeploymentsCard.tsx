@@ -1,7 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import useAsync from 'react-use/esm/useAsync';
 import { useApi } from '@backstage/core-plugin-api';
-import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
+import {
+  Entity,
+  parseEntityRef,
+  stringifyEntityRef,
+} from '@backstage/catalog-model';
 import { catalogApiRef, EntityRefLink } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { openChoreoClientApiRef } from '@openchoreo/backstage-plugin';
@@ -138,7 +142,14 @@ function statusColor(status: EnvDeployment['status'], theme: Theme): string {
   }
 }
 
-const DeploymentItem = ({ row }: { row: DeploymentRow }) => {
+const DeploymentItem = ({
+  row,
+  preview = false,
+}: {
+  row: DeploymentRow;
+  /** Static preview: the name is plain text, so no entity lookup is made. */
+  preview?: boolean;
+}) => {
   const classes = useStyles();
   const theme = useTheme();
   const tokens = useChoreoTokens();
@@ -154,12 +165,18 @@ const DeploymentItem = ({ row }: { row: DeploymentRow }) => {
             style={{ backgroundColor: statusColor(rowStatus, theme) }}
           />
         </Tooltip>
-        <EntityRefLink
-          entityRef={row.entityRef}
-          className={classes.name}
-          hideIcon
-          disableTooltip
-        />
+        {preview ? (
+          <Typography component="span" color="primary" className={classes.name}>
+            {parseEntityRef(row.entityRef).name}
+          </Typography>
+        ) : (
+          <EntityRefLink
+            entityRef={row.entityRef}
+            className={classes.name}
+            hideIcon
+            disableTooltip
+          />
+        )}
         <Chip
           size="small"
           className={classes.chip}
@@ -355,5 +372,44 @@ export const RecentDeploymentsContent = () => {
         </Box>
       )}
     </>
+  );
+};
+
+const HOUR = 60 * 60 * 1000;
+
+// Sample rows for the "Add widget" gallery preview. They look like real
+// deployments but are made up, so the preview never needs an API.
+const getSampleRows = (): DeploymentRow[] => {
+  const now = Date.now();
+  const sample = (
+    name: string,
+    componentType: string,
+    hoursAgo: number,
+  ): DeploymentRow => {
+    const lastDeployed = now - hoursAgo * HOUR;
+    return {
+      entityRef: `component:default/${name}`,
+      componentType,
+      environments: [{ name: 'development', status: 'Ready', lastDeployed }],
+      latestDeployed: lastDeployed,
+    };
+  };
+  return [
+    sample('movie-frontend', 'web-app', 2),
+    sample('movie-backend', 'service', 5),
+    sample('react-starter', 'web-app', 26),
+  ];
+};
+
+// Static preview of the "Recent Deployments" widget, built from the same row
+// component with sample data. It never calls an API.
+export const RecentDeploymentsPreview = () => {
+  const rows = useMemo(getSampleRows, []);
+  return (
+    <List dense disablePadding>
+      {rows.map(row => (
+        <DeploymentItem row={row} preview key={row.entityRef} />
+      ))}
+    </List>
   );
 };
