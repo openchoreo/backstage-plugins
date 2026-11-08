@@ -36,12 +36,19 @@ describe('useUrlFilters', () => {
   });
 
   it('keeps defaultTimeRange out of the URL when it is selected', () => {
-    const { result } = renderWithUrl('/rca?timeRange=1h', '24h');
+    const { result } = renderWithUrl(
+      '/rca?timeRange=1h&components=a%2Cb&q=error&env=prod',
+      '24h',
+    );
 
     act(() => result.current.updateFilters({ timeRange: '24h' }));
 
     expect(result.current.filters.timeRange).toBe('24h');
-    expect(result.current.search).not.toContain('timeRange');
+    const params = new URLSearchParams(result.current.search);
+    expect(params.has('timeRange')).toBe(false);
+    expect(params.get('components')).toBe('a,b');
+    expect(params.get('q')).toBe('error');
+    expect(params.get('env')).toBe('prod');
   });
 
   it('writes a non-default timeRange to the URL', () => {
