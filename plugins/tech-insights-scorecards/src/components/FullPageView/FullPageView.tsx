@@ -4,7 +4,7 @@ import IconButton from '@material-ui/core/IconButton';
 import Typography from '@material-ui/core/Typography';
 import { makeStyles } from '@material-ui/core/styles';
 import ArrowBackIcon from '@material-ui/icons/ArrowBack';
-import { CODE_FONT_FAMILY } from './codeStyles';
+import { CODE_FONT_FAMILY } from '../../hooks';
 
 const useStyles = makeStyles(theme => ({
   header: {

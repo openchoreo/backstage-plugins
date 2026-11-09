@@ -2,6 +2,9 @@ import { useMemo } from 'react';
 import useAsync from 'react-use/lib/useAsync';
 import { configApiRef, useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
+import type { MaturityApi } from '@backstage-community/plugin-tech-insights-maturity';
+
+type Check = Awaited<ReturnType<MaturityApi['getAllChecks']>>[number];
 
 /** `DeploymentPipeline` becomes "Deployment pipeline"; `API` stays "API". */
 export function humanizeKind(kind: string): string {
@@ -191,6 +194,20 @@ export function kindsOfFilter(filter: unknown): string[] | 'all' {
     });
   }
   return Array.from(kinds.values()).sort();
+}
+
+/**
+ * The kinds a set of checks applies to, lowercased, as `kindsOfFilter` reads
+ * each.
+ */
+export function kindsFromChecks(checks: Check[]): string[] | 'all' {
+  const kinds = new Set<string>();
+  for (const check of checks) {
+    const ofCheck = kindsOfFilter(check.filter);
+    if (ofCheck === 'all') return 'all';
+    ofCheck.forEach(kind => kinds.add(kind.toLocaleLowerCase('en-US')));
+  }
+  return Array.from(kinds).sort();
 }
 
 /**

@@ -12,6 +12,9 @@ import { PageLoader } from '@openchoreo/backstage-design-system';
 //                                              unless
 //                                              techInsights.scorecards.enabled
 //                                              is on
+//   @backstage-community/plugin-tech-insights-maturity
+//                                              the maturity API the
+//                                              Scorecards views read
 //
 // Adding a plugin to this portal is therefore `yarn add` plus nothing. The
 // `loadingElement` stays here because it is the only piece a feature cannot

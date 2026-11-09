@@ -1,0 +1,1 @@
+export { FullPageView } from './FullPageView';

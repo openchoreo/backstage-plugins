@@ -17,11 +17,12 @@ import { InfoCard } from '@backstage/core-components';
 import { useApi } from '@backstage/core-plugin-api';
 import useAsync from 'react-use/lib/useAsync';
 import { dynamicChecksApiRef } from '../../api/DynamicChecksApi';
-import { useCheckCategories } from '../useCheckCategories';
 import {
   NOT_ALLOWED_TOOLTIP,
+  useCheckCategories,
   useCheckPermissions,
-} from '../useCheckPermissions';
+  useTierLabel,
+} from '../../hooks';
 import {
   filterCoversKinds,
   isKindKey,
@@ -30,9 +31,8 @@ import {
   useEntityLabel,
   useKindDisplay,
   withArticle,
-} from '../../kinds';
-import { CHECK_TIERS } from '../../tierPalette';
-import { useTierLabel } from '../useTierLabel';
+} from '../../utils/kinds';
+import { CHECK_TIERS } from '../../utils/tierPalette';
 import { useCoveredKindsText } from '../FactCollectorsPanel/CollectorInfoButton';
 import { FORMAT_SHORTCUT, SUGGEST_SHORTCUT } from '../JsonEditor/JsonEditor';
 import { FilterEditor } from '../JsonEditor/FilterEditor';

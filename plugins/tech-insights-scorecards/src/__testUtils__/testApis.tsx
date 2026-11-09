@@ -7,8 +7,14 @@ import {
 } from '@backstage/test-utils';
 import { configApiRef } from '@backstage/core-plugin-api';
 import { toastApiRef } from '@backstage/frontend-plugin-api';
-import { catalogApiRef } from '@backstage/plugin-catalog-react';
+import { catalogApiRef, entityRouteRef } from '@backstage/plugin-catalog-react';
 import { permissionApiRef } from '@backstage/plugin-permission-react';
+import type { Entity } from '@backstage/catalog-model';
+import {
+  maturityApiRef,
+  type MaturityApi,
+} from '@backstage-community/plugin-tech-insights-maturity';
+import type { BulkMaturityCheckResponse } from '@backstage-community/plugin-tech-insights-maturity-common';
 import {
   dynamicCheckManagePermission,
   dynamicCheckReadPermission,
@@ -88,8 +94,44 @@ type ConfigData = NonNullable<
   NonNullable<Parameters<typeof mockApis.config>[0]>['data']
 >;
 
+export function mockCatalogApi() {
+  return {
+    getEntityFacets: jest.fn(async () => ({
+      facets: {
+        kind: [
+          { value: 'API', count: 1 },
+          { value: 'Component', count: 1 },
+        ],
+      },
+    })),
+    queryEntities: jest.fn(async () => ({
+      items: [],
+      totalItems: 0,
+      pageInfo: {},
+    })),
+    getEntities: jest.fn(
+      async (): Promise<{ items: Entity[] }> => ({
+        items: [],
+      }),
+    ),
+  };
+}
+
+export function mockMaturityApi() {
+  return {
+    getAllChecks: jest.fn(
+      async (): Promise<Awaited<ReturnType<MaturityApi['getAllChecks']>>> => [],
+    ),
+    getBulkMaturityCheckResults: jest.fn(
+      async (_entities: Entity[]): Promise<BulkMaturityCheckResponse> => [],
+    ),
+  };
+}
+
 interface RenderOptions {
   api?: MockDynamicChecksApi;
+  catalogApi?: ReturnType<typeof mockCatalogApi>;
+  maturityApi?: ReturnType<typeof mockMaturityApi>;
   canRead?: boolean;
   canManage?: boolean;
   config?: ConfigData;
@@ -107,6 +149,8 @@ export async function renderWithApis(
 ) {
   const {
     api = mockDynamicChecksApi(),
+    catalogApi = mockCatalogApi(),
+    maturityApi = mockMaturityApi(),
     canRead = true,
     canManage = true,
     config = {},
@@ -122,21 +166,6 @@ export async function renderWithApis(
       }),
     ),
   } as unknown as typeof permissionApiRef.T;
-  const catalogApi = {
-    getEntityFacets: jest.fn(async () => ({
-      facets: {
-        kind: [
-          { value: 'API', count: 1 },
-          { value: 'Component', count: 1 },
-        ],
-      },
-    })),
-    queryEntities: jest.fn(async () => ({
-      items: [],
-      totalItems: 0,
-      pageInfo: {},
-    })),
-  };
   const toastApi = { post: jest.fn() };
 
   const rendered = await renderInTestApp(
@@ -145,6 +174,7 @@ export async function renderWithApis(
         apis={[
           [dynamicChecksApiRef, api],
           [catalogApiRef, catalogApi],
+          [maturityApiRef, maturityApi],
           [permissionApiRef, permissionApi],
           [toastApiRef, toastApi],
           [configApiRef, mockApis.config({ data: config })],
@@ -153,6 +183,7 @@ export async function renderWithApis(
         {ui}
       </TestApiProvider>
     </SWRConfig>,
+    { mountedRoutes: { '/catalog/:namespace/:kind/:name': entityRouteRef } },
   );
-  return { ...rendered, api, catalogApi, toastApi };
+  return { ...rendered, api, catalogApi, maturityApi, toastApi };
 }

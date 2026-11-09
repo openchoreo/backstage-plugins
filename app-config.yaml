@@ -40,6 +40,10 @@ app:
   #   @openchoreo/backstage-portal-app  the portal shell — its `./alpha`
   #                                     default export is a feature loader
   #                                     carrying ~24 features in a fixed order
+  #   @backstage-community/plugin-tech-insights-maturity
+  #                                     the maturity API the Scorecards views
+  #                                     read; its own views are turned off
+  #                                     under `extensions` below
   # portal-template:strip-start
   #   ...-openchoreo-portal-assistant   the private Portal Assistant, which the
   #                                     published shell must not depend on
@@ -142,6 +146,32 @@ app:
     - entity-card:gitlab/merge-requests-stats: false
     - entity-card:gitlab/people: false
     - entity-card:gitlab/languages: false
+    # tech-insights-maturity is installed only for its API; the
+    # tech-insights-scorecards page and entity tab replace its own views.
+    - page:tech-insights-maturity: false
+    - entity-content:tech-insights-maturity/maturity: false
+    - entity-content:tech-insights-maturity/summary: false
+    - entity-card:tech-insights-maturity/maturity-summary: false
+    # Scores are on the Scorecards tab, not the Overview tab.
+    - entity-card:tech-insights-scorecards/summary: false
+    # The `scorecards` tab group isn't in the portal's GROUP_ORDER, so the tab
+    # sorts after the OpenChoreo tabs.
+    - entity-content:tech-insights-scorecards:
+        config:
+          group: scorecards
+          # The plugin's default kinds plus the OpenChoreo kinds that
+          # collectors report facts for.
+          filter:
+            kind:
+              $in:
+                - Component
+                - API
+                - Resource
+                - System
+                - Domain
+                - Group
+                - ClusterComponentType
+                - ComponentType
 
 organization:
   name: OpenChoreo
