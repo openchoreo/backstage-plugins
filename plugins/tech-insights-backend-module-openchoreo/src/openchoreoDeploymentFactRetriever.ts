@@ -38,9 +38,11 @@ interface NamespaceContext {
 async function loadNamespace(
   client: OpenChoreoApiClient,
   namespaceName: string,
+  signal: AbortSignal,
 ): Promise<NamespaceContext> {
   const profile = await client.GET('/api/v1/authz/profile', {
     params: { query: { namespace: namespaceName } },
+    signal,
   });
   if (!profile.data) {
     throw new Error(
@@ -67,6 +69,7 @@ async function loadNamespace(
     client
       .GET('/api/v1/namespaces/{namespaceName}/environments', {
         params: { path: { namespaceName }, query: { cursor } },
+        signal,
       })
       .then(({ data, response }) => {
         if (!data) {
@@ -89,14 +92,16 @@ async function loadNamespace(
 
 /**
  * Namespace contexts for one run. A failed load isn't kept, so one
- * transient error costs only the entity that hit it.
+ * transient error costs only the entity that hit it. A load runs under the
+ * deadline of the entity that started it; if that runs out, the next entity
+ * in the namespace loads it again.
  */
 function namespaceLoader(client: OpenChoreoApiClient) {
   const loads = new Map<string, Promise<NamespaceContext>>();
-  return (namespaceName: string) => {
+  return (namespaceName: string, signal: AbortSignal) => {
     let load = loads.get(namespaceName);
     if (!load) {
-      load = loadNamespace(client, namespaceName);
+      load = loadNamespace(client, namespaceName, signal);
       loads.set(namespaceName, load);
       load.catch(() => loads.delete(namespaceName));
     }
@@ -171,7 +176,7 @@ export function createOpenChoreoDeploymentFactRetriever(
           const client = await createServiceClient(context, tokenService);
           return { client, namespaceOf: namespaceLoader(client) };
         },
-        async (entity, { client, namespaceOf }) => {
+        async (entity, { client, namespaceOf }, signal) => {
           const annotations = entity.metadata.annotations ?? {};
           const namespaceName = annotations[CHOREO_ANNOTATIONS.NAMESPACE];
           const projectName = annotations[CHOREO_ANNOTATIONS.PROJECT];
@@ -183,7 +188,7 @@ export function createOpenChoreoDeploymentFactRetriever(
 
           const workload = await client.GET(
             '/api/v1/namespaces/{namespaceName}/workloads/{workloadName}',
-            { params: { path: { namespaceName, workloadName } } },
+            { params: { path: { namespaceName, workloadName } }, signal },
           );
           if (workload.response.status === 404) {
             return UNRESOLVED_FACTS;
@@ -202,7 +207,7 @@ export function createOpenChoreoDeploymentFactRetriever(
           // would look the same as an unreadable one.
           let namespace: NamespaceContext;
           try {
-            namespace = await namespaceOf(namespaceName);
+            namespace = await namespaceOf(namespaceName, signal);
           } catch (error) {
             context.logger.warn(
               `Reporting only Workload facts for ${componentName}: ${
@@ -226,7 +231,7 @@ export function createOpenChoreoDeploymentFactRetriever(
 
           const component = await client.GET(
             '/api/v1/namespaces/{namespaceName}/components/{componentName}',
-            { params: { path: { namespaceName, componentName } } },
+            { params: { path: { namespaceName, componentName } }, signal },
           );
           if (!component.data) {
             context.logger.warn(
@@ -241,6 +246,7 @@ export function createOpenChoreoDeploymentFactRetriever(
                   path: { namespaceName },
                   query: { component: componentName, cursor },
                 },
+                signal,
               })
               .then(({ data, response }) => {
                 if (!data) {

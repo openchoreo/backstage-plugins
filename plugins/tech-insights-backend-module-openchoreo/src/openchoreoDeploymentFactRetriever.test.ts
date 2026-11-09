@@ -127,6 +127,24 @@ describe('openchoreoDeploymentFactRetriever', () => {
     );
   });
 
+  it("sends every request under the entity's deadline", async () => {
+    const client = fakeClient({ capabilities: allBindings });
+    await run([annotated('api')], client);
+    const paths = client.GET.mock.calls.map(([path]) => path);
+    expect(paths).toEqual(
+      expect.arrayContaining([
+        '/api/v1/authz/profile',
+        '/api/v1/namespaces/{namespaceName}/environments',
+        '/api/v1/namespaces/{namespaceName}/workloads/{workloadName}',
+        '/api/v1/namespaces/{namespaceName}/components/{componentName}',
+        '/api/v1/namespaces/{namespaceName}/releasebindings',
+      ]),
+    );
+    for (const [, options] of client.GET.mock.calls) {
+      expect(options.signal).toBeInstanceOf(AbortSignal);
+    }
+  });
+
   it('reports binding facts against a control plane with authorization off', async () => {
     const { byName } = await run(
       [annotated('api')],
