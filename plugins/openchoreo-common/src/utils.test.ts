@@ -134,6 +134,19 @@ describe('getRepositoryUrl', () => {
     );
   });
 
+  it('encodes the branch and path segments but keeps their slashes', () => {
+    const comp = makeComponent({
+      repository: {
+        url: 'https://github.com/org/repo',
+        revision: { branch: 'release/#1' },
+        appPath: 'services/api?v2',
+      },
+    });
+    expect(getRepositoryUrl(comp)).toBe(
+      'https://github.com/org/repo/tree/release/%231/services/api%3Fv2',
+    );
+  });
+
   it('uses the /-/tree/ form on GitLab, including self-hosted', () => {
     const comp = (url: string) =>
       makeComponent({

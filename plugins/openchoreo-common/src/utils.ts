@@ -111,8 +111,16 @@ export function getRepositoryUrl(
   }
 
   const appPath = (path ?? '').replace(/^\.?\/+/, '').replace(/\/+$/, '');
-  const tree = `${repository}/${segment}/${branch}`;
-  return appPath && appPath !== '.' ? `${tree}/${appPath}` : tree;
+  const tree = `${repository}/${segment}/${encodePath(branch)}`;
+  return appPath && appPath !== '.' ? `${tree}/${encodePath(appPath)}` : tree;
+}
+
+/**
+ * Encodes each segment of a branch or path, keeping `/`, so characters such
+ * as `#` and `?` stay part of the path instead of ending it.
+ */
+function encodePath(value: string): string {
+  return value.split('/').map(encodeURIComponent).join('/');
 }
 
 /**

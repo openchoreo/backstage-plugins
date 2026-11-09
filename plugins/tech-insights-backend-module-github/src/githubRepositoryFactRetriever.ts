@@ -122,6 +122,15 @@ const schema: FactRetriever['schema'] = {
 
 const UNRESOLVED_FACTS = unresolvedFacts(schema, 'githubRepositoryResolved');
 
+/**
+ * A repository or branch the portal can't read: missing, or refused with a
+ * 403. `getRepo` throws for a rate-limited 403 before it gets here, so that
+ * one still stops the run instead.
+ */
+function isUnreadable(status: number): boolean {
+  return status === 404 || status === 403;
+}
+
 const CURSOR_KEY = `${GITHUB_REPOSITORY_FACT_RETRIEVER_ID}:cursor`;
 
 /**
@@ -180,7 +189,7 @@ export function createGithubRepositoryFactRetriever({
         async ({ entity, repository, api, options }) => {
           const slug = `${repository.owner}/${repository.name}`;
           const repo = await api.getRepo(repository);
-          if (repo.status === 404) {
+          if (isUnreadable(repo.status)) {
             return UNRESOLVED_FACTS;
           }
           if (repo.status !== 200) {
@@ -198,7 +207,7 @@ export function createGithubRepositoryFactRetriever({
             repository,
             `/branches/${encoded}`,
           );
-          if (branchResponse.status === 404) {
+          if (isUnreadable(branchResponse.status)) {
             return UNRESOLVED_FACTS;
           }
           if (branchResponse.status !== 200) {

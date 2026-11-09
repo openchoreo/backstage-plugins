@@ -100,4 +100,22 @@ describe('githubRepositoryFactRetriever', () => {
     expect(facts).not.toHaveProperty('githubRequiredApprovingReviewCount');
     expect(facts).not.toHaveProperty('githubAllowsForcePushes');
   });
+
+  it.each(['', '/branches/main'])(
+    'reports a refused read of %p as unresolved',
+    async refusedPath => {
+      respondWith({ status: 404, body: { message: 'Branch not protected' } });
+      const respond = mockGetRepo.getMockImplementation()!;
+      mockGetRepo.mockImplementation(async (repository, path = '') =>
+        path === refusedPath
+          ? { status: 403, body: { message: 'Resource not accessible' } }
+          : respond(repository, path),
+      );
+
+      expect(await collectFacts()).toMatchObject({
+        githubRepositoryResolved: false,
+        githubBranchProtected: null,
+      });
+    },
+  );
 });

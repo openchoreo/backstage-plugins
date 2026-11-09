@@ -67,8 +67,20 @@ export function parseRepositoryReference(
     host,
     owner,
     name,
-    ref: (marker === 'tree' || marker === 'blob') && ref ? ref : undefined,
+    ref:
+      (marker === 'tree' || marker === 'blob') && ref
+        ? decodeRef(ref)
+        : undefined,
   };
+}
+
+/** A URL path keeps its percent-encoding, but the API wants the branch name. */
+function decodeRef(ref: string): string {
+  try {
+    return decodeURIComponent(ref);
+  } catch {
+    return ref;
+  }
 }
 
 /**

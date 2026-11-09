@@ -58,6 +58,14 @@ describe('parseRepositoryReference', () => {
       { host: 'github.com', owner: 'org', name: 'repo', ref: 'dev' },
     ],
     [
+      'url:https://github.com/org/repo/tree/release%231/services/api/',
+      { host: 'github.com', owner: 'org', name: 'repo', ref: 'release#1' },
+    ],
+    [
+      'url:https://github.com/org/repo/tree/100%/',
+      { host: 'github.com', owner: 'org', name: 'repo', ref: '100%' },
+    ],
+    [
       'git@github.com:org/repo.git',
       { host: 'github.com', owner: 'org', name: 'repo' },
     ],
