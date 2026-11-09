@@ -167,6 +167,7 @@ jobs:
     if: github.event_name == 'push'
     needs: [lint, audit, test, build]
     permissions:
+      contents: read
       packages: write
     uses: ./.github/workflows/publish-candidates.yml
     secrets:
