@@ -2,8 +2,8 @@ import { Rank } from '@backstage-community/plugin-tech-insights-maturity-common'
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithApis } from '../../__testUtils__/testApis';
-import { createRollup, normalizeRef } from '../../rollup';
-import { entity, result } from '../../testUtils';
+import { entity, result } from '../../__testUtils__/fixtures';
+import { createRollup, normalizeRef } from '../../utils/rollup';
 import { CheckScores } from './CheckScores';
 
 const api = entity('Component', 'api');

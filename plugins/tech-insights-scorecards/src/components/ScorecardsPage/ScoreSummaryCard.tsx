@@ -2,10 +2,10 @@ import Box from '@material-ui/core/Box';
 import Link from '@material-ui/core/Link';
 import Typography from '@material-ui/core/Typography';
 import { InfoCard } from '@backstage/core-components';
-import { catalogProgress } from '../../breakdown';
-import { countOf, useEntityLabel } from '../../kinds';
+import { catalogProgress } from '../../utils/breakdown';
+import { countOf, useEntityLabel } from '../../utils/kinds';
+import type { CatalogScores } from '../../hooks';
 import { ProgressRing } from '../ProgressRing';
-import type { CatalogScores } from './useScoreResults';
 
 const RING_SIZE = 128;
 

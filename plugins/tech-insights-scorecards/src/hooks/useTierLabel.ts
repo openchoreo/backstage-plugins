@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { configApiRef, useApi } from '@backstage/core-plugin-api';
-import { TIER_CONFIG_KEY, TIER_LABEL } from '../tierPalette';
+import { TIER_CONFIG_KEY, TIER_LABEL } from '../utils/tierPalette';
 
 /**
  * The name to show for a tier: `techInsights.maturity.rank.<tier>.title`,

@@ -6,7 +6,7 @@ import {
   tierCounts,
 } from './breakdown';
 import { childRefsOf, createRollup, normalizeRef } from './rollup';
-import { entity, result } from './testUtils';
+import { entity, result } from '../__testUtils__/fixtures';
 
 const domain = entity('Domain', 'default', [
   'system:default/payments',

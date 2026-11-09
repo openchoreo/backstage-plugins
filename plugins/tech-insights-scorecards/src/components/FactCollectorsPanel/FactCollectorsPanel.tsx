@@ -23,12 +23,12 @@ import {
 import { useApi } from '@backstage/core-plugin-api';
 import { dynamicChecksApiRef } from '../../api/DynamicChecksApi';
 import type { FactCollector } from '../../api/types';
-import { useEntityLabel } from '../../kinds';
+import { useEntityLabel } from '../../utils/kinds';
 import {
   NOT_ALLOWED_TOOLTIP,
   useCheckPermissions,
-} from '../useCheckPermissions';
-import { useCodeStyles } from '../codeStyles';
+  useCodeStyles,
+} from '../../hooks';
 import { RelativeTime } from '../RelativeTime';
 import {
   CollectorInfoButton,

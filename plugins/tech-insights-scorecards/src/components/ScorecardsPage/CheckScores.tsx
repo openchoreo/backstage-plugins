@@ -12,12 +12,12 @@ import ChevronRightIcon from '@material-ui/icons/ChevronRight';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { Link } from '@backstage/core-components';
 import { EntityDisplayName } from '@backstage/plugin-catalog-react';
-import { checkSummaries, type CheckSummary } from '../../breakdown';
-import type { RollupNode } from '../../rollup';
-import { titleCase } from '../../kinds';
-import { UNCATEGORIZED } from '../../scoring';
+import { checkSummaries, type CheckSummary } from '../../utils/breakdown';
+import type { RollupNode } from '../../utils/rollup';
+import { titleCase } from '../../utils/kinds';
+import { UNCATEGORIZED } from '../../utils/scoring';
+import { useEntityTabLink } from '../../hooks';
 import { NotScoredChip, TierChip } from '../TierChip';
-import { useEntityTabLink } from '../useEntityTabLink';
 
 const useStyles = makeStyles(theme => ({
   selectable: { cursor: 'pointer' },

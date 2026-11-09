@@ -1,6 +1,6 @@
 import type { Entity } from '@backstage/catalog-model';
-import { TierChip } from './TierChip';
-import { useEntityScorecard } from './useEntityScorecard';
+import { useEntityScorecard } from '../../hooks';
+import { TierChip } from '../TierChip';
 
 export interface EntityScorecardRankChipProps {
   entity: Entity;

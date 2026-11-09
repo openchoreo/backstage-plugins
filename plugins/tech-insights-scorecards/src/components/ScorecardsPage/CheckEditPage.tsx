@@ -1,5 +1,5 @@
 import type { DynamicCheck, FactSchema } from '../../api/types';
-import { useEntityLabel } from '../../kinds';
+import { useEntityLabel } from '../../utils/kinds';
 import { CheckForm } from '../Checks/CheckForm';
 import { FullPageView } from '../FullPageView';
 

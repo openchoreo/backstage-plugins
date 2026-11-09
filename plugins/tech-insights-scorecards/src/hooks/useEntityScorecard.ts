@@ -5,14 +5,14 @@ import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { getCompoundEntityRef, type Entity } from '@backstage/catalog-model';
 import { maturityApiRef } from '@backstage-community/plugin-tech-insights-maturity';
 import type { MaturityCheckResult } from '@backstage-community/plugin-tech-insights-maturity-common';
-import { ENTITY_FIELDS, evaluateEntities } from '../evaluate';
+import { ENTITY_FIELDS, evaluateEntities } from '../utils/evaluate';
 import {
   childRefsOf,
   createRollup,
   normalizeRef,
   type RollupNode,
-} from '../rollup';
-import { progressByCategory, type CategoryProgress } from '../scoring';
+} from '../utils/rollup';
+import { progressByCategory, type CategoryProgress } from '../utils/scoring';
 
 export interface EntityScorecard {
   /** The entity, with the entities that belong to it nested beneath. */

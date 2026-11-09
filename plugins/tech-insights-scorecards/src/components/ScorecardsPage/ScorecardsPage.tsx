@@ -8,14 +8,13 @@ import {
   Progress,
 } from '@backstage/core-components';
 import type { DynamicCheck, FactSchema } from '../../api/types';
-import { useEntityLabel } from '../../kinds';
+import { useEntityLabel } from '../../utils/kinds';
+import { useCheckPermissions, useScoreResults } from '../../hooks';
 import { CheckPolicyTable } from '../Checks/CheckPolicyTable';
 import { FactCollectorsPanel } from '../FactCollectorsPanel';
-import { useCheckPermissions } from '../useCheckPermissions';
 import { CheckEditPage } from './CheckEditPage';
 import { ScoreBreakdown } from './ScoreBreakdown';
 import { ScoreSummaryCard } from './ScoreSummaryCard';
-import { useScoreResults } from './useScoreResults';
 
 type View = 'checks' | 'breakdown' | 'editCheck';
 

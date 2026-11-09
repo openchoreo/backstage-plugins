@@ -8,7 +8,7 @@ import {
   Rank,
   type MaturityCheckResult,
 } from '@backstage-community/plugin-tech-insights-maturity-common';
-import { entity, result } from '../../testUtils';
+import { entity, result } from '../__testUtils__/fixtures';
 import { useScoreResults } from './useScoreResults';
 
 const system = entity('System', 'payments', ['component:default/api']);

@@ -1,7 +1,7 @@
 import Chip from '@material-ui/core/Chip';
 import { useTheme } from '@material-ui/core/styles';
-import { getFilledTierColors, getTierColor } from '../tierPalette';
-import { useTierLabel } from './useTierLabel';
+import { getFilledTierColors, getTierColor } from '../../utils/tierPalette';
+import { useTierLabel } from '../../hooks';
 
 export interface TierChipProps {
   rank: number;

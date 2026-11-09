@@ -3,13 +3,17 @@ import LinearProgress from '@material-ui/core/LinearProgress';
 import Typography from '@material-ui/core/Typography';
 import { InfoCard, Progress } from '@backstage/core-components';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import { countOf, inSentence, useEntityLabel, useKindLabel } from '../../kinds';
+import {
+  countOf,
+  inSentence,
+  useEntityLabel,
+  useKindLabel,
+} from '../../utils/kinds';
+import { useEntityScorecard, useEntityTabLink } from '../../hooks';
 import { LoadErrorState } from '../LoadErrorState';
 import { ProgressRing } from '../ProgressRing';
 import { TierChip } from '../TierChip';
 import { TierLadder } from '../TierLadder';
-import { useEntityScorecard } from '../useEntityScorecard';
-import { useEntityTabLink } from '../useEntityTabLink';
 
 const RING_SIZE = 72;
 

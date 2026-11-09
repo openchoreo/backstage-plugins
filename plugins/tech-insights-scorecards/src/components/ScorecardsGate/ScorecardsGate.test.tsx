@@ -1,6 +1,6 @@
 import { screen } from '@testing-library/react';
-import { renderWithApis } from '../__testUtils__/testApis';
-import { ScorecardsPage } from './ScorecardsPage';
+import { renderWithApis } from '../../__testUtils__/testApis';
+import { ScorecardsPage } from '../ScorecardsPage';
 import { ScorecardsGate } from './ScorecardsGate';
 
 const turnedOff = { techInsights: { scorecards: { enabled: false } } };

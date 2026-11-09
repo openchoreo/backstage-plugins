@@ -34,13 +34,13 @@ import { useApi } from '@backstage/core-plugin-api';
 import { toastApiRef } from '@backstage/frontend-plugin-api';
 import { dynamicChecksApiRef } from '../../api/DynamicChecksApi';
 import type { DynamicCheck, FactSchema } from '../../api/types';
-import { CHECK_TIERS } from '../../tierPalette';
-import { TierChip } from '../TierChip';
-import { useTierLabel } from '../useTierLabel';
+import { CHECK_TIERS } from '../../utils/tierPalette';
 import {
   NOT_ALLOWED_TOOLTIP,
   useCheckPermissions,
-} from '../useCheckPermissions';
+  useTierLabel,
+} from '../../hooks';
+import { TierChip } from '../TierChip';
 import { CheckFormDialog } from './CheckFormDialog';
 import { CheckStatusChip } from './CheckStatusChip';
 import { DeleteCheckDialog } from './DeleteCheckDialog';

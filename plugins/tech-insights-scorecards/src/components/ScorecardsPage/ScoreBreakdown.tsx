@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
 import { EmptyState, InfoCard, Progress } from '@backstage/core-components';
-import { kindSummaries } from '../../breakdown';
-import { useEntityLabel, useKindLabel } from '../../kinds';
+import { kindSummaries } from '../../utils/breakdown';
+import { useEntityLabel, useKindLabel } from '../../utils/kinds';
+import type { CatalogScores } from '../../hooks';
 import { FullPageView } from '../FullPageView';
 import { LoadErrorState } from '../LoadErrorState';
 import { hasOwnChecks, KindScores } from './KindScores';
-import type { CatalogScores } from './useScoreResults';
 
 interface ScoreBreakdownProps {
   title: string;

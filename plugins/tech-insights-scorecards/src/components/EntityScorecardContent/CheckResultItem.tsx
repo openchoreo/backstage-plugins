@@ -11,7 +11,7 @@ import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { Link } from '@backstage/core-components';
 import type { MaturityCheckResult } from '@backstage-community/plugin-tech-insights-maturity-common';
 import { formatFactValue } from '../../api/types';
-import { useCodeStyles } from '../codeStyles';
+import { useCodeStyles } from '../../hooks';
 import { RelativeTime } from '../RelativeTime';
 import { TierChip } from '../TierChip';
 

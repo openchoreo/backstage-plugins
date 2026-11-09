@@ -15,9 +15,8 @@ import AlertTitle from '@material-ui/lab/AlertTitle';
 import { useApi } from '@backstage/core-plugin-api';
 import { dynamicChecksApiRef } from '../../api/DynamicChecksApi';
 import type { DryRunResult, DryRunStatus } from '../../api/types';
-import { useCodeStyles } from '../codeStyles';
+import { useCheckPermissions, useCodeStyles } from '../../hooks';
 import { RelativeTime } from '../RelativeTime';
-import { useCheckPermissions } from '../useCheckPermissions';
 
 const STATUS_DISPLAY: Record<
   DryRunStatus,

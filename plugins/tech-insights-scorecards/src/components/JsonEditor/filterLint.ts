@@ -1,7 +1,7 @@
 import { jsonParseLinter } from '@codemirror/lang-json';
 import type { Diagnostic, LintSource } from '@codemirror/lint';
 import type { EditorView } from '@codemirror/view';
-import { isKindKey } from '../../kinds';
+import { isKindKey } from '../../utils/kinds';
 import { nodeAtPointer, propertyKey } from './jsonTree';
 
 const parseLinter = jsonParseLinter();

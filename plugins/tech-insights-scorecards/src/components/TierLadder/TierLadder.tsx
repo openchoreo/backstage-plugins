@@ -3,9 +3,9 @@ import Typography from '@material-ui/core/Typography';
 import { useTheme } from '@material-ui/core/styles';
 import CheckIcon from '@material-ui/icons/Check';
 import type { MaturityCheckResult } from '@backstage-community/plugin-tech-insights-maturity-common';
-import { progressByTier, rankOf } from '../scoring';
-import { getTierColor } from '../tierPalette';
-import { useTierLabel } from './useTierLabel';
+import { progressByTier, rankOf } from '../../utils/scoring';
+import { getTierColor } from '../../utils/tierPalette';
+import { useTierLabel } from '../../hooks';
 
 /**
  * Checks passing in each tier, lowest first, so it reads in the order the

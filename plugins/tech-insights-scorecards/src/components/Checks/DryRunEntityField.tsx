@@ -9,7 +9,7 @@ import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import useAsync from 'react-use/lib/useAsync';
 import useDebounce from 'react-use/lib/useDebounce';
-import { capitalized, useEntityLabel, useKindDisplay } from '../../kinds';
+import { capitalized, useEntityLabel, useKindDisplay } from '../../utils/kinds';
 
 const RESULT_LIMIT = 20;
 

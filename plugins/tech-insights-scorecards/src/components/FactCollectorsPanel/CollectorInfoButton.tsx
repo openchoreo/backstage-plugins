@@ -6,8 +6,12 @@ import Typography from '@material-ui/core/Typography';
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import { makeStyles } from '@material-ui/core/styles';
 import { factFieldsOf, type FactSchema } from '../../api/types';
-import { kindsOfFilter, useEntityLabel, useKindDisplay } from '../../kinds';
-import { useCodeStyles } from '../codeStyles';
+import {
+  kindsOfFilter,
+  useEntityLabel,
+  useKindDisplay,
+} from '../../utils/kinds';
+import { useCodeStyles } from '../../hooks';
 
 const useStyles = makeStyles(theme => ({
   paper: {

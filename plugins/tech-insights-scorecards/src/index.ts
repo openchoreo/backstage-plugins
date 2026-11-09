@@ -15,8 +15,12 @@ export type { EntityScorecardRankChipProps } from './components/EntityScorecardR
 export { CheckPolicyTable, CheckForm } from './components/Checks';
 export { FactCollectorsPanel } from './components/FactCollectorsPanel';
 export type { FactCollectorsPanelProps } from './components/FactCollectorsPanel';
-export { TIER_LABEL, getTierColor, getFilledTierColors } from './tierPalette';
-export { useTierLabel } from './components/useTierLabel';
+export {
+  TIER_LABEL,
+  getTierColor,
+  getFilledTierColors,
+} from './utils/tierPalette';
+export { useTierLabel } from './hooks';
 export { TierChip } from './components/TierChip';
 export type { TierChipProps } from './components/TierChip';
 export { dynamicChecksApiRef } from './api/DynamicChecksApi';

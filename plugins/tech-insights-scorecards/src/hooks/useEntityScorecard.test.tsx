@@ -8,7 +8,7 @@ import {
   Rank,
   type MaturityCheckResult,
 } from '@backstage-community/plugin-tech-insights-maturity-common';
-import { entity, result } from '../testUtils';
+import { entity, result } from '../__testUtils__/fixtures';
 import { useEntityScorecard } from './useEntityScorecard';
 
 const domain = entity('Domain', 'default', ['system:default/payments']);

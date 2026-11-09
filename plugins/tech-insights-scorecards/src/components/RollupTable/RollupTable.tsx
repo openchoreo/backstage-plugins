@@ -13,12 +13,12 @@ import ChevronRightIcon from '@material-ui/icons/ChevronRight';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { Link } from '@backstage/core-components';
 import { EntityDisplayName } from '@backstage/plugin-catalog-react';
-import { useEntityLabel, useKindLabel } from '../kinds';
-import type { RollupNode } from '../rollup';
-import { progressOf } from '../scoring';
-import { NotScoredChip, TierChip } from './TierChip';
-import { TierLadder } from './TierLadder';
-import { useEntityTabLink } from './useEntityTabLink';
+import { useEntityLabel, useKindLabel } from '../../utils/kinds';
+import type { RollupNode } from '../../utils/rollup';
+import { progressOf } from '../../utils/scoring';
+import { useEntityTabLink } from '../../hooks';
+import { NotScoredChip, TierChip } from '../TierChip';
+import { TierLadder } from '../TierLadder';
 
 const useStyles = makeStyles({
   expandableRow: { cursor: 'pointer' },

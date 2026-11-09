@@ -23,7 +23,7 @@ import { makeStyles, useTheme } from '@material-ui/core/styles';
 import { createSvgIcon } from '@material-ui/core/utils';
 import ZoomOutMapIcon from '@material-ui/icons/ZoomOutMap';
 import useLatest from 'react-use/lib/useLatest';
-import { CODE_FONT_FAMILY } from '../codeStyles';
+import { CODE_FONT_FAMILY } from '../../hooks';
 import { formatJson, isFormatKey } from './formatJson';
 
 // Material UI v4 has ZoomOutMap but not its inverse; this is v5's ZoomInMap

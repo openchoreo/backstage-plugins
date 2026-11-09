@@ -9,18 +9,24 @@ import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { EmptyState, InfoCard, Progress } from '@backstage/core-components';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import type { MaturityCheckResult } from '@backstage-community/plugin-tech-insights-maturity-common';
-import { countOf, inSentence, useEntityLabel, useKindLabel } from '../../kinds';
-import { isRollupKind } from '../../rollup';
-import { UNCATEGORIZED, compareCheckResults, rankOf } from '../../scoring';
+import {
+  countOf,
+  inSentence,
+  useEntityLabel,
+  useKindLabel,
+} from '../../utils/kinds';
+import { isRollupKind } from '../../utils/rollup';
+import {
+  UNCATEGORIZED,
+  compareCheckResults,
+  rankOf,
+} from '../../utils/scoring';
+import { useEntityScorecard, useFactCollectionTimes } from '../../hooks';
 import { LoadErrorState } from '../LoadErrorState';
 import { ProgressRing } from '../ProgressRing';
 import { RollupTable } from '../RollupTable';
 import { TierChip } from '../TierChip';
 import { TierLadder } from '../TierLadder';
-import {
-  useEntityScorecard,
-  useFactCollectionTimes,
-} from '../useEntityScorecard';
 import { CheckResultItem } from './CheckResultItem';
 
 const RING_SIZE = 96;

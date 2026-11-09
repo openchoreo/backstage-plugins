@@ -3,15 +3,15 @@ import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import type { Entity } from '@backstage/catalog-model';
 import { maturityApiRef } from '@backstage-community/plugin-tech-insights-maturity';
-import { ENTITY_FIELDS, evaluateEntities } from '../../evaluate';
-import { kindsFromChecks } from '../../kinds';
+import { ENTITY_FIELDS, evaluateEntities } from '../utils/evaluate';
+import { kindsFromChecks } from '../utils/kinds';
 import {
   compareNodes,
   createRollup,
   normalizeRef,
   ROLLUP_RELATIONS,
   type RollupNode,
-} from '../../rollup';
+} from '../utils/rollup';
 
 /**
  * Fetched even when no check applies to them, so that a parent's tier is
