@@ -722,7 +722,10 @@ describe('EventDeltaApplier.handleEvent', () => {
 
     // Catalog was queried with the workload-name annotation filter.
     expect(catalogService.getEntities).toHaveBeenCalledTimes(1);
-    expect(catalogService.getEntities.mock.calls[0][0].filter).toMatchObject({
+    // Scoped to the workload's namespace, so a same-named workload in
+    // another namespace keeps its APIs.
+    expect(catalogService.getEntities.mock.calls[0][0].filter).toEqual({
+      'metadata.namespace': 'test-ns',
       'metadata.annotations.openchoreo.io/workload': 'order-service-workload',
     });
 
