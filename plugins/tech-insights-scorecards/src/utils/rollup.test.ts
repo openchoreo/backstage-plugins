@@ -5,7 +5,12 @@ import {
   kindSummaries,
   tierCounts,
 } from './breakdown';
-import { childRefsOf, createRollup, normalizeRef } from './rollup';
+import {
+  childRefsOf,
+  createRollup,
+  isRollupKind,
+  normalizeRef,
+} from './rollup';
 import { entity, result } from '../__testUtils__/fixtures';
 
 const domain = entity('Domain', 'default', [
@@ -110,6 +115,12 @@ describe('createRollup', () => {
   it('normalizes refs from relations', () => {
     const mixed = entity('System', 'payments', ['Component:Default/api']);
     expect(childRefsOf(mixed)).toEqual(['component:default/api']);
+  });
+
+  it('takes no kind named after an object member for a rollup kind', () => {
+    const odd = entity('Constructor', 'odd', ['component:default/api']);
+    expect(isRollupKind('Constructor')).toBe(false);
+    expect(childRefsOf(odd)).toEqual([]);
   });
 });
 

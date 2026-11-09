@@ -26,18 +26,19 @@ export function progressOf(checks: MaturityCheckResult[]): CheckProgress {
  * lowered to just below the lowest tier with a failing check. That formatter
  * isn't exported, and combining several entities' results needs it. Unlike
  * the formatter, a failing Stone check leaves the entity at Stone rather than
- * at -1, which no tier is.
+ * at -1, which no tier is, and a check without a tier counts as Stone, as it
+ * does everywhere else here.
  */
 export function rankOf(checks: MaturityCheckResult[]): Rank {
+  const rankOfCheck = (c: MaturityCheckResult): Rank =>
+    c.check.metadata?.rank ?? Rank.Stone;
   const maxRank = checks.reduce<Rank>(
-    (max, c) => Math.max(max, c.check.metadata?.rank ?? Rank.Stone),
+    (max, c) => Math.max(max, rankOfCheck(c)),
     Rank.Stone,
   );
   const rank = checks.reduce<Rank>(
     (lowest, c) =>
-      !c.result && c.check.metadata?.rank <= lowest
-        ? c.check.metadata.rank - 1
-        : lowest,
+      !c.result && rankOfCheck(c) <= lowest ? rankOfCheck(c) - 1 : lowest,
     maxRank,
   );
   return Math.max(rank, Rank.Stone);

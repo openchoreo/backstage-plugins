@@ -60,6 +60,11 @@ app:
               $in: [Component, API, System]
 ```
 
+`kinds` should list kinds that checks run against. A kind whose tier only combines what belongs to
+it, such as System, has no pass rate of its own, so the page leaves it to the entity's tab. Add every
+kind your checks run against to the tab's `filter` too, since the page links scored entities to
+the tab.
+
 Set `showChecks: false` when checks aren't stored by the dynamic-checks module, for example when
 the portal keeps checks in `app-config` with the upstream jsonfc checker.
 

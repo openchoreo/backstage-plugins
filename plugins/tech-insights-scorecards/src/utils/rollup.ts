@@ -23,8 +23,19 @@ export const ROLLUP_RELATIONS: Record<string, string[]> = {
   group: [RELATION_PARENT_OF, RELATION_OWNER_OF],
 };
 
+/**
+ * Own keys only, so a kind named after an `Object.prototype` member, such as
+ * `Constructor`, isn't taken for a rollup kind.
+ */
+function relationsOf(kind: string): string[] | undefined {
+  const key = kind.toLocaleLowerCase('en-US');
+  return Object.prototype.hasOwnProperty.call(ROLLUP_RELATIONS, key)
+    ? ROLLUP_RELATIONS[key]
+    : undefined;
+}
+
 export function isRollupKind(kind: string): boolean {
-  return kind.toLocaleLowerCase('en-US') in ROLLUP_RELATIONS;
+  return relationsOf(kind) !== undefined;
 }
 
 /**
@@ -39,7 +50,7 @@ export function normalizeRef(ref: string | Entity): string {
 
 /** Refs of the entities that directly belong to `entity`. */
 export function childRefsOf(entity: Entity): string[] {
-  const types = ROLLUP_RELATIONS[entity.kind.toLocaleLowerCase('en-US')];
+  const types = relationsOf(entity.kind);
   if (!types) return [];
   return Array.from(
     new Set(

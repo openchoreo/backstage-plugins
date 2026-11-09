@@ -45,6 +45,12 @@ describe('rankOf', () => {
   it('stays at Stone when a Stone check fails', () => {
     expect(rankOf([result(0, false), result(2, true)])).toBe(0);
   });
+
+  it('counts a failing check without a tier as a failing Stone check', () => {
+    const unranked = result(0, false);
+    delete (unranked.check.metadata as { rank?: number }).rank;
+    expect(rankOf([unranked, result(3, true)])).toBe(0);
+  });
 });
 
 describe('progress', () => {

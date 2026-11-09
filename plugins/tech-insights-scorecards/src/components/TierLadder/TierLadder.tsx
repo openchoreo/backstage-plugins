@@ -10,10 +10,11 @@ import { useTierLabel } from '../../hooks';
 /**
  * Checks passing in each tier, lowest first, so it reads in the order the
  * tiers are earned: "Bronze ✓ 2/2  Silver 2/5  Gold 0/0". A tick marks a
- * tier the entity has reached, so a tier whose checks all pass gets none
- * while a lower tier still fails. The tick and the
- * count keep their width whether shown or not, so ladders stacked in a
- * table line up.
+ * tier the entity has reached with every check in it passing, so a tier
+ * whose checks all pass gets none while a lower tier still fails, and
+ * Stone, which an entity never drops below, gets none while a Stone check
+ * fails. The tick and the count keep their width whether shown or not, so
+ * ladders stacked in a table line up.
  */
 export function TierLadder({ checks }: { checks: MaturityCheckResult[] }) {
   const theme = useTheme();
@@ -22,7 +23,10 @@ export function TierLadder({ checks }: { checks: MaturityCheckResult[] }) {
   return (
     <Box display="flex" flexWrap="wrap" style={{ columnGap: 16, rowGap: 4 }}>
       {progressByTier(checks).map(tier => {
-        const complete = tier.totalChecks > 0 && tier.rank <= reached;
+        const complete =
+          tier.totalChecks > 0 &&
+          tier.passedChecks === tier.totalChecks &&
+          tier.rank <= reached;
         return (
           <Box
             key={tier.rank}

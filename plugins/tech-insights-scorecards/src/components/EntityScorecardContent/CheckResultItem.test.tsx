@@ -61,6 +61,17 @@ describe('CheckResultItem', () => {
     expect(screen.getByText('Facts collected')).toBeVisible();
   });
 
+  it('names the outcome for screen readers', async () => {
+    const { unmount } = await renderInTestApp(
+      <CheckResultItem result={result(false)} />,
+    );
+    expect(screen.getByRole('img', { name: 'Failed' })).toBeInTheDocument();
+    unmount();
+
+    await renderInTestApp(<CheckResultItem result={result(true)} />);
+    expect(screen.getByRole('img', { name: 'Passed' })).toBeInTheDocument();
+  });
+
   it('starts collapsed for a passing check and leaves out collected values', async () => {
     await renderInTestApp(<CheckResultItem result={result(true)} />);
     expect(screen.getByText('Add a branch protection rule.')).not.toBeVisible();

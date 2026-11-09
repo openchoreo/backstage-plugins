@@ -97,10 +97,12 @@ export function CheckResultItem({ result, collectedAt }: CheckResultItemProps) {
       >
         {result.result ? (
           <CheckCircleIcon
+            titleAccess="Passed"
             style={{ color: theme.palette.success.main, marginRight: 8 }}
           />
         ) : (
           <CancelIcon
+            titleAccess="Failed"
             style={{ color: theme.palette.error.main, marginRight: 8 }}
           />
         )}

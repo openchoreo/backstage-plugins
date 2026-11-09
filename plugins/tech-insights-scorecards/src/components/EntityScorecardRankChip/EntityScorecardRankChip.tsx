@@ -13,7 +13,8 @@ export interface EntityScorecardRankChipProps {
 export function EntityScorecardRankChip({
   entity,
 }: EntityScorecardRankChipProps) {
-  const { value } = useEntityScorecard(entity);
-  if (!value?.root.scored) return null;
+  // The hook keeps the previous entity's value while the next one loads.
+  const { value, loading } = useEntityScorecard(entity);
+  if (loading || !value?.root.scored) return null;
   return <TierChip rank={value.root.rank} emphasis="filled" />;
 }

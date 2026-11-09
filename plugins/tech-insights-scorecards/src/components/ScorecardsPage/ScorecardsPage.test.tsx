@@ -1,8 +1,11 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { entity, result } from '../../__testUtils__/fixtures';
 import {
   check,
+  mockCatalogApi,
   mockDynamicChecksApi,
+  mockMaturityApi,
   renderWithApis,
 } from '../../__testUtils__/testApis';
 import { ScorecardsPage } from './ScorecardsPage';
@@ -31,12 +34,31 @@ describe('ScorecardsPage', () => {
   });
 
   it('shows only scores when checks are stored elsewhere', async () => {
+    const component = entity('Component', 'api');
+    const readme = result('readme', 1, true);
+    const catalogApi = mockCatalogApi();
+    catalogApi.getEntities.mockResolvedValue({ items: [component] });
+    const maturityApi = mockMaturityApi();
+    maturityApi.getAllChecks.mockResolvedValue([
+      { ...readme.check, filter: { kind: 'Component' } },
+    ]);
+    maturityApi.getBulkMaturityCheckResults.mockResolvedValue([
+      {
+        entity: 'component:default/api',
+        rank: 0,
+        isMaxRank: false,
+        checks: [readme],
+      },
+    ]);
     await renderWithApis(
       <ScorecardsPage title="Scorecards" showChecks={false} />,
-      { canRead: false },
+      { canRead: false, catalogApi, maturityApi },
     );
 
-    expect(await screen.findByText(/View full breakdown/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/1 of 1 checks pass across 1/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/View full breakdown/)).toBeInTheDocument();
     expect(screen.queryByText('Checks')).not.toBeInTheDocument();
     expect(screen.queryByText('Data sources')).not.toBeInTheDocument();
   });
