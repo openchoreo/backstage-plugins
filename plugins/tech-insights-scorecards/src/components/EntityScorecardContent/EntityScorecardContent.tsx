@@ -8,7 +8,10 @@ import Typography from '@material-ui/core/Typography';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { EmptyState, InfoCard, Progress } from '@backstage/core-components';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import type { MaturityCheckResult } from '@backstage-community/plugin-tech-insights-maturity-common';
+import {
+  Rank,
+  type MaturityCheckResult,
+} from '@backstage-community/plugin-tech-insights-maturity-common';
 import {
   countOf,
   inSentence,
@@ -77,7 +80,7 @@ export function EntityScorecardContent() {
         category,
         checks: checks.sort(compareCheckResults),
         hasBlockingFailure: checks.some(
-          c => !c.result && c.check.metadata?.rank <= nextRank,
+          c => !c.result && (c.check.metadata?.rank ?? Rank.Stone) <= nextRank,
         ),
       }))
       .sort(
