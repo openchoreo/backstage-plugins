@@ -107,6 +107,31 @@ describe('WirelogsInfoService', () => {
     expect(url).toContain('component=svc');
   });
 
+  it.each([
+    [{ releaseLine: 'canary' }, 'releaseLine=canary', 'allReleaseLines'],
+    [{ allReleaseLines: true }, 'allReleaseLines=true', 'releaseLine='],
+    [{}, 'component=svc', 'eleaseLine'],
+  ])('scopes a component stream to %o', async (scope, present, absent) => {
+    mockFetch.mockResolvedValueOnce({ ok: true } as Response);
+    const service = new WirelogsInfoService(logger, 'http://api.openchoreo');
+
+    await service.openStream(
+      {
+        namespaceName: 'team',
+        environmentName: 'dev',
+        projectName: 'proj',
+        componentName: 'svc',
+        ...scope,
+      },
+      'tok',
+      new AbortController().signal,
+    );
+
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).toContain(present);
+    expect(url).not.toContain(absent);
+  });
+
   it('attaches a Bearer token when one is supplied', async () => {
     mockFetch.mockResolvedValueOnce({ ok: true } as Response);
     const service = new WirelogsInfoService(logger, 'http://api.openchoreo');

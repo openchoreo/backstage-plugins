@@ -1,3 +1,4 @@
+import { MAIN_RELEASE_LINE } from '@openchoreo/backstage-plugin-common';
 import type { WirelogEndpoint, WirelogFlow, WirelogL4 } from './types';
 
 const OPENCHOREO_LABEL_PREFIX = 'openchoreo.dev/';
@@ -118,10 +119,23 @@ export function parseLabels(
   return out;
 }
 
+/** Release line of a `component` pod, or `main` without a line label. */
+export function endpointReleaseLine(
+  endpoint: WirelogEndpoint | undefined,
+  component: string,
+): string | undefined {
+  const labels = parseLabels(endpoint?.labels);
+  if (labels[`${OPENCHOREO_LABEL_PREFIX}component`] !== component) {
+    return undefined;
+  }
+  return labels[`${OPENCHOREO_LABEL_PREFIX}release-line`] ?? MAIN_RELEASE_LINE;
+}
+
 export interface EndpointMeta {
   name: string | undefined;
   namespace: string | undefined;
   component?: string;
+  releaseLine?: string;
   project?: string;
   environment?: string;
 }
@@ -134,6 +148,7 @@ export function endpointMeta(
   }
   const labels = parseLabels(endpoint.labels);
   const component = labels[`${OPENCHOREO_LABEL_PREFIX}component`];
+  const releaseLine = labels[`${OPENCHOREO_LABEL_PREFIX}release-line`];
   const project = labels[`${OPENCHOREO_LABEL_PREFIX}project`];
   const environment = labels[`${OPENCHOREO_LABEL_PREFIX}environment`];
   const name =
@@ -145,6 +160,7 @@ export function endpointMeta(
     name,
     namespace: endpoint.namespace,
     component,
+    releaseLine,
     project,
     environment,
   };

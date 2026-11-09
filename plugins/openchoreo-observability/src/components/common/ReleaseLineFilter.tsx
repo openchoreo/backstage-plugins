@@ -33,6 +33,9 @@ export interface ReleaseLineFilterProps {
   defaultLine?: string;
   /** Render as a cell of a filter bar's grid instead of a row of its own. */
   gridItem?: boolean;
+  size?: 'small' | 'medium';
+  /** Class of the select when it is not a grid item. */
+  className?: string;
 }
 
 /**
@@ -49,6 +52,8 @@ export function ReleaseLineFilter({
   disabled,
   defaultLine = ALL_RELEASE_LINES,
   gridItem,
+  size,
+  className,
 }: ReleaseLineFilterProps) {
   const classes = useReleaseLineFilterStyles();
   const { releaseLine: pageLine } = useReleaseLine();
@@ -85,7 +90,8 @@ export function ReleaseLineFilter({
       variant="outlined"
       id="observability-release-line"
       label="Release Line"
-      className={gridItem ? undefined : classes.select}
+      size={size}
+      className={gridItem ? undefined : className ?? classes.select}
       value={stale || !value ? defaultLine : value}
       onChange={event =>
         setValue(event.target.value === defaultLine ? '' : event.target.value)

@@ -2,6 +2,7 @@ import {
   directionInfo,
   dropReasonText,
   endpointMeta,
+  endpointReleaseLine,
   flowSummary,
   flowTitle,
   formatAddress,
@@ -209,6 +210,50 @@ describe('parseLabels', () => {
   });
 });
 
+describe('endpointReleaseLine', () => {
+  const pod = (labels: string[]) => ({ namespace: 'dp-ns', labels });
+
+  it('returns the release line of a pod of the component', () => {
+    expect(
+      endpointReleaseLine(
+        pod([
+          'k8s:openchoreo.dev/component=api',
+          'k8s:openchoreo.dev/release-line=canary',
+        ]),
+        'api',
+      ),
+    ).toBe('canary');
+  });
+
+  it('returns main for a pod of the component without a release line', () => {
+    expect(
+      endpointReleaseLine(pod(['k8s:openchoreo.dev/component=api']), 'api'),
+    ).toBe('main');
+  });
+
+  it('returns undefined for a pod of another component', () => {
+    expect(
+      endpointReleaseLine(
+        pod([
+          'k8s:openchoreo.dev/component=web',
+          'k8s:openchoreo.dev/release-line=canary',
+        ]),
+        'api',
+      ),
+    ).toBeUndefined();
+  });
+
+  it('returns undefined for a peer whose labels the agent stripped', () => {
+    expect(
+      endpointReleaseLine(
+        pod(['k8s:io.kubernetes.pod.namespace=dp-ns']),
+        'api',
+      ),
+    ).toBeUndefined();
+    expect(endpointReleaseLine(undefined, 'api')).toBeUndefined();
+  });
+});
+
 describe('endpointMeta', () => {
   it('returns placeholders when endpoint is missing', () => {
     expect(endpointMeta(undefined)).toEqual({
@@ -262,6 +307,24 @@ describe('endpointMeta', () => {
         ],
       }),
     ).toMatchObject({ project: 'proj', environment: 'dev' });
+  });
+
+  it('exposes the release line of a line pod only', () => {
+    expect(
+      endpointMeta({
+        pod_name: 'api-canary-pod',
+        labels: [
+          'k8s:openchoreo.dev/component=api',
+          'k8s:openchoreo.dev/release-line=canary',
+        ],
+      }).releaseLine,
+    ).toBe('canary');
+    expect(
+      endpointMeta({
+        pod_name: 'api-pod',
+        labels: ['k8s:openchoreo.dev/component=api'],
+      }).releaseLine,
+    ).toBeUndefined();
   });
 });
 

@@ -116,6 +116,21 @@ describe('WirelogsFilter', () => {
     expect(props.onFiltersChange).toHaveBeenCalledWith({ searchQuery: 'foo' });
   });
 
+  it('places the release line filter before the environment', () => {
+    render(
+      <WirelogsFilter
+        {...defaults()}
+        releaseLineFilter={<div data-testid="release-line" />}
+      />,
+    );
+    const line = screen.getByTestId('release-line');
+    const envSelect = screen.getByTestId('env');
+    expect(
+      line.compareDocumentPosition(envSelect) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   it('propagates environment change through onFiltersChange', () => {
     const props = defaults();
     const stg = {

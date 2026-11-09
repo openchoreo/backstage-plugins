@@ -2751,6 +2751,8 @@ export async function createRouter({
           environmentName: environmentName as string,
           projectName: projectName as string,
           componentName: componentName as string | undefined,
+          releaseLine: requestReleaseLine(req),
+          allReleaseLines: req.query.allReleaseLines === 'true',
         },
         userToken,
         abortController.signal,
