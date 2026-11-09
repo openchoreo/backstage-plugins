@@ -41,13 +41,37 @@ export function unresolvedFacts(
   };
 }
 
+/** How long `collect` gets for one entity, every request included. */
+export const ENTITY_DEADLINE_MS = 30_000;
+
+/**
+ * Settles with `promise`, or rejects once `signal` aborts. Node's fetch
+ * restarts its body timeout on every chunk, so a response that never
+ * finishes would otherwise hold the run on one entity indefinitely.
+ */
+function withDeadline<R>(promise: Promise<R>, signal: AbortSignal): Promise<R> {
+  return new Promise<R>((resolve, reject) => {
+    const abort = () => reject(signal.reason);
+    if (signal.aborted) {
+      abort();
+      return;
+    }
+    signal.addEventListener('abort', abort, { once: true });
+    promise.then(resolve, reject).finally(() => {
+      signal.removeEventListener('abort', abort);
+    });
+  });
+}
+
 /**
  * Runs `collect` for every catalog entity matching the retriever's filter.
  *
  * Failures are contained per entity: tech-insights stores nothing for a run
  * whose handler throws, so one unreadable resource must not discard the
- * facts of every other entity. An entity whose `collect` throws is left out
- * of the result and keeps its previous facts until they expire.
+ * facts of every other entity. An entity whose `collect` throws, or runs past
+ * `deadlineMs`, is left out of the result and keeps its previous facts until
+ * they expire. `collect` gets the deadline as a signal to pass to its
+ * requests, so they are cancelled with it.
  */
 export async function collectOpenChoreoFacts<T>(
   context: FactRetrieverContext,
@@ -55,7 +79,9 @@ export async function collectOpenChoreoFacts<T>(
   collect: (
     entity: Entity,
     prepared: T,
+    signal: AbortSignal,
   ) => Promise<TechInsightFact['facts'] | undefined>,
+  { deadlineMs = ENTITY_DEADLINE_MS }: { deadlineMs?: number } = {},
 ): Promise<TechInsightFact[]> {
   const { discovery, auth, logger, entityFilter } = context;
 
@@ -71,7 +97,11 @@ export async function collectOpenChoreoFacts<T>(
   const results: TechInsightFact[] = [];
   for (const entity of items) {
     try {
-      const facts = await collect(entity, prepared);
+      const signal = AbortSignal.timeout(deadlineMs);
+      const facts = await withDeadline(
+        collect(entity, prepared, signal),
+        signal,
+      );
       if (!facts) {
         continue;
       }

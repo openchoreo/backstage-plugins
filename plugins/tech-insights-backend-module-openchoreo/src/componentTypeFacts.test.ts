@@ -139,6 +139,41 @@ describe('componentTypeFacts', () => {
     expect(facts.openchoreoTemplatesAllowPrivileged).toBe(true);
   });
 
+  const compliant = {
+    name: 'main',
+    resources: { limits: { cpu: '1', memory: '1Gi' } },
+    securityContext: { runAsNonRoot: true, privileged: false },
+  };
+
+  it.each([
+    ['an expression for initContainers', '${parameters.initContainers}', []],
+    ['an expression inside initContainers', ['${parameters.sidecar}'], []],
+    ['an expression for containers', [], '${parameters.containers}'],
+  ])(
+    'treats %s as not enforcing anything',
+    (_, initContainers, extraContainers) => {
+      const containers = Array.isArray(extraContainers)
+        ? [compliant, ...extraContainers]
+        : extraContainers;
+      expect(
+        componentTypeFacts({
+          resources: [
+            {
+              template: {
+                kind: 'Deployment',
+                spec: { template: { spec: { containers, initContainers } } },
+              },
+            },
+          ],
+        }),
+      ).toMatchObject({
+        openchoreoTemplatesSetResourceLimits: false,
+        openchoreoTemplatesRunAsNonRoot: false,
+        openchoreoTemplatesAllowPrivileged: true,
+      });
+    },
+  );
+
   it('ignores templates rendered to the observability plane', () => {
     expect(
       componentTypeFacts({

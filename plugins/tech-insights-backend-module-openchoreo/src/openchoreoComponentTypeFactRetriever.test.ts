@@ -78,6 +78,7 @@ describe('openchoreoComponentTypeFactRetriever', () => {
     );
     expect(client.GET).toHaveBeenCalledWith(CLUSTER_PATH, {
       params: { path: { cctName: 'web-service' } },
+      signal: expect.any(AbortSignal),
     });
     expect(byName['web-service']).toEqual(
       expect.objectContaining({
@@ -98,9 +99,11 @@ describe('openchoreoComponentTypeFactRetriever', () => {
     );
     expect(client.GET).toHaveBeenCalledWith(NAMESPACED_PATH, {
       params: { path: { namespaceName: 'acme', ctName: 'worker' } },
+      signal: expect.any(AbortSignal),
     });
     expect(client.GET).toHaveBeenCalledWith(NAMESPACED_PATH, {
       params: { path: { namespaceName: 'default', ctName: 'cron' } },
+      signal: expect.any(AbortSignal),
     });
   });
 

@@ -77,12 +77,13 @@ export function createOpenChoreoComponentTypeFactRetriever(
       collectOpenChoreoFacts(
         context,
         () => createServiceClient(context, tokenService),
-        async (entity, client) => {
+        async (entity, client, signal) => {
           const name = entity.metadata.name;
           const { data, response } =
             entity.kind.toLowerCase() === 'clustercomponenttype'
               ? await client.GET('/api/v1/clustercomponenttypes/{cctName}', {
                   params: { path: { cctName: name } },
+                  signal,
                 })
               : await client.GET(
                   '/api/v1/namespaces/{namespaceName}/componenttypes/{ctName}',
@@ -93,6 +94,7 @@ export function createOpenChoreoComponentTypeFactRetriever(
                         ctName: name,
                       },
                     },
+                    signal,
                   },
                 );
           if (response.status === 404) {

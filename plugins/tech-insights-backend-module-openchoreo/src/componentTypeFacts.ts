@@ -54,6 +54,16 @@ function hasValue(value: unknown): boolean {
 }
 
 /**
+ * Whether a container list is an expression, or holds one, so the
+ * containers it renders can't be read from the template.
+ */
+function hasOpaqueContainers(podSpec: Json): boolean {
+  return [podSpec.containers, podSpec.initContainers].some(list =>
+    Array.isArray(list) ? list.some(entry => !asObject(entry)) : hasValue(list),
+  );
+}
+
+/**
  * Facts about what a component type lets components do and how its
  * templates run them.
  *
@@ -61,8 +71,10 @@ function hasValue(value: unknown): boolean {
  * `${parameters.privileged}`. A security setting counts as enforced only when
  * it is a literal value, since an expression can render to anything, while
  * any value other than a literal `false` counts as allowing privileged
- * containers. A component type with no pod-rendering template (a proxy, for
- * example) reports false for the enforcement facts.
+ * containers. A container list that is, or holds, an expression is treated
+ * the same way: limits and non-root count as not enforced, and privileged
+ * containers as allowed. A component type with no pod-rendering template (a
+ * proxy, for example) reports false for the enforcement facts.
  */
 export function componentTypeFacts(spec: ComponentTypeSpec) {
   const podSpecs = (spec.resources ?? [])
@@ -79,6 +91,8 @@ export function componentTypeFacts(spec: ComponentTypeSpec) {
       }),
     ),
   );
+
+  const opaque = podSpecs.some(hasOpaqueContainers);
 
   const runsAsNonRoot = ({
     container,
@@ -108,9 +122,10 @@ export function componentTypeFacts(spec: ComponentTypeSpec) {
     openchoreoAllowedWorkflows: (spec.allowedWorkflows ?? []).map(w => w.name),
     openchoreoValidationRuleCount: spec.validations?.length ?? 0,
     openchoreoTemplatesSetResourceLimits:
-      containers.length > 0 && containers.every(setsLimits),
+      !opaque && containers.length > 0 && containers.every(setsLimits),
     openchoreoTemplatesRunAsNonRoot:
-      containers.length > 0 && containers.every(runsAsNonRoot),
-    openchoreoTemplatesAllowPrivileged: containers.some(allowsPrivileged),
+      !opaque && containers.length > 0 && containers.every(runsAsNonRoot),
+    openchoreoTemplatesAllowPrivileged:
+      opaque || containers.some(allowsPrivileged),
   };
 }
