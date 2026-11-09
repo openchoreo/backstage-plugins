@@ -7,6 +7,7 @@ import { WirelogsFlowDrawer } from './WirelogsFlowDrawer';
 import {
   directionInfo,
   endpointMeta,
+  endpointReleaseLine,
   flowSummary,
   formatTime,
   getDestinationPort,
@@ -23,6 +24,7 @@ import type {
 interface WirelogsTableProps {
   flows: WirelogEvent[];
   isStreaming: boolean;
+  releaseLineComponent?: string;
 }
 
 // Matches the height the table scroll area used to have.
@@ -103,16 +105,29 @@ const DirCell: FC<{ flow: WirelogFlow; classes: WirelogsClasses }> = ({
 const EndpointCell: FC<{
   endpoint: WirelogEndpoint | undefined;
   classes: WirelogsClasses;
-}> = ({ endpoint, classes }) => {
+  releaseLineComponent?: string;
+}> = ({ endpoint, classes, releaseLineComponent }) => {
   const meta = endpointMeta(endpoint);
+  const line = releaseLineComponent
+    ? endpointReleaseLine(endpoint, releaseLineComponent)
+    : undefined;
   return (
     <Box>
       <Box className={classes.endpointName} title={meta.name}>
         {meta.name ?? '—'}
       </Box>
-      {meta.namespace && (
-        <Box className={classes.endpointSub} title={meta.namespace}>
-          {meta.namespace}
+      {(line || meta.namespace) && (
+        <Box className={classes.endpointSubRow}>
+          {line && (
+            <span className={classes.lineBadge} title={`Release line: ${line}`}>
+              {line}
+            </span>
+          )}
+          {meta.namespace && (
+            <Box className={classes.endpointSub} title={meta.namespace}>
+              {meta.namespace}
+            </Box>
+          )}
         </Box>
       )}
     </Box>
@@ -229,9 +244,15 @@ interface WirelogsRowProps {
   event: WirelogEvent;
   selected: boolean;
   onSelect: () => void;
+  releaseLineComponent?: string;
 }
 
-const WirelogsRow: FC<WirelogsRowProps> = ({ event, selected, onSelect }) => {
+const WirelogsRow: FC<WirelogsRowProps> = ({
+  event,
+  selected,
+  onSelect,
+  releaseLineComponent,
+}) => {
   const classes = useWirelogsTableStyles();
   const flow = event.flow;
 
@@ -261,13 +282,21 @@ const WirelogsRow: FC<WirelogsRowProps> = ({ event, selected, onSelect }) => {
           <DirCell flow={flow} classes={classes} />
         </Box>
         <Box style={getColumnStyle('source')} className={classes.bodyCellDiv}>
-          <EndpointCell endpoint={flow.source} classes={classes} />
+          <EndpointCell
+            endpoint={flow.source}
+            classes={classes}
+            releaseLineComponent={releaseLineComponent}
+          />
         </Box>
         <Box
           style={getColumnStyle('destination')}
           className={classes.bodyCellDiv}
         >
-          <EndpointCell endpoint={flow.destination} classes={classes} />
+          <EndpointCell
+            endpoint={flow.destination}
+            classes={classes}
+            releaseLineComponent={releaseLineComponent}
+          />
         </Box>
         <Box style={getColumnStyle('summary')} className={classes.bodyCellDiv}>
           <SummaryCell flow={flow} classes={classes} />
@@ -280,6 +309,7 @@ const WirelogsRow: FC<WirelogsRowProps> = ({ event, selected, onSelect }) => {
 export const WirelogsTable: FC<WirelogsTableProps> = ({
   flows,
   isStreaming,
+  releaseLineComponent,
 }) => {
   const classes = useWirelogsTableStyles();
   const [selected, setSelected] = useState<WirelogEvent | null>(null);
@@ -336,6 +366,7 @@ export const WirelogsTable: FC<WirelogsTableProps> = ({
                   event={event}
                   selected={key === selectedKey}
                   onSelect={() => setSelected(event)}
+                  releaseLineComponent={releaseLineComponent}
                 />
               );
             }}

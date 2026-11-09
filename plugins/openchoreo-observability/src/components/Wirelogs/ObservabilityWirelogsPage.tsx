@@ -14,7 +14,11 @@ import {
   useGetNamespaceAndProjectByEntity,
   useWirelogsEnvironments,
 } from '../../hooks';
-import { EnvironmentsStatusNotice } from '../common';
+import { EnvironmentsStatusNotice, ReleaseLineFilter } from '../common';
+import {
+  componentDefaultReleaseLine,
+  useSelectedReleaseLine,
+} from '../../hooks/useSelectedReleaseLine';
 import { WirelogsFilter } from './WirelogsFilter';
 import { WirelogsStats } from './WirelogsStats';
 import { WirelogsTable, matchesSearch } from './WirelogsTable';
@@ -31,6 +35,8 @@ const ObservabilityWirelogsContent = () => {
   const componentName =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
   const componentScopeMissing = entity.kind === 'Component' && !componentName;
+  const defaultReleaseLine = componentDefaultReleaseLine(entity);
+  const releaseLine = useSelectedReleaseLine(defaultReleaseLine);
 
   const {
     environments,
@@ -75,6 +81,7 @@ const ObservabilityWirelogsContent = () => {
       ? undefined
       : filters.environment?.name,
     componentName,
+    releaseLine,
   });
 
   const {
@@ -203,6 +210,16 @@ const ObservabilityWirelogsContent = () => {
       onDownload={handleDownload}
       disabled={noEnvSupportsWirelogs}
       startDisabled={selectedEnvUnsupported || envAccessDenied}
+      releaseLineFilter={
+        <ReleaseLineFilter
+          size="small"
+          className={classes.releaseLineControl}
+          defaultLine={defaultReleaseLine}
+          namespace={namespace}
+          component={componentName}
+          disabled={noEnvSupportsWirelogs}
+        />
+      }
     />
   );
 
@@ -268,7 +285,13 @@ const ObservabilityWirelogsContent = () => {
             allowed={stats.allowed}
             dropped={stats.dropped}
           />
-          <WirelogsTable flows={visibleFlows} isStreaming={isStreaming} />
+          <WirelogsTable
+            flows={visibleFlows}
+            isStreaming={isStreaming}
+            releaseLineComponent={
+              defaultReleaseLine && !releaseLine ? componentName : undefined
+            }
+          />
         </>
       )}
     </Box>

@@ -1,7 +1,20 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ObservabilityWirelogsPage } from './ObservabilityWirelogsPage';
 
+jest.mock('../common/ReleaseLineFilter', () => ({
+  ReleaseLineFilter: () => null,
+}));
+
 // ---- Mocks ----------------------------------------------------------------
+
+const mockUseSelectedReleaseLine = jest.fn();
+const mockComponentDefaultReleaseLine = jest.fn();
+jest.mock('../../hooks/useSelectedReleaseLine', () => ({
+  useSelectedReleaseLine: (...args: any[]) =>
+    mockUseSelectedReleaseLine(...args),
+  componentDefaultReleaseLine: (...args: any[]) =>
+    mockComponentDefaultReleaseLine(...args),
+}));
 
 const mockUseWirelogsPermission = jest.fn();
 
@@ -110,8 +123,10 @@ jest.mock('./WirelogsFilter', () => ({
 }));
 
 jest.mock('./WirelogsTable', () => ({
-  WirelogsTable: ({ flows }: any) => (
-    <div data-testid="table">flows={flows.length}</div>
+  WirelogsTable: ({ flows, releaseLineComponent }: any) => (
+    <div data-testid="table" data-line-component={releaseLineComponent ?? ''}>
+      flows={flows.length}
+    </div>
   ),
   matchesSearch: () => true,
 }));
@@ -193,6 +208,10 @@ function setupEnvironments(over: Partial<ReturnType<any>> = {}) {
 beforeEach(() => {
   jest.clearAllMocks();
   setupStream();
+  mockComponentDefaultReleaseLine.mockReturnValue(undefined);
+  mockUseSelectedReleaseLine.mockImplementation(
+    (defaultLine?: string) => defaultLine,
+  );
   mockUseWirelogsPermission.mockReturnValue({
     canViewWirelogs: true,
     loading: false,
@@ -343,6 +362,58 @@ describe('ObservabilityWirelogsPage', () => {
         }),
       );
     });
+  });
+
+  it('streams the main line by default for a component with release lines', async () => {
+    mockComponentDefaultReleaseLine.mockReturnValue('main');
+    render(<ObservabilityWirelogsPage />);
+    await waitFor(() => {
+      const lastCall =
+        mockUseWirelogsStream.mock.calls[
+          mockUseWirelogsStream.mock.calls.length - 1
+        ][0];
+      expect(lastCall.releaseLine).toBe('main');
+    });
+    expect(mockUseSelectedReleaseLine).toHaveBeenCalledWith('main');
+  });
+
+  it('passes the selected release line into the stream hook', async () => {
+    mockComponentDefaultReleaseLine.mockReturnValue('main');
+    mockUseSelectedReleaseLine.mockReturnValue('canary');
+    render(<ObservabilityWirelogsPage />);
+    await waitFor(() => {
+      const lastCall =
+        mockUseWirelogsStream.mock.calls[
+          mockUseWirelogsStream.mock.calls.length - 1
+        ][0];
+      expect(lastCall.releaseLine).toBe('canary');
+    });
+    expect(screen.getByTestId('table')).toHaveAttribute(
+      'data-line-component',
+      '',
+    );
+  });
+
+  it('labels flows with their release line when every line of the component is streamed', async () => {
+    mockComponentDefaultReleaseLine.mockReturnValue('main');
+    mockUseSelectedReleaseLine.mockReturnValue(undefined);
+    render(<ObservabilityWirelogsPage />);
+    await waitFor(() =>
+      expect(screen.getByTestId('table')).toHaveAttribute(
+        'data-line-component',
+        'api',
+      ),
+    );
+  });
+
+  it('does not label flows of a component without release lines', async () => {
+    render(<ObservabilityWirelogsPage />);
+    await waitFor(() =>
+      expect(screen.getByTestId('table')).toHaveAttribute(
+        'data-line-component',
+        '',
+      ),
+    );
   });
 
   it('downloads a JSON file via createElement + click + revokeObjectURL', () => {

@@ -5,6 +5,8 @@ export interface WirelogsStreamRequest {
   environmentName: string;
   projectName: string;
   componentName?: string;
+  releaseLine?: string;
+  allReleaseLines?: boolean;
 }
 
 /**
@@ -40,6 +42,12 @@ export class WirelogsInfoService {
     url.searchParams.set('project', request.projectName);
     if (request.componentName) {
       url.searchParams.set('component', request.componentName);
+    }
+    if (request.releaseLine) {
+      url.searchParams.set('releaseLine', request.releaseLine);
+    }
+    if (request.allReleaseLines) {
+      url.searchParams.set('allReleaseLines', 'true');
     }
 
     this.logger.debug(`Opening wirelogs SSE stream to ${url.toString()}`);

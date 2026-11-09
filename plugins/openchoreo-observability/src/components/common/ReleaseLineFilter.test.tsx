@@ -44,6 +44,23 @@ describe('ReleaseLineFilter', () => {
     ).toEqual(['All lines', 'main', 'canary', 'next']);
   });
 
+  it("takes a toolbar's class and size in place of its own spacing", () => {
+    const { container } = render(
+      <MemoryRouter>
+        <ReleaseLineFilter
+          namespace="default"
+          component="hello"
+          size="small"
+          className="toolbar-cell"
+        />
+      </MemoryRouter>,
+    );
+
+    const field = container.querySelector('.MuiTextField-root');
+    expect(field).toHaveClass('toolbar-cell');
+    expect(container.querySelector('.MuiInputBase-marginDense')).not.toBeNull();
+  });
+
   it('keeps the choice in the URL', () => {
     renderFilter();
 

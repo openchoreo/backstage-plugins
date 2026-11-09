@@ -49,6 +49,7 @@ const EndpointCard: FC<{
       </Typography>
       <KeyValue label="namespace" value={meta.namespace} />
       <KeyValue label="component" value={meta.component} />
+      <KeyValue label="release line" value={meta.releaseLine} />
       <KeyValue label="project" value={meta.project} />
       <KeyValue label="environment" value={meta.environment} />
     </Box>

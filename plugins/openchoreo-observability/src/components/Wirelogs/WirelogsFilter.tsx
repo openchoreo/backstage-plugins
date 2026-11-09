@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, ReactNode } from 'react';
 import { Box, Button, InputAdornment, TextField } from '@material-ui/core';
 import SearchIcon from '@material-ui/icons/Search';
 import GetAppIcon from '@material-ui/icons/GetApp';
@@ -25,6 +25,7 @@ interface WirelogsFilterProps {
   onDownload: () => void;
   disabled?: boolean;
   startDisabled?: boolean;
+  releaseLineFilter?: ReactNode;
 }
 
 export const WirelogsFilter: FC<WirelogsFilterProps> = ({
@@ -39,6 +40,7 @@ export const WirelogsFilter: FC<WirelogsFilterProps> = ({
   onDownload,
   disabled = false,
   startDisabled = false,
+  releaseLineFilter,
 }) => {
   const classes = useWirelogsStyles();
   const [searchInput, handleSearchChange] = useDebouncedSearch(
@@ -50,6 +52,8 @@ export const WirelogsFilter: FC<WirelogsFilterProps> = ({
 
   return (
     <Box className={classes.toolbar}>
+      {releaseLineFilter}
+
       <Box className={classes.envControl}>
         <EnvironmentFilter
           environments={environments}
@@ -77,48 +81,50 @@ export const WirelogsFilter: FC<WirelogsFilterProps> = ({
         }}
       />
 
-      {isStreaming ? (
+      <Box className={classes.actions}>
+        {isStreaming ? (
+          <Button
+            size="small"
+            variant="contained"
+            className={classes.stopButton}
+            onClick={onStop}
+            disableElevation
+            startIcon={<StopIcon />}
+          >
+            Stop stream
+          </Button>
+        ) : (
+          <Button
+            size="small"
+            variant="contained"
+            className={classes.startButton}
+            onClick={onStart}
+            disableElevation
+            disabled={disabled || startDisabled || !filters.environment}
+            startIcon={<PlayArrowIcon />}
+          >
+            Start stream
+          </Button>
+        )}
         <Button
           size="small"
-          variant="contained"
-          className={classes.stopButton}
-          onClick={onStop}
-          disableElevation
-          startIcon={<StopIcon />}
+          variant="outlined"
+          className={classes.toolbarButton}
+          onClick={onClear}
+          startIcon={<ClearAllIcon />}
         >
-          Stop stream
+          Clear
         </Button>
-      ) : (
         <Button
           size="small"
-          variant="contained"
-          className={classes.startButton}
-          onClick={onStart}
-          disableElevation
-          disabled={disabled || startDisabled || !filters.environment}
-          startIcon={<PlayArrowIcon />}
+          variant="outlined"
+          className={classes.toolbarButton}
+          onClick={onDownload}
+          startIcon={<GetAppIcon />}
         >
-          Start stream
+          Download
         </Button>
-      )}
-      <Button
-        size="small"
-        variant="outlined"
-        className={classes.toolbarButton}
-        onClick={onClear}
-        startIcon={<ClearAllIcon />}
-      >
-        Clear
-      </Button>
-      <Button
-        size="small"
-        variant="outlined"
-        className={classes.toolbarButton}
-        onClick={onDownload}
-        startIcon={<GetAppIcon />}
-      >
-        Download
-      </Button>
+      </Box>
     </Box>
   );
 };

@@ -112,6 +112,54 @@ describe('WirelogsTable', () => {
     expect(screen.getByText('dst-pod')).toBeInTheDocument();
   });
 
+  it("labels the component's pods with their release line", () => {
+    render(
+      <WirelogsTable
+        flows={[
+          makeEvent({
+            source: {
+              pod_name: 'api-canary-pod',
+              labels: [
+                'k8s:openchoreo.dev/component=api',
+                'k8s:openchoreo.dev/release-line=canary',
+              ],
+            },
+            destination: {
+              pod_name: 'api-main-pod',
+              labels: ['k8s:openchoreo.dev/component=api'],
+            },
+          }),
+          makeEvent({ uuid: 'peer' }),
+        ]}
+        isStreaming
+        releaseLineComponent="api"
+      />,
+    );
+    expect(screen.getByText('canary')).toBeInTheDocument();
+    expect(screen.getByText('main')).toBeInTheDocument();
+    expect(screen.getAllByTitle(/^Release line:/)).toHaveLength(2);
+  });
+
+  it('shows no release line labels unless asked to', () => {
+    render(
+      <WirelogsTable
+        flows={[
+          makeEvent({
+            source: {
+              pod_name: 'api-canary-pod',
+              labels: [
+                'k8s:openchoreo.dev/component=api',
+                'k8s:openchoreo.dev/release-line=canary',
+              ],
+            },
+          }),
+        ]}
+        isStreaming
+      />,
+    );
+    expect(screen.queryByTitle(/^Release line:/)).not.toBeInTheDocument();
+  });
+
   it('opens the drawer when a row is clicked', () => {
     render(
       <WirelogsTable

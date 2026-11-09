@@ -16,9 +16,20 @@ export const useWirelogsStyles = makeStyles(theme => ({
     width: 220,
     flexShrink: 0,
   },
+  releaseLineControl: {
+    width: 160,
+    flexShrink: 0,
+  },
   filterField: {
     flex: 1,
-    minWidth: 260,
+    minWidth: 200,
+  },
+  // Keeps the stream buttons together when the toolbar wraps.
+  actions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(1.5),
+    flexShrink: 0,
   },
   startButton: {
     backgroundColor: theme.palette.primary.main,
@@ -200,6 +211,23 @@ export const useWirelogsTableStyles = makeStyles(theme => ({
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
     maxWidth: 200,
+  },
+  endpointSubRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(0.5),
+    maxWidth: 200,
+  },
+  lineBadge: {
+    flexShrink: 0,
+    fontSize: '0.6rem',
+    fontWeight: 600,
+    lineHeight: '10px',
+    padding: theme.spacing(0, 0.6),
+    borderRadius: theme.shape.borderRadius,
+    border: `1px solid ${theme.palette.primary.light}`,
+    color: theme.palette.primary.main,
+    whiteSpace: 'nowrap',
   },
   endpointSub: {
     color: theme.palette.text.secondary,

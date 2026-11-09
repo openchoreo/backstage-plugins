@@ -38,6 +38,26 @@ describe('WirelogsFlowTabs', () => {
     expect(screen.getByText('10.0.0.2:8080')).toBeInTheDocument();
   });
 
+  it('shows the release line of a line pod only', () => {
+    render(
+      <WirelogsFlowTabs
+        flow={{
+          ...baseFlow(),
+          destination: {
+            pod_name: 'dst-pod',
+            namespace: 'dst-ns',
+            labels: [
+              'k8s:openchoreo.dev/component=dst-comp',
+              'k8s:openchoreo.dev/release-line=canary',
+            ],
+          },
+        }}
+      />,
+    );
+    expect(screen.getAllByText('release line')).toHaveLength(1);
+    expect(screen.getByText('canary')).toBeInTheDocument();
+  });
+
   it('renders the drop banner when the flow is dropped', () => {
     render(
       <WirelogsFlowTabs

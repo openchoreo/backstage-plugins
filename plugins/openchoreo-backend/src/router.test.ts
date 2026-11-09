@@ -1397,11 +1397,46 @@ describe('createRouter', () => {
           environmentName: 'dev',
           projectName: 'proj',
           componentName: 'svc',
+          releaseLine: undefined,
+          allReleaseLines: false,
         },
         'mock-user-token',
         expect.any(AbortSignal),
       );
     });
+
+    it.each([
+      [{ releaseLine: 'canary' }, 'canary', false],
+      [{ releaseLine: 'main' }, undefined, false],
+      [{ allReleaseLines: 'true' }, undefined, true],
+    ])(
+      'passes the release line scope %o through to the service',
+      async (scope, releaseLine, allReleaseLines) => {
+        services.wirelogsInfoService.openStream.mockResolvedValue(
+          makeUpstream([]),
+        );
+
+        await request(app)
+          .get('/wirelogs/stream')
+          .query({
+            namespaceName: 'ns',
+            environmentName: 'dev',
+            projectName: 'proj',
+            componentName: 'svc',
+            ...scope,
+          });
+
+        expect(services.wirelogsInfoService.openStream).toHaveBeenCalledWith(
+          expect.objectContaining({
+            componentName: 'svc',
+            releaseLine,
+            allReleaseLines,
+          }),
+          'mock-user-token',
+          expect.any(AbortSignal),
+        );
+      },
+    );
 
     it('writes an SSE error frame when openStream rejects', async () => {
       services.wirelogsInfoService.openStream.mockRejectedValue(
