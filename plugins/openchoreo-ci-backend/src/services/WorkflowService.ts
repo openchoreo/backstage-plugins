@@ -547,6 +547,8 @@ export class WorkflowService {
 
   /**
    * True when WorkflowRun has reached a terminal phase.
+   * `status.completedAt` is terminal even when the Ready reason is outside
+   * the status set (DeadlineExceeded, Terminated, Timeout).
    * Used to decide Observer fallback after live pod logs are gone (podGC).
    */
   private async isWorkflowRunTerminal(
@@ -573,6 +575,9 @@ export class WorkflowService {
       );
       if (error || !response.ok || !data) {
         return false;
+      }
+      if (data.status?.completedAt) {
+        return true;
       }
       return terminal.has(deriveWorkflowRunStatus(data));
     } catch (err) {
