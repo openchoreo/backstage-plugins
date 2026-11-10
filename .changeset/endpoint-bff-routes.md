@@ -12,11 +12,11 @@ Add backend routes and client methods for working with Endpoints:
 - `update-endpoint-release-binding` deploys, promotes or saves per-environment
   overrides, and `delete-endpoint-release-binding` undeploys. Both find the
   binding for an environment by its owner and environment, so bindings created
-  outside the portal are handled too. A new binding is named
+  outside the portal are handled too. Saving overrides keeps the release
+  pinned there. A new binding needs a release and is named
   `<endpoint>-<environment>`.
-- `endpoint-release-bindings`, `endpoint-release` and `endpoint-release-schema`
-  read bindings and the release snapshots, and `endpoint-type-schema` and
-  `cluster-endpoint-type-schema` read type parameter schemas.
+- `endpoint-release` reads a release snapshot, and `endpoint-release-schema`
+  reads the environmentConfigs schema frozen on it.
 
 The definition editor now supports Endpoints, EndpointTypes and
 ClusterEndpointTypes.

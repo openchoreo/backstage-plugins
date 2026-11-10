@@ -6,12 +6,10 @@ import {
 import type { APIResponse } from '@openchoreo/backstage-plugin-common';
 import type { ApiSchemaResponse } from '../types';
 
-export type EndpointReleaseSchemaSection = 'parameters' | 'environmentConfigs';
-
 /**
  * BFF service for Endpoint reads beyond the catalog entity: the immutable
- * EndpointReleases the Endpoint controller cuts, and the parameter schemas of
- * (Cluster)EndpointTypes.
+ * EndpointReleases the Endpoint controller cuts, and the environmentConfigs
+ * schema frozen on each.
  */
 export class EndpointInfoService {
   private logger: LoggerService;
@@ -66,14 +64,13 @@ export class EndpointInfoService {
   }
 
   /**
-   * Returns one schema section from the EndpointType snapshot frozen on an
-   * EndpointRelease, so per-environment overrides validate against what the
-   * pinned release was cut against rather than the live type.
+   * Returns the environmentConfigs schema from the EndpointType snapshot
+   * frozen on an EndpointRelease, so per-environment overrides validate
+   * against what the pinned release was cut against rather than the live type.
    */
   async fetchEndpointReleaseSchema(
     namespaceName: string,
     releaseName: string,
-    section: EndpointReleaseSchemaSection,
     token?: string,
   ): Promise<ApiSchemaResponse> {
     const release = await this.getEndpointRelease(
@@ -84,45 +81,16 @@ export class EndpointInfoService {
     const spec = (release?.spec as Record<string, unknown>) || {};
     const endpointType = (spec.endpointType as Record<string, unknown>) || {};
     const typeSpec = (endpointType.spec as Record<string, unknown>) || {};
-    const sectionBlock = typeSpec[section] as
+    const environmentConfigs = typeSpec.environmentConfigs as
       | { openAPIV3Schema?: Record<string, unknown> }
       | undefined;
 
     return {
       success: true,
-      // Empty when the type declares no such section, so form code can
+      // Empty when the type declares no environmentConfigs, so form code can
       // render its empty state without special-casing.
-      data: (sectionBlock?.openAPIV3Schema ?? {}) as ApiSchemaResponse['data'],
+      data: (environmentConfigs?.openAPIV3Schema ??
+        {}) as ApiSchemaResponse['data'],
     };
-  }
-
-  /** Returns the parameters schema of a namespace-scoped EndpointType. */
-  async fetchEndpointTypeSchema(
-    namespaceName: string,
-    etName: string,
-    token?: string,
-  ): Promise<ApiSchemaResponse> {
-    const { data, error, response } = await this.client(token).GET(
-      '/api/v1/namespaces/{namespaceName}/endpointtypes/{etName}/schema',
-      { params: { path: { namespaceName, etName } } },
-    );
-    assertApiResponse({ data, error, response }, 'fetch endpoint type schema');
-    return { success: true, data: data as ApiSchemaResponse['data'] };
-  }
-
-  /** Returns the parameters schema of a ClusterEndpointType. */
-  async fetchClusterEndpointTypeSchema(
-    cetName: string,
-    token?: string,
-  ): Promise<ApiSchemaResponse> {
-    const { data, error, response } = await this.client(token).GET(
-      '/api/v1/clusterendpointtypes/{cetName}/schema',
-      { params: { path: { cetName } } },
-    );
-    assertApiResponse(
-      { data, error, response },
-      'fetch cluster endpoint type schema',
-    );
-    return { success: true, data: data as ApiSchemaResponse['data'] };
   }
 }

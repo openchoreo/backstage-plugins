@@ -27,10 +27,7 @@ import {
   ResourceReleaseInfoService,
   type ResourceReleaseSchemaSection,
 } from './services/ResourceReleaseService/ResourceReleaseInfoService';
-import {
-  EndpointInfoService,
-  type EndpointReleaseSchemaSection,
-} from './services/EndpointService/EndpointInfoService';
+import { EndpointInfoService } from './services/EndpointService/EndpointInfoService';
 import {
   ProjectReleaseInfoService,
   type ProjectReleaseSchemaSection,
@@ -64,7 +61,6 @@ import {
 import {
   transformReleaseBinding,
   transformResourceReleaseBinding,
-  transformEndpointReleaseBinding,
   transformProjectReleaseBinding,
 } from './services/transformers';
 
@@ -1473,17 +1469,6 @@ export async function createRouter({
     );
   });
 
-  router.get('/endpoint-release-bindings', async (req, res) => {
-    const { items } = await environmentInfoService.fetchEndpointReleaseBindings(
-      requireEndpointQuery(req.query),
-      getUserTokenFromRequest(req),
-    );
-    res.json({
-      success: true,
-      data: { items: items.map(transformEndpointReleaseBinding) },
-    });
-  });
-
   // Deploy, promote or save overrides: updates the binding pinned to the
   // environment, or creates one. Omitted fields are left as they are.
   router.put(
@@ -1560,58 +1545,16 @@ export async function createRouter({
   });
 
   router.get('/endpoint-release-schema', async (req, res) => {
-    const { namespaceName, releaseName, section } = req.query;
-    const allowedSections: EndpointReleaseSchemaSection[] = [
-      'parameters',
-      'environmentConfigs',
-    ];
+    const { namespaceName, releaseName } = req.query;
     if (!namespaceName || !releaseName) {
       throw new InputError(
         'namespaceName and releaseName are required query parameters',
-      );
-    }
-    if (
-      !section ||
-      !allowedSections.includes(section as EndpointReleaseSchemaSection)
-    ) {
-      throw new InputError(
-        `section must be one of: ${allowedSections.join(', ')}`,
       );
     }
     res.json(
       await endpointInfoService.fetchEndpointReleaseSchema(
         namespaceName as string,
         releaseName as string,
-        section as EndpointReleaseSchemaSection,
-        getUserTokenFromRequest(req),
-      ),
-    );
-  });
-
-  router.get('/endpoint-type-schema', async (req, res) => {
-    const { namespaceName, etName } = req.query;
-    if (!namespaceName || !etName) {
-      throw new InputError(
-        'namespaceName and etName are required query parameters',
-      );
-    }
-    res.json(
-      await endpointInfoService.fetchEndpointTypeSchema(
-        namespaceName as string,
-        etName as string,
-        getUserTokenFromRequest(req),
-      ),
-    );
-  });
-
-  router.get('/cluster-endpoint-type-schema', async (req, res) => {
-    const { cetName } = req.query;
-    if (!cetName) {
-      throw new InputError('cetName is a required query parameter');
-    }
-    res.json(
-      await endpointInfoService.fetchClusterEndpointTypeSchema(
-        cetName as string,
         getUserTokenFromRequest(req),
       ),
     );

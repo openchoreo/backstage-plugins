@@ -26,8 +26,5 @@ export {
   deriveBindingStatus,
 } from './release-binding';
 export { transformResourceReleaseBinding } from './resource-release-binding';
-export {
-  transformEndpointReleaseBinding,
-  transformResolvedEndpointBackends,
-} from './endpoint-release-binding';
+export { transformResolvedEndpointBackends } from './endpoint-release-binding';
 export { transformProjectReleaseBinding } from './project-release-binding';

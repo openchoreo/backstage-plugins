@@ -31,7 +31,6 @@ function createMockServices() {
       fetchResourceEnvironmentInfo: jest.fn(),
       updateResourceReleaseBinding: jest.fn(),
       deleteResourceReleaseBinding: jest.fn(),
-      fetchEndpointReleaseBindings: jest.fn(),
       fetchEndpointEnvironmentInfo: jest.fn(),
       updateEndpointReleaseBinding: jest.fn(),
       deleteEndpointReleaseBinding: jest.fn(),
@@ -93,8 +92,6 @@ function createMockServices() {
     endpointInfoService: {
       fetchEndpointRelease: jest.fn(),
       fetchEndpointReleaseSchema: jest.fn(),
-      fetchEndpointTypeSchema: jest.fn(),
-      fetchClusterEndpointTypeSchema: jest.fn(),
     },
     projectReleaseInfoService: {
       fetchProjectRelease: jest.fn(),
@@ -1160,54 +1157,6 @@ describe('createRouter', () => {
       });
     });
 
-    it('GET /endpoint-release-bindings returns transformed bindings', async () => {
-      services.environmentInfoService.fetchEndpointReleaseBindings.mockResolvedValue(
-        {
-          items: [
-            {
-              metadata: { name: 'orders-api-dev', namespace: 'acme' },
-              spec: {
-                owner: { projectName: 'store', endpointName: 'orders-api' },
-                environment: 'dev',
-                endpointRelease: 'orders-api-abc',
-              },
-              status: {
-                conditions: [
-                  { type: 'Ready', status: 'True', reason: 'Ready' },
-                ],
-                backends: [
-                  { name: 'primary', kind: 'Component', resolved: true },
-                ],
-              },
-            },
-          ],
-        },
-      );
-
-      const response = await request(app)
-        .get('/endpoint-release-bindings')
-        .query(endpointQuery);
-
-      expect(response.status).toBe(200);
-      expect(response.body).toMatchObject({
-        success: true,
-        data: {
-          items: [
-            expect.objectContaining({
-              name: 'orders-api-dev',
-              endpointName: 'orders-api',
-              environment: 'dev',
-              releaseName: 'orders-api-abc',
-              status: 'Ready',
-              backends: [
-                expect.objectContaining({ name: 'primary', resolved: true }),
-              ],
-            }),
-          ],
-        },
-      });
-    });
-
     it('PUT /update-endpoint-release-binding passes only the provided fields', async () => {
       services.environmentInfoService.updateEndpointReleaseBinding.mockResolvedValue(
         {},
@@ -1257,10 +1206,10 @@ describe('createRouter', () => {
       );
     });
 
-    it('GET /endpoint-release-schema rejects an unknown section', async () => {
+    it('GET /endpoint-release-schema requires a release', async () => {
       const response = await request(app)
         .get('/endpoint-release-schema')
-        .query({ namespaceName: 'acme', releaseName: 'r', section: 'spec' });
+        .query({ namespaceName: 'acme' });
 
       expect(response.status).toBe(400);
       expect(
@@ -1268,19 +1217,19 @@ describe('createRouter', () => {
       ).not.toHaveBeenCalled();
     });
 
-    it('GET /cluster-endpoint-type-schema forwards to the service', async () => {
-      services.endpointInfoService.fetchClusterEndpointTypeSchema.mockResolvedValue(
+    it('GET /endpoint-release-schema forwards to the service', async () => {
+      services.endpointInfoService.fetchEndpointReleaseSchema.mockResolvedValue(
         { success: true, data: {} },
       );
 
       const response = await request(app)
-        .get('/cluster-endpoint-type-schema')
-        .query({ cetName: 'http-route' });
+        .get('/endpoint-release-schema')
+        .query({ namespaceName: 'acme', releaseName: 'orders-api-abc' });
 
       expect(response.status).toBe(200);
       expect(
-        services.endpointInfoService.fetchClusterEndpointTypeSchema,
-      ).toHaveBeenCalledWith('http-route', 'mock-user-token');
+        services.endpointInfoService.fetchEndpointReleaseSchema,
+      ).toHaveBeenCalledWith('acme', 'orders-api-abc', 'mock-user-token');
     });
   });
 

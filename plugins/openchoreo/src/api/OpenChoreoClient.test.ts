@@ -459,36 +459,6 @@ describe('OpenChoreoClient — endpoints', () => {
       environment: 'dev',
     });
   });
-
-  it('reads a ClusterEndpointType schema by name only', async () => {
-    fetchMock.mockResolvedValueOnce(makeJsonResponse({ success: true }));
-
-    await client.fetchEndpointTypeSchema(ENDPOINT_ENTITY as any);
-
-    const [calledUrl] = fetchMock.mock.calls[0];
-    expect(calledUrl).toContain('/cluster-endpoint-type-schema');
-    expect(calledUrl).toContain('cetName=http-route');
-  });
-
-  it('reads a namespaced EndpointType schema with its namespace', async () => {
-    fetchMock.mockResolvedValueOnce(makeJsonResponse({ success: true }));
-
-    await client.fetchEndpointTypeSchema({
-      ...ENDPOINT_ENTITY,
-      metadata: {
-        ...ENDPOINT_ENTITY.metadata,
-        annotations: {
-          ...ENDPOINT_ENTITY.metadata.annotations,
-          'openchoreo.io/endpointtype-kind': 'EndpointType',
-        },
-      },
-    } as any);
-
-    const [calledUrl] = fetchMock.mock.calls[0];
-    expect(calledUrl).toContain('/endpoint-type-schema');
-    expect(calledUrl).toContain('namespaceName=test-ns');
-    expect(calledUrl).toContain('etName=http-route');
-  });
 });
 
 // A Project entity is catalog kind System: the project name is the entity

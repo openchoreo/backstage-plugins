@@ -1,5 +1,5 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import { ConflictError, NotFoundError } from '@backstage/errors';
+import { ConflictError, InputError, NotFoundError } from '@backstage/errors';
 import {
   EnvironmentService,
   Environment,
@@ -2266,28 +2266,6 @@ export class EnvironmentInfoService implements EnvironmentService {
     return bindings.find(b => b.spec?.environment?.toLowerCase() === env);
   }
 
-  async fetchEndpointReleaseBindings(
-    request: {
-      endpointName: string;
-      projectName: string;
-      namespaceName: string;
-    },
-    token?: string,
-  ): Promise<{ items: NewEndpointReleaseBinding[] }> {
-    const client = createOpenChoreoApiClient({
-      baseUrl: this.baseUrl,
-      token,
-      logger: this.logger,
-    });
-    const items = await this.listEndpointBindings(
-      client,
-      request.namespaceName,
-      request.endpointName,
-      request.projectName,
-    );
-    return { items };
-  }
-
   /**
    * Fetches the per-environment view of an Endpoint: one entry per
    * environment in the project's deployment pipeline, joined with the
@@ -2582,7 +2560,8 @@ export class EnvironmentInfoService implements EnvironmentService {
    * Deploys or promotes an Endpoint to an environment: updates the binding
    * pinned to that environment, or creates `<endpoint>-<environment>` when
    * there is none. Only the provided fields change on an existing binding,
-   * so saving overrides keeps the pinned release and vice versa.
+   * so saving overrides keeps the pinned release and vice versa. Creating a
+   * binding requires a release.
    */
   async updateEndpointReleaseBinding(
     request: {
@@ -2601,7 +2580,6 @@ export class EnvironmentInfoService implements EnvironmentService {
       logger: this.logger,
     });
 
-    const existing = await this.findEndpointBindingForEnv(client, request);
     const specChanges = {
       ...(request.releaseName !== undefined
         ? { endpointRelease: request.releaseName }
@@ -2613,16 +2591,14 @@ export class EnvironmentInfoService implements EnvironmentService {
           }
         : {}),
     };
-
-    if (existing?.metadata?.name) {
-      const bindingName = existing.metadata.name;
+    const applyToExisting = async (existing: NewEndpointReleaseBinding) => {
       const { data, error, response } = await client.PUT(
         '/api/v1/namespaces/{namespaceName}/endpointreleasebindings/{endpointReleaseBindingName}',
         {
           params: {
             path: {
               namespaceName: request.namespaceName,
-              endpointReleaseBindingName: bindingName,
+              endpointReleaseBindingName: existing.metadata!.name!,
             },
           },
           body: {
@@ -2636,6 +2612,19 @@ export class EnvironmentInfoService implements EnvironmentService {
         'update endpoint release binding',
       );
       return data;
+    };
+
+    const existing = await this.findEndpointBindingForEnv(client, request);
+    if (existing?.metadata?.name) {
+      return applyToExisting(existing);
+    }
+
+    // A new binding deploys the Endpoint to the environment, so it needs a
+    // release; saving overrides alone must not create an unpinned one.
+    if (request.releaseName === undefined) {
+      throw new InputError(
+        `Endpoint ${request.endpointName} is not deployed to ${request.environment}; a releaseName is required to deploy it there`,
+      );
     }
 
     const bindingName = `${request.endpointName}-${request.environment}`;
@@ -2656,6 +2645,17 @@ export class EnvironmentInfoService implements EnvironmentService {
         },
       },
     );
+    // A concurrent request created the binding first: apply this request's
+    // changes to that binding instead of failing.
+    if (response.status === 409) {
+      this.logger.debug(
+        `Endpoint release binding ${bindingName} already exists (409 conflict), updating it`,
+      );
+      const created = await this.findEndpointBindingForEnv(client, request);
+      if (created?.metadata?.name) {
+        return applyToExisting(created);
+      }
+    }
     assertApiResponse(
       { data, error, response },
       'create endpoint release binding',

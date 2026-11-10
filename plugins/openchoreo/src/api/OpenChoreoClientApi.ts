@@ -7,7 +7,6 @@ import type {
   ReleaseLineSummary,
   ReleaseLineOverrides,
   ReleaseLineResource,
-  EndpointReleaseBindingResponse,
   ResolvedEndpointBackend,
 } from '@openchoreo/backstage-plugin-common';
 import type { Environment } from '../components/RuntimeLogs/types';
@@ -220,17 +219,6 @@ export interface ResourceEnvironment {
     resourceName?: string;
   }[];
   latestRelease?: string;
-}
-
-/** Endpoint release binding item — one per environment for an Endpoint. */
-export type EndpointReleaseBinding = EndpointReleaseBindingResponse;
-
-/** Endpoint release bindings response */
-export interface EndpointReleaseBindingsResponse {
-  success: boolean;
-  data?: {
-    items: EndpointReleaseBinding[];
-  };
 }
 
 /** Full EndpointRelease CR — used to show the snapshot pinned to an environment */
@@ -837,11 +825,6 @@ export interface OpenChoreoClientApi {
    */
   fetchEndpointEnvironmentInfo(entity: Entity): Promise<EndpointEnvironment[]>;
 
-  /** Fetch the EndpointReleaseBindings of an Endpoint entity. */
-  fetchEndpointReleaseBindings(
-    entity: Entity,
-  ): Promise<EndpointReleaseBindingsResponse>;
-
   /**
    * Deploy, promote or save overrides for an Endpoint in an environment.
    * Updates the binding pinned to the environment, or creates one. Omitted
@@ -869,22 +852,13 @@ export interface OpenChoreoClientApi {
   ): Promise<EndpointReleaseResponse>;
 
   /**
-   * Fetch a schema section from the EndpointType snapshot frozen on an
-   * EndpointRelease, so overrides validate against what the pinned release
-   * was cut against.
+   * Fetch the environmentConfigs schema from the EndpointType snapshot frozen
+   * on an EndpointRelease, so overrides validate against what the pinned
+   * release was cut against.
    */
   fetchEndpointReleaseSchema(
     namespaceName: string,
     releaseName: string,
-    section: 'parameters' | 'environmentConfigs',
-  ): Promise<{ success: boolean; data?: Record<string, unknown> }>;
-
-  /**
-   * Fetch the parameters schema of an Endpoint's (Cluster)EndpointType, read
-   * from the entity's ENDPOINTTYPE and ENDPOINTTYPE_KIND annotations.
-   */
-  fetchEndpointTypeSchema(
-    entity: Entity,
   ): Promise<{ success: boolean; data?: Record<string, unknown> }>;
 
   /**

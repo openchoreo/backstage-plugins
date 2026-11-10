@@ -52,7 +52,6 @@ import type {
   PodLogsResponse,
   ResourceEnvironment,
   EndpointEnvironment,
-  EndpointReleaseBindingsResponse,
   EndpointReleaseResponse,
   ResourceTypeOutput,
 } from './OpenChoreoClientApi';
@@ -106,13 +105,10 @@ const API_ENDPOINTS = {
   CLUSTER_RESOURCE_TYPE_OUTPUTS: '/cluster-resource-type-outputs',
   RESOURCE_RELEASE_SCHEMA: '/resource-release-schema',
   ENDPOINT_ENVIRONMENT_INFO: '/endpoint-environment-info',
-  ENDPOINT_RELEASE_BINDINGS: '/endpoint-release-bindings',
   UPDATE_ENDPOINT_RELEASE_BINDING: '/update-endpoint-release-binding',
   DELETE_ENDPOINT_RELEASE_BINDING: '/delete-endpoint-release-binding',
   ENDPOINT_RELEASE: '/endpoint-release',
   ENDPOINT_RELEASE_SCHEMA: '/endpoint-release-schema',
-  ENDPOINT_TYPE_SCHEMA: '/endpoint-type-schema',
-  CLUSTER_ENDPOINT_TYPE_SCHEMA: '/cluster-endpoint-type-schema',
   COMPONENT_TRAITS: '/component-traits',
   RELEASE_LINE: '/release-line',
   COMPONENT_CONFIG: '/component-config',
@@ -636,15 +632,6 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     );
   }
 
-  async fetchEndpointReleaseBindings(
-    entity: Entity,
-  ): Promise<EndpointReleaseBindingsResponse> {
-    return this.apiFetch<EndpointReleaseBindingsResponse>(
-      API_ENDPOINTS.ENDPOINT_RELEASE_BINDINGS,
-      { params: { ...extractEndpointEntityMetadata(entity) } },
-    );
-  }
-
   async updateEndpointReleaseBinding(
     entity: Entity,
     environment: string,
@@ -695,41 +682,9 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   async fetchEndpointReleaseSchema(
     namespaceName: string,
     releaseName: string,
-    section: 'parameters' | 'environmentConfigs',
   ): Promise<{ success: boolean; data?: Record<string, unknown> }> {
     return this.apiFetch(API_ENDPOINTS.ENDPOINT_RELEASE_SCHEMA, {
-      params: { namespaceName, releaseName, section },
-    });
-  }
-
-  async fetchEndpointTypeSchema(
-    entity: Entity,
-  ): Promise<{ success: boolean; data?: Record<string, unknown> }> {
-    const annotations = entity.metadata.annotations ?? {};
-    const etName = annotations[CHOREO_ANNOTATIONS.ENDPOINTTYPE];
-    if (!etName) {
-      throw new Error(
-        `Missing ${CHOREO_ANNOTATIONS.ENDPOINTTYPE} annotation on entity`,
-      );
-    }
-
-    if (
-      annotations[CHOREO_ANNOTATIONS.ENDPOINTTYPE_KIND] ===
-      'ClusterEndpointType'
-    ) {
-      return this.apiFetch(API_ENDPOINTS.CLUSTER_ENDPOINT_TYPE_SCHEMA, {
-        params: { cetName: etName },
-      });
-    }
-
-    const namespaceName = annotations[CHOREO_ANNOTATIONS.NAMESPACE];
-    if (!namespaceName) {
-      throw new Error(
-        `Missing ${CHOREO_ANNOTATIONS.NAMESPACE} annotation on entity`,
-      );
-    }
-    return this.apiFetch(API_ENDPOINTS.ENDPOINT_TYPE_SCHEMA, {
-      params: { namespaceName, etName },
+      params: { namespaceName, releaseName },
     });
   }
 

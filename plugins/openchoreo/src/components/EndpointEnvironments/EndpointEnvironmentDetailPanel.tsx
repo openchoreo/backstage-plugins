@@ -33,6 +33,7 @@ import {
   useEndpointReleaseBindingUpdatePermission,
 } from '@openchoreo/backstage-plugin-react';
 import { useNotification } from '../../hooks';
+import { NotificationBanner } from '../Environments/components';
 import type { EndpointEnvironment } from '../../api/OpenChoreoClientApi';
 import { useResourceEnvironmentDetailPanelStyles } from '../ResourceEnvironments/styles';
 import { useEndpointEnvironmentsContext } from './EndpointEnvironmentsContext';
@@ -150,6 +151,7 @@ function EndpointEnvironmentDetailContent({
 
   return (
     <Box className={classes.panel}>
+      <NotificationBanner notification={notification.notification} />
       <Box className={classes.header}>
         <Box className={classes.headerTopRow}>
           <Box className={classes.headerNameRow}>

@@ -242,7 +242,6 @@ export type {
   ReleaseBindingResponse,
   ReleaseBindingCondition,
   ResourceReleaseBindingResponse,
-  EndpointReleaseBindingResponse,
   ResolvedEndpointBackend,
   EndpointServiceURL,
   ProjectReleaseBindingResponse,

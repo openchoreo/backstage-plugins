@@ -664,30 +664,6 @@ export interface ResolvedEndpointBackend {
   message?: string;
 }
 
-export interface EndpointReleaseBindingResponse {
-  name: string;
-  endpointName: string;
-  projectName: string;
-  namespaceName: string;
-  environment: string;
-  /** The pinned EndpointRelease name (spec.endpointRelease). */
-  releaseName: string;
-  /**
-   * Per-environment values for the (Cluster)EndpointType's
-   * environmentConfigs schema.
-   */
-  endpointTypeEnvironmentConfigs?: Record<string, unknown>;
-  /** Format: date-time */
-  createdAt: string;
-  status?: 'Ready' | 'NotReady' | 'Failed';
-  /** The Ready condition's reason */
-  statusReason?: string;
-  /** The Ready condition's human-readable message */
-  statusMessage?: string;
-  conditions?: ReleaseBindingCondition[];
-  backends?: ResolvedEndpointBackend[];
-}
-
 export interface ProjectReleaseBindingResponse {
   name: string;
   projectName: string;

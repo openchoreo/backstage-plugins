@@ -133,10 +133,7 @@ export const EndpointEnvironmentOverridesPage = ({
 
     const load = async () => {
       try {
-        const [envs, bindings] = await Promise.all([
-          client.fetchEndpointEnvironmentInfo(entity),
-          client.fetchEndpointReleaseBindings(entity),
-        ]);
+        const envs = await client.fetchEndpointEnvironmentInfo(entity);
         if (cancelled) return;
 
         const matchingEnv =
@@ -144,13 +141,8 @@ export const EndpointEnvironmentOverridesPage = ({
           null;
         setEnvInfo(matchingEnv);
 
-        const envRef = matchingEnv?.resourceName ?? envName;
-        const matchingBinding =
-          bindings?.data?.items?.find(b => b.environment === envRef) ?? null;
         const backendOverrides =
-          (matchingBinding?.endpointTypeEnvironmentConfigs as
-            | Record<string, unknown>
-            | undefined) ?? {};
+          matchingEnv?.endpointTypeEnvironmentConfigs ?? {};
         const backendOverridesCopy = JSON.parse(
           JSON.stringify(backendOverrides),
         );
@@ -178,7 +170,6 @@ export const EndpointEnvironmentOverridesPage = ({
         const schemaResult = await client.fetchEndpointReleaseSchema(
           namespaceName,
           releaseForSchema,
-          'environmentConfigs',
         );
         if (cancelled) return;
 
@@ -207,18 +198,31 @@ export const EndpointEnvironmentOverridesPage = ({
 
   const persist = useCallback(
     async (next: Record<string, unknown>) => {
-      if (!effectiveRelease) {
+      // Saving overrides on an existing binding leaves its release alone, so
+      // a promotion made since this page loaded is not rolled back and an
+      // unpinned binding is not pinned. Only a deploy, or a save that creates
+      // the binding, sends a release.
+      const pinRelease = isDeployMode || !hasBinding;
+      if (pinRelease && !effectiveRelease) {
         throw new Error(
           'No release available to bind. The endpoint has not cut a release yet.',
         );
       }
       const envRef = envInfo?.resourceName ?? envName;
       await client.updateEndpointReleaseBinding(entity, envRef, {
-        endpointRelease: effectiveRelease,
+        ...(pinRelease && { endpointRelease: effectiveRelease }),
         endpointTypeEnvironmentConfigs: next,
       });
     },
-    [client, effectiveRelease, entity, envInfo?.resourceName, envName],
+    [
+      client,
+      effectiveRelease,
+      entity,
+      envInfo?.resourceName,
+      envName,
+      hasBinding,
+      isDeployMode,
+    ],
   );
 
   const handlePrimary = useCallback(async () => {

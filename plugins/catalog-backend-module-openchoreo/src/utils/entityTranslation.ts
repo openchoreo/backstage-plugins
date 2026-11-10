@@ -2470,8 +2470,10 @@ export function translateClusterEndpointTypeToEntity(
  * Name of the API entity that describes an Endpoint's schema. Derived from
  * the Endpoint name alone (unique within a namespace) so a delete event,
  * which carries only that name, can remove the API entity by ref. The
- * `endpoint-` prefix keeps it apart from the `<project>-<component>-<endpoint>`
- * names of workload-endpoint API entities.
+ * `endpoint-` prefix makes a clash with the `<project>-<component>-<endpoint>`
+ * names of workload-endpoint API entities unlikely but not impossible (a
+ * project named `endpoint`). Like those names, it is not shortened, so an
+ * Endpoint name over 54 characters gives an API name the catalog rejects.
  */
 export function endpointApiEntityName(endpointName: string): string {
   return `endpoint-${endpointName}`;

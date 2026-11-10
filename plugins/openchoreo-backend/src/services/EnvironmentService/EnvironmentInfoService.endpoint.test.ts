@@ -1,5 +1,5 @@
 import { mockServices } from '@backstage/backend-test-utils';
-import { NotFoundError } from '@backstage/errors';
+import { InputError, NotFoundError } from '@backstage/errors';
 import { createOkResponse, createErrorResponse } from '@openchoreo/test-utils';
 import {
   EnvironmentInfoService,
@@ -89,35 +89,30 @@ describe('EnvironmentInfoService endpoint bindings', () => {
     jest.clearAllMocks();
   });
 
-  describe('fetchEndpointReleaseBindings', () => {
-    it("filters out other projects' bindings for a same-named endpoint", async () => {
-      routeGets({
-        [BINDINGS]: {
-          items: [
-            binding('orders-api-dev', 'dev'),
-            binding('orders-api-dev-other', 'dev', { projectName: 'other' }),
-          ],
-        },
-      });
+  describe('updateEndpointReleaseBinding', () => {
+    it("ignores another project's binding for a same-named endpoint", async () => {
+      mockGET.mockResolvedValue(
+        createOkResponse({
+          items: [binding('orders-api-dev', 'dev', { projectName: 'other' })],
+        }),
+      );
+      mockPOST.mockResolvedValue(createOkResponse({}));
 
-      const result = await createService().fetchEndpointReleaseBindings(
-        target,
+      await createService().updateEndpointReleaseBinding(
+        { ...target, environment: 'dev', releaseName: 'orders-api-abc' },
         'token',
       );
 
-      expect(result.items.map(b => b.metadata?.name)).toEqual([
-        'orders-api-dev',
-      ]);
       expect(mockGET).toHaveBeenCalledWith(BINDINGS, {
         params: {
           path: { namespaceName: NS },
           query: { endpoint: 'orders-api', limit: 100, cursor: undefined },
         },
       });
+      expect(mockPUT).not.toHaveBeenCalled();
+      expect(mockPOST).toHaveBeenCalledTimes(1);
     });
-  });
 
-  describe('updateEndpointReleaseBinding', () => {
     it('updates the binding pinned to the environment, whatever its name', async () => {
       // Created outside the portal, so it does not follow <endpoint>-<env>.
       routeGets({
@@ -187,6 +182,51 @@ describe('EnvironmentInfoService endpoint bindings', () => {
           },
         },
       });
+    });
+  });
+
+  describe('updateEndpointReleaseBinding without a binding', () => {
+    it('refuses to create a binding from overrides alone', async () => {
+      routeGets({ [BINDINGS]: { items: [] } });
+
+      await expect(
+        createService().updateEndpointReleaseBinding(
+          {
+            ...target,
+            environment: 'staging',
+            endpointTypeEnvironmentConfigs: { hostname: 'x.example.com' },
+          },
+          'token',
+        ),
+      ).rejects.toThrow(InputError);
+      expect(mockPOST).not.toHaveBeenCalled();
+      expect(mockPUT).not.toHaveBeenCalled();
+    });
+
+    it('updates the binding a concurrent request created first', async () => {
+      // The first lookup finds nothing; after the 409 the lookup finds the
+      // binding the other request created.
+      mockGET
+        .mockResolvedValueOnce(createOkResponse({ items: [] }))
+        .mockResolvedValueOnce(
+          createOkResponse({
+            items: [binding('orders-api-staging', 'staging')],
+          }),
+        );
+      mockPOST.mockResolvedValue(createErrorResponse(409, 'already exists'));
+      mockPUT.mockResolvedValue(createOkResponse({ ok: true }));
+
+      const result = await createService().updateEndpointReleaseBinding(
+        { ...target, environment: 'staging', releaseName: 'orders-api-def' },
+        'token',
+      );
+
+      expect(result).toEqual({ ok: true });
+      const [, opts] = mockPUT.mock.calls[0];
+      expect(opts.params.path.endpointReleaseBindingName).toBe(
+        'orders-api-staging',
+      );
+      expect(opts.body.spec.endpointRelease).toBe('orders-api-def');
     });
   });
 
