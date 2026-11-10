@@ -493,34 +493,55 @@ export class WorkflowService {
           return liveEntries;
         }
 
-        // Incremental poll while running: empty means no new lines yet.
-        if (
-          typeof options.sinceSeconds === 'number' &&
-          options.sinceSeconds > 0
-        ) {
-          this.logger.debug(
-            `No live logs yet for run ${runName} (sinceSeconds=${options.sinceSeconds})`,
-          );
-          return liveEntries;
-        }
-
+        // Empty live logs on a running run are expected, including incremental
+        // polls. A terminal run can be empty because podGC removed the pods,
+        // so still fall back to Observer for sinceSeconds polls.
         const terminal = await this.isWorkflowRunTerminal(
           namespaceName,
           runName,
           token,
         );
         if (!terminal) {
-          this.logger.debug(`No live logs yet for run ${runName}`);
+          this.logger.debug(
+            typeof options.sinceSeconds === 'number' &&
+              options.sinceSeconds > 0
+              ? `No live logs yet for run ${runName} (sinceSeconds=${options.sinceSeconds})`
+              : `No live logs yet for run ${runName}`,
+          );
           return liveEntries;
         }
 
         this.logger.info(
           `Live logs empty for terminal run ${runName}; falling back to observer-api`,
         );
-        // Fall through to Observer below.
+        try {
+          return await this.fetchWorkflowRunLogsFromObserver(
+            namespaceName,
+            projectName,
+            componentName,
+            runName,
+            options,
+            token,
+          );
+        } catch (fallbackError: unknown) {
+          // Keep the step list visible: an Observer miss must not turn the
+          // empty live result into a request error. Observer-only requests
+          // below still surface these errors.
+          if (fallbackError instanceof ObservabilityNotConfiguredError) {
+            this.logger.info(
+              `Observability not configured for component ${componentName}; returning empty live logs for run ${runName}`,
+            );
+          } else {
+            this.logger.error(
+              `Observer fallback failed for terminal run ${runName}; returning empty live logs`,
+              fallbackError as Error,
+            );
+          }
+          return liveEntries;
+        }
       }
 
-      // Observer path: older runs, or terminal runs after podGC cleared live pods.
+      // Observer-only path: older runs with hasLiveObservability=false.
       return await this.fetchWorkflowRunLogsFromObserver(
         namespaceName,
         projectName,
