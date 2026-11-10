@@ -43,17 +43,17 @@ const schema: FactRetriever['schema'] = {
   openchoreoTemplatesSetResourceLimits: {
     type: 'boolean',
     description:
-      'Whether every container in the templates sets CPU and memory limits',
+      "Whether every container in the templates sets CPU and memory limits. False when a template's kind, pod spec or container list is an expression",
   },
   openchoreoTemplatesRunAsNonRoot: {
     type: 'boolean',
     description:
-      'Whether every container in the templates sets runAsNonRoot or a non-zero runAsUser as a literal value',
+      "Whether every container in the templates sets runAsNonRoot or a non-zero runAsUser as a literal value. False when a template's kind, pod spec or container list, or a container's securityContext, is an expression",
   },
   openchoreoTemplatesAllowPrivileged: {
     type: 'boolean',
     description:
-      'Whether any container in the templates sets privileged to anything other than false',
+      "Whether any container in the templates sets privileged to anything other than false. True when a template's kind, pod spec or container list, or a container's securityContext, is an expression",
   },
 };
 

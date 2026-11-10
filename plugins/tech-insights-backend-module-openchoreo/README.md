@@ -12,6 +12,11 @@ is false and every other fact is null, so checks fail the entity instead of skip
 skips a check only when a fact it uses is missing. `notEqual`, `notIn` and `not` pass on null, so a
 check written with them should also require the `…Resolved` fact.
 
+The container facts read the component type's templates, not what they render. When a template's
+kind, pod spec or container list is a CEL expression, its containers can't be checked, so limits
+and non-root report false and privileged reports true. A container whose `securityContext` is an
+expression counts as possibly root and privileged.
+
 ## Installation
 
 ```ts

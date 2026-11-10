@@ -174,6 +174,81 @@ describe('componentTypeFacts', () => {
     },
   );
 
+  const pod = { containers: [compliant] };
+
+  it.each([
+    ['the whole template', '${parameters.workload}'],
+    ['the kind', { kind: '${parameters.kind}', spec: pod }],
+    ['a Pod spec', { kind: 'Pod', spec: '${parameters.pod}' }],
+    ['a Deployment spec', { kind: 'Deployment', spec: '${parameters.spec}' }],
+    [
+      'a Deployment pod template',
+      { kind: 'Deployment', spec: { template: '${parameters.template}' } },
+    ],
+    [
+      'a Deployment pod spec',
+      { kind: 'Deployment', spec: { template: { spec: '${parameters.pod}' } } },
+    ],
+    [
+      'a CronJob job template',
+      { kind: 'CronJob', spec: { jobTemplate: '${parameters.job}' } },
+    ],
+  ])(
+    'treats an expression for %s as not enforcing anything, next to a compliant template',
+    (_, template) => {
+      expect(
+        componentTypeFacts({
+          resources: [deployment(pod), { id: 'templated', template }],
+        }),
+      ).toMatchObject({
+        openchoreoTemplatesSetResourceLimits: false,
+        openchoreoTemplatesRunAsNonRoot: false,
+        openchoreoTemplatesAllowPrivileged: true,
+      });
+    },
+  );
+
+  it('ignores expressions in templates that render no pods', () => {
+    expect(
+      componentTypeFacts({
+        resources: [
+          deployment(pod),
+          { template: { kind: 'Service', spec: '${parameters.service}' } },
+          { template: { kind: 'ConfigMap', data: '${parameters.data}' } },
+          { template: { spec: '${parameters.spec}' } },
+        ],
+      }),
+    ).toMatchObject({
+      openchoreoTemplatesSetResourceLimits: true,
+      openchoreoTemplatesRunAsNonRoot: true,
+      openchoreoTemplatesAllowPrivileged: false,
+    });
+  });
+
+  it("doesn't fall back to the pod for a container whose securityContext is an expression", () => {
+    expect(
+      componentTypeFacts({
+        resources: [
+          deployment({
+            securityContext: { runAsNonRoot: true },
+            containers: [
+              compliant,
+              {
+                ...compliant,
+                name: 'sidecar',
+                securityContext: '${parameters.securityContext}',
+              },
+            ],
+          }),
+        ],
+      }),
+    ).toMatchObject({
+      openchoreoTemplatesSetResourceLimits: true,
+      openchoreoTemplatesRunAsNonRoot: false,
+      openchoreoTemplatesAllowPrivileged: true,
+    });
+  });
+
   it('ignores templates rendered to the observability plane', () => {
     expect(
       componentTypeFacts({
