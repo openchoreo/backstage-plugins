@@ -10856,7 +10856,7 @@ components:
         releaseBinding:
           type: string
           description: Name of the line's ReleaseBinding in the environment
-          example: hello-next-development
+          example: hello-next-4833a175-development
         release:
           type: string
           description: Name of the ComponentRelease bound in the environment
@@ -14630,7 +14630,7 @@ components:
           example: 'Alert: ${alert.name} triggered at ${alert.startsAt}.'
         contentType:
           type: string
-          description: Content type of the email body (text/plain or text/html)
+          description: Content type of the email body
           enum:
             - text/plain
             - text/html
