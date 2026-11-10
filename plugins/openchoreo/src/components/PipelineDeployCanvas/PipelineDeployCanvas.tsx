@@ -48,6 +48,11 @@ export interface PipelineDeployCanvasProps<
   renderSetup: (selected: boolean) => ReactNode;
   /** data-testid of the canvas container. */
   testId?: string;
+  /**
+   * Height of an environment tile, for tiles with more rows than the
+   * default fits.
+   */
+  environmentNodeHeight?: number;
 }
 
 /**
@@ -70,6 +75,7 @@ export const PipelineDeployCanvas = <E extends PipelineCanvasEnvironment>({
   renderEnvironment,
   renderSetup,
   testId,
+  environmentNodeHeight = MINI_ENV_NODE_HEIGHT,
 }: PipelineDeployCanvasProps<E>) => {
   const classes = useResourceDeployFlowCanvasStyles();
   const tokens = useChoreoTokens();
@@ -83,15 +89,15 @@ export const PipelineDeployCanvas = <E extends PipelineCanvasEnvironment>({
     return computePipelineLayout(nodes, {
       direction,
       defaultWidth: MINI_ENV_NODE_WIDTH,
-      defaultHeight: MINI_ENV_NODE_HEIGHT,
+      defaultHeight: environmentNodeHeight,
       nodeSize: node => ({
         width: node.isSetup ? MINI_SETUP_NODE_WIDTH : MINI_ENV_NODE_WIDTH,
-        height: node.isSetup ? MINI_SETUP_NODE_HEIGHT : MINI_ENV_NODE_HEIGHT,
+        height: node.isSetup ? MINI_SETUP_NODE_HEIGHT : environmentNodeHeight,
       }),
       nodesep: 24,
       ranksep: 60,
     });
-  }, [environments, direction]);
+  }, [environments, direction, environmentNodeHeight]);
 
   const contentWidth = layout?.width ?? 0;
   const contentHeight = layout?.height ?? 0;

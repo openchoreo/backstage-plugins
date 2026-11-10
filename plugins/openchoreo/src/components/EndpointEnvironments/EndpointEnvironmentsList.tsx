@@ -4,7 +4,10 @@ import { PageLoader } from '@openchoreo/backstage-design-system';
 import { Box } from '@material-ui/core';
 import { useApi } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import { ForbiddenState } from '@openchoreo/backstage-plugin-react';
+import {
+  ForbiddenState,
+  MINI_ENV_NODE_HEIGHT,
+} from '@openchoreo/backstage-plugin-react';
 import {
   openChoreoClientApiRef,
   type EndpointEnvironment,
@@ -33,6 +36,10 @@ import {
   envResourceName,
   type EndpointReleaseDriftInfo,
 } from './endpointEnvironmentUtils';
+
+// An Endpoint tile has a Backends row the default tile height has no room
+// for, which pushed the Promote button onto the tile's border.
+const ENDPOINT_ENV_NODE_HEIGHT = MINI_ENV_NODE_HEIGHT + 28;
 
 const loadEndpointRelease: LoadRelease = (client, entity, releaseName) =>
   client.fetchEndpointRelease(entity, releaseName);
@@ -267,6 +274,7 @@ export const EndpointEnvironmentsList = () => {
           onSelectSetup={handleSelectSetup}
           onClearSelection={handleClearSelection}
           testId="endpoint-deploy-flow-canvas"
+          environmentNodeHeight={ENDPOINT_ENV_NODE_HEIGHT}
           renderSetup={selected => <EndpointSetupCard selected={selected} />}
           renderEnvironment={(env, selected, onSelect) => (
             <EndpointMiniEnvironmentNode
