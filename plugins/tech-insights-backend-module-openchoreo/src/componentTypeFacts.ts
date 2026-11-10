@@ -24,9 +24,6 @@ const POD_SPEC_PATHS = new Map([
   ['CronJob', ['spec', 'jobTemplate', 'spec', 'template', 'spec']],
 ]);
 
-/** A template value that is set but can't be read, such as an expression. */
-const OPAQUE = Symbol('opaque');
-
 function asObject(value: unknown): Json | undefined {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Json)
@@ -41,49 +38,13 @@ function hasValue(value: unknown): boolean {
   return value !== undefined && value !== null && value !== '';
 }
 
-/** Whether a value is set where an object belongs but isn't one. */
-function isOpaqueObject(value: unknown): boolean {
-  return hasValue(value) && !asObject(value);
-}
-
-/**
- * The object at `path` below `value`, `undefined` when something on the way
- * is missing, or OPAQUE when something on the way is set but isn't an object.
- */
-function follow(
-  value: unknown,
-  path: string[],
-): Json | typeof OPAQUE | undefined {
-  let current = value;
-  for (const key of path) {
-    if (isOpaqueObject(current)) return OPAQUE;
-    current = asObject(current)?.[key];
-  }
-  if (isOpaqueObject(current)) return OPAQUE;
-  return asObject(current);
-}
-
-/**
- * The pod spec a template renders. `undefined` when it renders none, and
- * OPAQUE when the kind or anything on the way to the pod spec is an
- * expression, so whether and what it renders can't be read.
- */
-function podSpecOf(template: unknown): Json | typeof OPAQUE | undefined {
-  if (isOpaqueObject(template)) return OPAQUE;
+/** The pod spec a template writes out, if it renders pods and writes one. */
+function podSpecOf(template: unknown): Json | undefined {
   const kind = asObject(template)?.kind;
-  if (!hasValue(kind)) return undefined;
-  if (typeof kind !== 'string' || kind.includes('${')) return OPAQUE;
-  const path = POD_SPEC_PATHS.get(kind);
-  return path ? follow(template, path) : undefined;
-}
-
-/**
- * Whether a container list is an expression, or holds one, so the
- * containers it renders can't be read from the template.
- */
-function hasOpaqueContainers(podSpec: Json): boolean {
-  return [podSpec.containers, podSpec.initContainers].some(list =>
-    Array.isArray(list) ? list.some(entry => !asObject(entry)) : hasValue(list),
+  const path = typeof kind === 'string' ? POD_SPEC_PATHS.get(kind) : undefined;
+  return path?.reduce<Json | undefined>(
+    (value, key) => asObject(value?.[key]),
+    asObject(template),
   );
 }
 
@@ -91,24 +52,25 @@ function hasOpaqueContainers(podSpec: Json): boolean {
  * Facts about what a component type lets components do and how its
  * templates run them.
  *
- * Template values are often CEL expressions such as
- * `${parameters.privileged}`. A security setting counts as enforced only when
- * it is a literal value, since an expression can render to anything, while
- * any value other than a literal `false` counts as allowing privileged
- * containers. When the containers themselves can't be read, because a
- * template's kind, pod spec or container list is an expression, limits and
- * non-root count as not enforced and privileged containers as allowed. A
- * container whose securityContext is an expression counts as possibly root
- * and privileged. A component type with no pod-rendering template (a proxy,
- * for example) reports false for the enforcement facts.
+ * The container facts cover only what the definition fixes. A template, kind,
+ * pod spec, container list, container or securityContext written as a CEL
+ * expression is decided per component, so it is skipped here and needs a
+ * component-level check.
+ *
+ * Within a container that is written out, a limit counts as set when it has
+ * any value, since the template always renders one. Non-root counts as
+ * enforced only through a literal `runAsNonRoot: true` or non-zero
+ * `runAsUser`, since an expression can render to anything. Any `privileged`
+ * value other than a literal `false` counts as allowing privileged
+ * containers, since the type lets components turn it on. A component type
+ * with no written-out pod template (a proxy, for example) reports false for
+ * all three.
  */
 export function componentTypeFacts(spec: ComponentTypeSpec) {
-  const rendered = (spec.resources ?? [])
+  const podSpecs = (spec.resources ?? [])
     .filter(resource => (resource.targetPlane ?? 'dataplane') === 'dataplane')
-    .map(resource => podSpecOf(resource.template));
-  const podSpecs = rendered.filter(
-    (podSpec): podSpec is Json => podSpec !== undefined && podSpec !== OPAQUE,
-  );
+    .map(resource => podSpecOf(resource.template))
+    .filter((podSpec): podSpec is Json => Boolean(podSpec));
 
   const containers = podSpecs.flatMap(podSpec =>
     [...asArray(podSpec.containers), ...asArray(podSpec.initContainers)].map(
@@ -119,14 +81,10 @@ export function componentTypeFacts(spec: ComponentTypeSpec) {
     ),
   );
 
-  const opaque =
-    rendered.includes(OPAQUE) || podSpecs.some(hasOpaqueContainers);
-
   const runsAsNonRoot = ({
     container,
     podSecurity,
   }: (typeof containers)[number]) => {
-    if (isOpaqueObject(container.securityContext)) return false;
     const security = asObject(container.securityContext);
     const nonRoot = security?.runAsNonRoot ?? podSecurity?.runAsNonRoot;
     const user = security?.runAsUser ?? podSecurity?.runAsUser;
@@ -139,7 +97,6 @@ export function componentTypeFacts(spec: ComponentTypeSpec) {
   };
 
   const allowsPrivileged = ({ container }: (typeof containers)[number]) => {
-    if (isOpaqueObject(container.securityContext)) return true;
     const privileged = asObject(container.securityContext)?.privileged;
     return hasValue(privileged) && privileged !== false;
   };
@@ -152,10 +109,9 @@ export function componentTypeFacts(spec: ComponentTypeSpec) {
     openchoreoAllowedWorkflows: (spec.allowedWorkflows ?? []).map(w => w.name),
     openchoreoValidationRuleCount: spec.validations?.length ?? 0,
     openchoreoTemplatesSetResourceLimits:
-      !opaque && containers.length > 0 && containers.every(setsLimits),
+      containers.length > 0 && containers.every(setsLimits),
     openchoreoTemplatesRunAsNonRoot:
-      !opaque && containers.length > 0 && containers.every(runsAsNonRoot),
-    openchoreoTemplatesAllowPrivileged:
-      opaque || containers.some(allowsPrivileged),
+      containers.length > 0 && containers.every(runsAsNonRoot),
+    openchoreoTemplatesAllowPrivileged: containers.some(allowsPrivileged),
   };
 }

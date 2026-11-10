@@ -145,36 +145,12 @@ describe('componentTypeFacts', () => {
     securityContext: { runAsNonRoot: true, privileged: false },
   };
 
-  it.each([
-    ['an expression for initContainers', '${parameters.initContainers}', []],
-    ['an expression inside initContainers', ['${parameters.sidecar}'], []],
-    ['an expression for containers', [], '${parameters.containers}'],
-  ])(
-    'treats %s as not enforcing anything',
-    (_, initContainers, extraContainers) => {
-      const containers = Array.isArray(extraContainers)
-        ? [compliant, ...extraContainers]
-        : extraContainers;
-      expect(
-        componentTypeFacts({
-          resources: [
-            {
-              template: {
-                kind: 'Deployment',
-                spec: { template: { spec: { containers, initContainers } } },
-              },
-            },
-          ],
-        }),
-      ).toMatchObject({
-        openchoreoTemplatesSetResourceLimits: false,
-        openchoreoTemplatesRunAsNonRoot: false,
-        openchoreoTemplatesAllowPrivileged: true,
-      });
-    },
-  );
-
   const pod = { containers: [compliant] };
+  const compliantFacts = {
+    openchoreoTemplatesSetResourceLimits: true,
+    openchoreoTemplatesRunAsNonRoot: true,
+    openchoreoTemplatesAllowPrivileged: false,
+  };
 
   it.each([
     ['the whole template', '${parameters.workload}'],
@@ -193,39 +169,34 @@ describe('componentTypeFacts', () => {
       'a CronJob job template',
       { kind: 'CronJob', spec: { jobTemplate: '${parameters.job}' } },
     ],
+    [
+      'a container list',
+      deployment({ containers: '${parameters.containers}' }).template,
+    ],
+    [
+      'an init container list',
+      deployment({
+        containers: [compliant],
+        initContainers: '${parameters.initContainers}',
+      }).template,
+    ],
+    [
+      'a container',
+      deployment({ containers: [compliant, '${parameters.sidecar}'] }).template,
+    ],
+    ['a Service spec', { kind: 'Service', spec: '${parameters.service}' }],
   ])(
-    'treats an expression for %s as not enforcing anything, next to a compliant template',
+    'skips an expression for %s next to a compliant template',
     (_, template) => {
       expect(
         componentTypeFacts({
           resources: [deployment(pod), { id: 'templated', template }],
         }),
-      ).toMatchObject({
-        openchoreoTemplatesSetResourceLimits: false,
-        openchoreoTemplatesRunAsNonRoot: false,
-        openchoreoTemplatesAllowPrivileged: true,
-      });
+      ).toMatchObject(compliantFacts);
     },
   );
 
-  it('ignores expressions in templates that render no pods', () => {
-    expect(
-      componentTypeFacts({
-        resources: [
-          deployment(pod),
-          { template: { kind: 'Service', spec: '${parameters.service}' } },
-          { template: { kind: 'ConfigMap', data: '${parameters.data}' } },
-          { template: { spec: '${parameters.spec}' } },
-        ],
-      }),
-    ).toMatchObject({
-      openchoreoTemplatesSetResourceLimits: true,
-      openchoreoTemplatesRunAsNonRoot: true,
-      openchoreoTemplatesAllowPrivileged: false,
-    });
-  });
-
-  it("doesn't fall back to the pod for a container whose securityContext is an expression", () => {
+  it('skips a container securityContext written as an expression', () => {
     expect(
       componentTypeFacts({
         resources: [
@@ -242,10 +213,21 @@ describe('componentTypeFacts', () => {
           }),
         ],
       }),
+    ).toMatchObject(compliantFacts);
+  });
+
+  it('reports nothing enforced when every pod template is an expression', () => {
+    expect(
+      componentTypeFacts({
+        resources: [
+          deployment({ containers: '${parameters.containers}' }),
+          { template: '${parameters.workload}' },
+        ],
+      }),
     ).toMatchObject({
-      openchoreoTemplatesSetResourceLimits: true,
+      openchoreoTemplatesSetResourceLimits: false,
       openchoreoTemplatesRunAsNonRoot: false,
-      openchoreoTemplatesAllowPrivileged: true,
+      openchoreoTemplatesAllowPrivileged: false,
     });
   });
 
