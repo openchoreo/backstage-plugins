@@ -23,8 +23,9 @@ import {
   openchoreoConditions,
   createOpenChoreoConditionalDecision,
   matchesCatalogEntityCapability,
+  encodeKindCapabilities,
 } from '../rules';
-import { hasUncoveredAllowedPath } from '../utils/pathUtils';
+import { collapsePaths, hasUncoveredAllowedPath } from '../utils/pathUtils';
 import { isConstrained, resolveCapability } from '../utils/capabilityLookup';
 import type { CapabilityResource } from '@openchoreo/backstage-plugin-common';
 import {
@@ -360,7 +361,7 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
       // Each kind maps to a different OpenChoreo action
       const kindCapabilities: Record<
         string,
-        { action: string; allowedPaths: string[]; deniedPaths: string[] }
+        { allowedPaths: string[]; deniedPaths: string[] }
       > = {};
 
       for (const kind of OPENCHOREO_MANAGED_ENTITY_KINDS) {
@@ -383,11 +384,21 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
         // Catalog visibility has no environment context, so we cannot satisfy
         // ABAC CEL expressions here. Drop constrained entries — entity-level
         // actions are gated separately by matchesCapability + env-aware hooks.
-        const allowedPaths = unconstrainedPaths(actionCapability?.allowed);
-        const deniedPaths = unconstrainedPaths(actionCapability?.denied);
+        //
+        // Collapse paths implied by a broader path in the same list. A user
+        // holding a project-scoped role in every project they belong to
+        // otherwise repeats one path per project on all ~24 managed kinds, and
+        // the whole structure is echoed once per authorized resource in the
+        // batched apply-conditions request — which the catalog parses with a
+        // non-configurable 100 KB body limit.
+        const allowedPaths = collapsePaths(
+          unconstrainedPaths(actionCapability?.allowed),
+        );
+        const deniedPaths = collapsePaths(
+          unconstrainedPaths(actionCapability?.denied),
+        );
 
         kindCapabilities[kindLower] = {
-          action,
           allowedPaths,
           deniedPaths,
         };
@@ -399,17 +410,11 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
         );
       }
 
-      // Log the kindCapabilities for debugging
-      this.logger.info(
-        `[CATALOG_PERMISSION] kindCapabilities for ${userEntityRef}: ${JSON.stringify(
-          kindCapabilities,
-        )}`,
-      );
-
-      // Serialize kindCapabilities to JSON (Backstage rules only support primitives)
+      // Serialize kindCapabilities (Backstage rules only support primitives).
+      // `kinds` is omitted deliberately: the rule defaults to the managed-kind
+      // list, so there is no need to repeat ~24 kind names in every condition.
       const conditions = catalogConditions.matchesCatalogEntityCapability({
-        kindCapabilitiesJson: JSON.stringify(kindCapabilities),
-        kinds: OPENCHOREO_MANAGED_ENTITY_KINDS,
+        kindCapabilitiesJson: encodeKindCapabilities(kindCapabilities),
       });
 
       this.logger.debug(

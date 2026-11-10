@@ -18,6 +18,11 @@ export {
   type KindCapabilities,
 } from './matchesCatalogEntityCapability';
 
+export {
+  encodeKindCapabilities,
+  decodeKindCapabilities,
+} from './kindCapabilityCodec';
+
 /**
  * All OpenChoreo permission rules as a Record (required by createConditionExports).
  */

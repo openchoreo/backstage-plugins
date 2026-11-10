@@ -4,6 +4,7 @@ import {
   matchesCatalogEntityCapability,
   KindCapabilities,
 } from './matchesCatalogEntityCapability';
+import { encodeKindCapabilities } from './kindCapabilityCodec';
 
 /**
  * Build a minimal Entity with the given kind and annotations.
@@ -591,5 +592,72 @@ describe('matchesCatalogEntityCapability.toQuery', () => {
       expect(serialized).toContain('payments');
       expect(serialized).toContain('"not"');
     });
+  });
+});
+
+describe('matchesCatalogEntityCapability with compact params', () => {
+  it('evaluates the compact capability form and defaults the kind list', () => {
+    const component = makeEntity('Component', {
+      [CHOREO_ANNOTATIONS.NAMESPACE]: 'acme',
+      [CHOREO_ANNOTATIONS.PROJECT]: 'foo',
+      [CHOREO_ANNOTATIONS.COMPONENT]: 'svc',
+    });
+    const otherProject = makeEntity('Component', {
+      [CHOREO_ANNOTATIONS.NAMESPACE]: 'acme',
+      [CHOREO_ANNOTATIONS.PROJECT]: 'bar',
+      [CHOREO_ANNOTATIONS.COMPONENT]: 'svc',
+    });
+
+    // No `kinds` param: the rule falls back to the managed-kind list, so
+    // Component is still treated as managed and scope-checked.
+    const params = {
+      kindCapabilitiesJson: encodeKindCapabilities({
+        component: {
+          allowedPaths: ['ns/acme/project/foo'],
+          deniedPaths: [],
+        },
+      }),
+    };
+
+    expect(matchesCatalogEntityCapability.apply(component, params)).toBe(true);
+    expect(matchesCatalogEntityCapability.apply(otherProject, params)).toBe(
+      false,
+    );
+    // A managed kind with no capability entry stays denied for OpenChoreo
+    // entities, and unmanaged kinds stay allowed.
+    expect(
+      matchesCatalogEntityCapability.apply(
+        makeEntity('System', {
+          [CHOREO_ANNOTATIONS.NAMESPACE]: 'acme',
+          [CHOREO_ANNOTATIONS.PROJECT_ID]: 'foo',
+        }),
+        params,
+      ),
+    ).toBe(false);
+    expect(
+      matchesCatalogEntityCapability.apply(makeEntity('User', {}), params),
+    ).toBe(true);
+  });
+
+  it('builds the same query from the compact and the legacy form', () => {
+    const kindCapabilities: KindCapabilities = {
+      component: {
+        allowedPaths: ['ns/acme/project/foo'],
+        deniedPaths: ['ns/acme/project/foo/component/secret'],
+      },
+    };
+    const kinds = ['component'];
+
+    expect(
+      matchesCatalogEntityCapability.toQuery({
+        kindCapabilitiesJson: encodeKindCapabilities(kindCapabilities),
+        kinds,
+      }),
+    ).toEqual(
+      matchesCatalogEntityCapability.toQuery({
+        kindCapabilitiesJson: JSON.stringify(kindCapabilities),
+        kinds,
+      }),
+    );
   });
 });
