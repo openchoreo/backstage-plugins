@@ -43,7 +43,12 @@ function fakeClient(responses: Record<string, unknown> = {}) {
     const name = params.path.cctName ?? params.path.ctName;
     return (
       responses[name] ??
-      ok({ spec: { workloadType: 'deployment', traits: [] } })
+      ok({
+        spec: {
+          workloadType: 'deployment',
+          traits: [{ name: 'observability' }],
+        },
+      })
     );
   });
   return { GET };
@@ -84,13 +89,14 @@ describe('openchoreoComponentTypeFactRetriever', () => {
       expect.objectContaining({
         openchoreoComponentTypeResolved: true,
         openchoreoWorkloadType: 'deployment',
+        openchoreoEmbeddedTraits: ['ClusterTrait/observability'],
       }),
     );
   });
 
   it('reads a ComponentType from its namespace, defaulting to "default"', async () => {
     const client = fakeClient();
-    await run(
+    const { byName } = await run(
       [
         componentType('ComponentType', 'worker', 'acme'),
         componentType('ComponentType', 'cron'),
@@ -104,6 +110,9 @@ describe('openchoreoComponentTypeFactRetriever', () => {
     expect(client.GET).toHaveBeenCalledWith(NAMESPACED_PATH, {
       params: { path: { namespaceName: 'default', ctName: 'cron' } },
       signal: expect.any(AbortSignal),
+    });
+    expect(byName.worker).toMatchObject({
+      openchoreoEmbeddedTraits: ['Trait/observability'],
     });
   });
 

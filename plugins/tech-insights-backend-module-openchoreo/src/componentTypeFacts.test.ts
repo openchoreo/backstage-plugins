@@ -10,23 +10,83 @@ describe('componentTypeFacts', () => {
     expect(
       componentTypeFacts({
         workloadType: 'deployment',
-        allowedTraits: [{ name: 'health-probes' }],
+        allowedTraits: [
+          { name: 'health-probes' },
+          { kind: 'ClusterTrait', name: 'health-probes' },
+        ],
         traits: [{ name: 'observability-alert-rule' }],
-        allowedWorkflows: [{ name: 'dockerfile-builder' }],
+        allowedWorkflows: [
+          { name: 'dockerfile-builder' },
+          { kind: 'Workflow', name: 'dockerfile-builder' },
+        ],
         validations: [{}, {}],
         resources: [],
       }),
     ).toEqual({
       openchoreoComponentTypeResolved: true,
       openchoreoWorkloadType: 'deployment',
-      openchoreoAllowedTraits: ['health-probes'],
-      openchoreoEmbeddedTraits: ['observability-alert-rule'],
-      openchoreoAllowedWorkflows: ['dockerfile-builder'],
+      openchoreoAllowedTraits: [
+        'Trait/health-probes',
+        'ClusterTrait/health-probes',
+      ],
+      openchoreoEmbeddedTraits: ['Trait/observability-alert-rule'],
+      openchoreoAllowedWorkflows: [
+        'ClusterWorkflow/dockerfile-builder',
+        'Workflow/dockerfile-builder',
+      ],
       openchoreoValidationRuleCount: 2,
       openchoreoTemplatesSetResourceLimits: false,
       openchoreoTemplatesRunAsNonRoot: false,
       openchoreoTemplatesAllowPrivileged: false,
     });
+  });
+
+  it('defaults trait references of a ClusterComponentType to ClusterTrait', () => {
+    expect(
+      componentTypeFacts(
+        {
+          allowedTraits: [{ name: 'health-probes' }],
+          traits: [{ name: 'observability-alert-rule' }],
+          allowedWorkflows: [{ name: 'dockerfile-builder' }],
+        },
+        { clusterScoped: true },
+      ),
+    ).toMatchObject({
+      openchoreoAllowedTraits: ['ClusterTrait/health-probes'],
+      openchoreoEmbeddedTraits: ['ClusterTrait/observability-alert-rule'],
+      openchoreoAllowedWorkflows: ['ClusterWorkflow/dockerfile-builder'],
+    });
+  });
+
+  it('counts pre-render and post-render validations', () => {
+    expect(
+      componentTypeFacts({
+        preRenderValidations: [{}, {}],
+        postRenderValidations: [{}],
+      }).openchoreoValidationRuleCount,
+    ).toBe(3);
+  });
+
+  it('does not count a limit that oc_omit() can drop as set', () => {
+    expect(
+      componentTypeFacts({
+        resources: [
+          deployment({
+            containers: [
+              {
+                name: 'main',
+                resources: {
+                  limits: {
+                    cpu: '${has(parameters.cpu) ? parameters.cpu : oc_omit()}',
+                    memory: '1Gi',
+                  },
+                },
+              },
+            ],
+          }),
+        ],
+      }).openchoreoTemplatesSetResourceLimits,
+    ).toBe(false);
   });
 
   it('treats templated limits as set and a missing securityContext as root', () => {
@@ -196,7 +256,7 @@ describe('componentTypeFacts', () => {
     },
   );
 
-  it('skips a container securityContext written as an expression', () => {
+  it('reads a container securityContext written as an expression like templated fields', () => {
     expect(
       componentTypeFacts({
         resources: [
@@ -213,7 +273,11 @@ describe('componentTypeFacts', () => {
           }),
         ],
       }),
-    ).toMatchObject(compliantFacts);
+    ).toMatchObject({
+      openchoreoTemplatesSetResourceLimits: true,
+      openchoreoTemplatesRunAsNonRoot: false,
+      openchoreoTemplatesAllowPrivileged: true,
+    });
   });
 
   it('reports nothing enforced when every pod template is an expression', () => {
