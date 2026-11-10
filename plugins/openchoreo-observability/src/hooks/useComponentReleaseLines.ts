@@ -37,6 +37,36 @@ export function useComponentReleaseLineState(
   return { lines: data, loading };
 }
 
+/**
+ * Names of a project's components that have release lines, read from the
+ * project's ReleaseLine entities in the catalog.
+ */
+export function useProjectReleaseLineComponents(
+  namespace: string | undefined,
+  project: string | undefined,
+): string[] {
+  const catalogApi = useApi(catalogApiRef);
+  const { data = [] } = useOpenChoreoQuery<string[]>(
+    ['project-release-line-components', namespace ?? '', project ?? ''],
+    async () => {
+      const { items } = await catalogApi.getEntities({
+        filter: {
+          kind: 'ReleaseLine',
+          'metadata.namespace': namespace!,
+          [`metadata.annotations.${CHOREO_ANNOTATIONS.PROJECT}`]: project!,
+        },
+        fields: ['metadata.annotations'],
+      });
+      const components = items.map(
+        e => e.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT],
+      );
+      return Array.from(new Set(components.filter((c): c is string => !!c)));
+    },
+    { enabled: Boolean(namespace && project) },
+  );
+  return data;
+}
+
 /** Release line names of a component, as {@link useComponentReleaseLineState}. */
 export function useComponentReleaseLines(
   namespace: string | undefined,

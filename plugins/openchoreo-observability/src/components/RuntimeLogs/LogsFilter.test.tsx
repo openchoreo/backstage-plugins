@@ -106,10 +106,68 @@ describe('LogsFilter', () => {
     ).toBeGreaterThanOrEqual(1);
   });
 
-  it('does not show selected fields when components are present (project-level)', () => {
+  it('shows selected fields next to the components filter (project-level)', () => {
     renderFilter({ components });
 
-    expect(screen.queryByText('Selected Fields')).not.toBeInTheDocument();
+    expect(
+      screen.getAllByText('Selected Fields').length,
+    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Components').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('lists the component name column checked and disabled, like Log', async () => {
+    const user = userEvent.setup();
+    const withComponentName = [
+      LogEntryField.Timestamp,
+      LogEntryField.LogLevel,
+      LogEntryField.ComponentName,
+      LogEntryField.Log,
+    ];
+    renderFilter({
+      components,
+      fieldOptions: withComponentName,
+      filters: { ...baseFilters, selectedFields: withComponentName },
+    });
+
+    await user.click(
+      screen.getByText('Timestamp, LogLevel, Component Name, Log'),
+    );
+
+    for (const name of ['Component Name', 'Log']) {
+      const option = screen.getByRole('option', { name });
+      expect(option).toHaveAttribute('aria-disabled', 'true');
+      expect(option.querySelector('input')).toBeChecked();
+    }
+    expect(
+      screen.getByRole('option', { name: 'LogLevel' }),
+    ).not.toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('offers the release line column it is given, which can be turned off', async () => {
+    const user = userEvent.setup();
+    const withReleaseLine = [
+      LogEntryField.Timestamp,
+      LogEntryField.LogLevel,
+      LogEntryField.ReleaseLine,
+      LogEntryField.Log,
+    ];
+    const { props } = renderFilter({
+      fieldOptions: withReleaseLine,
+      filters: { ...baseFilters, selectedFields: withReleaseLine },
+    });
+
+    await user.click(
+      screen.getByText('Timestamp, LogLevel, Release Line, Log'),
+    );
+    await user.click(screen.getByRole('option', { name: 'Release Line' }));
+
+    expect(props.onFiltersChange).toHaveBeenCalledWith({
+      selectedFields: [
+        LogEntryField.Timestamp,
+        LogEntryField.LogLevel,
+        LogEntryField.Log,
+      ],
+    });
   });
 
   it('disables all controls when disabled', () => {

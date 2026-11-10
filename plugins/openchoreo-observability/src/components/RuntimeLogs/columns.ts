@@ -12,4 +12,5 @@ export const getColumnStyle = makeColumnStyle<LogEntryField>({
   [LogEntryField.Timestamp]: '0 0 15%',
   [LogEntryField.LogLevel]: '0 0 10%',
   [LogEntryField.ComponentName]: '0 0 15%',
+  [LogEntryField.ReleaseLine]: '0 0 10%',
 });
