@@ -48,6 +48,11 @@ export interface GithubApi {
   ): Promise<GithubApiResponse>;
 }
 
+/** How long one GitHub request may take, reading the body included. */
+export const REQUEST_TIMEOUT_MS = 30_000;
+
+const KEPT_STATUSES = new Set([200, 403, 404]);
+
 /**
  * Encodes each segment of a branch name, keeping `/` separators so branches
  * such as `release/1.x` address the right path.
@@ -61,33 +66,65 @@ export function encodeBranch(branch: string): string {
  * credentials provider — a GitHub App installation for the repository owner
  * when one is configured, else the host's token — so no credential handling
  * lives in this module.
+ *
+ * Responses are kept for the life of the returned api, so components that
+ * share a repository cost one set of requests. Create one per run. Only
+ * answers that hold for a whole run (200, 403 and 404) are kept. Any other
+ * status or a failed request is tried again by the next caller.
  */
 export function createGithubApi(
   integrations: ScmIntegrationRegistry,
+  { timeoutMs = REQUEST_TIMEOUT_MS }: { timeoutMs?: number } = {},
 ): GithubApi {
   const credentials =
     DefaultGithubCredentialsProvider.fromIntegrations(integrations);
+  const responses = new Map<string, Promise<GithubApiResponse>>();
+
+  async function get(
+    repository: GithubRepository,
+    url: string,
+  ): Promise<GithubApiResponse> {
+    const { headers } = await credentials.getCredentials({
+      url: repository.url,
+    });
+    const signal = AbortSignal.timeout(timeoutMs);
+    const response = await fetch(url, {
+      headers: {
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        ...headers,
+      },
+      signal,
+    });
+    const body = await response.json().catch(error => {
+      if (signal.aborted) {
+        throw error;
+      }
+      return undefined;
+    });
+    if (isRateLimited(response.status, response.headers, body)) {
+      throw new GithubRateLimitError(response.status);
+    }
+    return { status: response.status, body };
+  }
 
   return {
-    async getRepo(repository, path = '') {
-      const { headers } = await credentials.getCredentials({
-        url: repository.url,
-      });
-      const response = await fetch(
-        `${repository.apiBaseUrl}/repos/${repository.owner}/${repository.name}${path}`,
-        {
-          headers: {
-            Accept: 'application/vnd.github+json',
-            'X-GitHub-Api-Version': '2022-11-28',
-            ...headers,
+    getRepo(repository, path = '') {
+      const url = `${repository.apiBaseUrl}/repos/${repository.owner}/${repository.name}${path}`;
+      let response = responses.get(url);
+      if (!response) {
+        response = get(repository, url);
+        responses.set(url, response);
+        response.then(
+          ({ status }) => {
+            if (!KEPT_STATUSES.has(status)) {
+              responses.delete(url);
+            }
           },
-        },
-      );
-      const body = await response.json().catch(() => undefined);
-      if (isRateLimited(response.status, response.headers, body)) {
-        throw new GithubRateLimitError(response.status);
+          () => responses.delete(url),
+        );
       }
-      return { status: response.status, body };
+      return response;
     },
   };
 }

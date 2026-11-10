@@ -188,13 +188,13 @@ techInsights:
       plural: resources
     # Suggested in the check editor, which also accepts new ones.
     categories: [Security, Reliability, Documentation]
-  # Repository and branch resolution for tech-insights-backend-module-github.
-  # repoAnnotations keeps the module default (source-location, then
-  # project-slug); OpenChoreo records a component's build branch separately
-  # from its repository URL.
-  github:
-    branchAnnotations:
-      - openchoreo.io/branch
+  factRetrievers:
+    # Tech Insights schedules only the retrievers listed here. timeToLive is
+    # kept at several cadences so an entity skipped by a transient failure
+    # keeps its last facts instead of losing them after one missed run.
+    githubRepositoryFactRetriever:
+      cadence: '0 2 * * *'
+      lifecycle: { timeToLive: { days: 7 } }
 
 auth:
   providers:

@@ -14,7 +14,8 @@ export interface Config {
       /**
        * Entity annotations naming the branch to evaluate, tried in order.
        * When none is present the ref in the repository URL is used, else the
-       * repository's default branch.
+       * repository's default branch. Defaults to `openchoreo.io/branch`; an
+       * empty list reads the branch from the URL only.
        */
       branchAnnotations?: string[];
     };

@@ -120,6 +120,37 @@ describe('branchProtectionFacts', () => {
     });
   });
 
+  it('reports settings classic protection settles when rulesets are unreadable', () => {
+    expect(
+      branchProtectionFacts({
+        branch: 'main',
+        classicProtected: true,
+        classic: {
+          required_pull_request_reviews: { required_approving_review_count: 1 },
+          allow_force_pushes: { enabled: false },
+          allow_deletions: { enabled: true },
+        },
+        rules: 'unknown',
+      }),
+    ).toEqual({
+      githubBranch: 'main',
+      githubBranchProtected: true,
+      githubRequiresPullRequest: true,
+      githubAllowsForcePushes: false,
+    });
+  });
+
+  it('reports only the branch when neither source can be read', () => {
+    expect(
+      branchProtectionFacts({
+        branch: 'main',
+        classicProtected: false,
+        classic: undefined,
+        rules: 'unknown',
+      }),
+    ).toEqual({ githubBranch: 'main' });
+  });
+
   it('reports ruleset-only protection without classic protection', () => {
     expect(
       branchProtectionFacts({

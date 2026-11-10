@@ -2,11 +2,11 @@ import { ConfigReader } from '@backstage/config';
 import type { Entity } from '@backstage/catalog-model';
 import { ScmIntegrations } from '@backstage/integration';
 import {
+  branchCandidates,
   parseRepositoryReference,
-  resolveBranch,
   resolveGithubRepository,
 } from './repository';
-import { DEFAULT_REPO_ANNOTATIONS } from './options';
+import { DEFAULT_REPO_ANNOTATIONS, readGithubFactsOptions } from './options';
 
 function entityWith(annotations: Record<string, string>): Entity {
   return {
@@ -47,23 +47,47 @@ describe('parseRepositoryReference', () => {
     ],
     [
       'url:https://github.com/org/repo/tree/main/services/api',
-      { host: 'github.com', owner: 'org', name: 'repo', ref: 'main' },
+      {
+        host: 'github.com',
+        owner: 'org',
+        name: 'repo',
+        refPath: ['main', 'services', 'api'],
+      },
     ],
     [
       'url:https://github.com/org/repo/tree/main/services/api/',
-      { host: 'github.com', owner: 'org', name: 'repo', ref: 'main' },
+      {
+        host: 'github.com',
+        owner: 'org',
+        name: 'repo',
+        refPath: ['main', 'services', 'api'],
+      },
+    ],
+    [
+      'url:https://github.com/org/repo/tree/main/',
+      { host: 'github.com', owner: 'org', name: 'repo', refPath: ['main'] },
     ],
     [
       'https://github.com/org/repo/blob/dev/README.md',
-      { host: 'github.com', owner: 'org', name: 'repo', ref: 'dev' },
+      {
+        host: 'github.com',
+        owner: 'org',
+        name: 'repo',
+        refPath: ['dev', 'README.md'],
+      },
     ],
     [
       'url:https://github.com/org/repo/tree/release%231/services/api/',
-      { host: 'github.com', owner: 'org', name: 'repo', ref: 'release#1' },
+      {
+        host: 'github.com',
+        owner: 'org',
+        name: 'repo',
+        refPath: ['release#1', 'services', 'api'],
+      },
     ],
     [
       'url:https://github.com/org/repo/tree/100%/',
-      { host: 'github.com', owner: 'org', name: 'repo', ref: '100%' },
+      { host: 'github.com', owner: 'org', name: 'repo', refPath: ['100%'] },
     ],
     [
       'git@github.com:org/repo.git',
@@ -80,7 +104,7 @@ describe('parseRepositoryReference', () => {
     ['org/repo', { owner: 'org', name: 'repo' }],
   ])('parses %s', (value, expected) => {
     expect(parseRepositoryReference(value)).toEqual({
-      ref: undefined,
+      refPath: undefined,
       ...expected,
     });
   });
@@ -121,7 +145,7 @@ describe('resolveGithubRepository', () => {
       name: 'repo',
       url: 'https://github.com/org/repo',
       apiBaseUrl: 'https://api.github.com',
-      urlRef: undefined,
+      urlRefPath: undefined,
     });
   });
 
@@ -137,7 +161,7 @@ describe('resolveGithubRepository', () => {
     expect(repository).toMatchObject({
       host: 'ghe.example.com',
       apiBaseUrl: 'https://ghe.example.com/api/v3',
-      urlRef: 'release',
+      urlRefPath: ['release'],
     });
   });
 
@@ -168,35 +192,57 @@ describe('resolveGithubRepository', () => {
   });
 });
 
-describe('resolveBranch', () => {
+describe('branchCandidates', () => {
   const repository = resolveGithubRepository(
     entityWith({
       'backstage.io/source-location':
-        'url:https://github.com/org/repo/tree/main/',
+        'url:https://github.com/org/repo/tree/feature/login/svc/',
     }),
     integrations,
     DEFAULT_REPO_ANNOTATIONS,
   )!;
 
-  it('prefers a configured branch annotation over the URL ref', () => {
+  it('takes only a configured branch annotation when present', () => {
     expect(
-      resolveBranch(
-        entityWith({ 'openchoreo.io/branch': 'develop' }),
+      branchCandidates(
+        entityWith({ 'openchoreo.io/branch': 'feature/login' }),
         repository,
         ['openchoreo.io/branch'],
       ),
-    ).toBe('develop');
+    ).toEqual(['feature/login']);
   });
 
-  it('falls back to the URL ref', () => {
+  it('falls back to each leading part of the URL ref path, shortest first', () => {
     expect(
-      resolveBranch(entityWith({}), repository, ['openchoreo.io/branch']),
-    ).toBe('main');
+      branchCandidates(entityWith({}), repository, ['openchoreo.io/branch']),
+    ).toEqual(['feature', 'feature/login', 'feature/login/svc']);
   });
 
-  it('returns undefined when neither is present, leaving the default branch', () => {
+  it('returns nothing when neither is present, leaving the default branch', () => {
     expect(
-      resolveBranch(entityWith({}), { ...repository, urlRef: undefined }, []),
-    ).toBeUndefined();
+      branchCandidates(
+        entityWith({}),
+        { ...repository, urlRefPath: undefined },
+        [],
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe('readGithubFactsOptions', () => {
+  it('reads the branch from openchoreo.io/branch by default', () => {
+    expect(
+      readGithubFactsOptions(new ConfigReader({})).branchAnnotations,
+    ).toEqual(['openchoreo.io/branch']);
+  });
+
+  it('lets an empty branchAnnotations turn the default off', () => {
+    expect(
+      readGithubFactsOptions(
+        new ConfigReader({
+          techInsights: { github: { branchAnnotations: [] } },
+        }),
+      ).branchAnnotations,
+    ).toEqual([]);
   });
 });

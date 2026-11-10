@@ -11,8 +11,12 @@ export interface GithubRepository {
   /** Web URL of the repository; selects credentials for its owner. */
   url: string;
   apiBaseUrl: string;
-  /** Ref embedded in a source URL as `/tree/<ref>` or `/blob/<ref>`. */
-  urlRef?: string;
+  /**
+   * Decoded path segments after `/tree/` or `/blob/` in a source URL: the
+   * ref, then any path inside the repository. A ref can contain `/`, so
+   * where it ends is only known by asking GitHub.
+   */
+  urlRefPath?: string[];
 }
 
 interface RepositoryReference {
@@ -20,15 +24,13 @@ interface RepositoryReference {
   host?: string;
   owner: string;
   name: string;
-  ref?: string;
+  refPath?: string[];
 }
 
 /**
  * Parses an annotation value naming a repository: a `url:`-prefixed location
  * (as in `backstage.io/source-location`), an http(s) or ssh git URL, or an
- * `owner/repo` slug. Only the first path segment after `tree`/`blob` is
- * taken as the ref — a ref containing `/` cannot be told apart from the
- * path that follows it, so such branches need a branch annotation.
+ * `owner/repo` slug.
  */
 export function parseRepositoryReference(
   value: string,
@@ -61,25 +63,25 @@ export function parseRepositoryReference(
   if (segments.length < 2) {
     return undefined;
   }
-  const [owner, repoSegment, marker, ref] = segments;
+  const [owner, repoSegment, marker, ...rest] = segments;
   const name = repoSegment.replace(/\.git$/, '');
   return {
     host,
     owner,
     name,
-    ref:
-      (marker === 'tree' || marker === 'blob') && ref
-        ? decodeRef(ref)
+    refPath:
+      (marker === 'tree' || marker === 'blob') && rest.length > 0
+        ? rest.map(decodeSegment)
         : undefined,
   };
 }
 
 /** A URL path keeps its percent-encoding, but the API wants the branch name. */
-function decodeRef(ref: string): string {
+function decodeSegment(segment: string): string {
   try {
-    return decodeURIComponent(ref);
+    return decodeURIComponent(segment);
   } catch {
-    return ref;
+    return segment;
   }
 }
 
@@ -119,27 +121,31 @@ export function resolveGithubRepository(
       name: reference.name,
       url: `https://${host}/${reference.owner}/${reference.name}`,
       apiBaseUrl: apiBaseUrl.replace(/\/$/, ''),
-      urlRef: reference.ref,
+      urlRefPath: reference.refPath,
     };
   }
   return undefined;
 }
 
 /**
- * The branch to evaluate: the first configured branch annotation present on
- * the entity, else a ref embedded in the repository URL. Undefined means the
- * caller should use the repository's default branch.
+ * The branches to try, in order: the first configured branch annotation
+ * present on the entity, else each leading part of the ref path in the
+ * repository URL, shortest first. Git refuses a branch whose name extends
+ * another's at a `/` (`feature` and `feature/login` can't both exist), so at
+ * most one of those parts is a branch. Empty means the caller should use the
+ * repository's default branch.
  */
-export function resolveBranch(
+export function branchCandidates(
   entity: Entity,
   repository: GithubRepository,
   branchAnnotations: string[],
-): string | undefined {
+): string[] {
   for (const annotation of branchAnnotations) {
     const value = entity.metadata.annotations?.[annotation]?.trim();
     if (value) {
-      return value;
+      return [value];
     }
   }
-  return repository.urlRef;
+  const path = repository.urlRefPath ?? [];
+  return path.map((_, index) => path.slice(0, index + 1).join('/'));
 }

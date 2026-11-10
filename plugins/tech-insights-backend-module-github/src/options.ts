@@ -5,6 +5,9 @@ export const DEFAULT_REPO_ANNOTATIONS = [
   'github.com/project-slug',
 ];
 
+/** Where the OpenChoreo catalog provider records a component's build branch. */
+export const DEFAULT_BRANCH_ANNOTATIONS = ['openchoreo.io/branch'];
+
 export interface GithubFactsOptions {
   /** Entity annotations naming the repository, tried in order. */
   repoAnnotations: string[];
@@ -19,6 +22,7 @@ export function readGithubFactsOptions(config: Config): GithubFactsOptions {
       github?.getOptionalStringArray('repoAnnotations') ??
       DEFAULT_REPO_ANNOTATIONS,
     branchAnnotations:
-      github?.getOptionalStringArray('branchAnnotations') ?? [],
+      github?.getOptionalStringArray('branchAnnotations') ??
+      DEFAULT_BRANCH_ANNOTATIONS,
   };
 }

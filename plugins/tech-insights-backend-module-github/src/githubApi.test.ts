@@ -8,13 +8,15 @@ import {
 import type { GithubRepository } from './repository';
 
 describe('createGithubApi', () => {
-  const api = createGithubApi(
-    ScmIntegrations.fromConfig(
-      new ConfigReader({
-        integrations: { github: [{ host: 'github.com', token: 'test' }] },
-      }),
-    ),
+  const integrations = ScmIntegrations.fromConfig(
+    new ConfigReader({
+      integrations: { github: [{ host: 'github.com', token: 'test' }] },
+    }),
   );
+  let api: ReturnType<typeof createGithubApi>;
+  beforeEach(() => {
+    api = createGithubApi(integrations);
+  });
   const repository: GithubRepository = {
     host: 'github.com',
     owner: 'org',
@@ -61,6 +63,47 @@ describe('createGithubApi', () => {
       status: 403,
       body: { message: 'Resource not accessible' },
     });
+  });
+
+  it('requests a repository path once for the life of the api', async () => {
+    const fetchMock = jest
+      .spyOn(global, 'fetch')
+      .mockImplementation(
+        async () => new Response(JSON.stringify({}), { status: 200 }),
+      );
+    await api.getRepo(repository, '/branches/main');
+    await api.getRepo({ ...repository }, '/branches/main');
+    await api.getRepo(repository, '/branches/dev');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('asks again after a server error', async () => {
+    const fetchMock = jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValueOnce(new Response('{}', { status: 502 }))
+      .mockResolvedValueOnce(new Response('{}', { status: 200 }));
+    await expect(api.getRepo(repository)).resolves.toMatchObject({
+      status: 502,
+    });
+    await expect(api.getRepo(repository)).resolves.toMatchObject({
+      status: 200,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('gives up on a request that takes too long, and tries it again next time', async () => {
+    const fetchMock = jest.spyOn(global, 'fetch').mockImplementation(
+      (_url, init) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () =>
+            reject(init.signal!.reason),
+          );
+        }),
+    );
+    const slowApi = createGithubApi(integrations, { timeoutMs: 10 });
+    await expect(slowApi.getRepo(repository)).rejects.toThrow();
+    await expect(slowApi.getRepo(repository)).rejects.toThrow();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
 

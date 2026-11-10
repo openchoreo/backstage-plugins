@@ -559,13 +559,6 @@ techInsights:
       cadence: '0 2 * * *'
       initialDelay: { seconds: 20 }
       lifecycle: { timeToLive: { days: 7 } }
-  # Repository and branch resolution for tech-insights-backend-module-github.
-  # repoAnnotations keeps the module default (source-location, then
-  # project-slug); OpenChoreo records a component's build branch separately
-  # from its repository URL.
-  github:
-    branchAnnotations:
-      - openchoreo.io/branch
   # No factChecker.checks: checks are stored by
   # tech-insights-backend-module-dynamic-checks and managed on the
   # Scorecards page.
