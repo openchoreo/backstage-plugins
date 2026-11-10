@@ -129,17 +129,13 @@ export function deriveWorkflowRunDisplayStatus(
     }
     const reason = readyCondition?.reason;
     if (reason && reason !== 'Running' && reason !== 'Pending') {
-      return isFailureReason(reason) ? 'Failed' : reason;
+      return isFailureReason(reason) ? 'Failed' : 'Completed';
     }
     return 'Succeeded';
   }
 
   if (readyCondition) {
-    const reason = readyCondition.reason;
-    if (reason) {
-      if (isFailureReason(reason)) return 'Failed';
-      return reason;
-    }
+    if (isFailureReason(readyCondition.reason)) return 'Failed';
     return readyCondition.status === 'True' ? 'Succeeded' : 'Running';
   }
 

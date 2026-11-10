@@ -213,12 +213,14 @@ describe('deriveWorkflowRunDisplayStatus', () => {
     ).toBe('Failed');
   });
 
-  it('returns Ready reason from completedAt when it is not a failure signal', () => {
+  it('normalizes a non-failure Ready reason on a finished run to Completed', () => {
     expect(
       deriveWorkflowRunDisplayStatus({
         status: {
           completedAt: '2026-08-04T10:00:00Z',
-          conditions: [{ type: 'Ready', status: 'True', reason: 'Completed' }],
+          conditions: [
+            { type: 'Ready', status: 'True', reason: 'Progressing' },
+          ],
         },
       }),
     ).toBe('Completed');
@@ -236,11 +238,13 @@ describe('deriveWorkflowRunDisplayStatus', () => {
     ).toBe('Failed');
   });
 
-  it('returns Ready reason when present without completedAt', () => {
+  it('returns Running for a non-failure Ready reason without completedAt', () => {
     expect(
       deriveWorkflowRunDisplayStatus({
         status: {
-          conditions: [{ type: 'Ready', status: 'False', reason: 'Running' }],
+          conditions: [
+            { type: 'Ready', status: 'False', reason: 'Progressing' },
+          ],
         },
       }),
     ).toBe('Running');
@@ -292,7 +296,7 @@ describe('deriveWorkflowRunDisplayStatus', () => {
     ).toBe('Running');
   });
 
-  it('does not treat WorkflowPending as failure in Ready reason', () => {
+  it('maps WorkflowPending Ready reason without completedAt to Running', () => {
     expect(
       deriveWorkflowRunDisplayStatus({
         status: {
@@ -301,7 +305,7 @@ describe('deriveWorkflowRunDisplayStatus', () => {
           ],
         },
       }),
-    ).toBe('WorkflowPending');
+    ).toBe('Running');
   });
 
   it('returns Succeeded from completedAt when Ready reason is Running', () => {
