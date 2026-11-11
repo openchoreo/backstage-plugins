@@ -7803,6 +7803,41 @@ components:
     # -------------------------------------------------------------------------
     # Error Response
     # -------------------------------------------------------------------------
+    CronJobTriggerRequest:
+      type: object
+      description: Optional per-run overrides applied to the Job created from a manual cronjob trigger
+      properties:
+        args:
+          type: array
+          nullable: true
+          description: >-
+            Replaces the container args for this run only. An empty array clears the args inherited from
+            the CronJob's jobTemplate; omitting the field or sending null keeps them. Applies to the
+            container named `main`, or to the only container if the pod has exactly one.
+          items:
+            type: string
+          example: ['--mode', 'backfill', '--date', '2026-08-25']
+
+    CronJobTriggerResponse:
+      type: object
+      description: Response describing the Job created from a manual cronjob trigger
+      required:
+        - jobName
+        - namespace
+        - cronJobName
+      properties:
+        jobName:
+          type: string
+          description: Name of the Job that was created from the CronJob's jobTemplate
+          example: 'my-task-1721563200'
+        namespace:
+          type: string
+          description: Data plane namespace where the Job was created
+          example: 'dp-my-project-my-component-dev'
+        cronJobName:
+          type: string
+          description: Name of the CronJob the Job was created from
+          example: 'my-task'
     ErrorResponse:
       type: object
       description: Standard error response format

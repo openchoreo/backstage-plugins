@@ -85,6 +85,7 @@ export interface EnvironmentDetailPanelProps {
   onSuspend: () => Promise<void>;
   onRedeploy: () => Promise<void>;
   onRolloutRestart?: () => Promise<void> | void;
+  onRunNow?: () => Promise<void> | void;
   onRemoveDeployment?: () => Promise<void> | void;
 }
 
@@ -116,6 +117,7 @@ export const EnvironmentDetailPanel = ({
   onSuspend,
   onRedeploy,
   onRolloutRestart,
+  onRunNow,
   onRemoveDeployment,
 }: EnvironmentDetailPanelProps) => {
   const classes = useEnvironmentDetailPanelStyles();
@@ -310,11 +312,17 @@ export const EnvironmentDetailPanel = ({
     environment.deployment.statusReason !== 'ResourcesUndeployed';
   const showRolloutRestart =
     !!onRolloutRestart && !!environment.bindingName && isActiveDeployment;
+  const showRunNow =
+    !!onRunNow && !!environment.bindingName && isActiveDeployment;
   const showUndeploy = !!environment.bindingName;
   const showRemoveDeployment =
     !!onRemoveDeployment && !!environment.bindingName;
   const showActionsSection =
-    showPromote || showUndeploy || showRolloutRestart || showRemoveDeployment;
+    showPromote ||
+    showUndeploy ||
+    showRolloutRestart ||
+    showRunNow ||
+    showRemoveDeployment;
 
   return (
     <Box className={classes.panel} position="relative">
@@ -664,9 +672,11 @@ export const EnvironmentDetailPanel = ({
                   rolloutRestartTracker={actionTrackers.rolloutRestartTracker}
                   canRolloutRestart={canModifyBinding}
                   rolloutRestartDeniedTooltip={modifyBindingDeniedTooltip}
+                  runNowTracker={actionTrackers.runNowTracker}
                   onSuspend={onSuspend}
                   onRedeploy={onRedeploy}
                   onRolloutRestart={onRolloutRestart}
+                  onRunNow={onRunNow}
                 />
                 {showRemoveDeployment && (
                   <Accordion

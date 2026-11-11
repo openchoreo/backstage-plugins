@@ -2973,6 +2973,37 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /** @description Optional per-run overrides applied to the Job created from a manual cronjob trigger */
+    CronJobTriggerRequest: {
+      /**
+       * @description Replaces the container args for this run only. An empty array clears the args inherited from the CronJob's jobTemplate; omitting the field or sending null keeps them. Applies to the container named `main`, or to the only container if the pod has exactly one.
+       * @example [
+       *       "--mode",
+       *       "backfill",
+       *       "--date",
+       *       "2026-08-25"
+       *     ]
+       */
+      args?: string[] | null;
+    };
+    /** @description Response describing the Job created from a manual cronjob trigger */
+    CronJobTriggerResponse: {
+      /**
+       * @description Name of the Job that was created from the CronJob's jobTemplate
+       * @example my-task-1721563200
+       */
+      jobName: string;
+      /**
+       * @description Data plane namespace where the Job was created
+       * @example dp-my-project-my-component-dev
+       */
+      namespace: string;
+      /**
+       * @description Name of the CronJob the Job was created from
+       * @example my-task
+       */
+      cronJobName: string;
+    };
     /** @description Standard error response format */
     ErrorResponse: {
       /**

@@ -15,6 +15,7 @@ import { CLUSTER_SCOPED_RESOURCE_KINDS } from './OpenChoreoClientApi';
 import type {
   OpenChoreoClientApi,
   ActionInfo,
+  CronJobTriggerResult,
   ComponentReleaseResponse,
   ComponentReleasesResponse,
   CreateReleaseResponse,
@@ -69,6 +70,7 @@ const API_ENDPOINTS = {
   DEPLOYEMNT_WORKLOAD: '/workload',
   UPDATE_BINDING: '/update-binding',
   ROLLOUT_RESTART_BINDING: '/rollout-restart-binding',
+  TRIGGER_CRONJOB_BINDING: '/trigger-cronjob-binding',
   DASHBOARD_BINDINGS_COUNT: '/dashboard/bindings-count',
   CREATE_RELEASE: '/create-release',
   DEPLOY_RELEASE: '/deploy-release',
@@ -424,6 +426,22 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         componentName: component,
         bindingName,
         ...releaseLineField(releaseLine),
+      },
+    });
+  }
+
+  async triggerReleaseBindingCronJob(
+    entity: Entity,
+    bindingName: string,
+  ): Promise<CronJobTriggerResult> {
+    const { component, namespace } = extractEntityMetadata(entity);
+
+    return this.apiFetch(API_ENDPOINTS.TRIGGER_CRONJOB_BINDING, {
+      method: 'POST',
+      body: {
+        namespaceName: namespace,
+        componentName: component,
+        bindingName,
       },
     });
   }
