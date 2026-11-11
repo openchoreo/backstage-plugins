@@ -105,8 +105,10 @@ export function ProjectDiagram(props: ProjectDiagramProps) {
           }
         });
     };
+    // Draw only when the drawn data changes: a draw restarts the layout pass, so
+    // redrawing on every parent render could hold the preloader up indefinitely.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props]);
+  }, [project, previewMode]);
 
   useLayoutEffect(() => {
     if (diagramEngine && animation && isDiagramLoaded) {
@@ -259,6 +261,10 @@ export function ProjectDiagram(props: ProjectDiagramProps) {
     cellNode.updateDimensions({ width: cellWidth, height: cellWidth });
 
     setTimeout(() => {
+      // a later draw has replaced this model; don't set it back on the engine
+      if (diagramEngine.getModel() !== model) {
+        return;
+      }
       // manual distribute - update empty node, external node and connector node position based on cell node position
       manualDistribute(model);
       // update diagram

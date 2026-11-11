@@ -80,8 +80,10 @@ export function OrgDiagram(props: OrgDiagramProps) {
           node.clearListeners();
         });
     };
+    // Draw only when the drawn data changes: a draw restarts the layout pass, so
+    // redrawing on every parent render could hold the preloader up indefinitely.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props]);
+  }, [organization]);
 
   useLayoutEffect(() => {
     if (diagramEngine && animation && isDiagramLoaded) {

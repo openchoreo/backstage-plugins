@@ -1,11 +1,17 @@
 import '@testing-library/jest-dom';
 import { act, render } from '@testing-library/react';
 import { ReactNode, StrictMode } from 'react';
-import { DiagramEngine, DiagramModel } from '@projectstorm/react-diagrams';
+import {
+  DiagramEngine,
+  DiagramModel,
+  NodeModel,
+} from '@projectstorm/react-diagrams';
 import { CellDiagramThemeProvider } from '../theme';
 import { ComponentType, Organization, Project } from '../types';
 import { MAIN_CELL, PROJECT_NODE } from '../resources';
+import { OverlayLayerModel } from '../components';
 import { RevealClass } from '../utils/animations';
+import { isRenderInsideCell } from '../utils/projectUtils';
 import { ProjectDiagram } from './ProjectDiagram';
 import { OrgDiagram } from './OrgDiagram';
 
@@ -70,6 +76,23 @@ function modelsSet(setModel: jest.SpyInstance) {
   return setModel.mock.calls.map(([model]) => model as DiagramModel);
 }
 
+/**
+ * Expects the model last set on the engine to be the latest draw's, laid out:
+ * its preloader removed and the zoom fitted to it.
+ */
+function expectLatestLaidOut(
+  setModel: jest.SpyInstance,
+  zoomToFit: jest.SpyInstance,
+) {
+  const models = modelsSet(setModel);
+  const latest = models[models.length - 1];
+  expect(
+    latest.getLayers().some(layer => layer instanceof OverlayLayerModel),
+  ).toBe(false);
+  const fitted = zoomToFit.mock.contexts[zoomToFit.mock.contexts.length - 1];
+  expect(fitted?.getModel()).toBe(latest);
+}
+
 beforeEach(() => {
   jest.useFakeTimers();
 });
@@ -104,8 +127,15 @@ describe('ProjectDiagram', () => {
 });
 
 describe('drawing again before the diagram has loaded', () => {
+  let setModel: jest.SpyInstance;
+  let zoomToFit: jest.SpyInstance;
+
+  beforeEach(() => {
+    setModel = jest.spyOn(DiagramEngine.prototype, 'setModel');
+    zoomToFit = jest.spyOn(DiagramEngine.prototype, 'zoomToFitNodes');
+  });
+
   it('lays out only the latest project model under StrictMode', () => {
-    const setModel = jest.spyOn(DiagramEngine.prototype, 'setModel');
     render(
       <StrictMode>
         <ProjectDiagram project={project} />
@@ -115,10 +145,10 @@ describe('drawing again before the diagram has loaded', () => {
     finishLoading();
 
     expect(setStaleModel(modelsSet(setModel))).toBe(false);
+    expectLatestLaidOut(setModel, zoomToFit);
   });
 
   it('lays out only the latest project model when the project changes', () => {
-    const setModel = jest.spyOn(DiagramEngine.prototype, 'setModel');
     const { rerender } = render(<ProjectDiagram project={project} />, {
       wrapper: Wrapper,
     });
@@ -129,10 +159,10 @@ describe('drawing again before the diagram has loaded', () => {
     finishLoading();
 
     expect(setStaleModel(modelsSet(setModel))).toBe(false);
+    expectLatestLaidOut(setModel, zoomToFit);
   });
 
   it('lays out only the latest organization model under StrictMode', () => {
-    const setModel = jest.spyOn(DiagramEngine.prototype, 'setModel');
     render(
       <StrictMode>
         <OrgDiagram organization={organization} />
@@ -142,6 +172,88 @@ describe('drawing again before the diagram has loaded', () => {
     finishLoading();
 
     expect(setStaleModel(modelsSet(setModel))).toBe(false);
+    expectLatestLaidOut(setModel, zoomToFit);
+  });
+
+  it('lays out only the latest organization model when it changes', () => {
+    const { container, rerender } = render(
+      <OrgDiagram organization={organization} />,
+      { wrapper: Wrapper },
+    );
+    act(() => {
+      jest.advanceTimersByTime(500);
+    });
+    rerender(
+      <OrgDiagram
+        organization={{
+          ...organization,
+          projects: [{ id: '5678', name: 'Project B', components: [] }],
+        }}
+      />,
+    );
+    finishLoading();
+
+    expect(setStaleModel(modelsSet(setModel))).toBe(false);
+    expectLatestLaidOut(setModel, zoomToFit);
+    expect(
+      container.querySelector(`div[data-nodeid="${PROJECT_NODE}|5678"]`),
+    ).toBeInTheDocument();
+    expect(
+      container.querySelector(`div[data-nodeid="${PROJECT_NODE}|1234"]`),
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not restart the layout when the parent rerenders with the same data', () => {
+    const { container, rerender } = render(
+      <ProjectDiagram project={project} />,
+      { wrapper: Wrapper },
+    );
+    act(() => {
+      jest.advanceTimersByTime(500);
+    });
+    rerender(<ProjectDiagram project={project} />);
+    act(() => {
+      jest.advanceTimersByTime(600);
+    });
+
+    expect(
+      container.querySelector(`div[data-nodeid="${MAIN_CELL}"]`),
+    ).toHaveClass(RevealClass.SCALE);
+  });
+
+  it('does not set a replaced project model back from a pending refresh', () => {
+    const { rerender } = render(<ProjectDiagram project={project} />, {
+      wrapper: Wrapper,
+    });
+    finishLoading();
+    const [first] = modelsSet(setModel);
+    const node = first.getNodes().find(isRenderInsideCell) as NodeModel;
+
+    act(() => {
+      node.setPosition(node.getX() + 10, node.getY());
+    });
+    rerender(<ProjectDiagram project={{ ...project, id: 'B', name: 'B' }} />);
+    finishLoading();
+
+    expect(setStaleModel(modelsSet(setModel))).toBe(false);
+  });
+
+  it.each([
+    ['project', () => <ProjectDiagram project={project} />],
+    ['organization', () => <OrgDiagram organization={organization} />],
+  ])('does not lay out the %s model after unmounting', (_, diagram) => {
+    const { unmount } = render(diagram(), { wrapper: Wrapper });
+    // react-diagrams defers a routing pass when the canvas mounts and does not
+    // cancel it on unmount; let it run while the canvas is still there
+    act(() => {
+      jest.advanceTimersByTime(1);
+    });
+    unmount();
+    setModel.mockClear();
+    finishLoading();
+
+    expect(setModel).not.toHaveBeenCalled();
+    expect(zoomToFit).not.toHaveBeenCalled();
   });
 });
 
