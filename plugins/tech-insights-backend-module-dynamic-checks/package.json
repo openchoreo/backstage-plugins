@@ -49,8 +49,11 @@
     "@types/supertest": "^6.0.2",
     "supertest": "6.3.4"
   },
+  "configSchema": "config.d.ts",
   "files": [
     "dist",
-    "migrations"
+    "migrations",
+    "starter-checks",
+    "config.d.ts"
   ]
 }
