@@ -44,11 +44,24 @@ const resourceEntity = {
   spec: { type: 'postgres' },
 };
 
+const endpointEntity = {
+  apiVersion: 'backstage.io/v1alpha1',
+  kind: 'Endpoint',
+  metadata: {
+    name: 'snip-public',
+    namespace: 'default',
+    title: 'snip-public',
+    annotations: { [CHOREO_ANNOTATIONS.CREATED_AT]: '2026-05-03T00:00:00Z' },
+  },
+  spec: { type: 'http-route' },
+};
+
 const mockCatalogApi = { queryEntities: jest.fn() };
 const mockClient = {
   fetchReleaseBindings: jest.fn(),
   fetchResourceReleaseBindings: jest.fn(),
   fetchReleaseLines: jest.fn(),
+  fetchEndpointEnvironmentInfo: jest.fn(),
 };
 
 function renderPage(params: ProjectContentsPageParams) {
@@ -220,6 +233,36 @@ describe('useProjectContentsPage', () => {
     expect(resource.deploymentStatus.staging).toEqual(
       expect.objectContaining({ isDeployed: true, status: 'NotReady' }),
     );
+  });
+
+  it("keys an Endpoint's status by environment resource name, not display name", async () => {
+    mockCatalogApi.queryEntities.mockResolvedValue({
+      items: [endpointEntity],
+      totalItems: 1,
+      pageInfo: {},
+    });
+    mockClient.fetchEndpointEnvironmentInfo.mockResolvedValue([
+      {
+        name: 'Development',
+        resourceName: 'dev',
+        bindingName: 'snip-public-dev',
+        status: 'Ready',
+      },
+      { name: 'Production', resourceName: 'prod' },
+    ]);
+
+    const { result } = renderPage(baseParams);
+    await waitFor(() => {
+      expect(result.current.items).toHaveLength(1);
+      expect(result.current.items[0].deploymentLoaded).toBe(true);
+    });
+
+    const endpoint = result.current.items[0];
+    expect(endpoint.deploymentStatus.dev).toEqual(
+      expect.objectContaining({ isDeployed: true, status: 'Ready' }),
+    );
+    expect(endpoint.deploymentStatus.development).toBeUndefined();
+    expect(endpoint.deploymentStatus.prod).toBeUndefined();
   });
 
   it('summarises a component with release lines by its lines', async () => {

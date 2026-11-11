@@ -146,6 +146,13 @@ describe('deriveBackendName', () => {
     );
     expect(deriveBackendName('Orders', 'HTTP_v2', [])).toBe('orders-http-v2');
   });
+
+  it('never ends a long name with a hyphen', () => {
+    // The 60-character cut falls just after the hyphen.
+    const name = deriveBackendName('a'.repeat(59), 'b', []);
+    expect(name).toBe('a'.repeat(59));
+    expect(name).toMatch(/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/);
+  });
 });
 
 describe('endpointBackendsFieldValidation', () => {
@@ -345,5 +352,8 @@ describe('EndpointSchemaField', () => {
     ).toBeInTheDocument();
     await new Promise(r => setTimeout(r, 0));
     expect(onChange).not.toHaveBeenCalled();
+    // The hint says it was edited, not that there was nothing to copy.
+    expect(screen.getByText(/^Edited\./)).toBeInTheDocument();
+    expect(screen.queryByText(/no schema to copy/)).not.toBeInTheDocument();
   });
 });

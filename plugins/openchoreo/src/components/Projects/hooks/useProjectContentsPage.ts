@@ -117,6 +117,8 @@ type BindingLike = {
 /**
  * An Endpoint's per-environment state, as the binding-like status the
  * Deployment column renders. Environments with no binding are not deployed.
+ * Keyed by the environment's resource name, as the column looks it up;
+ * `name` is the display name when the environment has one.
  */
 function endpointDeploymentStatus(
   envs: EndpointEnvironment[] | undefined,
@@ -125,7 +127,7 @@ function endpointDeploymentStatus(
     (envs ?? [])
       .filter(env => env.bindingName)
       .map(env => ({
-        environment: env.name,
+        environment: env.resourceName ?? env.name,
         status: env.status ?? 'NotReady',
         statusReason: env.statusReason,
         statusMessage: env.statusMessage,

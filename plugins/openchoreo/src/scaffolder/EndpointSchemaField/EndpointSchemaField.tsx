@@ -91,6 +91,19 @@ export const EndpointSchemaField = ({
 
   const enabled = enabledRef.current;
 
+  // Editing drops `copiedFrom`, which is how a remount tells an edited schema
+  // from a copied one; so the hint reads the state rather than keeping it.
+  let hint: string;
+  if (value.copiedFrom) {
+    hint = `Copied from ${value.copiedFrom}. Edit it to override.`;
+  } else if (value.content) {
+    hint = "Edited. It no longer follows the first backend's schema.";
+  } else if (source?.schemaContent) {
+    hint = 'Paste a schema to publish it.';
+  } else {
+    hint = 'The first backend has no schema to copy. Paste one to publish it.';
+  }
+
   return (
     <Box>
       <FormControlLabel
@@ -118,9 +131,7 @@ export const EndpointSchemaField = ({
       {enabled && (
         <>
           <Typography variant="body2" className={classes.hint}>
-            {value.copiedFrom
-              ? `Copied from ${value.copiedFrom}. Edit it to override.`
-              : 'The first backend has no schema to copy. Paste one to publish it.'}
+            {hint}
           </Typography>
           <TextField
             label={value.type ? `Schema (${value.type})` : 'Schema'}

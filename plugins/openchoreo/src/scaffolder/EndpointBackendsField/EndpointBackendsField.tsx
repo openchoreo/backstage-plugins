@@ -59,8 +59,10 @@ export function deriveBackendName(
   const base = `${component}-${endpoint}`
     .toLowerCase()
     .replace(/[^a-z0-9-]/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 60);
+    // Cut before trimming, so a cut just after a hyphen can't leave the name
+    // ending in one.
+    .slice(0, 60)
+    .replace(/^-+|-+$/g, '');
   let name = base;
   for (let i = 2; taken.includes(name); i++) {
     name = `${base}-${i}`;
