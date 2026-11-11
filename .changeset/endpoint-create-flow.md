@@ -21,9 +21,9 @@ The wizard asks for:
   workload endpoints and a relative weight;
 - the type's parameters.
 
-The wizard can also override the API schema the Endpoint publishes. The override
-is off by default; turned on, it starts from the first backend's workload
-endpoint schema and can be edited. The new `openchoreo:endpoint:create` action
+The wizard can also add an API schema to the Endpoint. It is optional and off by
+default; turned on, it starts from the first backend's workload endpoint schema
+and can be edited. The new `openchoreo:endpoint:create` action
 creates the Endpoint and adds it, with the API entity for its schema, to the
 catalog straight away.
 

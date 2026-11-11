@@ -38,16 +38,16 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-/** Schema formats offered for a pasted schema. */
+/** Schema formats offered for a provided schema. */
 const SCHEMA_TYPES = ['openapi', 'graphql', 'grpc', 'asyncapi'];
 const DEFAULT_SCHEMA_TYPE = 'openapi';
 
 /**
- * Optionally sets the API schema the Endpoint publishes. Off by default, so
- * a copy of the backend's schema isn't frozen into every new Endpoint, where
- * it would go stale on the backend's next build. Turned on, it starts from
- * the first backend's schema and follows that backend until the user edits
- * it, and the catalog creates an API entity from it.
+ * Adds an API schema to an Endpoint created on its own, for which there is no
+ * workload schema to inherit. Optional and off by default, so a copy of a
+ * backend's schema isn't frozen into every new Endpoint. Turned on, it starts
+ * from the first backend's schema as a convenience and follows that backend
+ * until the user edits it. The catalog creates an API entity from it.
  *
  * The value is `{}` while off. While on, `content` is always set (possibly
  * empty), so the checkbox is restored as it was when the step is revisited.
@@ -112,13 +112,15 @@ export const EndpointSchemaField = ({
   // from a copied one; so the hint reads the state rather than keeping it.
   let hint: string;
   if (value.copiedFrom) {
-    hint = `Copied from ${value.copiedFrom}. Edit it to override.`;
+    hint = `Starting from the schema of ${value.copiedFrom}, the first backend. Edit it as needed.`;
   } else if (value.content) {
-    hint = "Edited. It no longer follows the first backend's schema.";
+    hint =
+      "Edited. Changes to the first backend's schema no longer apply here.";
   } else if (source?.schemaContent) {
-    hint = 'Paste a schema to publish it.';
+    hint = 'Provide the API definition this Endpoint exposes.';
   } else {
-    hint = 'The first backend has no schema to copy. Paste one to publish it.';
+    hint =
+      'Provide the API definition this Endpoint exposes. The first backend has none to start from.';
   }
 
   const type = value.type || DEFAULT_SCHEMA_TYPE;
@@ -139,12 +141,12 @@ export const EndpointSchemaField = ({
             }}
           />
         }
-        label="Override the API schema"
+        label="Add an API schema"
       />
       <Typography variant="body2" className={classes.hint}>
         {enabled
           ? hint
-          : 'Without an override, the Endpoint carries no schema of its own, and the catalog lists no API for it.'}
+          : 'Optional. Add the API definition this Endpoint exposes, and the catalog lists it as an API.'}
       </Typography>
       {enabled && (
         <>

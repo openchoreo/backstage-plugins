@@ -396,8 +396,11 @@ describe('EndpointSchemaField', () => {
     render(schemaField(undefined, onChange));
 
     expect(
-      await screen.findByRole('checkbox', { name: /override the api schema/i }),
+      await screen.findByRole('checkbox', { name: /add an api schema/i }),
     ).not.toBeChecked();
+    expect(
+      screen.getByText(/^Optional\. Add the API definition/),
+    ).toBeInTheDocument();
     await new Promise(r => setTimeout(r, 0));
     expect(onChange).not.toHaveBeenCalled();
   });
@@ -407,7 +410,7 @@ describe('EndpointSchemaField', () => {
     render(<ControlledSchemaField initial={undefined} onChange={onChange} />);
 
     const checkbox = await screen.findByRole('checkbox', {
-      name: /override the api schema/i,
+      name: /add an api schema/i,
     });
     // Copies once the first backend's schema has loaded, even if turned on
     // before that.
@@ -435,7 +438,7 @@ describe('EndpointSchemaField', () => {
     expect(onChange).not.toHaveBeenCalled();
     // The hint says it was edited, not that there was nothing to copy.
     expect(screen.getByText(/^Edited\./)).toBeInTheDocument();
-    expect(screen.queryByText(/no schema to copy/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/none to start from/)).not.toBeInTheDocument();
   });
 
   it('stays on when revisited with nothing to copy', async () => {
@@ -444,12 +447,12 @@ describe('EndpointSchemaField', () => {
     render(schemaField({ type: 'openapi', content: '' }, onChange, 'billing'));
 
     expect(
-      await screen.findByRole('checkbox', { name: /override the api schema/i }),
+      await screen.findByRole('checkbox', { name: /add an api schema/i }),
     ).toBeChecked();
-    expect(await screen.findByText(/no schema to copy/)).toBeInTheDocument();
+    expect(await screen.findByText(/none to start from/)).toBeInTheDocument();
   });
 
-  it('sends a pasted schema with its type', async () => {
+  it('sends a provided schema with its type', async () => {
     const onChange = jest.fn();
     render(schemaField({ type: 'openapi', content: '' }, onChange, 'billing'));
 
