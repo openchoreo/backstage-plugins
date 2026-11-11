@@ -42,6 +42,7 @@ function fakeClient(options: {
   capabilities?: unknown;
   profile?: () => unknown;
   component?: () => unknown;
+  bindings?: () => unknown;
 }) {
   const GET = jest.fn(async (path: string, { params }: any) => {
     switch (path) {
@@ -64,6 +65,9 @@ function fakeClient(options: {
           ? options.component()
           : ok({ status: { latestRelease: { name: 'r2' } } });
       case '/api/v1/namespaces/{namespaceName}/releasebindings':
+        if (options.bindings) {
+          return options.bindings();
+        }
         return ok({
           items: [
             {
@@ -160,7 +164,7 @@ describe('openchoreoDeploymentFactRetriever', () => {
         capabilities: {
           ...allEnvironments,
           'releasebinding:view': {
-            allowed: [{ path: 'namespace/acme/project/payments' }],
+            allowed: [{ path: 'ns/acme/project/payments' }],
           },
         },
       }),
@@ -170,16 +174,108 @@ describe('openchoreoDeploymentFactRetriever', () => {
     expect(byName.ledger).toHaveProperty('openchoreoImagePinned', true);
   });
 
+  it('leaves binding facts out when one project is denied under a cluster-wide grant', async () => {
+    const { byName } = await run(
+      [annotated('api'), annotated('ledger', 'billing')],
+      fakeClient({
+        capabilities: {
+          ...allEnvironments,
+          'releasebinding:view': {
+            allowed: [{ path: '*' }],
+            denied: [{ path: 'ns/acme/project/billing' }],
+          },
+        },
+      }),
+    );
+    expect(byName.api).toHaveProperty('openchoreoDeployedToProduction', true);
+    expect(byName.ledger).not.toHaveProperty('openchoreoDeployedToProduction');
+  });
+
   it('reports every fact as null for a component it cannot find', async () => {
     const { byName } = await run(
-      [annotated('gone'), component('unannotated', {})],
+      [annotated('gone')],
       fakeClient({ capabilities: allBindings }),
     );
-    for (const facts of [byName.gone, byName.unannotated]) {
-      expect(facts.openchoreoComponentResolved).toBe(false);
-      expect(facts.openchoreoImagePinned).toBeNull();
-      expect(facts.openchoreoDeployedToProduction).toBeNull();
-    }
+    expect(byName.gone.openchoreoComponentResolved).toBe(false);
+    expect(byName.gone.openchoreoImagePinned).toBeNull();
+    expect(byName.gone.openchoreoDeployedToProduction).toBeNull();
+  });
+
+  it('reports nothing for a component OpenChoreo does not manage', async () => {
+    const { byName } = await run(
+      [component('unannotated', {})],
+      fakeClient({ capabilities: allBindings }),
+    );
+    expect(byName).not.toHaveProperty('unannotated');
+  });
+
+  it('reports deployment facts for a component that has no Workload yet', async () => {
+    const unbuilt = component('fresh', {
+      'openchoreo.io/namespace': 'acme',
+      'openchoreo.io/project': 'payments',
+      'openchoreo.io/component': 'fresh',
+    });
+    const { byName } = await run(
+      [unbuilt],
+      fakeClient({
+        capabilities: allBindings,
+        bindings: () => ok({ items: [] }),
+      }),
+    );
+    expect(byName.fresh).toMatchObject({
+      openchoreoComponentResolved: true,
+      openchoreoDeployedToProduction: false,
+      openchoreoDeployedEnvironments: [],
+    });
+    expect(byName.fresh).not.toHaveProperty('openchoreoImagePinned');
+    expect(byName.fresh).not.toHaveProperty(
+      'openchoreoPlainTextSecretEnvCount',
+    );
+  });
+
+  it('keeps Workload facts when the release bindings cannot be listed', async () => {
+    const { byName, logger } = await run(
+      [annotated('api')],
+      fakeClient({ capabilities: allBindings, bindings: () => status(503) }),
+    );
+    expect(byName.api).toHaveProperty('openchoreoImagePinned', true);
+    expect(byName.api).not.toHaveProperty('openchoreoDeployedToProduction');
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('Leaving out deployment facts for api'),
+    );
+  });
+
+  it('leaves out the latest-release fact when OpenChoreo records none', async () => {
+    const { byName } = await run(
+      [annotated('api')],
+      fakeClient({ capabilities: allBindings, component: () => ok({}) }),
+    );
+    expect(byName.api).toHaveProperty('openchoreoDeployedToProduction', true);
+    expect(byName.api).not.toHaveProperty('openchoreoRunsLatestRelease');
+  });
+
+  it('counts plain secrets set in a release binding override', async () => {
+    const { byName } = await run(
+      [annotated('api')],
+      fakeClient({
+        capabilities: allBindings,
+        bindings: () =>
+          ok({
+            items: [
+              {
+                spec: {
+                  environment: 'production',
+                  releaseName: 'r2',
+                  workloadOverrides: {
+                    container: { env: [{ key: 'DB_PASS', value: 'hunter2' }] },
+                  },
+                },
+              },
+            ],
+          }),
+      }),
+    );
+    expect(byName.api).toHaveProperty('openchoreoPlainTextSecretEnvCount', 1);
   });
 
   it('keeps Workload facts and retries the namespace after a failed load', async () => {
@@ -198,7 +294,7 @@ describe('openchoreoDeploymentFactRetriever', () => {
     expect(byName.api).not.toHaveProperty('openchoreoDeployedToProduction');
     expect(byName.web).toHaveProperty('openchoreoDeployedToProduction', true);
     expect(logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('Reporting only Workload facts for api'),
+      expect.stringContaining('Leaving out deployment facts for api'),
     );
   });
 
@@ -206,7 +302,7 @@ describe('openchoreoDeploymentFactRetriever', () => {
     const client = fakeClient({
       capabilities: {
         ...allBindings,
-        'environment:view': { allowed: [{ path: 'namespace/acme' }] },
+        'environment:view': { allowed: [{ path: 'ns/acme' }] },
       },
     });
     const { byName } = await run([annotated('api')], client);
@@ -218,13 +314,13 @@ describe('openchoreoDeploymentFactRetriever', () => {
     ['no environment grant', {}],
     [
       'an environment grant on another namespace',
-      { 'environment:view': { allowed: [{ path: 'namespace/other' }] } },
+      { 'environment:view': { allowed: [{ path: 'ns/other' }] } },
     ],
     [
       'an environment grant on a project only',
       {
         'environment:view': {
-          allowed: [{ path: 'namespace/acme/project/payments' }],
+          allowed: [{ path: 'ns/acme/project/payments' }],
         },
       },
     ],
@@ -280,7 +376,7 @@ describe('openchoreoDeploymentFactRetriever', () => {
       expect(byName.api).not.toHaveProperty('openchoreoDeployedToProduction');
       expect(logger.warn).toHaveBeenCalledWith(
         expect.stringContaining(
-          `Reporting only Workload facts for api: GET component returned HTTP ${code}`,
+          `Leaving out deployment facts for api: GET component returned HTTP ${code}`,
         ),
       );
     },

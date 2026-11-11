@@ -1,5 +1,7 @@
 import {
+  isSecretLikeKey,
   parseImage,
+  plainTextSecretEnvCount,
   releaseBindingFacts,
   workloadFacts,
 } from './deploymentFacts';
@@ -12,10 +14,59 @@ describe('parseImage', () => {
     ['nginx:1.27', 'docker.io', true],
     ['library/nginx', 'docker.io', false],
     ['localhost:5000/app', 'localhost:5000', false],
-    ['localhost:5000/app:dev', 'localhost:5000', true],
+    ['localhost:5000/app:dev', 'localhost:5000', false],
+    ['ghcr.io/org/app:main', 'ghcr.io', false],
+    ['ghcr.io/org/app:Nightly', 'ghcr.io', false],
+    ['ghcr.io/org/app:3f9c2ab', 'ghcr.io', true],
     ['ghcr.io/org/app@sha256:abc', 'ghcr.io', true],
+    ['ghcr.io/org/app:main@sha256:abc', 'ghcr.io', true],
   ])('%s', (image, registry, pinned) => {
     expect(parseImage(image)).toEqual({ registry, pinned });
+  });
+});
+
+describe('isSecretLikeKey', () => {
+  it.each([
+    'DB_PASS',
+    'DB_PASSWORD',
+    'DB_PWD',
+    'GITHUB_TOKEN',
+    'STRIPE_API_KEY',
+    'APIKEY',
+    'TLS_PRIVATE_KEY',
+    'client-secret',
+    'AWS_CREDENTIALS',
+  ])('matches %s', key => {
+    expect(isSecretLikeKey(key)).toBe(true);
+  });
+
+  it.each([
+    'TOKEN_URL',
+    'PASSWORD_FILE',
+    'SECRET_NAME',
+    'PASSPORT_ID',
+    'PWD',
+    'KEYCLOAK_REALM',
+    'LOG_LEVEL',
+  ])('does not match %s', key => {
+    expect(isSecretLikeKey(key)).toBe(false);
+  });
+});
+
+describe('plainTextSecretEnvCount', () => {
+  it('counts each plain secret once across lists', () => {
+    expect(
+      plainTextSecretEnvCount([
+        [
+          { key: 'DB_PASS', value: 'a' },
+          { key: 'API_TOKEN', valueFrom: { secretKeyRef: {} } },
+        ],
+        [
+          { key: 'DB_PASS', value: 'b' },
+          { key: 'API_TOKEN', value: 'plain' },
+        ],
+      ]),
+    ).toBe(2);
   });
 });
 
@@ -39,7 +90,6 @@ describe('workloadFacts', () => {
         },
       }),
     ).toEqual({
-      openchoreoComponentResolved: true,
       openchoreoImageRegistry: 'cr.openchoreo.dev',
       openchoreoImagePinned: false,
       openchoreoExternalEndpointCount: 1,
@@ -102,6 +152,20 @@ describe('releaseBindingFacts', () => {
       openchoreoReadyInAllEnvironments: false,
       openchoreoRunsLatestRelease: false,
     });
+  });
+
+  it('leaves out the latest-release fact without a recorded latest release', () => {
+    expect(
+      releaseBindingFacts({
+        bindings: [
+          {
+            spec: { environment: 'development', releaseName: 'r2' },
+            status: ready,
+          },
+        ],
+        productionEnvironments: new Set(),
+      }),
+    ).not.toHaveProperty('openchoreoRunsLatestRelease');
   });
 
   it('reports a component with no bindings as not ready and not current', () => {

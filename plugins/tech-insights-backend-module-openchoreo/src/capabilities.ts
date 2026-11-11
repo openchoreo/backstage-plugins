@@ -10,16 +10,16 @@ interface CapabilityResource {
 }
 
 /**
- * The profile entries that apply to `action`: its own, its `<kind>:*`
- * wildcard, and `*`, the single entry a control plane with authorization
- * turned off returns.
+ * The profile entries that apply to `action`: its own, and `*`, the single
+ * entry a control plane with authorization turned off returns. OpenChoreo
+ * expands wildcard actions in roles before building the profile, so no
+ * other wildcard key appears.
  */
 function entriesFor(
   capabilities: Record<string, ActionCapability>,
   action: string,
 ): ActionCapability[] {
-  const [kind] = action.split(':');
-  return [action, `${kind}:*`, '*']
+  return [action, '*']
     .map(key => capabilities[key])
     .filter((entry): entry is ActionCapability => Boolean(entry));
 }
@@ -76,14 +76,19 @@ export function grantsUnconditionally(
  * resources such as environments against this path, not one per resource.
  */
 export function namespacePath(namespaceName: string): string {
-  return `namespace/${namespaceName}`;
+  return `ns/${namespaceName}`;
 }
 
-/** The authz path of a component, as OpenChoreo builds it. */
+/**
+ * The authz path of a component, as OpenChoreo builds it
+ * (`resourceHierarchyToPath` in internal/authz/casbin/helpers.go).
+ */
 export function componentPath(
   namespaceName: string,
   projectName: string,
   componentName: string,
 ): string {
-  return `namespace/${namespaceName}/project/${projectName}/component/${componentName}`;
+  return `${namespacePath(
+    namespaceName,
+  )}/project/${projectName}/component/${componentName}`;
 }

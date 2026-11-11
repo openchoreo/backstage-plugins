@@ -7,21 +7,25 @@ import {
 const path = componentPath('acme', 'payments', 'api');
 const action = 'releasebinding:view';
 
+describe('authz paths', () => {
+  it('builds them the way OpenChoreo does', () => {
+    expect(namespacePath('acme')).toBe('ns/acme');
+    expect(path).toBe('ns/acme/project/payments/component/api');
+  });
+});
+
 describe('grantsUnconditionally', () => {
   it.each([
     ['a cluster-wide grant', { [action]: { allowed: [{ path: '*' }] } }],
+    ['a namespace grant', { [action]: { allowed: [{ path: 'ns/acme' }] } }],
     [
-      'a namespace grant',
-      { [action]: { allowed: [{ path: 'namespace/acme' }] } },
+      'a project grant',
+      { [action]: { allowed: [{ path: 'ns/acme/project/payments' }] } },
     ],
     ['a grant on the component itself', { [action]: { allowed: [{ path }] } }],
     [
       'the single entry of a control plane with authorization off',
       { '*': { allowed: [{ path: '*' }], denied: [] } },
-    ],
-    [
-      'a wildcard over the resource kind',
-      { 'releasebinding:*': { allowed: [{ path: '*' }] } },
     ],
   ])('accepts %s', (_label, capabilities) => {
     expect(grantsUnconditionally(capabilities, action, path)).toBe(true);
@@ -34,11 +38,11 @@ describe('grantsUnconditionally', () => {
     ],
     [
       'a grant on another project',
-      { [action]: { allowed: [{ path: 'namespace/acme/project/billing' }] } },
+      { [action]: { allowed: [{ path: 'ns/acme/project/billing' }] } },
     ],
     [
       'a grant on a project whose name starts the same',
-      { [action]: { allowed: [{ path: 'namespace/acme/project/pay' }] } },
+      { [action]: { allowed: [{ path: 'ns/acme/project/pay' }] } },
     ],
     [
       'a grant limited by a CEL condition',
@@ -58,7 +62,16 @@ describe('grantsUnconditionally', () => {
       {
         [action]: {
           allowed: [{ path: '*' }],
-          denied: [{ path: 'namespace/acme/project/payments' }],
+          denied: [{ path: 'ns/acme/project/payments' }],
+        },
+      },
+    ],
+    [
+      'a denial on the namespace',
+      {
+        [action]: {
+          allowed: [{ path: '*' }],
+          denied: [{ path: 'ns/acme' }],
         },
       },
     ],
@@ -80,7 +93,7 @@ describe('grantsUnconditionally', () => {
       grantsUnconditionally(
         {
           'environment:view': {
-            allowed: [{ path: 'namespace/acme/project/payments' }],
+            allowed: [{ path: 'ns/acme/project/payments' }],
           },
         },
         'environment:view',

@@ -15,8 +15,11 @@ import {
   type ActionCapability,
 } from './capabilities';
 import {
+  activeBindings,
+  plainTextSecretEnvCount,
   releaseBindingFacts,
   workloadFacts,
+  type EnvVar,
   type ReleaseBinding,
   type WorkloadSpec,
 } from './deploymentFacts';
@@ -113,17 +116,17 @@ const schema: FactRetriever['schema'] = {
   openchoreoComponentResolved: {
     type: 'boolean',
     description:
-      'Whether the component and its Workload were found in OpenChoreo. When false, every other fact is null.',
+      'Whether the component was found in OpenChoreo. When false, every other fact is null. Components the OpenChoreo catalog provider did not create get no facts.',
   },
   openchoreoImageRegistry: {
     type: 'string',
     description:
-      'Registry host of the container image, docker.io when the image names none',
+      'Registry host of the container image, docker.io when the image names none. Left out until the component has a Workload.',
   },
   openchoreoImagePinned: {
     type: 'boolean',
     description:
-      'Whether the image is pinned to a digest or a tag other than latest',
+      'Whether the image is pinned to a digest, or to a tag other than one that conventionally moves (latest, main, master, dev, develop, edge, nightly, stable, staging)',
   },
   openchoreoExternalEndpointCount: {
     type: 'integer',
@@ -132,7 +135,7 @@ const schema: FactRetriever['schema'] = {
   openchoreoPlainTextSecretEnvCount: {
     type: 'integer',
     description:
-      'Environment variables whose name looks like a secret (token, password, key…) but hold a plain value instead of a secret reference',
+      'Environment variables whose name looks like a secret (token, password, API key…) but hold a plain value instead of a secret reference, in the Workload or in the per-environment overrides of its release bindings',
   },
   openchoreoDeployedEnvironments: {
     type: 'set',
@@ -152,7 +155,7 @@ const schema: FactRetriever['schema'] = {
   openchoreoRunsLatestRelease: {
     type: 'boolean',
     description:
-      "Whether every environment runs the component's latest release",
+      "Whether every environment runs the component's latest release. Left out when OpenChoreo records no latest release, which it does only for components with autoDeploy on.",
   },
 };
 
@@ -182,24 +185,44 @@ export function createOpenChoreoDeploymentFactRetriever(
           const projectName = annotations[CHOREO_ANNOTATIONS.PROJECT];
           const componentName = annotations[CHOREO_ANNOTATIONS.COMPONENT];
           const workloadName = annotations[CHOREO_ANNOTATIONS.WORKLOAD];
-          if (!namespaceName || !componentName || !workloadName) {
+          // Not an OpenChoreo component, so not this retriever's to judge.
+          if (!componentName) {
+            return undefined;
+          }
+          if (!namespaceName) {
             return UNRESOLVED_FACTS;
           }
 
-          const workload = await client.GET(
-            '/api/v1/namespaces/{namespaceName}/workloads/{workloadName}',
-            { params: { path: { namespaceName, workloadName } }, signal },
-          );
-          if (workload.response.status === 404) {
-            return UNRESOLVED_FACTS;
-          }
-          if (!workload.data) {
-            throw new Error(
-              `GET workload ${workloadName} returned HTTP ${workload.response.status}`,
+          const facts: Record<string, string | number | boolean | string[]> = {
+            openchoreoComponentResolved: true,
+          };
+          // A component that has never been built has no Workload yet. It
+          // still resolves, so its deployment facts show it deployed nowhere.
+          let workloadEnv: EnvVar[] | undefined;
+          if (workloadName) {
+            const workload = await client.GET(
+              '/api/v1/namespaces/{namespaceName}/workloads/{workloadName}',
+              { params: { path: { namespaceName, workloadName } }, signal },
             );
+            if (workload.response.status === 404) {
+              return UNRESOLVED_FACTS;
+            }
+            if (!workload.data) {
+              throw new Error(
+                `GET workload ${workloadName} returned HTTP ${workload.response.status}`,
+              );
+            }
+            const spec = (workload.data.spec ?? {}) as WorkloadSpec;
+            workloadEnv = spec.container?.env ?? [];
+            Object.assign(facts, workloadFacts(spec));
           }
-          const facts: Record<string, string | number | boolean | string[]> =
-            workloadFacts((workload.data.spec ?? {}) as WorkloadSpec);
+
+          const withoutDeployment = (reason: string) => {
+            context.logger.warn(
+              `Leaving out deployment facts for ${componentName}: ${reason}`,
+            );
+            return facts;
+          };
 
           // Binding facts are left out rather than guessed when they can't
           // be read in full: a list the caller can't see all of comes back
@@ -209,12 +232,7 @@ export function createOpenChoreoDeploymentFactRetriever(
           try {
             namespace = await namespaceOf(namespaceName, signal);
           } catch (error) {
-            context.logger.warn(
-              `Reporting only Workload facts for ${componentName}: ${
-                (error as Error).message
-              }`,
-            );
-            return facts;
+            return withoutDeployment((error as Error).message);
           }
           const { capabilities, productionEnvironments } = namespace;
           if (
@@ -234,34 +252,49 @@ export function createOpenChoreoDeploymentFactRetriever(
             { params: { path: { namespaceName, componentName } }, signal },
           );
           if (!component.data) {
-            context.logger.warn(
-              `Reporting only Workload facts for ${componentName}: GET component returned HTTP ${component.response.status}`,
+            return withoutDeployment(
+              `GET component returned HTTP ${component.response.status}`,
             );
-            return facts;
           }
-          const bindings = await fetchAllPages(cursor =>
-            client
-              .GET('/api/v1/namespaces/{namespaceName}/releasebindings', {
-                params: {
-                  path: { namespaceName },
-                  query: { component: componentName, cursor },
-                },
-                signal,
-              })
-              .then(({ data, response }) => {
-                if (!data) {
-                  throw new Error(
-                    `GET release bindings of ${componentName} returned HTTP ${response.status}`,
-                  );
-                }
-                return data;
-              }),
-          );
+          let bindings: ReleaseBinding[];
+          try {
+            bindings = (await fetchAllPages(cursor =>
+              client
+                .GET('/api/v1/namespaces/{namespaceName}/releasebindings', {
+                  params: {
+                    path: { namespaceName },
+                    query: { component: componentName, cursor },
+                  },
+                  signal,
+                })
+                .then(({ data, response }) => {
+                  if (!data) {
+                    throw new Error(
+                      `GET release bindings returned HTTP ${response.status}`,
+                    );
+                  }
+                  return data;
+                }),
+            )) as ReleaseBinding[];
+          } catch (error) {
+            return withoutDeployment((error as Error).message);
+          }
 
           return {
             ...facts,
+            // Overrides set per environment are what the component runs, so
+            // they count along with the Workload's own values.
+            ...(workloadEnv && {
+              openchoreoPlainTextSecretEnvCount: plainTextSecretEnvCount([
+                workloadEnv,
+                ...activeBindings(bindings).map(
+                  binding =>
+                    binding.spec?.workloadOverrides?.container?.env ?? [],
+                ),
+              ]),
+            }),
             ...releaseBindingFacts({
-              bindings: bindings as ReleaseBinding[],
+              bindings,
               productionEnvironments,
               latestRelease: component.data.status?.latestRelease?.name,
             }),
