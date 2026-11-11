@@ -111,9 +111,7 @@ export const EndpointSetupDetailPane = ({
                 }
                 onClick={() => latest && void onPromote(targetEnv, latest)}
               >
-                {isDeploying
-                  ? 'Deploying...'
-                  : `Deploy to ${firstEnvironment.name}`}
+                {isDeploying ? 'Deploying...' : 'Deploy'}
               </Button>
             </span>
           </Tooltip>

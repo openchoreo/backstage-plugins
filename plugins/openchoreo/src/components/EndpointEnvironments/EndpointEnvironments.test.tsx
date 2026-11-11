@@ -180,9 +180,7 @@ describe('EndpointEnvironmentsList', () => {
     fireEvent.click(
       await screen.findByRole('button', { name: 'Select setup' }),
     );
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Deploy to Development' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Deploy' }));
 
     await waitFor(() =>
       expect(updateEndpointReleaseBinding).toHaveBeenCalledWith(
@@ -200,7 +198,7 @@ describe('EndpointEnvironmentsList', () => {
 
     // No click on the Set up card: it is selected by default.
     expect(
-      await screen.findByRole('button', { name: 'Deploy to Development' }),
+      await screen.findByRole('button', { name: 'Deploy' }),
     ).toBeInTheDocument();
   });
 
@@ -225,7 +223,7 @@ describe('EndpointEnvironmentsList', () => {
     expect(await screen.findByTitle('orders-api-def')).toBeInTheDocument();
     expect(screen.queryByTitle('orders-api-abc')).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Deploy to Development' }),
+      screen.queryByRole('button', { name: 'Deploy' }),
     ).not.toBeInTheDocument();
   });
 
