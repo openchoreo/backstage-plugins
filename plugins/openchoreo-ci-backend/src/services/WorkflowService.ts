@@ -503,8 +503,7 @@ export class WorkflowService {
         );
         if (!terminal) {
           this.logger.debug(
-            typeof options.sinceSeconds === 'number' &&
-              options.sinceSeconds > 0
+            typeof options.sinceSeconds === 'number' && options.sinceSeconds > 0
               ? `No live logs yet for run ${runName} (sinceSeconds=${options.sinceSeconds})`
               : `No live logs yet for run ${runName}`,
           );
