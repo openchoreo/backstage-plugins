@@ -3,7 +3,56 @@ import {
   countResolvedBackends,
   deriveEndpointEnvBadgeStatus,
   formatServiceURL,
+  resolveDefaultEndpointSelection,
 } from './endpointEnvironmentUtils';
+
+describe('resolveDefaultEndpointSelection', () => {
+  const env = (name: string, status?: 'Ready' | 'NotReady' | 'Failed') => ({
+    name,
+    ...(status && { bindingName: `${name}-binding`, status }),
+  });
+
+  it('selects nothing when there are no environments', () => {
+    expect(resolveDefaultEndpointSelection([])).toBeNull();
+  });
+
+  it('selects Set up when the Endpoint is deployed nowhere', () => {
+    expect(resolveDefaultEndpointSelection([env('dev'), env('prod')])).toEqual({
+      kind: 'setup',
+    });
+  });
+
+  it('selects the lowest environment it is deployed to', () => {
+    expect(
+      resolveDefaultEndpointSelection([
+        env('dev'),
+        env('staging', 'Ready'),
+        env('prod', 'Ready'),
+      ]),
+    ).toEqual({ kind: 'env', name: 'staging' });
+  });
+
+  it('prefers a running or rolling-out deployment to a failed one', () => {
+    expect(
+      resolveDefaultEndpointSelection([
+        env('dev', 'Failed'),
+        env('staging', 'NotReady'),
+      ]),
+    ).toEqual({ kind: 'env', name: 'staging' });
+    expect(
+      resolveDefaultEndpointSelection([env('dev'), env('staging', 'Failed')]),
+    ).toEqual({ kind: 'env', name: 'staging' });
+  });
+
+  it('selects a deployment whose status is unknown over Set up', () => {
+    expect(
+      resolveDefaultEndpointSelection([
+        env('dev'),
+        { name: 'staging', bindingName: 'staging-binding' },
+      ]),
+    ).toEqual({ kind: 'env', name: 'staging' });
+  });
+});
 
 describe('deriveEndpointEnvBadgeStatus', () => {
   it('reports not-deployed without a binding, else the binding status', () => {

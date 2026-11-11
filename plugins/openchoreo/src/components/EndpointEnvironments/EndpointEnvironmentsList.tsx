@@ -34,6 +34,7 @@ import { EndpointSetupCard, EndpointSetupDetailPane } from './EndpointSetup';
 import {
   computeEndpointReleaseDrift,
   envResourceName,
+  resolveDefaultEndpointSelection,
   type EndpointReleaseDriftInfo,
 } from './endpointEnvironmentUtils';
 
@@ -115,12 +116,39 @@ export const EndpointEnvironmentsList = () => {
     fetchEnvs({ showProgress: true });
   }, [fetchEnvs]);
 
+  // One-shot guard so the default selection below doesn't override the
+  // user closing the right pane, which clears the selection.
+  const didAutoSelectRef = useRef(false);
+
   // Drop a selection whose environment disappeared between refreshes.
   useEffect(() => {
     if (selectedEnvName && !envs.some(e => e.name === selectedEnvName)) {
       setSelectedEnvNameState(null);
+      // Let a fresh default be picked.
+      didAutoSelectRef.current = false;
     }
   }, [envs, selectedEnvName]);
+
+  // Select a card once the environments have loaded, as the Component Deploy
+  // tab does, so the right pane doesn't open empty: the lowest environment
+  // the Endpoint is deployed to, else Set up.
+  useEffect(() => {
+    if (didAutoSelectRef.current) return;
+    if (loading || selectedSetup || selectedEnvName !== null) return;
+    if (envs.length === 0) return;
+
+    didAutoSelectRef.current = true;
+    const selection = resolveDefaultEndpointSelection(envs);
+    if (selection?.kind === 'env') setSelectedEnvName(selection.name);
+    else if (selection?.kind === 'setup') handleSelectSetup();
+  }, [
+    envs,
+    loading,
+    selectedEnvName,
+    selectedSetup,
+    setSelectedEnvName,
+    handleSelectSetup,
+  ]);
 
   // Poll while any binding is rolling out, until its routes are accepted.
   useEnvironmentPolling(
