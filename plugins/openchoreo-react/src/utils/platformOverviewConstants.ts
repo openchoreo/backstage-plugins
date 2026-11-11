@@ -187,6 +187,7 @@ export const ALL_FILTERABLE_KINDS: {
   { id: 'system', label: 'Project' },
   { id: 'component', label: 'Component' },
   { id: 'resource', label: 'Resource' },
+  { id: 'endpoint', label: 'Endpoint' },
   { id: 'deploymentpipeline', label: 'Pipeline' },
   { id: 'environment', label: 'Environment' },
   { id: 'dataplane', label: 'Data Plane' },
