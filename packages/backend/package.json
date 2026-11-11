@@ -34,6 +34,7 @@
     "@immobiliarelabs/backstage-plugin-gitlab-backend": "^6.13.0",
     "@openchoreo/backstage-plugin-openchoreo-portal-assistant-backend": "workspace:^",
     "@openchoreo/backstage-plugin-tech-insights-backend-module-dynamic-checks": "workspace:^",
+    "@openchoreo/backstage-plugin-tech-insights-backend-module-github": "workspace:^",
     "@openchoreo/backstage-portal-backend": "workspace:^",
     "app": "workspace:^",
     "better-sqlite3": "9.6.0",
