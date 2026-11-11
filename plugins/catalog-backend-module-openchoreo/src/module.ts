@@ -32,6 +32,9 @@ import {
   ResourceTypeEntityProcessor,
   ClusterProjectTypeEntityProcessor,
   ProjectTypeEntityProcessor,
+  EndpointEntityProcessor,
+  EndpointTypeEntityProcessor,
+  ClusterEndpointTypeEntityProcessor,
   SystemEntityProcessor,
   ObservabilityAlertsNotificationChannelEntityProcessor,
 } from './processors';
@@ -182,6 +185,16 @@ export const catalogModuleOpenchoreo = createBackendModule({
 
         // Register the ProjectType entity processor
         catalog.addProcessor(new ProjectTypeEntityProcessor());
+
+        // Register the Endpoint entity processor (emits instanceOf to its
+        // (Cluster)EndpointType and routesTo its backend Components)
+        catalog.addProcessor(new EndpointEntityProcessor());
+
+        // Register the EndpointType entity processor
+        catalog.addProcessor(new EndpointTypeEntityProcessor());
+
+        // Register the ClusterEndpointType entity processor
+        catalog.addProcessor(new ClusterEndpointTypeEntityProcessor());
 
         // Register the System (Project) entity processor.
         // Emits the usesPipeline / pipelineUsedBy relation pair from the

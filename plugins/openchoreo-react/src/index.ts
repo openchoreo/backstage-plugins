@@ -511,6 +511,22 @@ export {
   type UseResourcePromoteToEnvPermissionResult,
 } from './hooks/useResourcePromoteToEnvPermission';
 export {
+  useEndpointReleaseBindingCreatePermission,
+  type UseEndpointReleaseBindingCreatePermissionResult,
+} from './hooks/useEndpointReleaseBindingCreatePermission';
+export {
+  useEndpointReleaseBindingUpdatePermission,
+  type UseEndpointReleaseBindingUpdatePermissionResult,
+} from './hooks/useEndpointReleaseBindingUpdatePermission';
+export {
+  useEndpointReleaseBindingDeletePermission,
+  type UseEndpointReleaseBindingDeletePermissionResult,
+} from './hooks/useEndpointReleaseBindingDeletePermission';
+export {
+  useEndpointPromoteToEnvPermission,
+  type UseEndpointPromoteToEnvPermissionResult,
+} from './hooks/useEndpointPromoteToEnvPermission';
+export {
   useReleaseBindingPermission,
   type UseReleaseBindingPermissionResult,
 } from './hooks/useReleaseBindingPermission';

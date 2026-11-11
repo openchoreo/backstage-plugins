@@ -68,12 +68,14 @@ import {
   RELATION_WORKFLOW_USED_BY,
   RELATION_BUILDS_ON,
   RELATION_BUILDS,
+  RELATION_ROUTES_TO,
+  RELATION_ROUTED_BY,
 } from '@openchoreo/backstage-plugin-common';
 import { KIND_ICONS } from '../kindIcons';
 
 /**
  * Override `catalog-graph`'s default `api:catalog-graph` to include the
- * custom OpenChoreo relations (deploysTo, hostedOn, instanceOf, …). Without
+ * custom OpenChoreo relations (deploysTo, hostedOn, instanceOf, routesTo, …). Without
  * this, custom relations don't render in entity Relations cards or the
  * catalog graph.
  */
@@ -112,6 +114,8 @@ export const catalogGraphPluginAlpha =
                   RELATION_WORKFLOW_USED_BY,
                   RELATION_BUILDS_ON,
                   RELATION_BUILDS,
+                  RELATION_ROUTES_TO,
+                  RELATION_ROUTED_BY,
                 ],
                 knownRelationPairs: [
                   ...ALL_RELATION_PAIRS,
@@ -122,6 +126,7 @@ export const catalogGraphPluginAlpha =
                   [RELATION_INSTANCE_OF, RELATION_HAS_INSTANCE],
                   [RELATION_USES_WORKFLOW, RELATION_WORKFLOW_USED_BY],
                   [RELATION_BUILDS_ON, RELATION_BUILDS],
+                  [RELATION_ROUTES_TO, RELATION_ROUTED_BY],
                 ],
                 defaultRelationTypes: { exclude: [] },
               }),

@@ -124,6 +124,12 @@ describe('EventDeltaApplier.handleEvent', () => {
       ],
     },
     { kind: 'Resource', expectedRefs: ['resource:test-ns/order'] },
+    // An Endpoint takes the API entity carrying its schema with it.
+    {
+      kind: 'Endpoint',
+      expectedRefs: ['endpoint:test-ns/order', 'api:test-ns/endpoint-order'],
+    },
+    { kind: 'EndpointType', expectedRefs: ['endpointtype:test-ns/order'] },
     { kind: 'Workflow', expectedRefs: ['workflow:test-ns/order'] },
   ];
 
@@ -169,6 +175,10 @@ describe('EventDeltaApplier.handleEvent', () => {
         'clusterresourcetype:openchoreo-cluster/global',
         'template:openchoreo-cluster/template-resource-global',
       ],
+    },
+    {
+      kind: 'ClusterEndpointType',
+      expectedRefs: ['clusterendpointtype:openchoreo-cluster/global'],
     },
     {
       kind: 'ClusterProjectType',
@@ -1262,6 +1272,76 @@ describe('EventDeltaApplier release lines', () => {
       'component:test-ns/hello',
       'releaseline:test-ns/canary',
       'releaseline:test-ns/next',
+    ]);
+  });
+});
+
+describe('EventDeltaApplier endpoint refresh', () => {
+  let applyMutation: jest.Mock;
+  let connection: EntityProviderConnection;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    applyMutation = jest.fn();
+    connection = { applyMutation, refresh: jest.fn() } as any;
+  });
+
+  const endpoint = (schema?: { type: string; content: string }) => ({
+    data: {
+      metadata: { name: 'orders-api', namespace: 'test-ns' },
+      spec: {
+        owner: { projectName: 'store' },
+        type: { kind: 'ClusterEndpointType', name: 'http-route' },
+        visibility: ['external'],
+        backendRefs: [
+          {
+            name: 'primary',
+            component: { name: 'orders', endpoint: 'http' },
+            weight: 100,
+          },
+        ],
+        ...(schema && { schema }),
+      },
+    },
+    error: undefined,
+    response: { ok: true, status: 200 },
+  });
+
+  it('upserts the Endpoint and its API entity when it declares a schema', async () => {
+    mockGET.mockResolvedValue(
+      endpoint({ type: 'openapi', content: 'openapi: 3.0.0' }),
+    );
+    await newApplier(connection).handleEvent(
+      'Endpoint',
+      'orders-api',
+      'test-ns',
+      'updated',
+    );
+
+    expect(applyMutation).toHaveBeenCalledTimes(1);
+    const added = applyMutation.mock.calls[0][0].added.map(
+      (d: any) => `${d.entity.kind}:${d.entity.metadata.name}`,
+    );
+    expect(added.sort()).toEqual([
+      'API:endpoint-orders-api',
+      'Endpoint:orders-api',
+    ]);
+  });
+
+  it('removes a stale API entity when the Endpoint no longer declares a schema', async () => {
+    mockGET.mockResolvedValue(endpoint());
+    await newApplier(connection).handleEvent(
+      'Endpoint',
+      'orders-api',
+      'test-ns',
+      'updated',
+    );
+
+    expect(applyMutation).toHaveBeenCalledTimes(2);
+    const [upsert, removal] = applyMutation.mock.calls.map(c => c[0]);
+    expect(upsert.added.map((d: any) => d.entity.kind)).toEqual(['Endpoint']);
+    expect(removal.removed.map((r: any) => r.entityRef)).toEqual([
+      'api:test-ns/endpoint-orders-api',
     ]);
   });
 });

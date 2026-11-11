@@ -101,6 +101,7 @@ function parseCapabilityPath(path: string): CatalogParsedPath | null {
  * - domain/namespace-scoped: namespace-level only (no project/component paths)
  * - system: project-level (no component paths), keyed by PROJECT_ID annotation
  * - resource: project-level (no component paths), keyed by PROJECT annotation.
+ *   Used for Resource and Endpoint entities.
  *   Resources are siblings of Components under a Project — a deny on a sibling
  *   Component must not cascade to Resources, but a deny on the parent Project
  *   must.
@@ -122,12 +123,14 @@ const KIND_TO_ENTITY_LEVEL: Record<string, EntityLevel> = {
   component: 'component',
   releaseline: 'component',
   resource: 'resource',
+  endpoint: 'resource',
   dataplane: 'namespace-scoped',
   workflowplane: 'namespace-scoped',
   observabilityplane: 'namespace-scoped',
   deploymentpipeline: 'namespace-scoped',
   componenttype: 'namespace-scoped',
   resourcetype: 'namespace-scoped',
+  endpointtype: 'namespace-scoped',
   projecttype: 'namespace-scoped',
   traittype: 'namespace-scoped',
   workflow: 'namespace-scoped',
@@ -138,6 +141,7 @@ const KIND_TO_ENTITY_LEVEL: Record<string, EntityLevel> = {
   clusterobservabilityplane: 'cluster-scoped',
   clustercomponenttype: 'cluster-scoped',
   clusterresourcetype: 'cluster-scoped',
+  clusterendpointtype: 'cluster-scoped',
   clusterprojecttype: 'cluster-scoped',
   clustertraittype: 'cluster-scoped',
   clusterworkflow: 'cluster-scoped',
@@ -150,6 +154,7 @@ const CLUSTER_SCOPED_KINDS = new Set([
   'clusterobservabilityplane',
   'clustercomponenttype',
   'clusterresourcetype',
+  'clusterendpointtype',
   'clusterprojecttype',
   'clustertraittype',
   'clusterworkflow',
@@ -308,7 +313,11 @@ function buildScopeFilter(
         key: `metadata.annotations.${CHOREO_ANNOTATIONS.PROJECT_ID}`,
         values: [parsed.project],
       });
-    } else if (kindLower === 'component' || kindLower === 'resource') {
+    } else if (
+      kindLower === 'component' ||
+      kindLower === 'resource' ||
+      kindLower === 'endpoint'
+    ) {
       conditions.push({
         key: `metadata.annotations.${CHOREO_ANNOTATIONS.PROJECT}`,
         values: [parsed.project],

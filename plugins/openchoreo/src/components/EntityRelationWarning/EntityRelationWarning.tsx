@@ -26,6 +26,8 @@ const PLATFORM_KINDS = new Set([
   'resourcetype',
   'clustercomponenttype',
   'clusterresourcetype',
+  'endpointtype',
+  'clusterendpointtype',
   'traittype',
   'clustertraittype',
   'workflow',

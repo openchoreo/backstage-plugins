@@ -641,6 +641,29 @@ export interface ResourceReleaseBindingResponse {
   outputs?: ResolvedResourceOutput[];
 }
 
+/** In-cluster address a backend resolved to in one environment. */
+export interface EndpointServiceURL {
+  scheme?: string;
+  host?: string;
+  port?: number;
+  path?: string;
+}
+
+/**
+ * How one of an Endpoint's backends resolved in a binding's environment. An
+ * unresolved backend carries the reason, e.g. its component is not deployed
+ * there or its workload endpoint is not internal/external.
+ */
+export interface ResolvedEndpointBackend {
+  name: string;
+  kind: string;
+  weight?: number;
+  resolved: boolean;
+  serviceURL?: EndpointServiceURL;
+  reason?: string;
+  message?: string;
+}
+
 export interface ProjectReleaseBindingResponse {
   name: string;
   projectName: string;

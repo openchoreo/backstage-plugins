@@ -20,5 +20,8 @@ export { ClusterResourceTypeEntityProcessor } from './ClusterResourceTypeEntityP
 export { ResourceTypeEntityProcessor } from './ResourceTypeEntityProcessor';
 export { ClusterProjectTypeEntityProcessor } from './ClusterProjectTypeEntityProcessor';
 export { ProjectTypeEntityProcessor } from './ProjectTypeEntityProcessor';
+export { EndpointEntityProcessor } from './EndpointEntityProcessor';
+export { EndpointTypeEntityProcessor } from './EndpointTypeEntityProcessor';
+export { ClusterEndpointTypeEntityProcessor } from './ClusterEndpointTypeEntityProcessor';
 export { SystemEntityProcessor } from './SystemEntityProcessor';
 export { ObservabilityAlertsNotificationChannelEntityProcessor } from './ObservabilityAlertsNotificationChannelEntityProcessor';

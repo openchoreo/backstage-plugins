@@ -357,6 +357,110 @@ describe('OpenChoreoClient — deleteResourceReleaseBinding', () => {
   });
 });
 
+const ENDPOINT_ENTITY = {
+  apiVersion: 'backstage.io/v1alpha1',
+  kind: 'Endpoint',
+  metadata: {
+    name: 'orders-api',
+    namespace: 'test-ns',
+    annotations: {
+      'openchoreo.io/namespace': 'test-ns',
+      'openchoreo.io/endpoint': 'orders-api',
+      'openchoreo.io/project': 'shop',
+      'openchoreo.io/endpointtype': 'http-route',
+      'openchoreo.io/endpointtype-kind': 'ClusterEndpointType',
+    },
+  },
+  spec: { type: 'http-route' },
+};
+
+describe('OpenChoreoClient — endpoints', () => {
+  const fetchMock = jest.fn();
+  const discovery = { getBaseUrl: jest.fn().mockResolvedValue(BASE_URL) };
+  const fetchApi = { fetch: fetchMock };
+  let client: OpenChoreoClient;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    discovery.getBaseUrl.mockResolvedValue(BASE_URL);
+    client = new OpenChoreoClient(discovery as any, fetchApi as any);
+  });
+
+  it('GETs /endpoint-environment-info with the endpoint coordinates', async () => {
+    const payload = [{ name: 'dev', latestRelease: 'orders-api-abc' }];
+    fetchMock.mockResolvedValueOnce(makeJsonResponse(payload));
+
+    const result = await client.fetchEndpointEnvironmentInfo(
+      ENDPOINT_ENTITY as any,
+    );
+
+    expect(result).toEqual(payload);
+    const [calledUrl] = fetchMock.mock.calls[0];
+    expect(calledUrl).toContain('/endpoint-environment-info');
+    expect(calledUrl).toContain('endpointName=orders-api');
+    expect(calledUrl).toContain('projectName=shop');
+    expect(calledUrl).toContain('namespaceName=test-ns');
+  });
+
+  it('throws when the Endpoint annotations are missing', async () => {
+    await expect(
+      client.fetchEndpointEnvironmentInfo({
+        ...ENDPOINT_ENTITY,
+        metadata: { name: 'x', annotations: {} },
+      } as any),
+    ).rejects.toThrow(/Missing required OpenChoreo annotations/);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('PUTs only the provided binding fields', async () => {
+    fetchMock.mockResolvedValueOnce(makeJsonResponse({}));
+
+    await client.updateEndpointReleaseBinding(ENDPOINT_ENTITY as any, 'dev', {
+      endpointTypeEnvironmentConfigs: { hostname: 'orders.example.com' },
+    });
+
+    const [calledUrl, opts] = fetchMock.mock.calls[0];
+    expect(calledUrl).toContain('/update-endpoint-release-binding');
+    expect(opts.method).toBe('PUT');
+    expect(JSON.parse(opts.body)).toEqual({
+      endpointName: 'orders-api',
+      projectName: 'shop',
+      namespaceName: 'test-ns',
+      environment: 'dev',
+      endpointTypeEnvironmentConfigs: { hostname: 'orders.example.com' },
+    });
+  });
+
+  it('sends the release as releaseName when promoting', async () => {
+    fetchMock.mockResolvedValueOnce(makeJsonResponse({}));
+
+    await client.updateEndpointReleaseBinding(ENDPOINT_ENTITY as any, 'prod', {
+      endpointRelease: 'orders-api-abc',
+    });
+
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({
+      environment: 'prod',
+      releaseName: 'orders-api-abc',
+    });
+  });
+
+  it('DELETEs /delete-endpoint-release-binding', async () => {
+    fetchMock.mockResolvedValueOnce(makeJsonResponse({ success: true }));
+
+    await client.deleteEndpointReleaseBinding(ENDPOINT_ENTITY as any, 'dev');
+
+    const [calledUrl, opts] = fetchMock.mock.calls[0];
+    expect(calledUrl).toContain('/delete-endpoint-release-binding');
+    expect(opts.method).toBe('DELETE');
+    expect(JSON.parse(opts.body)).toEqual({
+      endpointName: 'orders-api',
+      projectName: 'shop',
+      namespaceName: 'test-ns',
+      environment: 'dev',
+    });
+  });
+});
+
 // A Project entity is catalog kind System: the project name is the entity
 // name and the OpenChoreo namespace is annotated.
 const PROJECT_ENTITY = {

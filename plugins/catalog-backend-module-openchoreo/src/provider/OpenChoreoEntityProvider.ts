@@ -74,6 +74,9 @@ import {
   translateNewResourceToEntity,
   translateNewReleaseLineToEntity,
   translateNewResourceTypeToEntity,
+  translateNewEndpointToEntities,
+  translateNewEndpointTypeToEntity,
+  translateNewClusterEndpointTypeToEntity,
   translateNewTraitToEntity,
   translateNewWorkflowPlaneToEntity,
   translateNewWorkflowToEntity,
@@ -102,6 +105,10 @@ type NewClusterProjectType =
   OpenChoreoComponents['schemas']['ClusterProjectType'];
 type NewResource = OpenChoreoComponents['schemas']['ResourceInstance'];
 type NewReleaseLine = OpenChoreoComponents['schemas']['ReleaseLine'];
+type NewEndpoint = OpenChoreoComponents['schemas']['Endpoint'];
+type NewEndpointType = OpenChoreoComponents['schemas']['EndpointType'];
+type NewClusterEndpointType =
+  OpenChoreoComponents['schemas']['ClusterEndpointType'];
 type NewTrait = OpenChoreoComponents['schemas']['Trait'];
 type NewClusterComponentType =
   OpenChoreoComponents['schemas']['ClusterComponentType'];
@@ -286,11 +293,14 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           'openchoreo.projecttype',
           'openchoreo.resource',
           'openchoreo.releaseline',
+          'openchoreo.endpoint',
+          'openchoreo.endpointtype',
           'openchoreo.trait',
           'openchoreo.workflow',
           'openchoreo.workload',
           'openchoreo.clustercomponenttype',
           'openchoreo.clusterresourcetype',
+          'openchoreo.clusterendpointtype',
           'openchoreo.clusterprojecttype',
           'openchoreo.clustertrait',
           'openchoreo.clusterworkflow',
@@ -1348,6 +1358,101 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         }
       }
 
+      // Get endpoint types for each namespace
+      for (const ns of namespaces) {
+        const nsName = getName(ns)!;
+        try {
+          const endpointTypes = await fetchAllPages<NewEndpointType>(cursor =>
+            client
+              .GET('/api/v1/namespaces/{namespaceName}/endpointtypes', {
+                params: {
+                  path: { namespaceName: nsName },
+                  query: { limit: 100, cursor },
+                },
+              })
+              .then(res => {
+                if (res.error)
+                  throw new Error(
+                    `Failed to fetch endpoint types for ${nsName}`,
+                  );
+                return res.data;
+              }),
+          );
+
+          this.logger.debug(
+            `Found ${endpointTypes.length} endpoint types in namespace: ${nsName}`,
+          );
+
+          const etEntities: Entity[] = endpointTypes
+            .map(et => {
+              try {
+                return translateNewEndpointTypeToEntity(
+                  et,
+                  nsName,
+                  this.translatorContext,
+                ) as Entity;
+              } catch (err) {
+                this.logger.warn(
+                  `Failed to translate EndpointType ${getName(et)}: ${err}`,
+                );
+                return null;
+              }
+            })
+            .filter((e): e is Entity => e !== null);
+          allEntities.push(...etEntities);
+        } catch (error) {
+          this.logger.warn(
+            `Failed to fetch endpoint types for namespace ${nsName}: ${error}`,
+          );
+        }
+      }
+
+      // Get endpoints for each namespace. Each Endpoint yields its own
+      // entity plus, when it declares a schema, an API entity.
+      for (const ns of namespaces) {
+        const nsName = getName(ns)!;
+        try {
+          const endpoints = await fetchAllPages<NewEndpoint>(cursor =>
+            client
+              .GET('/api/v1/namespaces/{namespaceName}/endpoints', {
+                params: {
+                  path: { namespaceName: nsName },
+                  query: { limit: 100, cursor },
+                },
+              })
+              .then(res => {
+                if (res.error)
+                  throw new Error(`Failed to fetch endpoints for ${nsName}`);
+                return res.data;
+              }),
+          );
+
+          this.logger.debug(
+            `Found ${endpoints.length} endpoints in namespace: ${nsName}`,
+          );
+
+          for (const endpoint of endpoints) {
+            try {
+              allEntities.push(
+                ...translateNewEndpointToEntities(
+                  endpoint,
+                  nsName,
+                  this.translatorContext,
+                ),
+              );
+            } catch (err) {
+              this.logger.warn(
+                `Failed to translate Endpoint ${getName(endpoint)}: ${err}`,
+              );
+            }
+          }
+        } catch (error) {
+          this.logger.warn(
+            `Failed to fetch endpoints for namespace ${nsName}: ${error}`,
+          );
+        }
+      }
+
       // Get workflows for each namespace
       for (const ns of namespaces) {
         const nsName = getName(ns)!;
@@ -1639,6 +1744,47 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         );
       } catch (error) {
         this.logger.warn(`Failed to fetch cluster resource types: ${error}`);
+      }
+
+      // Fetch cluster endpoint types (once, not per namespace)
+      try {
+        const clusterEndpointTypes =
+          await fetchAllPages<NewClusterEndpointType>(cursor =>
+            client
+              .GET('/api/v1/clusterendpointtypes', {
+                params: { query: { limit: 100, cursor } },
+              })
+              .then(res => {
+                if (res.error)
+                  throw new Error('Failed to fetch cluster endpoint types');
+                return res.data;
+              }),
+          );
+
+        this.logger.debug(
+          `Found ${clusterEndpointTypes.length} cluster endpoint types`,
+        );
+
+        const cetEntities: Entity[] = clusterEndpointTypes
+          .map(cet => {
+            try {
+              return translateNewClusterEndpointTypeToEntity(
+                cet,
+                this.translatorContext,
+              ) as Entity;
+            } catch (err) {
+              this.logger.warn(
+                `Failed to translate ClusterEndpointType ${getName(
+                  cet,
+                )}: ${err}`,
+              );
+              return null;
+            }
+          })
+          .filter((e): e is Entity => e !== null);
+        allEntities.push(...cetEntities);
+      } catch (error) {
+        this.logger.warn(`Failed to fetch cluster endpoint types: ${error}`);
       }
 
       // Fetch cluster project types (once, not per namespace)
@@ -2012,6 +2158,13 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       e => e.kind === 'ProjectType',
     ).length;
     const resourceCount = allEntities.filter(e => e.kind === 'Resource').length;
+    const endpointTypeCount = allEntities.filter(
+      e => e.kind === 'EndpointType',
+    ).length;
+    const clusterEndpointTypeCount = allEntities.filter(
+      e => e.kind === 'ClusterEndpointType',
+    ).length;
+    const endpointCount = allEntities.filter(e => e.kind === 'Endpoint').length;
     const clusterComponentTypeCount = allEntities.filter(
       e => e.kind === 'ClusterComponentType',
     ).length;
@@ -2038,7 +2191,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       e => e.kind === 'ClusterWorkflow',
     ).length;
     this.logger.info(
-      `Successfully processed ${allEntities.length} entities (${domainCount} domains, ${systemCount} systems, ${componentCount} components, ${apiCount} apis, ${environmentCount} environments, ${notificationChannelCount} notification channels, ${dataplaneCount} dataplanes, ${workflowplaneCount} workflowplanes, ${observabilityplaneCount} observabilityplanes, ${pipelineCount} deployment pipelines, ${componentTypeCount} component types, ${traitTypeCount} trait types, ${resourceTypeCount} resource types, ${projectTypeCount} project types, ${resourceCount} resources, ${clusterComponentTypeCount} cluster component types, ${clusterResourceTypeCount} cluster resource types, ${clusterProjectTypeCount} cluster project types, ${clusterTraitTypeCount} cluster trait types, ${clusterDataplaneCount} cluster dataplanes, ${clusterObservabilityPlaneCount} cluster observability planes, ${clusterWorkflowPlaneCount} cluster workflow planes, ${workflowCount} workflows, ${clusterWorkflowCount} cluster workflows)`,
+      `Successfully processed ${allEntities.length} entities (${domainCount} domains, ${systemCount} systems, ${componentCount} components, ${apiCount} apis, ${environmentCount} environments, ${notificationChannelCount} notification channels, ${dataplaneCount} dataplanes, ${workflowplaneCount} workflowplanes, ${observabilityplaneCount} observabilityplanes, ${pipelineCount} deployment pipelines, ${componentTypeCount} component types, ${traitTypeCount} trait types, ${resourceTypeCount} resource types, ${projectTypeCount} project types, ${resourceCount} resources, ${endpointTypeCount} endpoint types, ${clusterEndpointTypeCount} cluster endpoint types, ${endpointCount} endpoints, ${clusterComponentTypeCount} cluster component types, ${clusterResourceTypeCount} cluster resource types, ${clusterProjectTypeCount} cluster project types, ${clusterTraitTypeCount} cluster trait types, ${clusterDataplaneCount} cluster dataplanes, ${clusterObservabilityPlaneCount} cluster observability planes, ${clusterWorkflowPlaneCount} cluster workflow planes, ${workflowCount} workflows, ${clusterWorkflowCount} cluster workflows)`,
     );
   }
 }

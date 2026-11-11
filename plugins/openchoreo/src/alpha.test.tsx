@@ -40,6 +40,11 @@ const ALPHA_EXTENSION_NAMES = [
   ['entity-card', 'resource-parameters'],
   ['entity-card', 'resource-deployments'],
   ['entity-card', 'consuming-components'],
+  // endpoint
+  ['entity-content', 'endpoint-deploy'],
+  ['entity-card', 'endpoint-routing'],
+  ['entity-card', 'endpoint-deployments'],
+  ['entity-card', 'endpoint-api'],
   // environment
   ['entity-card', 'environment-status-summary'],
   ['entity-card', 'environment-promotion'],
@@ -112,6 +117,7 @@ const ALPHA_EXTENSION_NAMES = [
   ['entity-content-layout', 'system-overview'],
   ['entity-content-layout', 'domain-overview'],
   ['entity-content-layout', 'resource-overview'],
+  ['entity-content-layout', 'endpoint-overview'],
   ['entity-content-layout', 'environment-overview'],
   ['entity-content-layout', 'dataplane-overview'],
   ['entity-content-layout', 'cluster-dataplane-overview'],

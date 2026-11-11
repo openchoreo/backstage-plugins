@@ -19,7 +19,7 @@
   ],
   "versionField": "openChoreoVersion",
   "versionFile": "src/version.ts",
-  "lastSyncCommit": "c0e6cd4c",
-  "lastSyncDate": "2026-09-08T00:00:00+05:30",
-  "lastSyncDescription": "feat: migrate url-shortener postgres to a Resource (#4081)"
+  "lastSyncCommit": "11c99f1b",
+  "lastSyncDate": "2026-11-10T00:00:00+05:30",
+  "lastSyncDescription": "feat: expose Endpoints through the OpenChoreo API, MCP and occ (#5369)"
 }

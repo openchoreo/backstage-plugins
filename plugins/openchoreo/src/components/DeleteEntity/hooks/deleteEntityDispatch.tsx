@@ -15,6 +15,9 @@ import {
 const KIND_DISPLAY_NAMES: Record<string, string> = {
   component: 'Component',
   resource: 'Resource',
+  endpoint: 'Endpoint',
+  endpointtype: 'Endpoint Type',
+  clusterendpointtype: 'Cluster Endpoint Type',
   system: 'Project',
   domain: 'Namespace',
   environment: 'Environment',
