@@ -17,12 +17,18 @@ The wizard asks for:
 
 - the Endpoint's name;
 - the scopes it is exposed to;
-- its backends: components of the project, each with one of its internal or
-  external workload endpoints and a relative weight;
+- its backends, at most 16: components of the project, each with one of its
+  workload endpoints and a relative weight;
 - the type's parameters.
 
-The API schema is pre-filled from the first backend's workload endpoint and can
-be edited. The new `openchoreo:endpoint:create` action creates the Endpoint and
-adds it, with the API entity for its schema, to the catalog straight away.
+The wizard can also override the API schema the Endpoint publishes. The override
+is off by default; turned on, it starts from the first backend's workload
+endpoint schema and can be edited. The new `openchoreo:endpoint:create` action
+creates the Endpoint and adds it, with the API entity for its schema, to the
+catalog straight away.
+
+An Endpoint's API entity is named `endpoint-<name>`. When that would exceed the
+catalog's 63-character limit, the name is cut and suffixed with a hash of the
+Endpoint name, so long Endpoint names still get their API entity.
 
 Creating Endpoints is gated by the new `openchoreo.endpoint.create` permission.

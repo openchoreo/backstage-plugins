@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import {
   Box,
   Button,
@@ -12,10 +13,14 @@ import DeleteOutlineIcon from '@material-ui/icons/DeleteOutline';
 import type { FieldValidation } from '@rjsf/utils';
 import { FieldExtensionComponentProps } from '@backstage/plugin-scaffolder-react';
 import {
-  isRoutable,
+  projectKey,
   readProjectNamespace,
   useProjectWorkloadEndpoints,
 } from './useProjectWorkloadEndpoints';
+
+/** The Endpoint CRD's limits on backends. */
+export const MAX_BACKENDS = 16;
+export const MAX_WEIGHT = 1_000_000;
 
 /** One backend as the scaffolder action receives it. */
 export interface EndpointBackendValue {
@@ -72,9 +77,8 @@ export function deriveBackendName(
 
 /**
  * Picks the backends an Endpoint routes traffic to: rows of component, one of
- * its internal or external workload endpoints, and a relative weight. Options
- * come from the catalog's API entities for the project chosen earlier in the
- * form.
+ * its workload endpoints, and a relative weight. Options come from the
+ * Workloads of the components in the project chosen earlier in the form.
  */
 export const EndpointBackendsField = ({
   formData,
@@ -91,15 +95,29 @@ export const EndpointBackendsField = ({
     formContext?.formData,
     projectField,
   );
-  const { options, loading, error } = useProjectWorkloadEndpoints(
+  const { options, loading, error, loadedFor } = useProjectWorkloadEndpoints(
     namespace,
     project,
   );
-  const routable = options.filter(isRoutable);
-  const components = [...new Set(routable.map(o => o.component))];
+  const components = [...new Set(options.map(o => o.component))];
   const backends = formData ?? [];
 
   const update = (next: EndpointBackendValue[]) => onChange(next);
+
+  // Going back and picking another project leaves the rows chosen for the old
+  // one. Once the new project's options have loaded, drop the rows whose
+  // component is not in it.
+  const currentKey = project && namespace ? projectKey(namespace, project) : '';
+  useEffect(() => {
+    if (!currentKey || loadedFor !== currentKey || error) return;
+    const inProject = new Set(options.map(o => o.component));
+    const kept = backends.filter(
+      b => !b.component || inProject.has(b.component),
+    );
+    if (kept.length !== backends.length) onChange(kept);
+    // Run when the options for a project arrive, not on every row edit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentKey, loadedFor, options, error]);
 
   const setRow = (index: number, patch: Partial<EndpointBackendValue>) => {
     const next = backends.map((b, i) => (i === index ? { ...b, ...patch } : b));
@@ -136,24 +154,23 @@ export const EndpointBackendsField = ({
   return (
     <Box>
       <Typography variant="body2" className={classes.hint}>
-        Route traffic to internal or external workload endpoints of components
-        in {project}. Weights are relative; a backend with weight 0 gets no
-        traffic.
+        Route traffic to workload endpoints of components in {project}, up to{' '}
+        {MAX_BACKENDS} backends. Weights are relative; a backend with weight 0
+        gets no traffic.
       </Typography>
       {error && (
         <Typography variant="body2" color="error">
           Failed to load workload endpoints: {error.message}
         </Typography>
       )}
-      {!loading && !error && routable.length === 0 && (
+      {!loading && !error && options.length === 0 && (
         <Typography variant="body2" color="error">
-          No component in {project} has an internal or external workload
-          endpoint to route to.
+          No component in {project} has a workload endpoint to route to.
         </Typography>
       )}
 
       {backends.map((backend, index) => {
-        const endpointsOfComponent = routable.filter(
+        const endpointsOfComponent = options.filter(
           o => o.component === backend.component,
         );
         return (
@@ -198,7 +215,7 @@ export const EndpointBackendsField = ({
             >
               {endpointsOfComponent.map(o => (
                 <MenuItem key={o.endpoint} value={o.endpoint}>
-                  {`${o.endpoint} (${o.visibility.join(', ')})`}
+                  {o.endpoint}
                 </MenuItem>
               ))}
             </TextField>
@@ -208,7 +225,7 @@ export const EndpointBackendsField = ({
               variant="outlined"
               size="small"
               className={classes.weight}
-              inputProps={{ min: 0, step: 1 }}
+              inputProps={{ min: 0, max: MAX_WEIGHT, step: 1 }}
               value={backend.weight ?? ''}
               onChange={e =>
                 setRow(index, {
@@ -232,7 +249,9 @@ export const EndpointBackendsField = ({
         color="primary"
         startIcon={<AddIcon />}
         onClick={addRow}
-        disabled={loading || routable.length === 0}
+        disabled={
+          loading || options.length === 0 || backends.length >= MAX_BACKENDS
+        }
       >
         Add backend
       </Button>
@@ -254,7 +273,8 @@ export const EndpointBackendsFieldSchema = {
 
 /**
  * Every row needs a component and workload endpoint, a valid unique name and
- * a non-negative whole weight, and at least one backend must take traffic.
+ * a whole weight from 0 to {@link MAX_WEIGHT}, at least one backend must take
+ * traffic, and there can be at most {@link MAX_BACKENDS} backends.
  */
 export const endpointBackendsFieldValidation = (
   value: EndpointBackendValue[] | undefined,
@@ -264,6 +284,9 @@ export const endpointBackendsFieldValidation = (
   if (backends.length === 0) {
     validation.addError('Add at least one backend.');
     return;
+  }
+  if (backends.length > MAX_BACKENDS) {
+    validation.addError(`An Endpoint takes at most ${MAX_BACKENDS} backends.`);
   }
   const names = new Set<string>();
   backends.forEach((b, i) => {
@@ -280,10 +303,12 @@ export const endpointBackendsFieldValidation = (
     names.add(b.name);
     if (
       b.weight !== undefined &&
-      (!Number.isInteger(b.weight) || b.weight < 0)
+      (!Number.isInteger(b.weight) || b.weight < 0 || b.weight > MAX_WEIGHT)
     ) {
       validation.addError(
-        `${row}: weight must be a whole number of 0 or more.`,
+        `${row}: weight must be a whole number from 0 to ${MAX_WEIGHT.toLocaleString(
+          'en-US',
+        )}.`,
       );
     }
   });

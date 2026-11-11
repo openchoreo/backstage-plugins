@@ -4,14 +4,14 @@ import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
 
-/** Visibilities an Endpoint can route to; project-only endpoints are refused. */
-const ROUTABLE_VISIBILITIES = ['internal', 'external'];
-
-/** A component workload endpoint an Endpoint can route to. */
+/**
+ * A component workload endpoint an Endpoint can route to. Any workload
+ * endpoint can be a backend: who can reach it comes from the Endpoint's
+ * visibility, not the workload's (deprecated) one.
+ */
 export interface WorkloadEndpointOption {
   component: string;
   endpoint: string;
-  visibility: string[];
   /** Schema format, e.g. `openapi` or `proto`, when the endpoint has one. */
   schemaType?: string;
   /** Schema document, when the endpoint has one. */
@@ -37,7 +37,6 @@ export function readProjectNamespace(
 
 /** Workload endpoint fields this field reads, as served by the BFF. */
 interface WorkloadEndpointSpec {
-  visibility?: string[];
   schema?: { type?: string; content?: string };
 }
 
@@ -54,7 +53,6 @@ export function workloadEndpointOptions(
   return Object.entries(endpoints ?? {}).map(([endpoint, spec]) => ({
     component,
     endpoint,
-    visibility: spec.visibility ?? [],
     ...(spec.schema?.content && {
       schemaType: spec.schema.type,
       schemaContent: spec.schema.content,
@@ -62,14 +60,17 @@ export function workloadEndpointOptions(
   }));
 }
 
-export function isRoutable(option: WorkloadEndpointOption): boolean {
-  return option.visibility.some(v => ROUTABLE_VISIBILITIES.includes(v));
+/** Identifies the project a set of options was loaded for. */
+export function projectKey(namespace: string, project: string): string {
+  return `${namespace}/${project}`;
 }
 
 /**
  * Lists the workload endpoints of a project's components: the components come
  * from the catalog, their endpoints from each component's Workload. A
- * component without a Workload contributes no endpoints.
+ * component without a Workload contributes no endpoints. `loadedFor` is the
+ * {@link projectKey} the options were loaded for, set once they have loaded,
+ * so callers can tell them from options still left over from another project.
  */
 export function useProjectWorkloadEndpoints(
   namespace: string | undefined,
@@ -78,6 +79,7 @@ export function useProjectWorkloadEndpoints(
   options: WorkloadEndpointOption[];
   loading: boolean;
   error?: Error;
+  loadedFor?: string;
 } {
   const catalogApi = useApi(catalogApiRef);
   const client = useApi(openChoreoClientApiRef);
@@ -85,6 +87,7 @@ export function useProjectWorkloadEndpoints(
     options: WorkloadEndpointOption[];
     loading: boolean;
     error?: Error;
+    loadedFor?: string;
   }>({ options: [], loading: false });
 
   useEffect(() => {
@@ -93,6 +96,7 @@ export function useProjectWorkloadEndpoints(
       return undefined;
     }
     let cancelled = false;
+    const key = projectKey(namespace, project);
     setState(prev => ({ ...prev, loading: true, error: undefined }));
     catalogApi
       .getEntities({
@@ -131,7 +135,7 @@ export function useProjectWorkloadEndpoints(
               `${b.component}/${b.endpoint}`,
             ),
           );
-        setState({ options, loading: false });
+        setState({ options, loading: false, loadedFor: key });
       })
       .catch((err: unknown) => {
         if (cancelled) return;

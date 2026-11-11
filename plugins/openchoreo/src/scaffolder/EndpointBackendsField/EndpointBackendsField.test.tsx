@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   render,
   screen,
@@ -15,7 +16,6 @@ import {
 import { EndpointSchemaField } from '../EndpointSchemaField/EndpointSchemaField';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
 import {
-  isRoutable,
   readProjectNamespace,
   workloadEndpointOptions,
 } from './useProjectWorkloadEndpoints';
@@ -104,28 +104,18 @@ function validate(value: any) {
 }
 
 describe('workload endpoint options', () => {
-  it("reads endpoints, visibility and schema from a Workload's spec", () => {
+  it("reads endpoints and schema from a Workload's spec", () => {
     expect(
       workloadEndpointOptions('orders', WORKLOADS.orders.spec.endpoints),
     ).toEqual([
       {
         component: 'orders',
         endpoint: 'http',
-        visibility: ['external'],
         schemaType: 'openapi',
         schemaContent: 'openapi: 3.0.0',
       },
-      { component: 'orders', endpoint: 'admin', visibility: [] },
+      { component: 'orders', endpoint: 'admin' },
     ]);
-  });
-
-  it('routes only to internal or external endpoints', () => {
-    const [http, admin] = workloadEndpointOptions(
-      'orders',
-      WORKLOADS.orders.spec.endpoints,
-    );
-    expect(isRoutable(http)).toBe(true);
-    expect(isRoutable(admin)).toBe(false);
   });
 
   it('strips entity-ref prefixes from the project form value', () => {
@@ -168,6 +158,19 @@ describe('endpointBackendsFieldValidation', () => {
       'Backend 2: name "orders-http" is already used.',
     );
     expect(validate([{ ...row, weight: 1.5 }])[0]).toMatch(/whole number/);
+  });
+
+  it('enforces the Endpoint limits on backends and weights', () => {
+    const many = Array.from({ length: 17 }, (_, i) => ({
+      ...row,
+      name: `orders-http-${i}`,
+    }));
+    expect(validate(many)).toContain('An Endpoint takes at most 16 backends.');
+    expect(validate(many.slice(0, 16))).toEqual([]);
+    expect(validate([{ ...row, weight: 1_000_001 }])[0]).toMatch(
+      /from 0 to 1,000,000/,
+    );
+    expect(validate([{ ...row, weight: 1_000_000 }])).toEqual([]);
   });
 
   it('requires some backend to take traffic', () => {
@@ -227,7 +230,7 @@ describe('EndpointBackendsField', () => {
     ]);
   });
 
-  it('offers only routable workload endpoints of the chosen component', async () => {
+  it('offers every workload endpoint of the chosen component, whatever its visibility', async () => {
     render(
       <TestApiProvider apis={makeApis()}>
         <EndpointBackendsField
@@ -252,8 +255,9 @@ describe('EndpointBackendsField', () => {
       screen.getByRole('button', { name: 'Workload endpoint for backend 1' }),
     );
     const listbox = await screen.findByRole('listbox');
-    expect(within(listbox).getByText('http (external)')).toBeInTheDocument();
-    expect(within(listbox).queryByText(/admin/)).toBeNull();
+    // `admin` sets no (deprecated) workload visibility; it is still a backend.
+    expect(within(listbox).getByText('http')).toBeInTheDocument();
+    expect(within(listbox).getByText('admin')).toBeInTheDocument();
   });
 
   it('offers a workload endpoint that has no schema', async () => {
@@ -281,31 +285,50 @@ describe('EndpointBackendsField', () => {
       screen.getByRole('button', { name: 'Workload endpoint for backend 1' }),
     );
     const listbox = await screen.findByRole('listbox');
-    expect(within(listbox).getByText('grpc (internal)')).toBeInTheDocument();
+    expect(within(listbox).getByText('grpc')).toBeInTheDocument();
   });
-});
 
-describe('EndpointSchemaField', () => {
-  it("copies the first backend's workload endpoint schema", async () => {
+  it("drops rows whose component isn't in the selected project", async () => {
+    // `payments` was picked under another project before going back.
     const onChange = jest.fn();
+    const kept = { name: 'orders-http', component: 'orders', endpoint: 'http' };
     render(
       <TestApiProvider apis={makeApis()}>
-        <EndpointSchemaField
+        <EndpointBackendsField
           {...({
-            formData: undefined,
-            onChange,
-            formContext: {
-              formData: {
-                ...formContext.formData,
-                backends: [
-                  {
-                    name: 'orders-http',
-                    component: 'orders',
-                    endpoint: 'http',
-                  },
-                ],
+            formData: [
+              {
+                name: 'payments-http',
+                component: 'payments',
+                endpoint: 'http',
               },
-            },
+              kept,
+            ],
+            onChange,
+            formContext,
+            uiSchema: {},
+          } as any)}
+        />
+      </TestApiProvider>,
+    );
+
+    await waitFor(() => expect(onChange).toHaveBeenCalledWith([kept]));
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops adding backends at the limit', async () => {
+    const full = Array.from({ length: 16 }, (_, i) => ({
+      name: `orders-http-${i}`,
+      component: 'orders',
+      endpoint: 'http',
+    }));
+    render(
+      <TestApiProvider apis={makeApis()}>
+        <EndpointBackendsField
+          {...({
+            formData: full,
+            onChange: jest.fn(),
+            formContext,
             uiSchema: {},
           } as any)}
         />
@@ -313,7 +336,85 @@ describe('EndpointSchemaField', () => {
     );
 
     await waitFor(() =>
-      expect(onChange).toHaveBeenCalledWith({
+      expect(
+        screen.getAllByRole('button', { name: /^Remove backend/ }),
+      ).toHaveLength(16),
+    );
+    expect(screen.getByRole('button', { name: /add backend/i })).toBeDisabled();
+  });
+});
+
+function schemaField(
+  formData: any,
+  onChange: jest.Mock,
+  firstBackend = 'orders',
+) {
+  const endpoint = firstBackend === 'billing' ? 'grpc' : 'http';
+  return (
+    <TestApiProvider apis={makeApis()}>
+      <EndpointSchemaField
+        {...({
+          formData,
+          onChange,
+          formContext: {
+            formData: {
+              ...formContext.formData,
+              backends: [
+                {
+                  name: `${firstBackend}-${endpoint}`,
+                  component: firstBackend,
+                  endpoint,
+                },
+              ],
+            },
+          },
+          uiSchema: {},
+        } as any)}
+      />
+    </TestApiProvider>
+  );
+}
+
+/** Holds the field's value in state, as the scaffolder form does. */
+function ControlledSchemaField({
+  initial,
+  onChange,
+}: {
+  initial: any;
+  onChange: jest.Mock;
+}) {
+  const [value, setValue] = useState(initial);
+  return schemaField(value, ((next: any) => {
+    setValue(next);
+    onChange(next);
+  }) as jest.Mock);
+}
+
+describe('EndpointSchemaField', () => {
+  it('is off by default and sets no schema', async () => {
+    const onChange = jest.fn();
+    render(schemaField(undefined, onChange));
+
+    expect(
+      await screen.findByRole('checkbox', { name: /override the api schema/i }),
+    ).not.toBeChecked();
+    await new Promise(r => setTimeout(r, 0));
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("copies the first backend's schema when turned on", async () => {
+    const onChange = jest.fn();
+    render(<ControlledSchemaField initial={undefined} onChange={onChange} />);
+
+    const checkbox = await screen.findByRole('checkbox', {
+      name: /override the api schema/i,
+    });
+    // Copies once the first backend's schema has loaded, even if turned on
+    // before that.
+    fireEvent.click(checkbox);
+
+    await waitFor(() =>
+      expect(onChange).toHaveBeenLastCalledWith({
         type: 'openapi',
         content: 'openapi: 3.0.0',
         copiedFrom: 'orders/http',
@@ -324,27 +425,7 @@ describe('EndpointSchemaField', () => {
   it('keeps an edited schema instead of re-copying it', async () => {
     const onChange = jest.fn();
     render(
-      <TestApiProvider apis={makeApis()}>
-        <EndpointSchemaField
-          {...({
-            formData: { type: 'openapi', content: 'my own schema' },
-            onChange,
-            formContext: {
-              formData: {
-                ...formContext.formData,
-                backends: [
-                  {
-                    name: 'orders-http',
-                    component: 'orders',
-                    endpoint: 'http',
-                  },
-                ],
-              },
-            },
-            uiSchema: {},
-          } as any)}
-        />
-      </TestApiProvider>,
+      schemaField({ type: 'openapi', content: 'my own schema' }, onChange),
     );
 
     expect(
@@ -355,5 +436,29 @@ describe('EndpointSchemaField', () => {
     // The hint says it was edited, not that there was nothing to copy.
     expect(screen.getByText(/^Edited\./)).toBeInTheDocument();
     expect(screen.queryByText(/no schema to copy/)).not.toBeInTheDocument();
+  });
+
+  it('stays on when revisited with nothing to copy', async () => {
+    // On, but the first backend has no schema: content is empty, not unset.
+    const onChange = jest.fn();
+    render(schemaField({ type: 'openapi', content: '' }, onChange, 'billing'));
+
+    expect(
+      await screen.findByRole('checkbox', { name: /override the api schema/i }),
+    ).toBeChecked();
+    expect(await screen.findByText(/no schema to copy/)).toBeInTheDocument();
+  });
+
+  it('sends a pasted schema with its type', async () => {
+    const onChange = jest.fn();
+    render(schemaField({ type: 'openapi', content: '' }, onChange, 'billing'));
+
+    fireEvent.change(await screen.findByRole('textbox'), {
+      target: { value: 'openapi: 3.1.0' },
+    });
+    expect(onChange).toHaveBeenLastCalledWith({
+      type: 'openapi',
+      content: 'openapi: 3.1.0',
+    });
   });
 });

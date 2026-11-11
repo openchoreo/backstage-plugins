@@ -1,3 +1,4 @@
+import { makeValidator } from '@backstage/catalog-model';
 import {
   endpointApiEntityName,
   translateClusterEndpointTypeToEntity,
@@ -173,5 +174,40 @@ describe('endpoint type translation', () => {
     expect(entity.kind).toBe('ClusterEndpointType');
     expect(entity.metadata.namespace).toBe('openchoreo-cluster');
     expect(entity.spec).toEqual({});
+  });
+});
+
+describe('endpointApiEntityName', () => {
+  const { isValidEntityName } = makeValidator();
+
+  it('prefixes the Endpoint name while it fits', () => {
+    expect(endpointApiEntityName('orders-api')).toBe('endpoint-orders-api');
+    // 54 characters + `endpoint-` is exactly the 63-character limit.
+    const longest = 'a'.repeat(54);
+    expect(endpointApiEntityName(longest)).toBe(`endpoint-${longest}`);
+  });
+
+  it('shortens a longer name with a hash, so the catalog accepts it', () => {
+    for (const length of [55, 63, 253]) {
+      const name = endpointApiEntityName('a'.repeat(length));
+      expect(name.length).toBeLessThanOrEqual(63);
+      expect(name).toMatch(/^endpoint-a+-[0-9a-f]{8}$/);
+      expect(isValidEntityName(name)).toBe(true);
+    }
+  });
+
+  it('keeps shortened names distinct and stable', () => {
+    const shared = `orders-${'x'.repeat(50)}`;
+    const a = endpointApiEntityName(`${shared}-eu`);
+    const b = endpointApiEntityName(`${shared}-us`);
+    expect(a).not.toBe(b);
+    expect(endpointApiEntityName(`${shared}-eu`)).toBe(a);
+  });
+
+  it('does not end the cut on a separator', () => {
+    // The cut falls right after a hyphen.
+    const name = endpointApiEntityName(`${'a'.repeat(44)}-${'b'.repeat(20)}`);
+    expect(name).toMatch(/^endpoint-a{44}-[0-9a-f]{8}$/);
+    expect(isValidEntityName(name)).toBe(true);
   });
 });

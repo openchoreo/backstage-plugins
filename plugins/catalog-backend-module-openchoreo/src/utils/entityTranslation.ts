@@ -2466,17 +2466,41 @@ export function translateClusterEndpointTypeToEntity(
   };
 }
 
+/** Backstage's limit on `metadata.name`. */
+const MAX_ENTITY_NAME_LENGTH = 63;
+
 /**
  * Name of the API entity that describes an Endpoint's schema. Derived from
  * the Endpoint name alone (unique within a namespace) so a delete event,
  * which carries only that name, can remove the API entity by ref. The
  * `endpoint-` prefix makes a clash with the `<project>-<component>-<endpoint>`
  * names of workload-endpoint API entities unlikely but not impossible (a
- * project named `endpoint`). Like those names, it is not shortened, so an
- * Endpoint name over 54 characters gives an API name the catalog rejects.
+ * project named `endpoint`).
+ *
+ * Catalog entity names are at most 63 characters, which an Endpoint name over
+ * 54 would exceed with the prefix. Such a name is cut and suffixed with a hash
+ * of the full Endpoint name, so it stays valid, distinct and derivable from
+ * the Endpoint name alone.
  */
 export function endpointApiEntityName(endpointName: string): string {
-  return `endpoint-${endpointName}`;
+  const name = `endpoint-${endpointName}`;
+  if (name.length <= MAX_ENTITY_NAME_LENGTH) return name;
+  const hash = fnv1a32(endpointName);
+  // Leave room for `-<hash>`, and don't end the cut on a separator.
+  const head = name
+    .slice(0, MAX_ENTITY_NAME_LENGTH - hash.length - 1)
+    .replace(/[-_.]+$/, '');
+  return `${head}-${hash}`;
+}
+
+/** 32-bit FNV-1a hash of a string, as 8 lowercase hex characters. */
+function fnv1a32(value: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < value.length; i++) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0');
 }
 
 /**
