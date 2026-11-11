@@ -316,6 +316,33 @@ describe('EndpointBackendsField', () => {
     expect(onChange).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps a component's rows when its Workload can't be read", async () => {
+    // `batch` is in the project, but its Workload lookup fails.
+    const onChange = jest.fn();
+    const batch = { name: 'batch-http', component: 'batch', endpoint: 'http' };
+    render(
+      <TestApiProvider apis={makeApis()}>
+        <EndpointBackendsField
+          {...({
+            formData: [
+              {
+                name: 'payments-http',
+                component: 'payments',
+                endpoint: 'http',
+              },
+              batch,
+            ],
+            onChange,
+            formContext,
+            uiSchema: {},
+          } as any)}
+        />
+      </TestApiProvider>,
+    );
+
+    await waitFor(() => expect(onChange).toHaveBeenCalledWith([batch]));
+  });
+
   it('stops adding backends at the limit', async () => {
     const full = Array.from({ length: 16 }, (_, i) => ({
       name: `orders-http-${i}`,
@@ -428,7 +455,10 @@ describe('EndpointSchemaField', () => {
   it('keeps an edited schema instead of re-copying it', async () => {
     const onChange = jest.fn();
     render(
-      schemaField({ type: 'openapi', content: 'my own schema' }, onChange),
+      schemaField(
+        { type: 'openapi', content: 'my own schema', edited: true },
+        onChange,
+      ),
     );
 
     expect(
@@ -462,6 +492,31 @@ describe('EndpointSchemaField', () => {
     expect(onChange).toHaveBeenLastCalledWith({
       type: 'openapi',
       content: 'openapi: 3.1.0',
+      edited: true,
     });
+  });
+
+  it('keeps a cleared schema cleared when the step is revisited', async () => {
+    // The user cleared the copied schema; the first backend still has one.
+    const onChange = jest.fn();
+    render(
+      <ControlledSchemaField
+        initial={{ type: 'openapi', content: '', edited: true }}
+        onChange={onChange}
+      />,
+    );
+
+    expect(
+      await screen.findByRole('checkbox', { name: /add an api schema/i }),
+    ).toBeChecked();
+    // Give the first backend's schema time to load.
+    await waitFor(() =>
+      expect(
+        screen.getByText(/^Provide the API definition/),
+      ).toBeInTheDocument(),
+    );
+    await new Promise(r => setTimeout(r, 50));
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByRole('textbox')).toHaveValue('');
   });
 });

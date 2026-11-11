@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import {
   Box,
   Checkbox,
@@ -21,6 +21,13 @@ export interface EndpointSchemaValue {
   content?: string;
   /** `component/endpoint` the content was copied from, until edited. */
   copiedFrom?: string;
+  /**
+   * Set once the user edits the type or content, even to empty, so the field
+   * stops copying from the first backend. Kept in the value rather than
+   * inferred from it, so it survives the step being revisited. The action
+   * ignores it.
+   */
+  edited?: boolean;
 }
 
 const useStyles = makeStyles(theme => ({
@@ -51,7 +58,8 @@ const DEFAULT_SCHEMA_TYPE = 'openapi';
  *
  * The value is `{}` while off. While on, `content` is always set (possibly
  * empty), so the checkbox is restored as it was when the step is revisited.
- * `copiedFrom` names the backend the content was copied from, until edited.
+ * `copiedFrom` names the backend the content was copied from, and `edited`
+ * marks content the user changed, which is no longer copied over.
  */
 export const EndpointSchemaField = ({
   formData,
@@ -82,11 +90,10 @@ export const EndpointSchemaField = ({
 
   const value = formData ?? {};
   const enabled = value.content !== undefined;
-  // Edited content no longer follows the first backend. Empty content (on,
-  // nothing to copy yet) still picks up a schema once there is one.
-  const userEditedRef = useRef(
-    !!value.content && value.copiedFrom === undefined,
-  );
+  // Edited content, even cleared, no longer follows the first backend.
+  // Unedited empty content (on, nothing to copy yet) still picks up a schema
+  // once there is one.
+  const edited = value.edited === true;
 
   const copyFromSource = (): EndpointSchemaValue =>
     source?.schemaContent
@@ -99,17 +106,15 @@ export const EndpointSchemaField = ({
 
   // While on, follow the first backend's schema until the user edits it.
   useEffect(() => {
-    if (!enabled || userEditedRef.current) return;
+    if (!enabled || edited) return;
     if (!source?.schemaContent) {
       if (value.copiedFrom) onChange(copyFromSource());
       return;
     }
     if (value.copiedFrom !== sourceKey) onChange(copyFromSource());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, sourceKey, source?.schemaContent]);
+  }, [enabled, edited, sourceKey, source?.schemaContent]);
 
-  // Editing drops `copiedFrom`, which is how a remount tells an edited schema
-  // from a copied one; so the hint reads the state rather than keeping it.
   let hint: string;
   if (value.copiedFrom) {
     hint = `Starting from the schema of ${value.copiedFrom}, the first backend. Edit it as needed.`;
@@ -136,7 +141,6 @@ export const EndpointSchemaField = ({
             color="primary"
             checked={enabled}
             onChange={e => {
-              userEditedRef.current = false;
               onChange(e.target.checked ? copyFromSource() : {});
             }}
           />
@@ -158,8 +162,11 @@ export const EndpointSchemaField = ({
             className={classes.type}
             value={type}
             onChange={e => {
-              userEditedRef.current = true;
-              onChange({ type: e.target.value, content: value.content ?? '' });
+              onChange({
+                type: e.target.value,
+                content: value.content ?? '',
+                edited: true,
+              });
             }}
           >
             {typeOptions.map(t => (
@@ -178,8 +185,7 @@ export const EndpointSchemaField = ({
             InputProps={{ className: classes.editor }}
             value={value.content ?? ''}
             onChange={e => {
-              userEditedRef.current = true;
-              onChange({ type, content: e.target.value });
+              onChange({ type, content: e.target.value, edited: true });
             }}
           />
         </>

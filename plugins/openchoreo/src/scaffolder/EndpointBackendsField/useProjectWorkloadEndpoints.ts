@@ -68,15 +68,18 @@ export function projectKey(namespace: string, project: string): string {
 /**
  * Lists the workload endpoints of a project's components: the components come
  * from the catalog, their endpoints from each component's Workload. A
- * component without a Workload contributes no endpoints. `loadedFor` is the
- * {@link projectKey} the options were loaded for, set once they have loaded,
- * so callers can tell them from options still left over from another project.
+ * component without a Workload, or whose Workload can't be read, contributes
+ * no endpoints. `components` lists the project's components from the catalog
+ * whether or not their Workloads loaded, so callers can tell which components
+ * belong to the project. `loadedFor` is the {@link projectKey} both were
+ * loaded for, so callers can tell them from results left from another project.
  */
 export function useProjectWorkloadEndpoints(
   namespace: string | undefined,
   project: string | undefined,
 ): {
   options: WorkloadEndpointOption[];
+  components: string[];
   loading: boolean;
   error?: Error;
   loadedFor?: string;
@@ -85,14 +88,15 @@ export function useProjectWorkloadEndpoints(
   const client = useApi(openChoreoClientApiRef);
   const [state, setState] = useState<{
     options: WorkloadEndpointOption[];
+    components: string[];
     loading: boolean;
     error?: Error;
     loadedFor?: string;
-  }>({ options: [], loading: false });
+  }>({ options: [], components: [], loading: false });
 
   useEffect(() => {
     if (!namespace || !project) {
-      setState({ options: [], loading: false });
+      setState({ options: [], components: [], loading: false });
       return undefined;
     }
     let cancelled = false;
@@ -106,16 +110,17 @@ export function useProjectWorkloadEndpoints(
           [`metadata.annotations.${CHOREO_ANNOTATIONS.PROJECT}`]: project,
         },
       })
-      .then(({ items }) =>
-        Promise.all(
+      .then(({ items }) => {
+        const componentName = (component: (typeof items)[number]) =>
+          component.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT] ??
+          component.metadata.name;
+        return Promise.all(
           items.map(component =>
             client
               .fetchWorkloadInfo(component)
               .then(workload =>
                 workloadEndpointOptions(
-                  component.metadata.annotations?.[
-                    CHOREO_ANNOTATIONS.COMPONENT
-                  ] ?? component.metadata.name,
+                  componentName(component),
                   workload?.spec?.endpoints as
                     | Record<string, WorkloadEndpointSpec>
                     | undefined,
@@ -124,9 +129,12 @@ export function useProjectWorkloadEndpoints(
               // No Workload yet (or not readable): nothing to route to.
               .catch(() => [] as WorkloadEndpointOption[]),
           ),
-        ),
-      )
-      .then(perComponent => {
+        ).then(perComponent => ({
+          components: items.map(componentName),
+          perComponent,
+        }));
+      })
+      .then(({ components, perComponent }) => {
         if (cancelled) return;
         const options = perComponent
           .flat()
@@ -135,12 +143,13 @@ export function useProjectWorkloadEndpoints(
               `${b.component}/${b.endpoint}`,
             ),
           );
-        setState({ options, loading: false, loadedFor: key });
+        setState({ options, components, loading: false, loadedFor: key });
       })
       .catch((err: unknown) => {
         if (cancelled) return;
         setState({
           options: [],
+          components: [],
           loading: false,
           error: err instanceof Error ? err : new Error(String(err)),
         });

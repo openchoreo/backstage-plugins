@@ -95,29 +95,33 @@ export const EndpointBackendsField = ({
     formContext?.formData,
     projectField,
   );
-  const { options, loading, error, loadedFor } = useProjectWorkloadEndpoints(
-    namespace,
-    project,
-  );
+  const {
+    options,
+    components: projectComponents,
+    loading,
+    error,
+    loadedFor,
+  } = useProjectWorkloadEndpoints(namespace, project);
   const components = [...new Set(options.map(o => o.component))];
   const backends = formData ?? [];
 
   const update = (next: EndpointBackendValue[]) => onChange(next);
 
   // Going back and picking another project leaves the rows chosen for the old
-  // one. Once the new project's options have loaded, drop the rows whose
-  // component is not in it.
+  // one. Once the new project has loaded, drop the rows whose component is
+  // not in it. Membership comes from the catalog, not from the endpoints that
+  // loaded, so a component whose Workload failed to load keeps its rows.
   const currentKey = project && namespace ? projectKey(namespace, project) : '';
   useEffect(() => {
     if (!currentKey || loadedFor !== currentKey || error) return;
-    const inProject = new Set(options.map(o => o.component));
+    const inProject = new Set(projectComponents);
     const kept = backends.filter(
       b => !b.component || inProject.has(b.component),
     );
     if (kept.length !== backends.length) onChange(kept);
     // Run when the options for a project arrive, not on every row edit.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentKey, loadedFor, options, error]);
+  }, [currentKey, loadedFor, projectComponents, error]);
 
   const setRow = (index: number, patch: Partial<EndpointBackendValue>) => {
     const next = backends.map((b, i) => (i === index ? { ...b, ...patch } : b));
