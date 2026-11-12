@@ -33,7 +33,7 @@ describe('useOpenChoreoFeatures', () => {
     jest.clearAllMocks();
   });
 
-  it('returns defaults when no config (all on except assistant, secret management, delivery insights and cost insights)', () => {
+  it('returns defaults when no config (all on except assistant, secret management and cost insights)', () => {
     mockGetOptionalConfig.mockReturnValue(undefined);
     const { result } = renderHook(() => useOpenChoreoFeatures());
     expect(result.current).toEqual({
@@ -43,7 +43,7 @@ describe('useOpenChoreoFeatures', () => {
       authz: { enabled: true },
       secretManagement: { enabled: false },
       assistant: { enabled: false },
-      deliveryInsights: { enabled: false },
+      deliveryInsights: { enabled: true },
       costInsights: { enabled: false },
     });
   });
@@ -99,7 +99,7 @@ describe('useOpenChoreoFeatures', () => {
       authz: { enabled: true },
       secretManagement: { enabled: false },
       assistant: { enabled: false },
-      deliveryInsights: { enabled: false },
+      deliveryInsights: { enabled: true },
       costInsights: { enabled: false },
     });
   });
@@ -157,8 +157,16 @@ describe('helper hooks', () => {
     expect(result.current).toBe(true);
   });
 
-  it('useDeliveryInsightsEnabled is false when the flag is absent', () => {
+  it('useDeliveryInsightsEnabled is true when the flag is absent', () => {
     mockGetOptionalConfig.mockReturnValue(makeFeaturesConfig({}));
+    const { result } = renderHook(() => useDeliveryInsightsEnabled());
+    expect(result.current).toBe(true);
+  });
+
+  it('useDeliveryInsightsEnabled is false when the flag is set to false', () => {
+    mockGetOptionalConfig.mockReturnValue(
+      makeFeaturesConfig({ 'deliveryInsights.enabled': false }),
+    );
     const { result } = renderHook(() => useDeliveryInsightsEnabled());
     expect(result.current).toBe(false);
   });
