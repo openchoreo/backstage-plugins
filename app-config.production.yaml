@@ -198,6 +198,10 @@ techInsights:
     openchoreoComponentTypeFactRetriever:
       cadence: '0 * * * *'
       lifecycle: { timeToLive: { days: 1 } }
+  dynamicChecks:
+    # Adds OpenChoreo's starter checks, published, once per database. Edits,
+    # unpublishing and deletion made afterwards are kept.
+    openchoreoStarterChecks: true
 
 auth:
   providers:

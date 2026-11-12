@@ -566,6 +566,9 @@ techInsights:
   # No factChecker.checks: checks are stored by
   # tech-insights-backend-module-dynamic-checks and managed on the
   # Scorecards page.
+  dynamicChecks:
+    # Adds OpenChoreo's starter checks, published, once per database.
+    openchoreoStarterChecks: true
   scorecards:
     # The Tech Insights backend, fact collectors and checks, and the
     # Scorecards page, sidebar item and entity tab. The plugin is on when this
