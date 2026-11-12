@@ -279,6 +279,67 @@ describe('useWorkflowPlaneAvailability', () => {
     expect(result.current.error).toContain('timed out');
   });
 
+  it('keeps the queued check timeout when the earlier request cleanup runs', async () => {
+    jest.useFakeTimers();
+    const resolvePlaneRequests: Array<
+      (value: Record<string, unknown>) => void
+    > = [];
+    let planeRequests = 0;
+    const client = {
+      getResourceDefinition: jest.fn((kind: string) => {
+        if (kind === 'workflows') {
+          return Promise.resolve({
+            spec: {
+              workflowPlaneRef: { kind: 'WorkflowPlane', name: 'wp' },
+            },
+          });
+        }
+
+        planeRequests += 1;
+        return new Promise<Record<string, unknown>>(resolve => {
+          resolvePlaneRequests.push(resolve);
+        });
+      }),
+    };
+    const { result, unmount } = renderHook(
+      () =>
+        useWorkflowPlaneAvailability({
+          namespaceName: 'team-a',
+          workflowName: 'build',
+        }),
+      {
+        wrapper: ({ children }) => (
+          <TestApiProvider apis={[[openChoreoClientApiRef, client]]}>
+            {children}
+          </TestApiProvider>
+        ),
+      },
+    );
+
+    await waitFor(() => expect(planeRequests).toBe(1));
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+
+    await act(async () => {
+      resolvePlaneRequests[0]({
+        status: { agentConnection: { connected: true } },
+      });
+      await Promise.resolve();
+    });
+    await waitFor(() => expect(planeRequests).toBe(2));
+
+    await act(async () => {
+      jest.advanceTimersByTime(15_000);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    expect(result.current.error).toContain('timed out');
+
+    unmount();
+  });
+
   it('queues one focus refresh after a timed-out request settles', async () => {
     jest.useFakeTimers();
     const resolvePlaneRequests: Array<
@@ -467,5 +528,25 @@ describe('useWorkflowPlaneAvailability', () => {
       status: 'connected',
       planeName: 'new-plane',
     });
+  });
+
+  it('reports an error instead of throwing when the base client API is not registered', async () => {
+    const { result } = renderHook(
+      () =>
+        useWorkflowPlaneAvailability({
+          namespaceName: 'team-a',
+          workflowName: 'build',
+        }),
+      {
+        wrapper: ({ children }) => (
+          <TestApiProvider apis={[]}>{children}</TestApiProvider>
+        ),
+      },
+    );
+
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    expect(result.current.error).toContain(
+      'OpenChoreo client API is not registered',
+    );
   });
 });

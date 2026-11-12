@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useApi } from '@backstage/core-plugin-api';
+import { useApiHolder } from '@backstage/core-plugin-api';
 import { isForbiddenError, isNotFoundError } from '../utils/errorUtils';
 import { openChoreoClientApiRef } from '../api/OpenChoreoClientApi';
 
@@ -222,7 +222,7 @@ export function getWorkflowPlaneAvailabilityMessage(
 export function useWorkflowPlaneAvailability(
   input: WorkflowPlaneCheckInput,
 ): WorkflowPlaneAvailability {
-  const client = useApi(openChoreoClientApiRef);
+  const client = useApiHolder().get(openChoreoClientApiRef);
   const [result, setResult] = useState<{
     key: string;
     availability: WorkflowPlaneAvailability;
@@ -238,6 +238,19 @@ export function useWorkflowPlaneAvailability(
     if (!workflowName) {
       resultRef.current = null;
       setResult(null);
+      return undefined;
+    }
+
+    if (!client) {
+      const nextResult = {
+        key,
+        availability: {
+          status: 'error' as const,
+          error: 'The OpenChoreo client API is not registered.',
+        },
+      };
+      resultRef.current = nextResult;
+      setResult(nextResult);
       return undefined;
     }
 
@@ -258,6 +271,7 @@ export function useWorkflowPlaneAvailability(
       inFlight = true;
       refreshPending = false;
       const currentRequestId = ++requestId;
+      let requestTimeout: ReturnType<typeof setTimeout> | undefined;
 
       if (resultRef.current?.key !== key) {
         const loadingResult = {
@@ -275,10 +289,11 @@ export function useWorkflowPlaneAvailability(
       });
       const timeoutCheck = new Promise<WorkflowPlaneAvailability>(
         (_, reject) => {
-          timeout = setTimeout(
+          requestTimeout = setTimeout(
             () => reject(new Error('The workflow plane check timed out.')),
             WORKFLOW_PLANE_CHECK_TIMEOUT_MS,
           );
+          timeout = requestTimeout;
         },
       );
 
@@ -307,8 +322,8 @@ export function useWorkflowPlaneAvailability(
           }
         })
         .finally(() => {
-          if (timeout) clearTimeout(timeout);
-          timeout = undefined;
+          if (requestTimeout) clearTimeout(requestTimeout);
+          if (timeout === requestTimeout) timeout = undefined;
         });
 
       const releaseRequest = () => {
