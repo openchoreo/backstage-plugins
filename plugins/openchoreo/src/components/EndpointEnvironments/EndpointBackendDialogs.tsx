@@ -20,6 +20,7 @@ import {
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
 import { getErrorMessage } from '../../utils/errorUtils';
 import type { EndpointBackend } from '../EndpointOverview/EndpointBackendList';
+import type { EndpointBackendChange } from './useAwaitEndpointRelease';
 
 export const backendLabel = (backend: EndpointBackend) =>
   backend.component
@@ -52,8 +53,8 @@ interface BackendDialogProps {
   backends: EndpointBackend[];
   entity: Entity;
   onClose: () => void;
-  /** Called once the change is saved, with what to tell the user. */
-  onSaved: (message: string) => void;
+  /** Called once the change is saved, with the change made. */
+  onSaved: (change: EndpointBackendChange) => void;
 }
 
 const NO_TRAFFIC =
@@ -153,7 +154,11 @@ export const EditBackendWeightDialog = ({
                 backend.name,
                 parsed,
               );
-              onSaved(`Weight of ${backendLabel(backend)} set to ${parsed}.`);
+              onSaved({
+                kind: 'weight',
+                backendName: backend.name,
+                weight: parsed,
+              });
             })
           }
         >
@@ -214,7 +219,7 @@ export const RemoveBackendDialog = ({
             backend &&
             run(async () => {
               await client.removeEndpointBackend(entity, backend.name);
-              onSaved(`Backend ${backendLabel(backend)} removed.`);
+              onSaved({ kind: 'remove', backendName: backend.name });
             })
           }
         >

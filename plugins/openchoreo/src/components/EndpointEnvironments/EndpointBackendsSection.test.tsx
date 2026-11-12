@@ -1,12 +1,10 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { Entity } from '@backstage/catalog-model';
 import { EndpointBackendsSection } from './EndpointBackendsSection';
 
 let mockEntity: Entity;
-const mockRefresh = jest.fn();
 jest.mock('@backstage/plugin-catalog-react', () => ({
   useEntity: () => ({ entity: mockEntity }),
-  useAsyncEntity: () => ({ refresh: mockRefresh }),
   EntityRefLink: ({ entityRef }: any) => <span>{entityRef.name}</span>,
 }));
 
@@ -26,7 +24,10 @@ jest.mock('./AddEndpointBackendDialog', () => ({
     open ? (
       <div role="dialog">
         add backend
-        <button type="button" onClick={() => onAdded('Backend added.')}>
+        <button
+          type="button"
+          onClick={() => onAdded({ kind: 'add', backendName: 'new' })}
+        >
           confirm add
         </button>
       </div>
@@ -66,12 +67,11 @@ function endpointEntity(backends: unknown[]): Entity {
 describe('EndpointBackendsSection', () => {
   beforeEach(() => {
     mockCanUpdate = true;
-    mockRefresh.mockClear();
   });
 
   it('lists the backends with their traffic shares', () => {
     mockEntity = endpointEntity([primary, canary]);
-    render(<EndpointBackendsSection onChanged={jest.fn()} />);
+    render(<EndpointBackendsSection awaiting={false} onChanged={jest.fn()} />);
 
     expect(screen.getByText('Backends (2)')).toBeInTheDocument();
     expect(screen.getByText('90%')).toBeInTheDocument();
@@ -80,7 +80,7 @@ describe('EndpointBackendsSection', () => {
 
   it('opens the weight and remove dialogs for a backend', () => {
     mockEntity = endpointEntity([primary, canary]);
-    render(<EndpointBackendsSection onChanged={jest.fn()} />);
+    render(<EndpointBackendsSection awaiting={false} onChanged={jest.fn()} />);
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Edit weight of orders-v2 / http' }),
@@ -95,7 +95,7 @@ describe('EndpointBackendsSection', () => {
 
   it("doesn't remove the last backend", () => {
     mockEntity = endpointEntity([primary]);
-    render(<EndpointBackendsSection onChanged={jest.fn()} />);
+    render(<EndpointBackendsSection awaiting={false} onChanged={jest.fn()} />);
 
     expect(
       screen.getByRole('button', { name: 'Remove orders / http' }),
@@ -106,7 +106,7 @@ describe('EndpointBackendsSection', () => {
     mockEntity = endpointEntity(
       Array.from({ length: 16 }, (_, i) => ({ ...primary, name: `b${i}` })),
     );
-    render(<EndpointBackendsSection onChanged={jest.fn()} />);
+    render(<EndpointBackendsSection awaiting={false} onChanged={jest.fn()} />);
 
     expect(screen.getByRole('button', { name: 'Add backend' })).toBeDisabled();
   });
@@ -114,7 +114,7 @@ describe('EndpointBackendsSection', () => {
   it('disables changes without permission to update the Endpoint', () => {
     mockCanUpdate = false;
     mockEntity = endpointEntity([primary, canary]);
-    render(<EndpointBackendsSection onChanged={jest.fn()} />);
+    render(<EndpointBackendsSection awaiting={false} onChanged={jest.fn()} />);
 
     expect(screen.getByRole('button', { name: 'Add backend' })).toBeDisabled();
     expect(
@@ -125,30 +125,36 @@ describe('EndpointBackendsSection', () => {
     ).toBeDisabled();
   });
 
-  it('looks for the new release once a change is saved', () => {
-    jest.useFakeTimers();
-    try {
-      mockEntity = endpointEntity([primary]);
-      const onChanged = jest.fn();
-      render(<EndpointBackendsSection onChanged={onChanged} />);
+  it('labels the add button Add', () => {
+    mockEntity = endpointEntity([primary]);
+    render(<EndpointBackendsSection awaiting={false} onChanged={jest.fn()} />);
 
-      fireEvent.click(screen.getByRole('button', { name: 'Add backend' }));
-      fireEvent.click(screen.getByRole('button', { name: 'confirm add' }));
+    expect(
+      screen.getByRole('button', { name: 'Add backend' }),
+    ).toHaveTextContent(/^Add$/);
+  });
 
-      expect(onChanged).toHaveBeenCalledTimes(1);
-      expect(
-        screen.getByText(
-          'Backend added. A new release is cut in a few seconds.',
-        ),
-      ).toBeInTheDocument();
+  it('hands a saved change to the pane', () => {
+    mockEntity = endpointEntity([primary]);
+    const onChanged = jest.fn();
+    render(<EndpointBackendsSection awaiting={false} onChanged={onChanged} />);
 
-      act(() => {
-        jest.advanceTimersByTime(8000);
-      });
-      expect(mockRefresh).toHaveBeenCalledTimes(2);
-      expect(onChanged).toHaveBeenCalledTimes(3);
-    } finally {
-      jest.useRealTimers();
-    }
+    fireEvent.click(screen.getByRole('button', { name: 'Add backend' }));
+    fireEvent.click(screen.getByRole('button', { name: 'confirm add' }));
+
+    expect(onChanged).toHaveBeenCalledWith({ kind: 'add', backendName: 'new' });
+  });
+
+  it('holds further changes while a new release is in progress', () => {
+    mockEntity = endpointEntity([primary, canary]);
+    render(<EndpointBackendsSection awaiting onChanged={jest.fn()} />);
+
+    expect(screen.getByRole('button', { name: 'Add backend' })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Edit weight of orders / http' }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Remove orders / http' }),
+    ).toBeDisabled();
   });
 });

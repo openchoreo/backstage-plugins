@@ -1,6 +1,7 @@
 import {
   Box,
   Button,
+  CircularProgress,
   IconButton,
   Tooltip,
   Typography,
@@ -8,6 +9,7 @@ import {
 import SettingsOutlinedIcon from '@material-ui/icons/SettingsOutlined';
 import CloseIcon from '@material-ui/icons/Close';
 import clsx from 'clsx';
+import { useAsyncEntity, useEntity } from '@backstage/plugin-catalog-react';
 import { useEndpointPromoteToEnvPermission } from '@openchoreo/backstage-plugin-react';
 import type { EndpointEnvironment } from '../../api/OpenChoreoClientApi';
 import {
@@ -17,6 +19,8 @@ import {
 import { useEndpointEnvironmentsContext } from './EndpointEnvironmentsContext';
 import { envResourceName } from './endpointEnvironmentUtils';
 import { EndpointBackendsSection } from './EndpointBackendsSection';
+import { useAwaitEndpointRelease } from './useAwaitEndpointRelease';
+import type { EndpointBackend } from '../EndpointOverview/EndpointBackendList';
 
 /** Compact Set up tile at the start of the Endpoint deploy canvas. */
 export const EndpointSetupCard = ({ selected }: { selected: boolean }) => {
@@ -40,7 +44,8 @@ export const EndpointSetupCard = ({ selected }: { selected: boolean }) => {
  * Right-pane body for the Set up tile: the Endpoint's backends, changed here,
  * and the deploy of its latest release to the first environment in the
  * pipeline, from where it is promoted forward. Every change to the Endpoint
- * cuts a new release, which shows up here as the latest.
+ * cuts a new release: while it's being cut, the pane shows it in progress,
+ * then the updated backends with the new release to deploy.
  */
 export const EndpointSetupDetailPane = ({
   firstEnvironment,
@@ -52,11 +57,23 @@ export const EndpointSetupDetailPane = ({
   const classes = useResourceEnvironmentDetailPanelStyles();
   const { pendingAction, onPromote, refetch } =
     useEndpointEnvironmentsContext();
+  const { entity } = useEntity();
+  const { refresh } = useAsyncEntity();
+  const backends =
+    (entity.spec as { backends?: EndpointBackend[] } | undefined)?.backends ??
+    [];
   const targetEnv = envResourceName(firstEnvironment);
   const { canPromote, loading, deniedTooltip } =
     useEndpointPromoteToEnvPermission(targetEnv);
 
   const latest = firstEnvironment.latestRelease;
+  const { awaitingNewRelease, beginAwaitingNewRelease } =
+    useAwaitEndpointRelease({
+      latestRelease: latest,
+      backends,
+      refetchEnvironments: refetch,
+      refreshEntity: () => refresh?.(),
+    });
   const onLatest =
     Boolean(latest) && firstEnvironment.endpointRelease === latest;
   const isDeploying =
@@ -97,15 +114,33 @@ export const EndpointSetupDetailPane = ({
       </Box>
 
       <Box className={classes.setupBody}>
-        <EndpointBackendsSection onChanged={() => void refetch()} />
+        <EndpointBackendsSection
+          awaiting={awaitingNewRelease}
+          onChanged={beginAwaitingNewRelease}
+        />
 
         <Box mt={3}>
           <Typography variant="subtitle2" gutterBottom>
             Release
           </Typography>
-          <Typography variant="body2" color="textSecondary">
-            {description}
-          </Typography>
+          {awaitingNewRelease ? (
+            <Box
+              display="flex"
+              alignItems="center"
+              gridGap={8}
+              role="status"
+              aria-live="polite"
+            >
+              <CircularProgress size={14} />
+              <Typography variant="body2" color="textSecondary">
+                New release in progress…
+              </Typography>
+            </Box>
+          ) : (
+            <Typography variant="body2" color="textSecondary">
+              {description}
+            </Typography>
+          )}
         </Box>
 
         <Box mt="auto" pt={2} display="flex" justifyContent="flex-end">
@@ -118,7 +153,12 @@ export const EndpointSetupDetailPane = ({
                 variant="contained"
                 color="primary"
                 disabled={
-                  !latest || onLatest || isDeploying || loading || !canPromote
+                  !latest ||
+                  onLatest ||
+                  isDeploying ||
+                  awaitingNewRelease ||
+                  loading ||
+                  !canPromote
                 }
                 onClick={() => latest && void onPromote(targetEnv, latest)}
               >

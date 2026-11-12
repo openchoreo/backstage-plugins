@@ -40,7 +40,11 @@ function makeEntity(ownerComponent?: string): Entity {
 }
 
 function renderDialog(entity: Entity = makeEntity()) {
-  const client = { addEndpointBackend: jest.fn().mockResolvedValue({}) };
+  const client = {
+    addEndpointBackend: jest
+      .fn()
+      .mockResolvedValue({ name: 'orders-api', backendName: 'payments-http' }),
+  };
   const handlers = { onClose: jest.fn(), onAdded: jest.fn() };
   render(
     <TestApiProvider apis={[[openChoreoClientApiRef, client as any]]}>
@@ -93,7 +97,10 @@ describe('AddEndpointBackendDialog', () => {
       workloadEndpoint: 'http',
       weight: 3,
     });
-    expect(onAdded).toHaveBeenCalledWith('Backend payments / http added.');
+    expect(onAdded).toHaveBeenCalledWith({
+      kind: 'add',
+      backendName: 'payments-http',
+    });
     expect(onClose).toHaveBeenCalled();
   });
 
@@ -126,9 +133,6 @@ describe('AddEndpointBackendDialog', () => {
 
     await waitFor(() => expect(onAdded).toHaveBeenCalled());
     expect(client.addEndpointBackend).toHaveBeenCalled();
-    expect(onAdded).toHaveBeenCalledWith(
-      'Backend payments / http added. orders-api belongs to project store now.',
-    );
   });
 
   it('keeps the dialog open with the error when adding fails', async () => {

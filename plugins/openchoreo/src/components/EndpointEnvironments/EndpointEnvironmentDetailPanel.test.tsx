@@ -10,8 +10,34 @@ import {
 
 // The Backends section reads the catalog entity and calls the API; it has its
 // own test file.
+// It reports a saved change through onChanged, which these tests trigger.
 jest.mock('./EndpointBackendsSection', () => ({
-  EndpointBackendsSection: () => <div data-testid="backends-section" />,
+  EndpointBackendsSection: ({ awaiting, onChanged }: any) => (
+    <div data-testid="backends-section" data-awaiting={String(awaiting)}>
+      <button
+        type="button"
+        onClick={() => onChanged({ kind: 'add', backendName: 'canary' })}
+      >
+        save change
+      </button>
+    </div>
+  ),
+}));
+
+// The Set up pane reads the backends from the catalog entity.
+let mockBackends: unknown[] = [{ name: 'primary', weight: 1 }];
+const mockRefresh = jest.fn();
+jest.mock('@backstage/plugin-catalog-react', () => ({
+  ...jest.requireActual('@backstage/plugin-catalog-react'),
+  useEntity: () => ({
+    entity: {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'Endpoint',
+      metadata: { name: 'orders-api' },
+      spec: { backends: mockBackends },
+    },
+  }),
+  useAsyncEntity: () => ({ refresh: mockRefresh }),
 }));
 
 jest.mock('@openchoreo/backstage-design-system', () => ({
@@ -244,5 +270,53 @@ describe('EndpointSetupDetailPane', () => {
 
     expect(screen.getByRole('button', { name: 'Deploy' })).toBeDisabled();
     expect(screen.getByText(/has no release yet/i)).toBeInTheDocument();
+  });
+
+  it('shows a backend change in progress until its release is cut', async () => {
+    mockBackends = [{ name: 'primary', weight: 1 }];
+    const refetch = jest.fn();
+    const ctx = makeCtx({ refetch });
+    const pane = (latestRelease: string) => (
+      <MemoryRouter>
+        <EndpointEnvironmentsProvider value={ctx}>
+          <EndpointSetupDetailPane
+            firstEnvironment={{ ...dev, latestRelease }}
+            onClose={() => {}}
+          />
+        </EndpointEnvironmentsProvider>
+      </MemoryRouter>
+    );
+    const { rerender } = render(pane('orders-api-abc'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'save change' }));
+
+    // In progress: a loader instead of the release text, Deploy held, and
+    // the latest release and the entity are re-read.
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'New release in progress…',
+    );
+    expect(screen.getByTestId('backends-section')).toHaveAttribute(
+      'data-awaiting',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'Deploy' })).toBeDisabled();
+    expect(refetch).toHaveBeenCalled();
+    expect(mockRefresh).toHaveBeenCalled();
+
+    // A new release alone isn't enough: the entity must show the change.
+    rerender(pane('orders-api-def'));
+    expect(screen.getByRole('status')).toBeInTheDocument();
+
+    mockBackends = [
+      { name: 'primary', weight: 1 },
+      { name: 'canary', weight: 1 },
+    ];
+    rerender(pane('orders-api-def'));
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Deploy the latest release, orders-api-def/),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Deploy' })).toBeEnabled();
   });
 });

@@ -62,7 +62,11 @@ describe('EditBackendWeightDialog', () => {
       'payments-http',
       4,
     );
-    expect(onSaved).toHaveBeenCalledWith('Weight of payments / http set to 4.');
+    expect(onSaved).toHaveBeenCalledWith({
+      kind: 'weight',
+      backendName: 'payments-http',
+      weight: 4,
+    });
   });
 
   it('refuses a weight that leaves no backend taking traffic', () => {
@@ -160,7 +164,10 @@ describe('RemoveBackendDialog', () => {
       entity,
       'payments-http',
     );
-    expect(onSaved).toHaveBeenCalledWith('Backend payments / http removed.');
+    expect(onSaved).toHaveBeenCalledWith({
+      kind: 'remove',
+      backendName: 'payments-http',
+    });
   });
 
   it('refuses to leave only backends with weight 0', () => {

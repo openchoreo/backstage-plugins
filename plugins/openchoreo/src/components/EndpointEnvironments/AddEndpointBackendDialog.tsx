@@ -23,6 +23,7 @@ import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
 import { useProjectWorkloadEndpoints } from '../../scaffolder/EndpointBackendsField/useProjectWorkloadEndpoints';
 import { getErrorMessage } from '../../utils/errorUtils';
 import type { EndpointBackend } from '../EndpointOverview/EndpointBackendList';
+import type { EndpointBackendChange } from './useAwaitEndpointRelease';
 
 const optionKey = (component: string, endpoint: string) =>
   `${component}/${endpoint}`;
@@ -30,8 +31,8 @@ const optionKey = (component: string, endpoint: string) =>
 interface AddEndpointBackendDialogProps {
   open: boolean;
   onClose: () => void;
-  /** Called once the backend is saved, with what to tell the user. */
-  onAdded: (message: string) => void;
+  /** Called once the backend is saved, with the change made. */
+  onAdded: (change: EndpointBackendChange) => void;
   entity: Entity;
   backends: EndpointBackend[];
 }
@@ -96,16 +97,12 @@ export const AddEndpointBackendDialog = ({
     setSaving(true);
     setError(null);
     try {
-      await client.addEndpointBackend(entity, {
+      const { backendName } = await client.addEndpointBackend(entity, {
         component: option.component,
         workloadEndpoint: option.endpoint,
         weight: parsedWeight,
       });
-      onAdded(
-        movesToProject
-          ? `Backend ${option.component} / ${option.endpoint} added. ${endpointName} belongs to project ${project} now.`
-          : `Backend ${option.component} / ${option.endpoint} added.`,
-      );
+      onAdded({ kind: 'add', backendName });
       onClose();
     } catch (e) {
       setError(getErrorMessage(e));
