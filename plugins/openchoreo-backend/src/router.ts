@@ -49,6 +49,8 @@ import type { AuthService, LoggerService } from '@backstage/backend-plugin-api';
 import type { CatalogService } from '@backstage/plugin-catalog-node';
 import {
   CHOREO_ANNOTATIONS,
+  MAX_ENDPOINT_BACKEND_WEIGHT,
+  isEndpointBackendWeight,
   reservedReleaseLineNameError,
   toStoredReleaseLine,
   type ReleaseLineResource,
@@ -109,6 +111,8 @@ function requestReleaseLine(req: express.Request): string | undefined {
   const value = req.query.releaseLine ?? req.body?.releaseLine;
   return typeof value === 'string' ? toStoredReleaseLine(value) : undefined;
 }
+
+const ENDPOINT_BACKEND_WEIGHT_ERROR = `weight must be an integer from 0 to ${MAX_ENDPOINT_BACKEND_WEIGHT}`;
 
 export async function createRouter({
   environmentInfoService,
@@ -1555,6 +1559,58 @@ export async function createRouter({
       await endpointInfoService.fetchEndpointReleaseSchema(
         namespaceName as string,
         releaseName as string,
+        getUserTokenFromRequest(req),
+      ),
+    );
+  });
+
+  router.post('/endpoint-backends', requireAuth, async (req, res) => {
+    const { namespaceName, endpointName, component, workloadEndpoint, weight } =
+      req.body;
+    if (!namespaceName || !endpointName || !component || !workloadEndpoint) {
+      throw new InputError(
+        'namespaceName, endpointName, component and workloadEndpoint are required in request body',
+      );
+    }
+    if (weight !== undefined && !isEndpointBackendWeight(weight)) {
+      throw new InputError(ENDPOINT_BACKEND_WEIGHT_ERROR);
+    }
+    res.json(
+      await endpointInfoService.addEndpointBackend(
+        { namespaceName, endpointName, component, workloadEndpoint, weight },
+        getUserTokenFromRequest(req),
+      ),
+    );
+  });
+
+  router.patch('/endpoint-backends', requireAuth, async (req, res) => {
+    const { namespaceName, endpointName, backendName, weight } = req.body;
+    if (!namespaceName || !endpointName || !backendName) {
+      throw new InputError(
+        'namespaceName, endpointName and backendName are required in request body',
+      );
+    }
+    if (!isEndpointBackendWeight(weight)) {
+      throw new InputError(ENDPOINT_BACKEND_WEIGHT_ERROR);
+    }
+    res.json(
+      await endpointInfoService.updateEndpointBackendWeight(
+        { namespaceName, endpointName, backendName, weight },
+        getUserTokenFromRequest(req),
+      ),
+    );
+  });
+
+  router.delete('/endpoint-backends', requireAuth, async (req, res) => {
+    const { namespaceName, endpointName, backendName } = req.body;
+    if (!namespaceName || !endpointName || !backendName) {
+      throw new InputError(
+        'namespaceName, endpointName and backendName are required in request body',
+      );
+    }
+    res.json(
+      await endpointInfoService.removeEndpointBackend(
+        { namespaceName, endpointName, backendName },
         getUserTokenFromRequest(req),
       ),
     );

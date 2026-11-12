@@ -197,6 +197,13 @@ export {
   type ComponentTypeMapping,
 } from './utils/componentTypeUtils';
 export {
+  MAX_ENDPOINT_BACKENDS,
+  MAX_ENDPOINT_BACKEND_WEIGHT,
+  deriveEndpointBackendName,
+  endpointBackendsTakeTraffic,
+  isEndpointBackendWeight,
+} from './utils/endpointBackends';
+export {
   endpointProtocol,
   type ExposableEndpoint,
 } from './utils/endpointExposure';

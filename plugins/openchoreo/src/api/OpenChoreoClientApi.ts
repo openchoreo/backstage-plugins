@@ -862,6 +862,26 @@ export interface OpenChoreoClientApi {
   ): Promise<{ success: boolean; data?: Record<string, unknown> }>;
 
   /**
+   * Add a backend to an Endpoint entity's Endpoint. When the backend is on
+   * another component than the one owning the Endpoint, the API moves the
+   * Endpoint to its project. Each change cuts a new EndpointRelease.
+   */
+  addEndpointBackend(
+    entity: Entity,
+    backend: { component: string; workloadEndpoint: string; weight?: number },
+  ): Promise<{ name: string; backendName: string }>;
+
+  /** Set the weight of one of an Endpoint entity's backends. */
+  updateEndpointBackendWeight(
+    entity: Entity,
+    backendName: string,
+    weight: number,
+  ): Promise<void>;
+
+  /** Remove one of an Endpoint entity's backends; the last can't be removed. */
+  removeEndpointBackend(entity: Entity, backendName: string): Promise<void>;
+
+  /**
    * Fetch per-environment deploy info for a Project entity. Returns one entry
    * per environment in the project's deployment pipeline (including
    * environments without bindings yet), joined with the project's latest
