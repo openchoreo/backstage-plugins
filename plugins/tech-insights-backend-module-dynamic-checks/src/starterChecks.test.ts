@@ -94,6 +94,7 @@ describe('seedOpenChoreoStarterChecks', () => {
       id: SAMPLE_ID,
       type: 'json-rules-engine',
       name: 'Their own check',
+      description: 'A check created before the starter checks.',
       factIds: ['openchoreoDeploymentFactRetriever'],
       rule: {
         conditions: {
