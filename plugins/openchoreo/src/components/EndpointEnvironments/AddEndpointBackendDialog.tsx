@@ -39,9 +39,9 @@ interface AddEndpointBackendDialogProps {
 
 /**
  * Adds a backend to an Endpoint: any workload endpoint in its project, since
- * the Endpoint carries the visibility. When a component owns the Endpoint
- * and the new backend is on another component, the API moves the Endpoint
- * to its project; the dialog says so before saving.
+ * the Endpoint carries the visibility. When a component owns the Endpoint,
+ * the dialog warns up front that a backend on another component moves the
+ * Endpoint to its project, which the API does on save.
  */
 export const AddEndpointBackendDialog = ({
   open,
@@ -89,8 +89,6 @@ export const AddEndpointBackendDialog = ({
   );
   const parsedWeight = Number(weight);
   const weightValid = weight !== '' && isEndpointBackendWeight(parsedWeight);
-  const movesToProject =
-    !!ownerComponent && !!option && option.component !== ownerComponent;
 
   const handleAdd = async () => {
     if (!option || !weightValid) return;
@@ -149,10 +147,6 @@ export const AddEndpointBackendDialog = ({
     );
   }
 
-  let addLabel = 'Add backend';
-  if (saving) addLabel = 'Adding...';
-  else if (movesToProject) addLabel = 'Add and move to project';
-
   return (
     <Dialog
       open={open}
@@ -169,6 +163,15 @@ export const AddEndpointBackendDialog = ({
           Route part of {endpointName}'s traffic to another workload endpoint in
           project {project}.
         </DialogContentText>
+        {ownerComponent && (
+          <Box mb={2}>
+            <Alert severity="warning">
+              Component {ownerComponent} owns {endpointName} endpoint. Adding a
+              backend on another component moves it to project {project}, so
+              deleting {ownerComponent} no longer deletes it.
+            </Alert>
+          </Box>
+        )}
         <Box mb={2}>{picker}</Box>
         <TextField
           id="endpoint-backend-weight"
@@ -189,15 +192,6 @@ export const AddEndpointBackendDialog = ({
           }
           disabled={saving}
         />
-        {movesToProject && (
-          <Box mt={2}>
-            <Alert severity="warning">
-              Component {ownerComponent} owns {endpointName}. A backend on{' '}
-              {option?.component} moves it to project {project}, so deleting{' '}
-              {ownerComponent} no longer deletes it.
-            </Alert>
-          </Box>
-        )}
         {error && (
           <Box mt={2}>
             <Alert severity="error">{error}</Alert>
@@ -214,7 +208,7 @@ export const AddEndpointBackendDialog = ({
           onClick={handleAdd}
           disabled={saving || !option || !weightValid}
         >
-          {addLabel}
+          {saving ? 'Adding...' : 'Add'}
         </Button>
       </DialogActions>
     </Dialog>

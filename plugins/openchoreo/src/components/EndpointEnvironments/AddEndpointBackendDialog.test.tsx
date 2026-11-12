@@ -89,7 +89,7 @@ describe('AddEndpointBackendDialog', () => {
     fireEvent.change(screen.getByLabelText('Weight'), {
       target: { value: '3' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Add backend' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
 
     await waitFor(() => expect(onAdded).toHaveBeenCalled());
     expect(client.addEndpointBackend).toHaveBeenCalledWith(entity, {
@@ -115,24 +115,29 @@ describe('AddEndpointBackendDialog', () => {
     expect(
       screen.getByText('A whole number from 0 to 1,000,000'),
     ).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Add backend' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
   });
 
-  it('warns before moving a component-owned Endpoint to its project', async () => {
+  it('warns as soon as it opens that a component owns the Endpoint', async () => {
     const { client, onAdded } = renderDialog(makeEntity('orders'));
 
-    // A backend on the owning component keeps the owner.
-    await pick('orders / admin');
-    expect(screen.queryByText(/moves it to project store/)).toBeNull();
+    // Shown before any backend is picked.
+    expect(
+      screen.getByText(
+        'Component orders owns orders-api endpoint. Adding a backend on another component moves it to project store, so deleting orders no longer deletes it.',
+      ),
+    ).toBeVisible();
 
     await pick('payments / http');
-    expect(screen.getByText(/moves it to project store/)).toBeVisible();
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Add and move to project' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
 
     await waitFor(() => expect(onAdded).toHaveBeenCalled());
     expect(client.addEndpointBackend).toHaveBeenCalled();
+  });
+
+  it("doesn't warn for an Endpoint the project owns", () => {
+    renderDialog();
+    expect(screen.queryByText(/moves it to project/)).not.toBeInTheDocument();
   });
 
   it('keeps the dialog open with the error when adding fails', async () => {
@@ -140,7 +145,7 @@ describe('AddEndpointBackendDialog', () => {
     client.addEndpointBackend.mockRejectedValue(new Error('forbidden'));
 
     await pick('payments / http');
-    fireEvent.click(screen.getByRole('button', { name: 'Add backend' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
 
     expect(await screen.findByText('forbidden')).toBeVisible();
     expect(onClose).not.toHaveBeenCalled();
