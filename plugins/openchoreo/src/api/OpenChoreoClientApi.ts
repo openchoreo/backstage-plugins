@@ -10,6 +10,7 @@ import type {
   ResolvedEndpointBackend,
 } from '@openchoreo/backstage-plugin-common';
 import type { Environment } from '../components/RuntimeLogs/types';
+import type { EndpointURLDetails } from '../components/Environments/hooks/useEnvironmentData';
 
 // ============================================
 // Response Types
@@ -248,6 +249,13 @@ export interface EndpointEnvironment {
   lastDeployed?: string;
   /** How each backend resolved in this environment. */
   backends?: ResolvedEndpointBackend[];
+  /** The URLs the Endpoint is invoked at here, per visibility. */
+  urls?: Partial<
+    Record<
+      'external' | 'internal' | 'namespace' | 'project',
+      EndpointURLDetails
+    >
+  >;
   promotionTargets?: {
     name: string;
     resourceName?: string;

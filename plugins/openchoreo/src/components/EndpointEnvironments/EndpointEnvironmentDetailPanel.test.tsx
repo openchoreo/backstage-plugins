@@ -123,6 +123,52 @@ describe('EndpointEnvironmentDetailPanel', () => {
     ).toBeInTheDocument();
   });
 
+  it('lists the URLs the Endpoint is invoked at, with their security', () => {
+    renderWithCtx(
+      <EndpointEnvironmentDetailPanel
+        env={{
+          ...dev,
+          urls: {
+            external: {
+              scheme: 'https',
+              host: 'orders.dev.example.com',
+              port: 443,
+              path: '/orders',
+              security: {
+                scheme: 'apiKey',
+                apiKey: { in: 'header', name: 'api-key' },
+              },
+            },
+            namespace: { scheme: '', host: 'orders-api.dp.svc', port: 9000 },
+          },
+        }}
+        onClose={() => {}}
+      />,
+      { environments: [dev, prod] },
+    );
+
+    expect(screen.getByText('Invoke URLs')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {
+        name: 'https://orders.dev.example.com:443/orders',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('API key (header api-key)')).toBeInTheDocument();
+    // An address without a scheme is shown, not linked.
+    expect(screen.getByText('orders-api.dp.svc:9000')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'orders-api.dp.svc:9000' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows no URLs before the binding resolves any', () => {
+    renderWithCtx(
+      <EndpointEnvironmentDetailPanel env={dev} onClose={() => {}} />,
+      { environments: [dev, prod] },
+    );
+    expect(screen.queryByText('Invoke URLs')).not.toBeInTheDocument();
+  });
+
   it('promotes the release to the next environment by its K8s name', () => {
     const onPromote = jest.fn();
     renderWithCtx(

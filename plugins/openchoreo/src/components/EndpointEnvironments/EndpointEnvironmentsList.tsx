@@ -112,8 +112,12 @@ export const EndpointEnvironmentsList = () => {
     [client, entity],
   );
 
+  // Only the first load shows the page loader. A refreshed entity (after a
+  // backend change, say) refetches quietly, so the open pane stays mounted.
+  const loadedOnceRef = useRef(false);
   useEffect(() => {
-    fetchEnvs({ showProgress: true });
+    fetchEnvs({ showProgress: !loadedOnceRef.current });
+    loadedOnceRef.current = true;
   }, [fetchEnvs]);
 
   // One-shot guard so the default selection below doesn't override the

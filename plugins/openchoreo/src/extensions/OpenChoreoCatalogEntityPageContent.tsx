@@ -275,6 +275,21 @@ function EntityChrome({ routes }: OpenChoreoCatalogEntityPageContentProps) {
   );
 }
 
+/** Whether an entity is the one the page's route names. */
+export function isEntityAt(
+  entity: Entity | undefined,
+  route: { kind: string; namespace: string; name: string },
+): boolean {
+  const same = (a: string, b: string) =>
+    a.toLocaleLowerCase('en-US') === b.toLocaleLowerCase('en-US');
+  return (
+    entity !== undefined &&
+    same(entity.kind, route.kind) &&
+    same(entity.metadata.namespace ?? 'default', route.namespace) &&
+    same(entity.metadata.name, route.name)
+  );
+}
+
 /**
  * Gate that waits for `useAsyncEntity()` to resolve before rendering
  * `EntityChrome` (which calls `useEntity()` unconditionally). Renders
@@ -282,8 +297,14 @@ function EntityChrome({ routes }: OpenChoreoCatalogEntityPageContentProps) {
  */
 function ChromeGate(props: OpenChoreoCatalogEntityPageContentProps) {
   const { entity, loading, error } = useAsyncEntity();
+  const { kind, namespace, name } = useRouteRefParams(entityRouteRef);
 
-  if (loading) return <Progress />;
+  // A refresh of the entity on screen keeps the page mounted, so tabs keep
+  // their state (selection, open panes); only a different entity, or the
+  // first load, waits behind the spinner.
+  if (loading && !isEntityAt(entity, { kind, namespace, name })) {
+    return <Progress />;
+  }
   if (error) {
     return (
       <Box py={4}>

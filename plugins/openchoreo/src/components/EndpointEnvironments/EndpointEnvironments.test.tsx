@@ -9,9 +9,18 @@ import { EndpointEnvironmentsList } from './EndpointEnvironmentsList';
 
 // The Backends section reads the catalog entity and calls the API; it has its
 // own test file.
-jest.mock('./EndpointBackendsSection', () => ({
-  EndpointBackendsSection: () => <div data-testid="backends-section" />,
-}));
+const mockBackendsSectionMounts = jest.fn();
+jest.mock('./EndpointBackendsSection', () => {
+  const { useEffect } = jest.requireActual('react');
+  return {
+    EndpointBackendsSection: () => {
+      useEffect(() => {
+        mockBackendsSectionMounts();
+      }, []);
+      return <div data-testid="backends-section" />;
+    },
+  };
+});
 
 jest.mock('@backstage/core-components', () => ({
   Progress: () => <div data-testid="progress" />,
@@ -174,6 +183,39 @@ describe('EndpointEnvironmentsList', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Development')).toBeInTheDocument();
     expect(screen.getByText('Production')).toBeInTheDocument();
+  });
+
+  it('refetches a refreshed entity quietly, keeping the open pane', async () => {
+    const fetchEndpointEnvironmentInfo = jest.fn().mockResolvedValue(ENVS);
+    const client = { fetchEndpointEnvironmentInfo };
+    const ui = (entity: Entity) => (
+      <MemoryRouter>
+        <TestApiProvider apis={[[openChoreoClientApiRef, client as any]]}>
+          <EntityProvider entity={entity}>
+            <EndpointEnvironmentsList />
+          </EntityProvider>
+        </TestApiProvider>
+      </MemoryRouter>
+    );
+    const { rerender } = render(ui(ENTITY));
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Select setup' }),
+    );
+    expect(screen.getByTestId('backends-section')).toBeInTheDocument();
+    mockBackendsSectionMounts.mockClear();
+
+    // A backend change refreshes the catalog entity: a new object.
+    rerender(ui({ ...ENTITY, spec: { ...ENTITY.spec } }));
+
+    await waitFor(() =>
+      expect(fetchEndpointEnvironmentInfo).toHaveBeenCalledTimes(2),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('backends-section')).toBeInTheDocument(),
+    );
+    // The section kept its state: it was never unmounted behind a loader.
+    expect(mockBackendsSectionMounts).not.toHaveBeenCalled();
   });
 
   it('deploys the latest release to the first environment from Set up', async () => {

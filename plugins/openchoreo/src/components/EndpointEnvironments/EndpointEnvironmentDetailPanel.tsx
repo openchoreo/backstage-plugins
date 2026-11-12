@@ -34,6 +34,8 @@ import {
 } from '@openchoreo/backstage-plugin-react';
 import { useNotification } from '../../hooks';
 import { NotificationBanner } from '../Environments/components';
+import { URLRow } from '../Environments/components/InvokeUrlsDialog';
+import { buildUrl } from '../Environments/utils/invokeUrlUtils';
 import type { EndpointEnvironment } from '../../api/OpenChoreoClientApi';
 import { useResourceEnvironmentDetailPanelStyles } from '../ResourceEnvironments/styles';
 import { useEndpointEnvironmentsContext } from './EndpointEnvironmentsContext';
@@ -56,8 +58,9 @@ interface EndpointEnvironmentDetailPanelProps {
 
 /**
  * Right-hand pane of the Endpoint deploy view: the release pinned to the
- * selected environment, its status, how each backend resolved there, and the
- * Promote, Configure overrides and Remove deployment actions.
+ * selected environment, its status, the URLs it's invoked at there, how each
+ * backend resolved there, and the Promote, Configure overrides and Remove
+ * deployment actions.
  */
 export const EndpointEnvironmentDetailPanel = ({
   env,
@@ -275,6 +278,8 @@ function EndpointEnvironmentDetailContent({
               )}
             </Box>
 
+            <InvokeUrlsSection urls={env.urls} />
+
             <BackendsSection backends={env.backends ?? []} />
 
             <Box className={classes.section}>
@@ -380,10 +385,46 @@ function EndpointEnvironmentDetailContent({
   );
 }
 
+const URL_VISIBILITIES = [
+  ['external', 'External'],
+  ['internal', 'Internal'],
+  ['namespace', 'Namespace'],
+  ['project', 'Project'],
+] as const;
+
+/**
+ * The URLs the Endpoint is invoked at in this environment, one per
+ * visibility, with the security a caller must present. Shown once the
+ * binding has resolved them.
+ */
+function InvokeUrlsSection({ urls }: { urls: EndpointEnvironment['urls'] }) {
+  const classes = useResourceEnvironmentDetailPanelStyles();
+  const rows = URL_VISIBILITIES.flatMap(([visibility, label]) => {
+    const details = urls?.[visibility];
+    return details ? [{ visibility, label, details }] : [];
+  });
+  if (rows.length === 0) return null;
+
+  return (
+    <Box className={classes.section}>
+      <Typography className={classes.sectionHeading}>Invoke URLs</Typography>
+      <Box mt={1}>
+        {rows.map(({ visibility, label, details }) => (
+          <URLRow
+            key={visibility}
+            url={buildUrl(details)}
+            label={label}
+            security={details.security}
+          />
+        ))}
+      </Box>
+    </Box>
+  );
+}
+
 /**
  * How each backend resolved in this environment: its in-cluster address, or
- * why it did not resolve (e.g. its component is not deployed here, or its
- * workload endpoint is not internal or external).
+ * why it didn't resolve (e.g. its component isn't deployed here).
  */
 function BackendsSection({
   backends,

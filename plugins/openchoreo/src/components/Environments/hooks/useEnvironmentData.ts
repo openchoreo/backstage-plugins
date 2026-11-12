@@ -8,11 +8,19 @@ import type { ReleaseBindingCondition } from '@openchoreo/backstage-plugin-commo
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { isForbiddenError } from '../../../utils/errorUtils';
 
+/** Security an Endpoint's type declares for one of its URLs. */
+export interface EndpointURLSecurity {
+  scheme: 'none' | 'apiKey' | 'oauth2' | 'basicAuth';
+  apiKey?: { in: 'header' | 'query'; name: string };
+}
+
 export interface EndpointURLDetails {
   host: string;
   path?: string;
   port: number;
   scheme: string;
+  /** Present for URLs that come from an Endpoint's status.urls. */
+  security?: EndpointURLSecurity;
 }
 
 export interface EndpointInfo {

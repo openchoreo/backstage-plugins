@@ -14,16 +14,29 @@ import {
 } from '@material-ui/core';
 import { useTheme } from '@material-ui/core/styles';
 import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
-import type { EndpointInfo } from '../hooks/useEnvironmentData';
-import { buildServiceUrl, buildUrl } from '../utils/invokeUrlUtils';
+import type {
+  EndpointInfo,
+  EndpointURLSecurity,
+} from '../hooks/useEnvironmentData';
+import {
+  buildServiceUrl,
+  buildUrl,
+  describeSecurity,
+} from '../utils/invokeUrlUtils';
 
 interface URLRowProps {
   url: string;
   label: string;
+  /** What a caller must present, for URLs that come from an Endpoint. */
+  security?: EndpointURLSecurity;
 }
 
-const URLRow = ({ url, label }: URLRowProps) => {
+/** One URL with its visibility label, security and a copy button. */
+export const URLRow = ({ url, label, security }: URLRowProps) => {
   const theme = useTheme();
+  const securityLabel = describeSecurity(security);
+  // An address without a scheme (a TCP Endpoint, say) isn't a link.
+  const linkable = /^[a-z][a-z0-9+.-]*:\/\//i.test(url);
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -44,6 +57,14 @@ const URLRow = ({ url, label }: URLRowProps) => {
           size="small"
           style={{ fontSize: '0.7rem', height: 20 }}
         />
+        {securityLabel && (
+          <Chip
+            label={securityLabel}
+            size="small"
+            variant="outlined"
+            style={{ fontSize: '0.7rem', height: 20, marginLeft: 6 }}
+          />
+        )}
       </Box>
       <Box display="flex" alignItems="flex-start">
         <Box
@@ -54,27 +75,39 @@ const URLRow = ({ url, label }: URLRowProps) => {
             padding: '6px 8px',
           }}
         >
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              fontFamily: 'monospace',
-              fontSize: '0.8rem',
-              wordBreak: 'break-all',
-              color: theme.palette.primary.main,
-              textDecoration: 'none',
-            }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLElement).style.textDecoration =
-                'underline';
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLElement).style.textDecoration = 'none';
-            }}
-          >
-            {url}
-          </a>
+          {linkable ? (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                fontFamily: 'monospace',
+                fontSize: '0.8rem',
+                wordBreak: 'break-all',
+                color: theme.palette.primary.main,
+                textDecoration: 'none',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.textDecoration =
+                  'underline';
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.textDecoration = 'none';
+              }}
+            >
+              {url}
+            </a>
+          ) : (
+            <span
+              style={{
+                fontFamily: 'monospace',
+                fontSize: '0.8rem',
+                wordBreak: 'break-all',
+              }}
+            >
+              {url}
+            </span>
+          )}
         </Box>
         <Tooltip
           title={copied ? 'Copied!' : 'Copy URL'}
