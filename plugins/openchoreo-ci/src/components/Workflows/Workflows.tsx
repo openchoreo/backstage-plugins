@@ -123,11 +123,6 @@ export const Workflows = () => {
   const workflowPlaneBlocksBuild = isWorkflowPlaneUnavailable(
     workflowPlaneAvailability.status,
   );
-  useEffect(() => {
-    if (workflowPlaneBlocksBuild) {
-      setIsParamsDialogOpen(false);
-    }
-  }, [workflowPlaneBlocksBuild]);
 
   // Trigger-build permission, scoped to the component's workflow so ABAC
   // `resource.workflow` CEL constraints are honored.
@@ -597,7 +592,11 @@ export const Workflows = () => {
         open={isParamsDialogOpen}
         onClose={handleCloseParamsDialog}
         onTrigger={handleTriggerWithParams}
-        isLoading={triggerWithParamsOp.isLoading || workflowPlaneBlocksBuild}
+        isLoading={triggerWithParamsOp.isLoading}
+        submitDisabled={workflowPlaneBlocksBuild}
+        availabilityMessage={
+          workflowPlaneBlocksBuild ? workflowPlaneMessage : undefined
+        }
         workflowName={componentDetails?.componentWorkflow?.name || ''}
         workflowKind={componentDetails?.componentWorkflow?.kind}
         currentParameters={

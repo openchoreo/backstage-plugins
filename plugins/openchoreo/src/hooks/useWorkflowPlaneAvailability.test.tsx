@@ -278,4 +278,194 @@ describe('useWorkflowPlaneAvailability', () => {
     await waitFor(() => expect(result.current.status).toBe('error'));
     expect(result.current.error).toContain('timed out');
   });
+
+  it('queues one focus refresh after a timed-out request settles', async () => {
+    jest.useFakeTimers();
+    const resolvePlaneRequests: Array<
+      (value: Record<string, unknown>) => void
+    > = [];
+    let planeRequests = 0;
+    const client = {
+      getResourceDefinition: jest.fn((kind: string) => {
+        if (kind === 'workflows') {
+          return Promise.resolve({
+            spec: {
+              workflowPlaneRef: { kind: 'WorkflowPlane', name: 'wp' },
+            },
+          });
+        }
+
+        planeRequests += 1;
+        return new Promise<Record<string, unknown>>(resolve => {
+          resolvePlaneRequests.push(resolve);
+        });
+      }),
+    };
+    const { result, unmount } = renderHook(
+      () =>
+        useWorkflowPlaneAvailability({
+          namespaceName: 'team-a',
+          workflowName: 'build',
+        }),
+      {
+        wrapper: ({ children }) => (
+          <TestApiProvider apis={[[openChoreoClientApiRef, client]]}>
+            {children}
+          </TestApiProvider>
+        ),
+      },
+    );
+
+    await waitFor(() => expect(planeRequests).toBe(1));
+    await act(async () => {
+      jest.advanceTimersByTime(15_000);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    await waitFor(() => expect(result.current.status).toBe('error'));
+
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+      window.dispatchEvent(new Event('focus'));
+    });
+    expect(planeRequests).toBe(1);
+
+    await act(async () => {
+      resolvePlaneRequests[0]({
+        status: { agentConnection: { connected: true } },
+      });
+    });
+    await waitFor(() => expect(planeRequests).toBe(2));
+    expect(result.current).toMatchObject({
+      status: 'error',
+      error: expect.stringContaining('timed out'),
+    });
+
+    await act(async () => {
+      resolvePlaneRequests[1]({
+        status: { agentConnection: { connected: false } },
+      });
+    });
+    await waitFor(() => expect(result.current.status).toBe('disconnected'));
+
+    const requestCount = client.getResourceDefinition.mock.calls.length;
+    unmount();
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    expect(client.getResourceDefinition).toHaveBeenCalledTimes(requestCount);
+  });
+
+  it('rechecks on window focus without clearing the last known status', async () => {
+    let resolveRefresh: ((value: Record<string, unknown>) => void) | undefined;
+    let planeRequests = 0;
+    const client = {
+      getResourceDefinition: jest.fn((kind: string) => {
+        if (kind === 'workflows') {
+          return Promise.resolve({
+            spec: {
+              workflowPlaneRef: { kind: 'WorkflowPlane', name: 'wp' },
+            },
+          });
+        }
+
+        planeRequests += 1;
+        if (planeRequests === 1) {
+          return Promise.resolve({
+            status: { agentConnection: { connected: true } },
+          });
+        }
+        return new Promise<Record<string, unknown>>(resolve => {
+          resolveRefresh = resolve;
+        });
+      }),
+    };
+    const { result } = renderHook(
+      () =>
+        useWorkflowPlaneAvailability({
+          namespaceName: 'team-a',
+          workflowName: 'build',
+        }),
+      {
+        wrapper: ({ children }) => (
+          <TestApiProvider apis={[[openChoreoClientApiRef, client]]}>
+            {children}
+          </TestApiProvider>
+        ),
+      },
+    );
+
+    await waitFor(() => expect(result.current.status).toBe('connected'));
+
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    await waitFor(() => expect(planeRequests).toBe(2));
+    expect(result.current.status).toBe('connected');
+
+    await act(async () => {
+      resolveRefresh?.({
+        status: { agentConnection: { connected: false } },
+      });
+    });
+    await waitFor(() => expect(result.current.status).toBe('disconnected'));
+  });
+
+  it('ignores a late result after the workflow input changes', async () => {
+    let resolveOldWorkflow:
+      | ((value: Record<string, unknown>) => void)
+      | undefined;
+    const client = {
+      getResourceDefinition: jest.fn(
+        (kind: string, _namespace: string, name: string) => {
+          if (kind === 'workflows' && name === 'old') {
+            return new Promise<Record<string, unknown>>(resolve => {
+              resolveOldWorkflow = resolve;
+            });
+          }
+          if (kind === 'workflows') {
+            return Promise.resolve({
+              spec: {
+                workflowPlaneRef: { kind: 'WorkflowPlane', name: 'new-plane' },
+              },
+            });
+          }
+          return Promise.resolve({
+            status: { agentConnection: { connected: true } },
+          });
+        },
+      ),
+    };
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <TestApiProvider apis={[[openChoreoClientApiRef, client]]}>
+        {children}
+      </TestApiProvider>
+    );
+    const { result, rerender } = renderHook(
+      ({ workflowName }: { workflowName: string }) =>
+        useWorkflowPlaneAvailability({
+          namespaceName: 'team-a',
+          workflowName,
+        }),
+      { initialProps: { workflowName: 'old' }, wrapper },
+    );
+
+    rerender({ workflowName: 'new' });
+    await waitFor(() => expect(result.current.status).toBe('connected'));
+    expect(result.current.planeName).toBe('new-plane');
+
+    await act(async () => {
+      resolveOldWorkflow?.({
+        spec: {
+          workflowPlaneRef: { kind: 'WorkflowPlane', name: 'old-plane' },
+        },
+      });
+      await Promise.resolve();
+    });
+
+    expect(result.current).toMatchObject({
+      status: 'connected',
+      planeName: 'new-plane',
+    });
+  });
 });

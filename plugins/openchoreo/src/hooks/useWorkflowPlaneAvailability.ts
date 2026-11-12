@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
 import { isForbiddenError, isNotFoundError } from '../utils/errorUtils';
 import { openChoreoClientApiRef } from '../api/OpenChoreoClientApi';
@@ -227,6 +227,7 @@ export function useWorkflowPlaneAvailability(
     key: string;
     availability: WorkflowPlaneAvailability;
   } | null>(null);
+  const resultRef = useRef(result);
 
   const workflowKind = input.workflowKind ?? 'Workflow';
   const workflowName = input.workflowName;
@@ -235,50 +236,100 @@ export function useWorkflowPlaneAvailability(
 
   useEffect(() => {
     if (!workflowName) {
+      resultRef.current = null;
       setResult(null);
       return undefined;
     }
 
     let active = true;
+    let inFlight = false;
+    let refreshPending = false;
+    let requestId = 0;
     let timeout: ReturnType<typeof setTimeout> | undefined;
-    const check = checkWorkflowPlaneAvailability(client, {
-      workflowName,
-      namespaceName,
-      workflowKind,
-    });
-    const timeoutCheck = new Promise<WorkflowPlaneAvailability>((_, reject) => {
-      timeout = setTimeout(
-        () => reject(new Error('The workflow plane check timed out.')),
-        WORKFLOW_PLANE_CHECK_TIMEOUT_MS,
-      );
-    });
 
-    setResult({ key, availability: { status: 'loading' } });
-    Promise.race([check, timeoutCheck])
-      .then(availability => {
-        if (active) setResult({ key, availability });
-      })
-      .catch(error => {
-        if (active) {
-          setResult({
-            key,
-            availability: {
-              status: 'error',
-              error:
-                error instanceof Error
-                  ? error.message
-                  : 'An unknown error occurred',
-            },
-          });
-        }
-      })
-      .finally(() => {
-        if (timeout) clearTimeout(timeout);
+    const refresh = () => {
+      if (!active) return;
+
+      if (inFlight) {
+        refreshPending = true;
+        return;
+      }
+
+      inFlight = true;
+      refreshPending = false;
+      const currentRequestId = ++requestId;
+
+      if (resultRef.current?.key !== key) {
+        const loadingResult = {
+          key,
+          availability: { status: 'loading' as const },
+        };
+        resultRef.current = loadingResult;
+        setResult(loadingResult);
+      }
+
+      const check = checkWorkflowPlaneAvailability(client, {
+        workflowName,
+        namespaceName,
+        workflowKind,
       });
+      const timeoutCheck = new Promise<WorkflowPlaneAvailability>(
+        (_, reject) => {
+          timeout = setTimeout(
+            () => reject(new Error('The workflow plane check timed out.')),
+            WORKFLOW_PLANE_CHECK_TIMEOUT_MS,
+          );
+        },
+      );
+
+      Promise.race([check, timeoutCheck])
+        .then(availability => {
+          if (active && currentRequestId === requestId) {
+            const nextResult = { key, availability };
+            resultRef.current = nextResult;
+            setResult(nextResult);
+          }
+        })
+        .catch(error => {
+          if (active && currentRequestId === requestId) {
+            const nextResult = {
+              key,
+              availability: {
+                status: 'error' as const,
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : 'An unknown error occurred',
+              },
+            };
+            resultRef.current = nextResult;
+            setResult(nextResult);
+          }
+        })
+        .finally(() => {
+          if (timeout) clearTimeout(timeout);
+          timeout = undefined;
+        });
+
+      const releaseRequest = () => {
+        if (!active || currentRequestId !== requestId) return;
+        inFlight = false;
+        if (refreshPending) {
+          refreshPending = false;
+          refresh();
+        }
+      };
+      check.then(releaseRequest, releaseRequest);
+    };
+
+    refresh();
+    window.addEventListener('focus', refresh);
 
     return () => {
       active = false;
+      requestId += 1;
       if (timeout) clearTimeout(timeout);
+      window.removeEventListener('focus', refresh);
     };
   }, [client, key, namespaceName, workflowKind, workflowName]);
 

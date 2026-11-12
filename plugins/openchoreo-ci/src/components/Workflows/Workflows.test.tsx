@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { TestApiProvider } from '@backstage/test-utils';
 import { EntityProvider } from '@backstage/plugin-catalog-react';
@@ -132,7 +132,11 @@ jest.mock('@openchoreo/backstage-design-system', () => ({
     </div>
   ),
   SplitButton: (props: any) => (
-    <button data-testid="split-button" disabled={props.disabled}>
+    <button
+      data-testid="split-button"
+      disabled={props.disabled}
+      onClick={() => props.onClick('build-custom')}
+    >
       Build
     </button>
   ),
@@ -159,7 +163,31 @@ jest.mock('../OverviewTab', () => ({
   OverviewTab: () => <div data-testid="overview-tab">Overview</div>,
 }));
 jest.mock('../BuildWithParamsDialog', () => ({
-  BuildWithParamsDialog: () => null,
+  BuildWithParamsDialog: (props: any) => {
+    const React = jest.requireActual('react');
+    const [value, setValue] = React.useState('');
+
+    if (!props.open) return null;
+
+    return (
+      <div data-testid="params-dialog">
+        {props.availabilityMessage && (
+          <div role="alert">{props.availabilityMessage}</div>
+        )}
+        <input
+          aria-label="Custom parameter"
+          value={value}
+          onChange={event => setValue(event.target.value)}
+        />
+        <button
+          data-testid="params-submit"
+          disabled={props.isLoading || props.submitDisabled}
+        >
+          Trigger Build
+        </button>
+      </div>
+    );
+  },
 }));
 
 // ---- Helpers ----
@@ -169,7 +197,7 @@ jest.mock('../BuildWithParamsDialog', () => ({
 const testEntity = mockComponentEntity();
 
 function renderWithRouter(ui: React.ReactElement) {
-  return render(
+  const wrap = (content: React.ReactElement) => (
     <MemoryRouter>
       <TestApiProvider
         apis={[
@@ -178,10 +206,16 @@ function renderWithRouter(ui: React.ReactElement) {
           [openChoreoFetchApiRef, mockFetchApi],
         ]}
       >
-        <EntityProvider entity={testEntity}>{ui}</EntityProvider>
+        <EntityProvider entity={testEntity}>{content}</EntityProvider>
       </TestApiProvider>
-    </MemoryRouter>,
+    </MemoryRouter>
   );
+  const view = render(wrap(ui));
+  return {
+    ...view,
+    rerenderWithRouter: (content: React.ReactElement) =>
+      view.rerender(wrap(content)),
+  };
 }
 
 const defaultRoutingState = {
@@ -304,6 +338,41 @@ describe('Workflows', () => {
 
     expect(screen.getByText(message)).toBeInTheDocument();
     expect(screen.getByTestId('split-button')).toBeDisabled();
+  });
+
+  it('keeps edited custom parameters in the open dialog when the plane becomes unavailable', () => {
+    mockUseWorkflowData.mockReturnValue({
+      builds: [],
+      componentDetails: {
+        componentWorkflow: { name: 'my-workflow', kind: 'Workflow' },
+        namespaceName: 'test-ns',
+      },
+      loading: false,
+      error: null,
+      fetchBuilds: jest.fn(),
+      fetchComponentDetails: jest.fn(),
+    });
+
+    const view = renderWithRouter(<Workflows />);
+    fireEvent.click(screen.getByTestId('split-button'));
+    fireEvent.change(screen.getByLabelText('Custom parameter'), {
+      target: { value: 'edited value' },
+    });
+
+    mockUseWorkflowPlaneAvailability.mockReturnValue({
+      status: 'disconnected',
+    });
+    view.rerenderWithRouter(<Workflows />);
+
+    const dialog = screen.getByTestId('params-dialog');
+    expect(dialog).toBeInTheDocument();
+    expect(screen.getByLabelText('Custom parameter')).toHaveValue(
+      'edited value',
+    );
+    expect(within(dialog).getByRole('alert')).toHaveTextContent(
+      'Workflow plane is disconnected.',
+    );
+    expect(screen.getByTestId('params-submit')).toBeDisabled();
   });
 
   it('keeps builds enabled while checking availability', () => {
