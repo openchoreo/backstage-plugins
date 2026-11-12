@@ -72,7 +72,12 @@ function fakeClient(options: {
           items: [
             {
               spec: { environment: 'production', releaseName: 'r2' },
-              status: { conditions: [{ type: 'Ready', status: 'True' }] },
+              status: {
+                conditions: [
+                  { type: 'ReleaseSynced', status: 'True' },
+                  { type: 'Ready', status: 'True' },
+                ],
+              },
             },
           ],
         });

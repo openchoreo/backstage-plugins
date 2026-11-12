@@ -157,12 +157,23 @@ export function activeBindings(bindings: ReleaseBinding[]): ReleaseBinding[] {
   );
 }
 
+function hasCondition(binding: ReleaseBinding, type: string): boolean {
+  return (
+    binding.status?.conditions?.some(
+      condition => condition.type === type && condition.status === 'True',
+    ) ?? false
+  );
+}
+
 /**
- * Facts read from a component's release bindings. A component with no
- * active binding is not deployed anywhere, so it is not ready in every
- * environment and does not run its latest release. Whether it runs its
- * latest release is left out when OpenChoreo hasn't recorded one, which it
- * does only for components that deploy automatically.
+ * Facts read from a component's release bindings. An environment counts as
+ * deployed to once its active binding's release has been synced to the data
+ * plane (`ReleaseSynced`); a binding whose release is missing, can't be
+ * rendered or has nowhere to go deploys nothing. A component with no active
+ * binding is not ready in every environment and does not run its latest
+ * release. Whether it runs its latest release is left out when OpenChoreo
+ * hasn't recorded one, which it does only for components that deploy
+ * automatically.
  */
 export function releaseBindingFacts(input: {
   bindings: ReleaseBinding[];
@@ -172,12 +183,13 @@ export function releaseBindingFacts(input: {
   const active = activeBindings(input.bindings);
   // Release lines can each bind the same environment.
   const environments = [
-    ...new Set(active.map(binding => binding.spec!.environment)),
+    ...new Set(
+      active
+        .filter(binding => hasCondition(binding, 'ReleaseSynced'))
+        .map(binding => binding.spec!.environment),
+    ),
   ];
-  const isReady = (binding: ReleaseBinding) =>
-    binding.status?.conditions?.some(
-      condition => condition.type === 'Ready' && condition.status === 'True',
-    ) ?? false;
+  const isReady = (binding: ReleaseBinding) => hasCondition(binding, 'Ready');
 
   return {
     openchoreoDeployedEnvironments: environments,

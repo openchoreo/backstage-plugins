@@ -22,9 +22,12 @@ An image counts as pinned when it names a digest, or a tag other than one that c
 moves (`latest`, `main`, `master`, `dev`, `develop`, `edge`, `nightly`, `stable`, `staging`). The
 secret count looks at the parts of each env var name between underscores, so `DB_PASS` counts and
 `TOKEN_URL` or `PASSWORD_FILE` don't. It counts plain values in the Workload and in the
-per-environment overrides of its active release bindings, each name once. OpenChoreo records a
-component's latest release only when `autoDeploy` is on, so `openchoreoRunsLatestRelease` is left
-out for components deployed by hand.
+per-environment overrides of its active release bindings, each name once. An environment counts as
+deployed to once its binding's release has synced to the data plane (`ReleaseSynced`), so a binding
+whose release is missing or failed to render doesn't count. `openchoreoRunsLatestRelease` says
+whether every binding points at the latest release, and readiness is left to
+`openchoreoReadyInAllEnvironments`. OpenChoreo records a component's latest release only when
+`autoDeploy` is on, so `openchoreoRunsLatestRelease` is left out for components deployed by hand.
 
 Trait and workflow facts are `Kind/name` values such as `ClusterTrait/observability`, since a
 Trait and a ClusterTrait can share a name. A reference without a kind gets the CRD default: `Trait`

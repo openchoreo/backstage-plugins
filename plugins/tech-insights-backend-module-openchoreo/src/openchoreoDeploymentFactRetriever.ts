@@ -140,7 +140,7 @@ const schema: FactRetriever['schema'] = {
   openchoreoDeployedEnvironments: {
     type: 'set',
     description:
-      'Environments with an active release binding. Reported only when the portal service credentials can read every binding of the component and every environment in its namespace.',
+      'Environments where an active release binding has synced its release to the data plane. Reported only when the portal service credentials can read every binding of the component and every environment in its namespace.',
   },
   openchoreoDeployedToProduction: {
     type: 'boolean',
@@ -155,7 +155,7 @@ const schema: FactRetriever['schema'] = {
   openchoreoRunsLatestRelease: {
     type: 'boolean',
     description:
-      "Whether every environment runs the component's latest release. Left out when OpenChoreo records no latest release, which it does only for components with autoDeploy on.",
+      "Whether every environment is bound to the component's latest release. Readiness is reported separately by openchoreoReadyInAllEnvironments. Left out when OpenChoreo records no latest release, which it does only for components with autoDeploy on.",
   },
 };
 

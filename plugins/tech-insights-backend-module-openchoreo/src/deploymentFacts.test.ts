@@ -99,8 +99,11 @@ describe('workloadFacts', () => {
 });
 
 describe('releaseBindingFacts', () => {
-  const ready = { conditions: [{ type: 'Ready', status: 'True' }] };
-  const notReady = { conditions: [{ type: 'Ready', status: 'False' }] };
+  const synced = { type: 'ReleaseSynced', status: 'True' };
+  const ready = { conditions: [synced, { type: 'Ready', status: 'True' }] };
+  const notReady = {
+    conditions: [synced, { type: 'Ready', status: 'False' }],
+  };
 
   it('reports a component deployed to development only', () => {
     expect(
@@ -151,6 +154,52 @@ describe('releaseBindingFacts', () => {
       openchoreoDeployedToProduction: true,
       openchoreoReadyInAllEnvironments: false,
       openchoreoRunsLatestRelease: false,
+    });
+  });
+
+  it('does not count an environment whose release has not synced', () => {
+    expect(
+      releaseBindingFacts({
+        bindings: [
+          {
+            spec: { environment: 'development', releaseName: 'r2' },
+            status: ready,
+          },
+          {
+            spec: { environment: 'production', releaseName: 'missing' },
+            status: {
+              conditions: [
+                { type: 'ReleaseSynced', status: 'False' },
+                { type: 'Ready', status: 'False' },
+              ],
+            },
+          },
+          { spec: { environment: 'staging' } },
+        ],
+        productionEnvironments: new Set(['production']),
+      }),
+    ).toEqual({
+      openchoreoDeployedEnvironments: ['development'],
+      openchoreoDeployedToProduction: false,
+      openchoreoReadyInAllEnvironments: false,
+    });
+  });
+
+  it('reports the latest release apart from readiness', () => {
+    expect(
+      releaseBindingFacts({
+        bindings: [
+          {
+            spec: { environment: 'production', releaseName: 'r2' },
+            status: notReady,
+          },
+        ],
+        productionEnvironments: new Set(['production']),
+        latestRelease: 'r2',
+      }),
+    ).toMatchObject({
+      openchoreoReadyInAllEnvironments: false,
+      openchoreoRunsLatestRelease: true,
     });
   });
 
