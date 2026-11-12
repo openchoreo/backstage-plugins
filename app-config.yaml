@@ -389,8 +389,8 @@ openchoreo:
     assistant:
       enabled: ${OPENCHOREO_FEATURES_ASSISTANT_ENABLED}
     # Delivery Insights (DORA metrics) page
-    # Opt-in: defaults to false. Feature preview, and separate from the Observer
-    # flag that collects the data (observer.deliveryInsights.enabled on the
+    # Defaults to true. Feature preview, and separate from the Observer
+    # flag that collects the data (observer.featurePreview.deliveryInsights.enabled on the
     # observability plane) -- both are needed for the page to show anything.
     # When disabled, hides the Delivery Insights sidebar item.
     deliveryInsights:
