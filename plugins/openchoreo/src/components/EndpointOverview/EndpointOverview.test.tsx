@@ -139,3 +139,10 @@ describe('EndpointApiCard', () => {
     ).toBeInTheDocument();
   });
 });
+
+describe('EndpointRoutingCard is read-only', () => {
+  it('offers no actions; backends are managed from the Deploy tab', () => {
+    renderWith(makeEntity(), <EndpointRoutingCard />);
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+});

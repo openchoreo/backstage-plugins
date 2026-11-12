@@ -8,6 +8,12 @@ import {
   type EndpointEnvironmentsContextValue,
 } from './EndpointEnvironmentsContext';
 
+// The Backends section reads the catalog entity and calls the API; it has its
+// own test file.
+jest.mock('./EndpointBackendsSection', () => ({
+  EndpointBackendsSection: () => <div data-testid="backends-section" />,
+}));
+
 jest.mock('@openchoreo/backstage-design-system', () => ({
   StatusBadge: ({ status }: any) => (
     <span data-testid="status-badge">{status}</span>

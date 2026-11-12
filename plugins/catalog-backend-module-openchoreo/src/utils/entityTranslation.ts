@@ -2529,6 +2529,8 @@ export function translateEndpointToEntities(
     displayName?: string;
     description?: string;
     projectName: string;
+    /** The owning component, when a component rather than the project owns it. */
+    ownerComponent?: string;
     typeName: string;
     typeKind: 'EndpointType' | 'ClusterEndpointType';
     visibility: string[];
@@ -2563,6 +2565,10 @@ export function translateEndpointToEntities(
         [CHOREO_ANNOTATIONS.ENDPOINT]: endpoint.name,
         ...(endpoint.uid && {
           [CHOREO_ANNOTATIONS.ENDPOINT_UID]: endpoint.uid,
+        }),
+        ...(endpoint.ownerComponent && {
+          [CHOREO_ANNOTATIONS.ENDPOINT_OWNER_COMPONENT]:
+            endpoint.ownerComponent,
         }),
         [CHOREO_ANNOTATIONS.ENDPOINTTYPE]: endpoint.typeName,
         [CHOREO_ANNOTATIONS.ENDPOINTTYPE_KIND]: endpoint.typeKind,
@@ -2692,6 +2698,7 @@ export function translateNewEndpointToEntities(
       displayName: getDisplayName(endpoint),
       description: getDescription(endpoint),
       projectName: spec?.owner?.projectName ?? '',
+      ownerComponent: spec?.owner?.componentName || undefined,
       typeName: spec?.type?.name ?? '',
       typeKind,
       visibility: (spec?.visibility ?? []).map(String),

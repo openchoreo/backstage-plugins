@@ -16,6 +16,7 @@ import {
 } from '../ResourceEnvironments/styles';
 import { useEndpointEnvironmentsContext } from './EndpointEnvironmentsContext';
 import { envResourceName } from './endpointEnvironmentUtils';
+import { EndpointBackendsSection } from './EndpointBackendsSection';
 
 /** Compact Set up tile at the start of the Endpoint deploy canvas. */
 export const EndpointSetupCard = ({ selected }: { selected: boolean }) => {
@@ -28,15 +29,17 @@ export const EndpointSetupCard = ({ selected }: { selected: boolean }) => {
         <SettingsOutlinedIcon className={classes.titleIcon} />
         <Typography className={classes.title}>Set up</Typography>
       </Box>
-      <Typography className={classes.hint}>Deploy latest release</Typography>
+      <Typography className={classes.hint}>
+        Manage backends and deploy
+      </Typography>
     </Box>
   );
 };
 
 /**
- * Right-pane body for the Set up tile. Deploys the Endpoint's latest release
- * to the first environment in the pipeline, from where it is promoted
- * forward. The Endpoint itself is edited on the Definition tab; every change
+ * Right-pane body for the Set up tile: the Endpoint's backends, changed here,
+ * and the deploy of its latest release to the first environment in the
+ * pipeline, from where it is promoted forward. Every change to the Endpoint
  * cuts a new release, which shows up here as the latest.
  */
 export const EndpointSetupDetailPane = ({
@@ -47,7 +50,8 @@ export const EndpointSetupDetailPane = ({
   onClose: () => void;
 }) => {
   const classes = useResourceEnvironmentDetailPanelStyles();
-  const { pendingAction, onPromote } = useEndpointEnvironmentsContext();
+  const { pendingAction, onPromote, refetch } =
+    useEndpointEnvironmentsContext();
   const targetEnv = envResourceName(firstEnvironment);
   const { canPromote, loading, deniedTooltip } =
     useEndpointPromoteToEnvPermission(targetEnv);
@@ -93,9 +97,16 @@ export const EndpointSetupDetailPane = ({
       </Box>
 
       <Box className={classes.setupBody}>
-        <Typography variant="body2" color="textSecondary">
-          {description}
-        </Typography>
+        <EndpointBackendsSection onChanged={() => void refetch()} />
+
+        <Box mt={3}>
+          <Typography variant="subtitle2" gutterBottom>
+            Release
+          </Typography>
+          <Typography variant="body2" color="textSecondary">
+            {description}
+          </Typography>
+        </Box>
 
         <Box mt="auto" pt={2} display="flex" justifyContent="flex-end">
           <Tooltip

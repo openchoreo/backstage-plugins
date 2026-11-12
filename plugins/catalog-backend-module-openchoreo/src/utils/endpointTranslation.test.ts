@@ -146,6 +146,37 @@ describe('translateNewEndpointToEntities', () => {
         endpoint: 'http',
       },
     ]);
+    expect(
+      endpoint.metadata.annotations?.['openchoreo.io/endpoint-owner-component'],
+    ).toBeUndefined();
+  });
+
+  it('records the owning component', () => {
+    const [endpoint] = translateNewEndpointToEntities(
+      {
+        metadata: { name: 'orders-api', namespace: 'acme' },
+        spec: {
+          owner: { projectName: 'store', componentName: 'orders' },
+          type: { name: 'http-route' },
+          visibility: ['external'],
+          backendRefs: [
+            {
+              name: 'primary',
+              component: { name: 'orders', endpoint: 'http' },
+            },
+          ],
+        },
+      } as any,
+      'acme',
+      {
+        providerName: 'openchoreo-provider',
+        defaultOwner: 'group:default/openchoreo',
+      } as any,
+    );
+
+    expect(
+      endpoint.metadata.annotations?.['openchoreo.io/endpoint-owner-component'],
+    ).toBe('orders');
   });
 });
 

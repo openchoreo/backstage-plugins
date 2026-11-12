@@ -7,6 +7,12 @@ import { ResponseError } from '@backstage/errors';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
 import { EndpointEnvironmentsList } from './EndpointEnvironmentsList';
 
+// The Backends section reads the catalog entity and calls the API; it has its
+// own test file.
+jest.mock('./EndpointBackendsSection', () => ({
+  EndpointBackendsSection: () => <div data-testid="backends-section" />,
+}));
+
 jest.mock('@backstage/core-components', () => ({
   Progress: () => <div data-testid="progress" />,
   EmptyState: ({ missing, title, description }: any) => (
