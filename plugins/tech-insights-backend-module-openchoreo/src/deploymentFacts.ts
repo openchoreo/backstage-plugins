@@ -170,7 +170,10 @@ export function releaseBindingFacts(input: {
   latestRelease?: string;
 }) {
   const active = activeBindings(input.bindings);
-  const environments = active.map(binding => binding.spec!.environment);
+  // Release lines can each bind the same environment.
+  const environments = [
+    ...new Set(active.map(binding => binding.spec!.environment)),
+  ];
   const isReady = (binding: ReleaseBinding) =>
     binding.status?.conditions?.some(
       condition => condition.type === 'Ready' && condition.status === 'True',

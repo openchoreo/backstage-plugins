@@ -154,6 +154,28 @@ describe('releaseBindingFacts', () => {
     });
   });
 
+  it('lists an environment bound by several release lines once', () => {
+    expect(
+      releaseBindingFacts({
+        bindings: [
+          {
+            spec: { environment: 'development', releaseName: 'r2' },
+            status: ready,
+          },
+          {
+            spec: { environment: 'development', releaseName: 'next-r1' },
+            status: ready,
+          },
+          {
+            spec: { environment: 'production', releaseName: 'r2' },
+            status: ready,
+          },
+        ],
+        productionEnvironments: new Set(['production']),
+      }).openchoreoDeployedEnvironments,
+    ).toEqual(['development', 'production']);
+  });
+
   it('leaves out the latest-release fact without a recorded latest release', () => {
     expect(
       releaseBindingFacts({
