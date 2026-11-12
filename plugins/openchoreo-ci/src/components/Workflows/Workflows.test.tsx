@@ -41,6 +41,26 @@ const mockDiscoveryApi = {
 const mockFetchApi = {
   fetch: jest.fn().mockResolvedValue({ ok: true, json: async () => ({}) }),
 };
+const mockUseWorkflowPlaneAvailability = jest.fn();
+jest.mock('@openchoreo/backstage-plugin', () => ({
+  useWorkflowPlaneAvailability: () => mockUseWorkflowPlaneAvailability(),
+  isWorkflowPlaneUnavailable: (status: string) =>
+    status === 'missing' || status === 'disconnected',
+  getWorkflowPlaneAvailabilityMessage: (availability: { status: string }) => {
+    if (availability.status === 'missing') return 'Workflow plane is missing.';
+    if (availability.status === 'disconnected')
+      return 'Workflow plane is disconnected.';
+    if (availability.status === 'loading')
+      return 'Checking workflow plane availability...';
+    if (availability.status === 'forbidden')
+      return 'Workflow plane availability is unknown: forbidden.';
+    if (availability.status === 'error')
+      return 'Could not check workflow plane availability.';
+    if (availability.status === 'unknown')
+      return 'Workflow plane connection status is unknown.';
+    return undefined;
+  },
+}));
 
 // Mock @backstage/core-components
 jest.mock('@backstage/core-components', () => ({
@@ -194,6 +214,7 @@ describe('Workflows', () => {
     jest.clearAllMocks();
     mockUseWorkflowRouting.mockReturnValue(defaultRoutingState);
     mockUseBuildPermission.mockReturnValue(defaultBuildPermission);
+    mockUseWorkflowPlaneAvailability.mockReturnValue({ status: 'connected' });
   });
 
   it('shows loading state when workflow data is loading', () => {
@@ -259,7 +280,85 @@ describe('Workflows', () => {
     expect(screen.getByText('2 build(s)')).toBeInTheDocument();
     // Build button should be present
     expect(screen.getByTestId('split-button')).toBeInTheDocument();
+    expect(screen.getByTestId('split-button')).toBeEnabled();
   });
+
+  it.each([
+    ['missing', 'Workflow plane is missing.'],
+    ['disconnected', 'Workflow plane is disconnected.'],
+  ])('warns and disables builds when the plane is %s', (status, message) => {
+    mockUseWorkflowPlaneAvailability.mockReturnValue({ status });
+    mockUseWorkflowData.mockReturnValue({
+      builds: [],
+      componentDetails: {
+        componentWorkflow: { name: 'my-workflow', kind: 'Workflow' },
+        namespaceName: 'test-ns',
+      },
+      loading: false,
+      error: null,
+      fetchBuilds: jest.fn(),
+      fetchComponentDetails: jest.fn(),
+    });
+
+    renderWithRouter(<Workflows />);
+
+    expect(screen.getByText(message)).toBeInTheDocument();
+    expect(screen.getByTestId('split-button')).toBeDisabled();
+  });
+
+  it('keeps builds enabled while checking availability', () => {
+    mockUseWorkflowPlaneAvailability.mockReturnValue({ status: 'loading' });
+    mockUseWorkflowData.mockReturnValue({
+      builds: [],
+      componentDetails: {
+        componentWorkflow: { name: 'my-workflow', kind: 'Workflow' },
+        namespaceName: 'test-ns',
+      },
+      loading: false,
+      error: null,
+      fetchBuilds: jest.fn(),
+      fetchComponentDetails: jest.fn(),
+    });
+
+    renderWithRouter(<Workflows />);
+
+    expect(
+      screen.getByText('Checking workflow plane availability...'),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('split-button')).not.toBeDisabled();
+  });
+
+  it.each(['forbidden', 'error', 'unknown'])(
+    'shows the distinct %s state without claiming the plane is missing or blocking builds',
+    status => {
+      mockUseWorkflowPlaneAvailability.mockReturnValue({ status });
+      mockUseWorkflowData.mockReturnValue({
+        builds: [],
+        componentDetails: {
+          componentWorkflow: { name: 'my-workflow', kind: 'Workflow' },
+          namespaceName: 'test-ns',
+        },
+        loading: false,
+        error: null,
+        fetchBuilds: jest.fn(),
+        fetchComponentDetails: jest.fn(),
+      });
+
+      renderWithRouter(<Workflows />);
+
+      expect(screen.queryByText(/plane is missing/i)).not.toBeInTheDocument();
+      let expectedMessage = /connection status is unknown/;
+
+      if (status === 'forbidden') {
+        expectedMessage = /availability is unknown: forbidden/;
+      } else if (status === 'error') {
+        expectedMessage = /Could not check workflow plane availability/;
+      }
+
+      expect(screen.getByText(expectedMessage)).toBeInTheDocument();
+      expect(screen.getByTestId('split-button')).toBeEnabled();
+    },
+  );
 
   it('shows empty state when component has no workflow configured', () => {
     mockUseWorkflowData.mockReturnValue({

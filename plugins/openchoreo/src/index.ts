@@ -114,4 +114,15 @@ export {
 } from './extensions/entityLayouts/foreignCards';
 export { EntityRelationWarning } from './components/EntityRelationWarning';
 export { useQueryParams } from './hooks/useQueryParams';
+export {
+  getWorkflowPlaneAvailabilityMessage,
+  isWorkflowPlaneUnavailable,
+  useWorkflowPlaneAvailability,
+  checkWorkflowPlaneAvailability,
+} from './hooks/useWorkflowPlaneAvailability';
+export type {
+  WorkflowPlaneAvailability,
+  WorkflowPlaneAvailabilityStatus,
+  WorkflowPlaneCheckInput,
+} from './hooks/useWorkflowPlaneAvailability';
 export { ExecTerminalWindowPage } from './components/Terminal';
