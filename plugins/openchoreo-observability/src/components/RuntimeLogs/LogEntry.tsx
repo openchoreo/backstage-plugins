@@ -8,6 +8,7 @@ import {
   Tooltip,
 } from '@material-ui/core';
 import FileCopyOutlined from '@material-ui/icons/FileCopyOutlined';
+import { MAIN_RELEASE_LINE } from '@openchoreo/backstage-plugin-common';
 import { LogEntry as LogEntryType, LogEntryField } from './types';
 import { useLogEntryStyles } from './styles';
 import { getColumnStyle } from './columns';
@@ -148,6 +149,18 @@ export const LogEntry: FC<LogEntryProps> = ({
                 className={`${classes.cell} ${classes.monospaceCell}`}
               >
                 {log.metadata?.componentName ?? componentName ?? ''}
+              </Box>
+            );
+          }
+
+          if (field === LogEntryField.ReleaseLine) {
+            return (
+              <Box
+                key={field}
+                style={getColumnStyle(field)}
+                className={`${classes.cell} ${classes.monospaceCell}`}
+              >
+                {log.metadata?.releaseLineName || MAIN_RELEASE_LINE}
               </Box>
             );
           }

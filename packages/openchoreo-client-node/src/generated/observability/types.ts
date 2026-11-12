@@ -387,6 +387,13 @@ export interface components {
          * @description The OpenChoreo environment UID that generated the log
          */
         environmentUid?: string;
+        /** @description The component's release line that generated the log. Absent for its main line. */
+        releaseLineName?: string;
+        /**
+         * Format: uuid
+         * @description The UID of the component's release line that generated the log. Absent for its main line.
+         */
+        releaseLineUid?: string;
         /** @description The container name that generated the log */
         containerName?: string;
         /** @description The Kubernetes pod name that generated the log */
