@@ -68,6 +68,9 @@ backend.add(
         '@openchoreo/backstage-plugin-tech-insights-backend-module-github'
       );
       yield import(
+        '@openchoreo/backstage-plugin-tech-insights-backend-module-openchoreo'
+      );
+      yield import(
         '@openchoreo/backstage-plugin-tech-insights-backend-module-dynamic-checks'
       );
     },
