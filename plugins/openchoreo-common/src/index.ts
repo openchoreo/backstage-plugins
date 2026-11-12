@@ -196,6 +196,10 @@ export {
   type PageVariant,
   type ComponentTypeMapping,
 } from './utils/componentTypeUtils';
+export {
+  endpointProtocol,
+  type ExposableEndpoint,
+} from './utils/endpointExposure';
 
 // Feature flags types
 export type { OpenChoreoFeatures, FeatureName } from './types/features';
@@ -268,6 +272,7 @@ export type {
   EnvVarValueFrom,
   SecretKeyRef,
   WorkloadEndpoint,
+  WorkloadEndpointProtocol,
   Dependency,
   DependencyEnvBindings,
   WorkloadOwner,
