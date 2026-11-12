@@ -153,7 +153,10 @@ describe('EndpointEnvironmentDetailPanel', () => {
         name: 'https://orders.dev.example.com:443/orders',
       }),
     ).toBeInTheDocument();
-    expect(screen.getByText('API key (header api-key)')).toBeInTheDocument();
+    // The security is a padlock, described by its label and tooltip.
+    expect(
+      screen.getByRole('img', { name: 'API key (header api-key)' }),
+    ).toBeInTheDocument();
     // An address without a scheme is shown, not linked.
     expect(screen.getByText('orders-api.dp.svc:9000')).toBeInTheDocument();
     expect(

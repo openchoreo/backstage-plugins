@@ -14,6 +14,8 @@ import {
 } from '@material-ui/core';
 import { useTheme } from '@material-ui/core/styles';
 import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
+import LockOutlinedIcon from '@material-ui/icons/LockOutlined';
+import LockOpenOutlinedIcon from '@material-ui/icons/LockOpenOutlined';
 import type {
   EndpointInfo,
   EndpointURLSecurity,
@@ -31,10 +33,25 @@ interface URLRowProps {
   security?: EndpointURLSecurity;
 }
 
-/** One URL with its visibility label, security and a copy button. */
+/** Keeps a long URL on one line, cut off with an ellipsis. */
+const urlTextStyle = {
+  display: 'block',
+  fontFamily: 'monospace',
+  fontSize: '0.8rem',
+  whiteSpace: 'nowrap',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+} as const;
+
+/**
+ * One URL with its visibility label, a copy button and, for URLs that come
+ * from an Endpoint, a padlock describing the security a caller must present.
+ */
 export const URLRow = ({ url, label, security }: URLRowProps) => {
   const theme = useTheme();
   const securityLabel = describeSecurity(security);
+  const LockIcon =
+    security?.scheme === 'none' ? LockOpenOutlinedIcon : LockOutlinedIcon;
   // An address without a scheme (a TCP Endpoint, say) isn't a link.
   const linkable = /^[a-z][a-z0-9+.-]*:\/\//i.test(url);
   const [copied, setCopied] = useState(false);
@@ -58,18 +75,26 @@ export const URLRow = ({ url, label, security }: URLRowProps) => {
           style={{ fontSize: '0.7rem', height: 20 }}
         />
         {securityLabel && (
-          <Chip
-            label={securityLabel}
-            size="small"
-            variant="outlined"
-            style={{ fontSize: '0.7rem', height: 20, marginLeft: 6 }}
-          />
+          <Tooltip title={securityLabel}>
+            <LockIcon
+              // SvgIcon hides itself from assistive tech by default; this
+              // one carries the security, so it's announced.
+              aria-hidden={false}
+              role="img"
+              aria-label={securityLabel}
+              color="action"
+              style={{ fontSize: 16, marginLeft: 6 }}
+            />
+          </Tooltip>
         )}
       </Box>
       <Box display="flex" alignItems="flex-start">
         <Box
           style={{
             flex: 1,
+            // Lets the URL shrink below its width, so it's cut off instead
+            // of pushing the copy button out.
+            minWidth: 0,
             backgroundColor: 'rgba(0,0,0,0.04)',
             borderRadius: 4,
             padding: '6px 8px',
@@ -80,10 +105,9 @@ export const URLRow = ({ url, label, security }: URLRowProps) => {
               href={url}
               target="_blank"
               rel="noopener noreferrer"
+              title={url}
               style={{
-                fontFamily: 'monospace',
-                fontSize: '0.8rem',
-                wordBreak: 'break-all',
+                ...urlTextStyle,
                 color: theme.palette.primary.main,
                 textDecoration: 'none',
               }}
@@ -98,13 +122,7 @@ export const URLRow = ({ url, label, security }: URLRowProps) => {
               {url}
             </a>
           ) : (
-            <span
-              style={{
-                fontFamily: 'monospace',
-                fontSize: '0.8rem',
-                wordBreak: 'break-all',
-              }}
-            >
+            <span title={url} style={urlTextStyle}>
               {url}
             </span>
           )}
