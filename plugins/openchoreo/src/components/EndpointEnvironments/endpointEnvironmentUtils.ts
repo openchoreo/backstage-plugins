@@ -16,6 +16,41 @@ export function deriveEndpointEnvBadgeStatus(
   return 'unknown';
 }
 
+/** What the Deploy tab selects when the user hasn't chosen anything. */
+export type EndpointDefaultSelection =
+  | { kind: 'env'; name: string }
+  | { kind: 'setup' }
+  | null;
+
+/**
+ * Picks the card to select when the Deploy tab opens, as the Component Deploy
+ * tab does: the lowest environment the Endpoint is deployed to, else the Set
+ * up card. Environments arrive in pipeline order, so the first match is the
+ * lowest. Running or rolling-out deployments come before failed ones, and the
+ * classification is the tiles' own, so the selection matches their badges.
+ */
+export function resolveDefaultEndpointSelection(
+  envs: EndpointEnvironment[],
+): EndpointDefaultSelection {
+  if (envs.length === 0) return null;
+  const statusOf = deriveEndpointEnvBadgeStatus;
+
+  const running = envs.find(e => {
+    const s = statusOf(e);
+    return s === 'active' || s === 'pending';
+  });
+  if (running) return { kind: 'env', name: running.name };
+
+  const failed = envs.find(e => statusOf(e) === 'failed');
+  if (failed) return { kind: 'env', name: failed.name };
+
+  const deployed = envs.find(e => statusOf(e) !== 'not-deployed');
+  if (deployed) return { kind: 'env', name: deployed.name };
+
+  // Deployed nowhere yet: point the user at Set up.
+  return { kind: 'setup' };
+}
+
 export interface EndpointReleaseDriftInfo {
   /** True if at least one direct upstream is on a different release. */
   isBehind: boolean;

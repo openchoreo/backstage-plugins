@@ -33,6 +33,8 @@ import {
   RemoteTemplateFetcher,
 } from '../converters/RemoteTemplateFetcher';
 import { RtdToTemplateConverter } from '../converters/RtdToTemplateConverter';
+import { EtdToTemplateConverter } from '../converters/EtdToTemplateConverter';
+import { buildEndpointTypeTemplate } from './endpointTypeTemplates';
 import {
   PtdToTemplateConverter,
   ProjectTypeCRD,
@@ -134,6 +136,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
   private readonly defaultOwner: string;
   private readonly ctdConverter: CtdToTemplateConverter;
   private readonly rtdConverter: RtdToTemplateConverter;
+  private readonly etdConverter: EtdToTemplateConverter;
   private readonly ptdConverter: PtdToTemplateConverter;
   private readonly componentTypeUtils: ComponentTypeUtils;
   private readonly tokenService?: OpenChoreoTokenService;
@@ -175,6 +178,11 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     this.rtdConverter = new RtdToTemplateConverter({
       defaultOwner: this.defaultOwner,
     });
+    // Initialize ETD to Template converter — generates per-type Endpoint
+    // wizards from (Cluster)EndpointType entities.
+    this.etdConverter = new EtdToTemplateConverter({
+      defaultOwner: this.defaultOwner,
+    });
     // Initialize PTD to Template converter — generates per-type Project
     // wizards from (Cluster)ProjectType entities.
     this.ptdConverter = new PtdToTemplateConverter({
@@ -203,6 +211,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       getConnection: () => this.connection,
       ctdConverter: this.ctdConverter,
       rtdConverter: this.rtdConverter,
+      etdConverter: this.etdConverter,
       ptdConverter: this.ptdConverter,
       remoteTemplateFetcher: this.remoteTemplateFetcher,
       catalogService,
@@ -1400,6 +1409,23 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             })
             .filter((e): e is Entity => e !== null);
           allEntities.push(...etEntities);
+
+          // One create-Endpoint wizard per EndpointType.
+          const etTemplates = await Promise.all(
+            endpointTypes.map(et =>
+              buildEndpointTypeTemplate({
+                client,
+                converter: this.etdConverter,
+                type: et,
+                namespaceName: nsName,
+                locationKey: `provider:${this.getProviderName()}`,
+                logger: this.logger,
+              }),
+            ),
+          );
+          allEntities.push(
+            ...etTemplates.filter((e): e is Entity => e !== undefined),
+          );
         } catch (error) {
           this.logger.warn(
             `Failed to fetch endpoint types for namespace ${nsName}: ${error}`,
@@ -1783,6 +1809,21 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           })
           .filter((e): e is Entity => e !== null);
         allEntities.push(...cetEntities);
+
+        const cetTemplates = await Promise.all(
+          clusterEndpointTypes.map(cet =>
+            buildEndpointTypeTemplate({
+              client,
+              converter: this.etdConverter,
+              type: cet,
+              locationKey: `provider:${this.getProviderName()}`,
+              logger: this.logger,
+            }),
+          ),
+        );
+        allEntities.push(
+          ...cetTemplates.filter((e): e is Entity => e !== undefined),
+        );
       } catch (error) {
         this.logger.warn(`Failed to fetch cluster endpoint types: ${error}`);
       }

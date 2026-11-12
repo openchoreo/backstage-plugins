@@ -9,6 +9,7 @@ import ExtensionOutlinedIcon from '@material-ui/icons/ExtensionOutlined';
 import CategoryOutlinedIcon from '@material-ui/icons/CategoryOutlined';
 import LayersOutlinedIcon from '@material-ui/icons/LayersOutlined';
 import StorageOutlinedIcon from '@material-ui/icons/StorageOutlined';
+import RouterOutlinedIcon from '@material-ui/icons/RouterOutlined';
 import SettingsApplicationsOutlinedIcon from '@material-ui/icons/SettingsApplicationsOutlined';
 import DescriptionOutlinedIcon from '@material-ui/icons/DescriptionOutlined';
 import ApartmentOutlined from '@material-ui/icons/ApartmentOutlined';
@@ -32,6 +33,7 @@ const TYPE_ICONS: Record<string, React.ReactElement> = {
   ResourceType: <LayersOutlinedIcon fontSize="inherit" />,
   ClusterResourceType: <LayersOutlinedIcon fontSize="inherit" />,
   Resource: <StorageOutlinedIcon fontSize="inherit" />,
+  Endpoint: <RouterOutlinedIcon fontSize="inherit" />,
   ComponentWorkflow: <SettingsApplicationsOutlinedIcon fontSize="inherit" />,
   Namespace: <ApartmentOutlined fontSize="inherit" />,
   DeploymentPipeline: <AccountTreeOutlined fontSize="inherit" />,

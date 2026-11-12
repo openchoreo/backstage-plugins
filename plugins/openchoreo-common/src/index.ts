@@ -120,6 +120,7 @@ export {
   openchoreoResourceTypeCreatePermission,
   openchoreoProjectTypeCreatePermission,
   openchoreoResourceCreatePermission,
+  openchoreoEndpointCreatePermission,
   openchoreoClusterComponentTypeCreatePermission,
   openchoreoClusterResourceTypeCreatePermission,
   openchoreoClusterProjectTypeCreatePermission,

@@ -166,9 +166,7 @@ describe('EndpointSetupDetailPane', () => {
       { onPromote },
     );
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Deploy to Production' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Deploy' }));
 
     expect(onPromote).toHaveBeenCalledWith('production', 'orders-api-def');
   });
@@ -178,9 +176,7 @@ describe('EndpointSetupDetailPane', () => {
       <EndpointSetupDetailPane firstEnvironment={dev} onClose={() => {}} />,
     );
 
-    expect(
-      screen.getByRole('button', { name: 'Deploy to Development' }),
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Deploy' })).toBeDisabled();
     expect(
       screen.getByText(/already runs the latest release/i),
     ).toBeInTheDocument();
@@ -191,9 +187,7 @@ describe('EndpointSetupDetailPane', () => {
       <EndpointSetupDetailPane firstEnvironment={prod} onClose={() => {}} />,
     );
 
-    expect(
-      screen.getByRole('button', { name: 'Deploy to Production' }),
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Deploy' })).toBeDisabled();
     expect(screen.getByText(/has no release yet/i)).toBeInTheDocument();
   });
 });

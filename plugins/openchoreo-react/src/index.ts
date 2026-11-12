@@ -579,6 +579,10 @@ export {
   type UseResourceCreatePermissionResult,
 } from './hooks/useResourceCreatePermission';
 export {
+  useEndpointCreatePermission,
+  type UseEndpointCreatePermissionResult,
+} from './hooks/useEndpointCreatePermission';
+export {
   useResourceDefinitionPermission,
   type UseResourceDefinitionPermissionResult,
 } from './hooks/useResourceDefinitionPermission';
@@ -761,6 +765,10 @@ export {
   useCreateResourcePath,
   type UseCreateResourcePathResult,
 } from './hooks/useCreateResourcePath';
+export {
+  useCreateEndpointPath,
+  type UseCreateEndpointPathResult,
+} from './hooks/useCreateEndpointPath';
 
 // Re-export graph types for consumers
 export { type EntityNode } from '@backstage/plugin-catalog-graph';

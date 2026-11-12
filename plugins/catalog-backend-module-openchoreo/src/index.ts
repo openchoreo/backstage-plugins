@@ -59,6 +59,8 @@ export {
   translateProjectTypeToEntity,
   translateResourceToEntity,
   translateReleaseLineToEntity,
+  translateEndpointToEntities,
+  endpointApiEntityName,
   translateTraitToEntity,
   translateWorkflowToEntity,
   translateNamespaceToDomainEntity,
@@ -72,6 +74,7 @@ export {
   extractWorkflowParameters,
   type ComponentEntityTranslationConfig,
   type EntityTranslationConfig,
+  type EndpointEntityTranslationConfig,
   type ProjectEntityTranslationConfig,
   type NamespaceEntityTranslationConfig,
 } from './utils/entityTranslation';

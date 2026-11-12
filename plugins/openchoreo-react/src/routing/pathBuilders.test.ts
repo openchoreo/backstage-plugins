@@ -12,6 +12,7 @@ import {
   buildWorkflowConfigPath,
   buildCreateComponentPath,
   buildCreateResourcePath,
+  buildCreateEndpointPath,
   buildWorkflowListPath,
 } from './pathBuilders';
 
@@ -221,5 +222,25 @@ describe('buildCreateResourcePath', () => {
     ]);
     // First namespace is the form's pre-selected default.
     expect(params.get('namespace')).toBe('proj-ns');
+  });
+});
+
+describe('buildCreateEndpointPath', () => {
+  it('opens the endpoints view scoped to the project and namespaces', () => {
+    const url = buildCreateEndpointPath('store', [
+      'acme',
+      'openchoreo-cluster',
+    ]);
+    const params = new URLSearchParams(url.split('?')[1]);
+
+    expect(url.startsWith('/create?')).toBe(true);
+    expect(params.get('view')).toBe('endpoints');
+    expect(params.getAll('filters[type]')).toEqual(['endpoint']);
+    expect(params.getAll('filters[namespace]')).toEqual([
+      'acme',
+      'openchoreo-cluster',
+    ]);
+    expect(params.get('project')).toBe('store');
+    expect(params.get('namespace')).toBe('acme');
   });
 });

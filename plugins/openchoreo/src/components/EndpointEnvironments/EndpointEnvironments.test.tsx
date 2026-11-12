@@ -180,9 +180,7 @@ describe('EndpointEnvironmentsList', () => {
     fireEvent.click(
       await screen.findByRole('button', { name: 'Select setup' }),
     );
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Deploy to Development' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Deploy' }));
 
     await waitFor(() =>
       expect(updateEndpointReleaseBinding).toHaveBeenCalledWith(
@@ -191,6 +189,67 @@ describe('EndpointEnvironmentsList', () => {
         { endpointRelease: 'orders-api-abc' },
       ),
     );
+  });
+
+  it('opens Set up when the Endpoint is deployed nowhere', async () => {
+    renderList({
+      fetchEndpointEnvironmentInfo: jest.fn().mockResolvedValue(ENVS),
+    });
+
+    // No click on the Set up card: it is selected by default.
+    expect(
+      await screen.findByRole('button', { name: 'Deploy' }),
+    ).toBeInTheDocument();
+  });
+
+  it('opens the lowest environment the Endpoint is deployed to', async () => {
+    renderList({
+      fetchEndpointEnvironmentInfo: jest.fn().mockResolvedValue([
+        {
+          ...ENVS[0],
+          bindingName: 'orders-api-development',
+          endpointRelease: 'orders-api-def',
+          status: 'Ready',
+        },
+        {
+          ...ENVS[1],
+          bindingName: 'orders-api-production',
+          endpointRelease: 'orders-api-abc',
+          status: 'Ready',
+        },
+      ]),
+    });
+
+    expect(await screen.findByTitle('orders-api-def')).toBeInTheDocument();
+    expect(screen.queryByTitle('orders-api-abc')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Deploy' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps the right pane closed after the user closes it', async () => {
+    renderList({
+      fetchEndpointEnvironmentInfo: jest.fn().mockResolvedValue([
+        ENVS[0],
+        {
+          ...ENVS[1],
+          bindingName: 'orders-api-production',
+          endpointRelease: 'orders-api-abc',
+          status: 'Ready',
+        },
+      ]),
+    });
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Close detail panel' }),
+    );
+
+    await waitFor(() =>
+      expect(screen.queryByTitle('orders-api-abc')).not.toBeInTheDocument(),
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Close detail panel' }),
+    ).not.toBeInTheDocument();
   });
 
   it('shows a forbidden state when the user cannot view environments', async () => {
