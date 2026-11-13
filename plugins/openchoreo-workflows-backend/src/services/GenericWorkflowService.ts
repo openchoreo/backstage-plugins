@@ -6,7 +6,10 @@ import {
   fetchAllPages,
   ObservabilityUrlResolver,
 } from '@openchoreo/openchoreo-client-node';
-import { CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
+import {
+  CHOREO_LABELS,
+  deriveWorkflowRunDisplayStatus,
+} from '@openchoreo/backstage-plugin-common';
 import {
   Workflow,
   WorkflowRun,
@@ -17,49 +20,9 @@ import {
   WorkflowRunEventEntry,
 } from '../types';
 
-/**
- * Derive a display status from a raw K8s-style WorkflowRun object.
- *
- * Checks conditions in priority order, matching the Go-side
- * getComponentWorkflowStatus logic:
- *   1. WorkloadUpdated + True → Completed
- *   2. WorkflowFailed  + True → Failed
- *   3. WorkflowSucceeded + True → Succeeded
- *   4. WorkflowRunning + True → Running
- *   5. Default → Pending
- */
+/** @see deriveWorkflowRunDisplayStatus */
 function deriveWorkflowRunStatus(run: any): string {
-  const conditions = (run.status?.conditions ?? []) as any[];
-
-  if (conditions.length === 0) {
-    return 'Pending';
-  }
-
-  if (
-    conditions.some(c => c.type === 'WorkloadUpdated' && c.status === 'True')
-  ) {
-    return 'Completed';
-  }
-
-  if (
-    conditions.some(c => c.type === 'WorkflowFailed' && c.status === 'True')
-  ) {
-    return 'Failed';
-  }
-
-  if (
-    conditions.some(c => c.type === 'WorkflowSucceeded' && c.status === 'True')
-  ) {
-    return 'Succeeded';
-  }
-
-  if (
-    conditions.some(c => c.type === 'WorkflowRunning' && c.status === 'True')
-  ) {
-    return 'Running';
-  }
-
-  return 'Pending';
+  return deriveWorkflowRunDisplayStatus(run);
 }
 
 /**
