@@ -3,6 +3,7 @@ import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
 import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import { ResponseErrorPanel, EmptyState } from '@backstage/core-components';
 import { Typography, Button, Box, CircularProgress } from '@material-ui/core';
+import { Alert } from '@material-ui/lab';
 import PlayArrowIcon from '@material-ui/icons/PlayArrow';
 import SettingsIcon from '@material-ui/icons/SettingsOutlined';
 import ListAltOutlinedIcon from '@material-ui/icons/ListAltOutlined';
@@ -41,6 +42,11 @@ import {
   triggerReleaseLineBuild,
 } from '@openchoreo/backstage-plugin-react';
 import { useEntity } from '@backstage/plugin-catalog-react';
+import {
+  getWorkflowPlaneAvailabilityMessage,
+  isWorkflowPlaneUnavailable,
+  useWorkflowPlaneAvailability,
+} from '@openchoreo/backstage-plugin';
 import { openChoreoCiClientApiRef } from '../../api/OpenChoreoCiClientApi';
 import { walkSchemaForGitFields } from '../../utils/schemaExtensions';
 import type { GitFieldMapping } from '../../utils/schemaExtensions';
@@ -105,6 +111,18 @@ export const Workflows = () => {
   const workflowKind = workflowData.componentDetails?.componentWorkflow?.kind;
   const entityNamespace =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+  const workflowPlaneAvailability = useWorkflowPlaneAvailability({
+    namespaceName:
+      workflowData.componentDetails?.namespaceName || entityNamespace || '',
+    workflowName,
+    workflowKind,
+  });
+  const workflowPlaneMessage = getWorkflowPlaneAvailabilityMessage(
+    workflowPlaneAvailability,
+  );
+  const workflowPlaneBlocksBuild = isWorkflowPlaneUnavailable(
+    workflowPlaneAvailability.status,
+  );
 
   // Trigger-build permission, scoped to the component's workflow so ABAC
   // `resource.workflow` CEL constraints are honored.
@@ -328,9 +346,15 @@ export const Workflows = () => {
 
   const handleTriggerWithParams = useCallback(
     async (parameters: Record<string, unknown>) => {
+      if (workflowPlaneBlocksBuild) {
+        throw new Error(
+          workflowPlaneMessage ??
+            'The workflow plane is not currently available for builds.',
+        );
+      }
       await triggerWithParamsOp.mutate(parameters);
     },
-    [triggerWithParamsOp],
+    [workflowPlaneBlocksBuild, workflowPlaneMessage, triggerWithParamsOp],
   );
 
   // Split button options for the build action
@@ -352,13 +376,14 @@ export const Workflows = () => {
 
   const handleBuildAction = useCallback(
     (key: string) => {
+      if (workflowPlaneBlocksBuild) return;
       if (key === 'build-latest') {
         triggerWorkflowOp.mutate();
       } else if (key === 'build-custom') {
         handleOpenParamsDialog();
       }
     },
-    [triggerWorkflowOp, handleOpenParamsDialog],
+    [workflowPlaneBlocksBuild, triggerWorkflowOp, handleOpenParamsDialog],
   );
 
   // Tab configuration
@@ -503,7 +528,18 @@ export const Workflows = () => {
     triggerWorkflowOp.isLoading ||
     !componentDetails?.componentWorkflow ||
     permissionLoading ||
-    !canBuild;
+    !canBuild ||
+    workflowPlaneBlocksBuild;
+  let workflowPlaneAlertSeverity: 'warning' | 'error' | 'info' = 'info';
+
+  if (
+    workflowPlaneAvailability.status === 'missing' ||
+    workflowPlaneAvailability.status === 'disconnected'
+  ) {
+    workflowPlaneAlertSeverity = 'warning';
+  } else if (workflowPlaneAvailability.status === 'error') {
+    workflowPlaneAlertSeverity = 'error';
+  }
 
   return (
     <Box className={classes.container}>
@@ -538,6 +574,11 @@ export const Workflows = () => {
           )}
         </Box>
       </Box>
+      {workflowPlaneMessage && (
+        <Alert severity={workflowPlaneAlertSeverity}>
+          {workflowPlaneMessage}
+        </Alert>
+      )}
 
       <VerticalTabNav
         tabs={tabs}
@@ -552,6 +593,10 @@ export const Workflows = () => {
         onClose={handleCloseParamsDialog}
         onTrigger={handleTriggerWithParams}
         isLoading={triggerWithParamsOp.isLoading}
+        submitDisabled={workflowPlaneBlocksBuild}
+        availabilityMessage={
+          workflowPlaneBlocksBuild ? workflowPlaneMessage : undefined
+        }
         workflowName={componentDetails?.componentWorkflow?.name || ''}
         workflowKind={componentDetails?.componentWorkflow?.kind}
         currentParameters={

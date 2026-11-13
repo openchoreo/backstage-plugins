@@ -8,9 +8,14 @@ import {
   makeStyles,
   alpha,
 } from '@material-ui/core';
+import { Alert } from '@material-ui/lab';
 import CodeIcon from '@material-ui/icons/Code';
 import ImageIcon from '@material-ui/icons/Image';
 import SettingsInputComponentIcon from '@material-ui/icons/SettingsInputComponent';
+import {
+  getWorkflowPlaneAvailabilityMessage,
+  useWorkflowPlaneAvailability,
+} from '../../hooks/useWorkflowPlaneAvailability';
 
 const useStyles = makeStyles(theme => ({
   container: {
@@ -100,8 +105,30 @@ export const DeploymentSourcePicker = ({
   onChange,
   formData,
   schema,
+  formContext,
+  uiSchema,
 }: FieldExtensionComponentProps<string>) => {
   const classes = useStyles();
+  const selectedWorkflow = (formContext?.formData as any)?.buildAndDeploy
+    ?.workflow_name as { kind?: string; name?: string } | undefined;
+  const namespaceName =
+    (typeof uiSchema?.['ui:options']?.namespaceName === 'string'
+      ? uiSchema['ui:options'].namespaceName
+      : undefined) ||
+    (formContext?.formData as any)?.project_namespace?.namespace_name ||
+    (formContext?.formData as any)?.namespace_name ||
+    '';
+  const workflowPlaneAvailability = useWorkflowPlaneAvailability({
+    namespaceName,
+    workflowName: selectedWorkflow?.name,
+    workflowKind:
+      selectedWorkflow?.kind === 'ClusterWorkflow'
+        ? 'ClusterWorkflow'
+        : 'Workflow',
+  });
+  const availabilityMessage = getWorkflowPlaneAvailabilityMessage(
+    workflowPlaneAvailability,
+  );
 
   const sourceOptions: SourceOption[] = [
     {
@@ -125,6 +152,17 @@ export const DeploymentSourcePicker = ({
   ];
 
   const selectedValue = formData || '';
+
+  let availabilitySeverity: 'warning' | 'error' | 'info' = 'info';
+
+  if (
+    workflowPlaneAvailability.status === 'missing' ||
+    workflowPlaneAvailability.status === 'disconnected'
+  ) {
+    availabilitySeverity = 'warning';
+  } else if (workflowPlaneAvailability.status === 'error') {
+    availabilitySeverity = 'error';
+  }
 
   return (
     <Box>
@@ -172,6 +210,11 @@ export const DeploymentSourcePicker = ({
           );
         })}
       </Box>
+      {selectedValue === 'build-from-source' && availabilityMessage && (
+        <Box mt={2}>
+          <Alert severity={availabilitySeverity}>{availabilityMessage}</Alert>
+        </Box>
+      )}
     </Box>
   );
 };
