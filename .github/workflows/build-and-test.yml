@@ -157,6 +157,8 @@ jobs:
         run: yarn install --immutable
 
       - name: TypeScript compile
+        env:
+          NODE_OPTIONS: --max-old-space-size=5120
         run: yarn tsc
 
       - name: Build
