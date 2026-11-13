@@ -75,7 +75,13 @@ export const EndpointEnvironmentsList = () => {
   );
   const [selectedSetup, setSelectedSetup] = useState(false);
   const cancelledRef = useRef(false);
+  // Requests can overlap (the release poll, a refreshed entity), and their
+  // responses can arrive out of order. Each request is numbered, and one
+  // older than the last applied response is dropped. A response isn't
+  // dropped just for a newer request still being in flight: with slow
+  // responses that would drop every one while polling goes on.
   const fetchSeqRef = useRef(0);
+  const appliedSeqRef = useRef(0);
 
   // The right pane shows at most one of the Set up pane and an environment.
   const setSelectedEnvName = useCallback((name: string | null) => {
@@ -101,16 +107,19 @@ export const EndpointEnvironmentsList = () => {
   const fetchEnvs = useCallback(
     async (opts: { showProgress?: boolean } = {}) => {
       if (opts.showProgress) setLoading(true);
-      // Polls can overlap; only the newest request's response applies.
       const seq = ++fetchSeqRef.current;
-      const stale = () => cancelledRef.current || seq !== fetchSeqRef.current;
+      const superseded = () => {
+        if (cancelledRef.current || seq < appliedSeqRef.current) return true;
+        appliedSeqRef.current = seq;
+        return false;
+      };
       try {
         const res = await client.fetchEndpointEnvironmentInfo(entity);
-        if (stale()) return;
+        if (superseded()) return;
         setEnvs(res ?? []);
         setError(null);
       } catch (err: unknown) {
-        if (stale()) return;
+        if (superseded()) return;
         setError(err instanceof Error ? err : new Error(String(err)));
       } finally {
         if (!cancelledRef.current && opts.showProgress) setLoading(false);
