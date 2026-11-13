@@ -5,8 +5,10 @@ import { EndpointEnvironmentDetailPanel } from './EndpointEnvironmentDetailPanel
 import { EndpointSetupDetailPane } from './EndpointSetup';
 import {
   EndpointEnvironmentsProvider,
+  useEndpointEnvironmentsContext,
   type EndpointEnvironmentsContextValue,
 } from './EndpointEnvironmentsContext';
+import { useAwaitEndpointRelease } from './useAwaitEndpointRelease';
 
 // The Backends section reads the catalog entity and calls the API; it has its
 // own test file.
@@ -24,7 +26,7 @@ jest.mock('./EndpointBackendsSection', () => ({
   ),
 }));
 
-// The Set up pane reads the backends from the catalog entity.
+// The release wait reads the backends from the catalog entity.
 let mockBackends: unknown[] = [{ name: 'primary', weight: 1 }];
 const mockRefresh = jest.fn();
 jest.mock('@backstage/plugin-catalog-react', () => ({
@@ -236,13 +238,35 @@ describe('EndpointEnvironmentDetailPanel', () => {
   });
 });
 
+// The Set up pane with the release wait wired as EndpointEnvironmentsList
+// wires it.
+const SetupPane = ({
+  firstEnvironment,
+}: {
+  firstEnvironment: EndpointEnvironment;
+}) => {
+  const { refetch } = useEndpointEnvironmentsContext();
+  const releaseAwait = useAwaitEndpointRelease({
+    latestRelease: firstEnvironment.latestRelease,
+    backends: mockBackends as { name: string }[],
+    refetchEnvironments: refetch,
+    refreshEntity: mockRefresh,
+  });
+  return (
+    <EndpointSetupDetailPane
+      firstEnvironment={firstEnvironment}
+      releaseAwait={releaseAwait}
+      onClose={() => {}}
+    />
+  );
+};
+
 describe('EndpointSetupDetailPane', () => {
   it('deploys the latest release to the first environment', () => {
     const onPromote = jest.fn();
     renderWithCtx(
-      <EndpointSetupDetailPane
+      <SetupPane
         firstEnvironment={{ ...prod, latestRelease: 'orders-api-def' }}
-        onClose={() => {}}
       />,
       { onPromote },
     );
@@ -253,9 +277,7 @@ describe('EndpointSetupDetailPane', () => {
   });
 
   it('is disabled when the first environment already runs the latest release', () => {
-    renderWithCtx(
-      <EndpointSetupDetailPane firstEnvironment={dev} onClose={() => {}} />,
-    );
+    renderWithCtx(<SetupPane firstEnvironment={dev} />);
 
     expect(screen.getByRole('button', { name: 'Deploy' })).toBeDisabled();
     expect(
@@ -264,9 +286,7 @@ describe('EndpointSetupDetailPane', () => {
   });
 
   it('is disabled until the endpoint has a release', () => {
-    renderWithCtx(
-      <EndpointSetupDetailPane firstEnvironment={prod} onClose={() => {}} />,
-    );
+    renderWithCtx(<SetupPane firstEnvironment={prod} />);
 
     expect(screen.getByRole('button', { name: 'Deploy' })).toBeDisabled();
     expect(screen.getByText(/has no release yet/i)).toBeInTheDocument();
@@ -279,10 +299,7 @@ describe('EndpointSetupDetailPane', () => {
     const pane = (latestRelease: string) => (
       <MemoryRouter>
         <EndpointEnvironmentsProvider value={ctx}>
-          <EndpointSetupDetailPane
-            firstEnvironment={{ ...dev, latestRelease }}
-            onClose={() => {}}
-          />
+          <SetupPane firstEnvironment={{ ...dev, latestRelease }} />
         </EndpointEnvironmentsProvider>
       </MemoryRouter>
     );
@@ -318,5 +335,33 @@ describe('EndpointSetupDetailPane', () => {
       screen.getByText(/Deploy the latest release, orders-api-def/),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Deploy' })).toBeEnabled();
+  });
+
+  it('holds an unconfirmed change, with a retry, once polling gives up', () => {
+    const retryAwait = jest.fn();
+    renderWithCtx(
+      <EndpointSetupDetailPane
+        firstEnvironment={{ ...prod, latestRelease: 'orders-api-def' }}
+        releaseAwait={{
+          awaitingNewRelease: true,
+          unconfirmed: true,
+          beginAwaitingNewRelease: () => {},
+          retryAwait,
+        }}
+        onClose={() => {}}
+      />,
+    );
+
+    expect(screen.getByRole('status')).toHaveTextContent(
+      "The new release hasn't shown up yet.",
+    );
+    expect(screen.getByTestId('backends-section')).toHaveAttribute(
+      'data-awaiting',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'Deploy' })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Check again' }));
+    expect(retryAwait).toHaveBeenCalled();
   });
 });

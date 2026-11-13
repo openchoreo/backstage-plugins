@@ -9,7 +9,6 @@ import {
 import SettingsOutlinedIcon from '@material-ui/icons/SettingsOutlined';
 import CloseIcon from '@material-ui/icons/Close';
 import clsx from 'clsx';
-import { useAsyncEntity, useEntity } from '@backstage/plugin-catalog-react';
 import { useEndpointPromoteToEnvPermission } from '@openchoreo/backstage-plugin-react';
 import type { EndpointEnvironment } from '../../api/OpenChoreoClientApi';
 import {
@@ -19,8 +18,7 @@ import {
 import { useEndpointEnvironmentsContext } from './EndpointEnvironmentsContext';
 import { envResourceName } from './endpointEnvironmentUtils';
 import { EndpointBackendsSection } from './EndpointBackendsSection';
-import { useAwaitEndpointRelease } from './useAwaitEndpointRelease';
-import type { EndpointBackend } from '../EndpointOverview/EndpointBackendList';
+import type { useAwaitEndpointRelease } from './useAwaitEndpointRelease';
 
 /** Compact Set up tile at the start of the Endpoint deploy canvas. */
 export const EndpointSetupCard = ({ selected }: { selected: boolean }) => {
@@ -45,35 +43,31 @@ export const EndpointSetupCard = ({ selected }: { selected: boolean }) => {
  * and the deploy of its latest release to the first environment in the
  * pipeline, from where it is promoted forward. Every change to the Endpoint
  * cuts a new release: while it's being cut, the pane shows it in progress,
- * then the updated backends with the new release to deploy.
+ * then the updated backends with the new release to deploy. The wait itself
+ * lives in the list, which stays mounted while the pane comes and goes.
  */
 export const EndpointSetupDetailPane = ({
   firstEnvironment,
+  releaseAwait,
   onClose,
 }: {
   firstEnvironment: EndpointEnvironment;
+  releaseAwait: ReturnType<typeof useAwaitEndpointRelease>;
   onClose: () => void;
 }) => {
   const classes = useResourceEnvironmentDetailPanelStyles();
-  const { pendingAction, onPromote, refetch } =
-    useEndpointEnvironmentsContext();
-  const { entity } = useEntity();
-  const { refresh } = useAsyncEntity();
-  const backends =
-    (entity.spec as { backends?: EndpointBackend[] } | undefined)?.backends ??
-    [];
+  const { pendingAction, onPromote } = useEndpointEnvironmentsContext();
   const targetEnv = envResourceName(firstEnvironment);
   const { canPromote, loading, deniedTooltip } =
     useEndpointPromoteToEnvPermission(targetEnv);
 
   const latest = firstEnvironment.latestRelease;
-  const { awaitingNewRelease, beginAwaitingNewRelease } =
-    useAwaitEndpointRelease({
-      latestRelease: latest,
-      backends,
-      refetchEnvironments: refetch,
-      refreshEntity: () => refresh?.(),
-    });
+  const {
+    awaitingNewRelease,
+    unconfirmed,
+    beginAwaitingNewRelease,
+    retryAwait,
+  } = releaseAwait;
   const onLatest =
     Boolean(latest) && firstEnvironment.endpointRelease === latest;
   const isDeploying =
@@ -123,7 +117,23 @@ export const EndpointSetupDetailPane = ({
           <Typography variant="subtitle2" gutterBottom>
             Release
           </Typography>
-          {awaitingNewRelease ? (
+          {unconfirmed && (
+            <Box
+              display="flex"
+              alignItems="center"
+              gridGap={8}
+              role="status"
+              aria-live="polite"
+            >
+              <Typography variant="body2" color="textSecondary">
+                The new release hasn't shown up yet.
+              </Typography>
+              <Button size="small" color="primary" onClick={retryAwait}>
+                Check again
+              </Button>
+            </Box>
+          )}
+          {awaitingNewRelease && !unconfirmed && (
             <Box
               display="flex"
               alignItems="center"
@@ -136,7 +146,8 @@ export const EndpointSetupDetailPane = ({
                 New release in progress…
               </Typography>
             </Box>
-          ) : (
+          )}
+          {!awaitingNewRelease && (
             <Typography variant="body2" color="textSecondary">
               {description}
             </Typography>

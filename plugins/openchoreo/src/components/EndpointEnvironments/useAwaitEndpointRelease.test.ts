@@ -92,8 +92,8 @@ describe('useAwaitEndpointRelease', () => {
     expect(refetchEnvironments).toHaveBeenCalledTimes(3);
   });
 
-  it('gives up after 30 seconds', () => {
-    const { result } = setup();
+  it('stops polling after 30 seconds, keeping the change unconfirmed', () => {
+    const { result, rerender, refetchEnvironments } = setup();
 
     act(() =>
       result.current.beginAwaitingNewRelease({
@@ -101,10 +101,27 @@ describe('useAwaitEndpointRelease', () => {
         backendName: 'primary',
       }),
     );
+    expect(result.current.unconfirmed).toBe(false);
     act(() => {
       jest.advanceTimersByTime(30000);
     });
 
+    expect(result.current.awaitingNewRelease).toBe(true);
+    expect(result.current.unconfirmed).toBe(true);
+    const calls = refetchEnvironments.mock.calls.length;
+    act(() => {
+      jest.advanceTimersByTime(10000);
+    });
+    expect(refetchEnvironments).toHaveBeenCalledTimes(calls);
+
+    // A retry polls again.
+    act(() => result.current.retryAwait());
+    expect(result.current.unconfirmed).toBe(false);
+    expect(refetchEnvironments).toHaveBeenCalledTimes(calls + 1);
+
+    // The change showing up, late, still confirms it.
+    rerender({ latestRelease: 'rel-2', backends: [] });
     expect(result.current.awaitingNewRelease).toBe(false);
+    expect(result.current.unconfirmed).toBe(false);
   });
 });

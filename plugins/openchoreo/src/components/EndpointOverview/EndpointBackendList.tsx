@@ -49,6 +49,8 @@ export function trafficShares(backends: EndpointBackend[]): number[] {
 }
 
 function formatShare(share: number): string {
+  // A share that rounds to 0.0% still takes traffic; don't show it as none.
+  if (share > 0 && share < 0.05) return '<0.1%';
   return Number.isInteger(share) ? `${share}%` : `${share.toFixed(1)}%`;
 }
 

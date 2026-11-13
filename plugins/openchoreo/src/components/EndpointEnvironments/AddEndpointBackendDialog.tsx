@@ -118,7 +118,10 @@ export const AddEndpointBackendDialog = ({
       size="small"
       label="Workload endpoint"
       value={selected}
-      onChange={e => setSelected(e.target.value as string)}
+      onChange={e => {
+        setSelected(e.target.value as string);
+        setError(null);
+      }}
       disabled={saving}
       helperText={
         available.length === 0
@@ -180,7 +183,10 @@ export const AddEndpointBackendDialog = ({
           size="small"
           label="Weight"
           value={weight}
-          onChange={e => setWeight(e.target.value)}
+          onChange={e => {
+            setWeight(e.target.value);
+            setError(null);
+          }}
           inputProps={{ min: 0, max: MAX_ENDPOINT_BACKEND_WEIGHT, step: 1 }}
           error={!weightValid}
           helperText={

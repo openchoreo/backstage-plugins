@@ -121,7 +121,10 @@ export const EditBackendWeightDialog = ({
           size="small"
           label="Weight"
           value={weight}
-          onChange={e => setWeight(e.target.value)}
+          onChange={e => {
+            setWeight(e.target.value);
+            setError(null);
+          }}
           inputProps={{ min: 0, max: MAX_ENDPOINT_BACKEND_WEIGHT, step: 1 }}
           error={!valid || !takesTraffic}
           helperText={helperText}

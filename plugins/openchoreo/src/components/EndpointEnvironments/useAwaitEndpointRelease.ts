@@ -45,8 +45,10 @@ interface UseAwaitEndpointReleaseArgs {
  * seconds, and the catalog entity follows by event. This polls both until the
  * latest release has moved past the one at save time and the entity shows
  * the change, so the Set up pane can show the change as in progress and then
- * the updated backends with the new release to deploy. It gives up after 30
- * seconds, so a stuck controller doesn't spin forever.
+ * the updated backends with the new release to deploy. Polling stops after 30
+ * seconds, so a stuck controller doesn't spin forever, but the change stays
+ * unconfirmed (and the controls that depend on it stay disabled) until both
+ * conditions pass; `retryAwait` polls again.
  */
 export function useAwaitEndpointRelease({
   latestRelease,
@@ -54,13 +56,19 @@ export function useAwaitEndpointRelease({
   refetchEnvironments,
   refreshEntity,
 }: UseAwaitEndpointReleaseArgs): {
+  /** A saved change hasn't shown up yet, polled for or not. */
   awaitingNewRelease: boolean;
+  /** Polling gave up before the change showed up. */
+  unconfirmed: boolean;
   beginAwaitingNewRelease: (change: EndpointBackendChange) => void;
+  /** Polls again for an unconfirmed change. */
+  retryAwait: () => void;
 } {
   const [pending, setPending] = useState<{
     baseline: string | undefined;
     change: EndpointBackendChange;
   } | null>(null);
+  const [timedOut, setTimedOut] = useState(false);
 
   // Callbacks in refs, so a new identity doesn't restart the poll.
   const refetchRef = useRef(refetchEnvironments);
@@ -69,10 +77,13 @@ export function useAwaitEndpointRelease({
   refreshRef.current = refreshEntity;
 
   const beginAwaitingNewRelease = useCallback(
-    (change: EndpointBackendChange) =>
-      setPending({ baseline: latestRelease, change }),
+    (change: EndpointBackendChange) => {
+      setPending({ baseline: latestRelease, change });
+      setTimedOut(false);
+    },
     [latestRelease],
   );
+  const retryAwait = useCallback(() => setTimedOut(false), []);
 
   useEffect(() => {
     if (!pending) return;
@@ -82,24 +93,30 @@ export function useAwaitEndpointRelease({
       backendsReflect(pending.change, backends)
     ) {
       setPending(null);
+      setTimedOut(false);
     }
   }, [pending, latestRelease, backends]);
 
-  const active = pending !== null;
+  const polling = pending !== null && !timedOut;
   useEffect(() => {
-    if (!active) return undefined;
+    if (!polling) return undefined;
     const poll = () => {
       void refetchRef.current();
       refreshRef.current();
     };
     poll();
     const intervalId = setInterval(poll, POLL_INTERVAL_MS);
-    const timeoutId = setTimeout(() => setPending(null), POLL_TIMEOUT_MS);
+    const timeoutId = setTimeout(() => setTimedOut(true), POLL_TIMEOUT_MS);
     return () => {
       clearInterval(intervalId);
       clearTimeout(timeoutId);
     };
-  }, [active]);
+  }, [polling]);
 
-  return { awaitingNewRelease: active, beginAwaitingNewRelease };
+  return {
+    awaitingNewRelease: pending !== null,
+    unconfirmed: pending !== null && timedOut,
+    beginAwaitingNewRelease,
+    retryAwait,
+  };
 }

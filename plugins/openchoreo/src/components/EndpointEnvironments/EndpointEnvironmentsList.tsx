@@ -3,7 +3,7 @@ import { EmptyState } from '@backstage/core-components';
 import { PageLoader } from '@openchoreo/backstage-design-system';
 import { Box } from '@material-ui/core';
 import { useApi } from '@backstage/core-plugin-api';
-import { useEntity } from '@backstage/plugin-catalog-react';
+import { useAsyncEntity, useEntity } from '@backstage/plugin-catalog-react';
 import {
   ForbiddenState,
   MINI_ENV_NODE_HEIGHT,
@@ -37,6 +37,8 @@ import {
   resolveDefaultEndpointSelection,
   type EndpointReleaseDriftInfo,
 } from './endpointEnvironmentUtils';
+import { useAwaitEndpointRelease } from './useAwaitEndpointRelease';
+import type { EndpointBackend } from '../EndpointOverview/EndpointBackendList';
 
 // An Endpoint tile has a Backends row the default tile height has no room
 // for, which pushed the Promote button onto the tile's border.
@@ -53,6 +55,7 @@ const loadEndpointRelease: LoadRelease = (client, entity, releaseName) =>
 export const EndpointEnvironmentsList = () => {
   const canvasClasses = useResourceDeployFlowCanvasStyles();
   const { entity } = useEntity();
+  const { refresh } = useAsyncEntity();
   const client = useApi(openChoreoClientApiRef);
   const notification = useNotification();
 
@@ -72,6 +75,7 @@ export const EndpointEnvironmentsList = () => {
   );
   const [selectedSetup, setSelectedSetup] = useState(false);
   const cancelledRef = useRef(false);
+  const fetchSeqRef = useRef(0);
 
   // The right pane shows at most one of the Set up pane and an environment.
   const setSelectedEnvName = useCallback((name: string | null) => {
@@ -97,13 +101,16 @@ export const EndpointEnvironmentsList = () => {
   const fetchEnvs = useCallback(
     async (opts: { showProgress?: boolean } = {}) => {
       if (opts.showProgress) setLoading(true);
+      // Polls can overlap; only the newest request's response applies.
+      const seq = ++fetchSeqRef.current;
+      const stale = () => cancelledRef.current || seq !== fetchSeqRef.current;
       try {
         const res = await client.fetchEndpointEnvironmentInfo(entity);
-        if (cancelledRef.current) return;
+        if (stale()) return;
         setEnvs(res ?? []);
         setError(null);
       } catch (err: unknown) {
-        if (cancelledRef.current) return;
+        if (stale()) return;
         setError(err instanceof Error ? err : new Error(String(err)));
       } finally {
         if (!cancelledRef.current && opts.showProgress) setLoading(false);
@@ -153,6 +160,20 @@ export const EndpointEnvironmentsList = () => {
     setSelectedEnvName,
     handleSelectSetup,
   ]);
+
+  // A backend change made on the Set up pane is awaited here, not in the
+  // pane, so the wait survives the pane closing or another tile's selection.
+  const backends =
+    (entity.spec as { backends?: EndpointBackend[] } | undefined)?.backends ??
+    [];
+  const releaseAwait = useAwaitEndpointRelease({
+    // The view orders environments by the pipeline; the first carries the
+    // latest release.
+    latestRelease: envs[0]?.latestRelease,
+    backends,
+    refetchEnvironments: fetchEnvs,
+    refreshEntity: () => refresh?.(),
+  });
 
   // Poll while any binding is rolling out, until its routes are accepted.
   useEnvironmentPolling(
@@ -322,6 +343,7 @@ export const EndpointEnvironmentsList = () => {
             // where a new release enters.
             <EndpointSetupDetailPane
               firstEnvironment={envs[0]}
+              releaseAwait={releaseAwait}
               onClose={handleClearSelection}
             />
           ) : (
