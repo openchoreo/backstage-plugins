@@ -1189,4 +1189,434 @@ describe('OpenChoreoEntityProvider', () => {
       expect((comp?.spec as any).owner).toBe('group:default/test-owner');
     });
   });
+
+  describe('immediate writes', () => {
+    const locationKey = 'provider:OpenChoreoEntityProvider';
+
+    const portalEnvironment: Entity = {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'Environment',
+      metadata: { name: 'staging', namespace: 'test-ns' },
+      spec: {},
+    };
+
+    function newProvider() {
+      return new OpenChoreoEntityProvider(
+        taskRunner as any,
+        mkLogger(),
+        createConfig(),
+        undefined,
+      );
+    }
+
+    function mutations(type: 'full' | 'delta') {
+      return mockConnection.applyMutation.mock.calls
+        .map(([mutation]) => mutation)
+        .filter(mutation => mutation.type === type);
+    }
+
+    function addedNames(mutation: any): string[] {
+      const deferred =
+        mutation.type === 'full' ? mutation.entities : mutation.added;
+      return deferred.map((d: any) => d.entity.metadata.name);
+    }
+
+    it('rejects writes before the provider is connected', async () => {
+      const provider = newProvider();
+
+      await expect(provider.insertEntity(portalEnvironment)).rejects.toThrow(
+        'not connected',
+      );
+      await expect(
+        provider.removeEntity('environment:test-ns/staging'),
+      ).rejects.toThrow('not connected');
+    });
+
+    it('inserts through the same connection and location key as the full sync', async () => {
+      setupPathBasedMocks({
+        '/api/v1/namespaces': okData({ items: [k8sNamespace] }),
+      });
+      const provider = newProvider();
+      await provider.connect(mockConnection as any);
+
+      await provider.insertEntity(portalEnvironment);
+      await taskRunner.runTask();
+
+      expect(mutations('delta')[0]).toEqual({
+        type: 'delta',
+        added: [{ entity: portalEnvironment, locationKey }],
+        removed: [],
+      });
+      expect(mutations('full')[0].entities[0].locationKey).toBe(locationKey);
+    });
+
+    it('removes through the provider connection', async () => {
+      const provider = newProvider();
+      await provider.connect(mockConnection as any);
+
+      await provider.removeEntity('environment:test-ns/staging');
+
+      expect(mockConnection.applyMutation).toHaveBeenCalledWith({
+        type: 'delta',
+        added: [],
+        removed: [{ entityRef: 'environment:test-ns/staging', locationKey }],
+      });
+    });
+
+    it('lets the next full sync drop an inserted entity that is no longer in OpenChoreo', async () => {
+      setupPathBasedMocks({
+        '/api/v1/namespaces': okData({ items: [k8sNamespace] }),
+      });
+      const provider = newProvider();
+      await provider.connect(mockConnection as any);
+
+      await provider.insertEntity(portalEnvironment);
+      await taskRunner.runTask();
+
+      expect(addedNames(mutations('full')[0])).not.toContain('staging');
+      // Inserted before the sync started, so it is not re-applied.
+      expect(mutations('delta')).toHaveLength(1);
+    });
+
+    it('keeps an entity inserted while a sync is in flight that the snapshot missed', async () => {
+      const provider = newProvider();
+      let insert: Promise<void> | undefined;
+      setupPathBasedMocks({
+        '/api/v1/namespaces': () => {
+          // The create lands after the sync started reading the API.
+          insert = provider.insertEntity(portalEnvironment);
+          return okData({ items: [k8sNamespace] });
+        },
+      });
+      await provider.connect(mockConnection as any);
+
+      await taskRunner.runTask();
+      await insert;
+
+      // Merged into the full mutation, so it is never deleted and recreated:
+      // the only delta is the insert itself, and nothing re-adds it after.
+      const calls = mockConnection.applyMutation.mock.calls.map(
+        ([mutation]) => mutation,
+      );
+      const fullIndex = calls.findIndex(m => m.type === 'full');
+      expect(addedNames(calls[fullIndex])).toContain('staging');
+      expect(calls.slice(fullIndex + 1)).toEqual([]);
+      expect(mutations('delta')).toEqual([
+        {
+          type: 'delta',
+          added: [{ entity: portalEnvironment, locationKey }],
+          removed: [],
+        },
+      ]);
+    });
+
+    it('keeps an entity upserted by an event while a sync is in flight that the snapshot missed', async () => {
+      const provider = newProvider();
+      let upsert: Promise<void> | undefined;
+      setupPathBasedMocks({
+        '/api/v1/namespaces': () => {
+          // The created event is applied after the snapshot was read, so
+          // the snapshot does not include the environment.
+          upsert = (provider as any).eventApplier.upsertEntities([
+            portalEnvironment,
+          ]);
+          return okData({ items: [k8sNamespace] });
+        },
+      });
+      await provider.connect(mockConnection as any);
+
+      await taskRunner.runTask();
+      await upsert;
+
+      expect(addedNames(mutations('full')[0])).toContain('staging');
+      expect(mutations('delta')).toHaveLength(1);
+    });
+
+    it('commits an insert made while the full mutation is in flight after it', async () => {
+      const provider = newProvider();
+      setupPathBasedMocks({
+        '/api/v1/namespaces': okData({ items: [k8sNamespace] }),
+      });
+      await provider.connect(mockConnection as any);
+      let insert: Promise<void> | undefined;
+      let callsDuringFull = 0;
+      mockConnection.applyMutation.mockImplementation(async mutation => {
+        if (mutation.type === 'full') {
+          insert = provider.insertEntity(portalEnvironment);
+          await new Promise(resolve => setImmediate(resolve));
+          callsDuringFull = mockConnection.applyMutation.mock.calls.length;
+        }
+      });
+
+      await taskRunner.runTask();
+      await insert;
+
+      // Queued behind the full mutation, not sent alongside it.
+      expect(callsDuringFull).toBe(1);
+      const calls = mockConnection.applyMutation.mock.calls.map(
+        ([mutation]) => mutation,
+      );
+      expect(calls.map(m => m.type)).toEqual(['full', 'delta']);
+      expect(addedNames(calls[0])).not.toContain('staging');
+      expect(addedNames(calls[1])).toEqual(['staging']);
+    });
+
+    it('does not re-apply an entity the snapshot already contains', async () => {
+      const provider = newProvider();
+      setupPathBasedMocks({
+        '/api/v1/namespaces': () => {
+          void provider.insertEntity({
+            ...portalEnvironment,
+            metadata: { name: 'dev', namespace: 'test-ns' },
+          });
+          return okData({ items: [k8sNamespace] });
+        },
+        '/api/v1/namespaces/{namespaceName}/environments': okData({
+          items: [k8sEnvironment],
+        }),
+      });
+      await provider.connect(mockConnection as any);
+
+      await taskRunner.runTask();
+
+      expect(addedNames(mutations('full')[0])).toContain('dev');
+      expect(mutations('delta')).toHaveLength(1);
+    });
+
+    it('does not merge back or re-apply an entity removed while the sync is in flight', async () => {
+      const provider = newProvider();
+      setupPathBasedMocks({
+        '/api/v1/namespaces': async () => {
+          await provider.insertEntity(portalEnvironment);
+          await provider.removeEntity('Environment:test-ns/staging');
+          return okData({ items: [k8sNamespace] });
+        },
+      });
+      await provider.connect(mockConnection as any);
+
+      await taskRunner.runTask();
+
+      expect(addedNames(mutations('full')[0])).not.toContain('staging');
+      const deltas = mutations('delta');
+      expect(deltas).toHaveLength(2);
+      expect(deltas.flatMap(addedNames)).toEqual(['staging']);
+    });
+
+    it('commits writes in the order they were made', async () => {
+      const provider = newProvider();
+      let releaseRemoval: () => void = () => {};
+      let removal: Promise<void> | undefined;
+      let insert: Promise<void> | undefined;
+      mockConnection.applyMutation.mockImplementation(mutation => {
+        if (mutation.type === 'delta' && mutation.removed.length > 0) {
+          return new Promise<void>(resolve => {
+            releaseRemoval = resolve;
+          });
+        }
+        return Promise.resolve();
+      });
+      setupPathBasedMocks({
+        '/api/v1/namespaces': async () => {
+          removal = provider.removeEntity('environment:test-ns/staging');
+          insert = provider.insertEntity(portalEnvironment);
+          await new Promise(resolve => setImmediate(resolve));
+          // The re-create waits for the removal instead of racing it.
+          expect(mockConnection.applyMutation).toHaveBeenCalledTimes(1);
+          releaseRemoval();
+          await Promise.all([removal, insert]);
+          return okData({ items: [k8sNamespace] });
+        },
+      });
+      await provider.connect(mockConnection as any);
+
+      await taskRunner.runTask();
+
+      const calls = mockConnection.applyMutation.mock.calls.map(
+        ([mutation]) => mutation,
+      );
+      expect(calls.map(m => m.type)).toEqual(['delta', 'delta', 'full']);
+      expect(calls[0].removed).toHaveLength(1);
+      expect(addedNames(calls[1])).toEqual(['staging']);
+      expect(addedNames(calls[2])).toContain('staging');
+    });
+
+    it('keeps an entity deleted and re-created during the sync', async () => {
+      const provider = newProvider();
+      setupPathBasedMocks({
+        '/api/v1/namespaces': async () => {
+          await provider.removeEntity('environment:test-ns/staging');
+          await provider.insertEntity(portalEnvironment);
+          return okData({ items: [k8sNamespace] });
+        },
+      });
+      await provider.connect(mockConnection as any);
+
+      await taskRunner.runTask();
+
+      expect(addedNames(mutations('full')[0])).toContain('staging');
+    });
+
+    it('keeps an earlier successful write when a later insert for the same ref fails', async () => {
+      const provider = newProvider();
+      const duplicate: Entity = { ...portalEnvironment, spec: { revision: 2 } };
+      setupPathBasedMocks({
+        '/api/v1/namespaces': async () => {
+          await provider.insertEntity(portalEnvironment);
+          mockConnection.applyMutation.mockRejectedValueOnce(
+            new Error('write failed'),
+          );
+          await expect(provider.insertEntity(duplicate)).rejects.toThrow(
+            'write failed',
+          );
+          return okData({ items: [k8sNamespace] });
+        },
+      });
+      await provider.connect(mockConnection as any);
+
+      await taskRunner.runTask();
+
+      const fullEntities = mutations('full')[0].entities.map(
+        (d: any) => d.entity,
+      );
+      expect(fullEntities).toContainEqual(portalEnvironment);
+      expect(fullEntities).not.toContainEqual(duplicate);
+    });
+
+    it('stops tracking an event upsert whose write fails', async () => {
+      const provider = newProvider();
+      setupPathBasedMocks({
+        '/api/v1/namespaces': async () => {
+          mockConnection.applyMutation.mockRejectedValueOnce(
+            new Error('rejected'),
+          );
+          await expect(
+            (provider as any).eventApplier.upsertEntities([portalEnvironment]),
+          ).rejects.toThrow('rejected');
+          return okData({ items: [k8sNamespace] });
+        },
+      });
+      await provider.connect(mockConnection as any);
+
+      await taskRunner.runTask();
+
+      // A rejected entity left in the full mutation could fail the whole sync.
+      expect(addedNames(mutations('full')[0])).not.toContain('staging');
+    });
+
+    it('keeps an insert that was in flight when the sync started', async () => {
+      const provider = newProvider();
+      let releaseInsert: () => void = () => {};
+      mockConnection.applyMutation.mockImplementationOnce(
+        () =>
+          new Promise<void>(resolve => {
+            releaseInsert = resolve;
+          }),
+      );
+      setupPathBasedMocks({
+        '/api/v1/namespaces': () => {
+          // The insert commits after the sync started, and the snapshot
+          // does not include it.
+          releaseInsert();
+          return okData({ items: [k8sNamespace] });
+        },
+      });
+      await provider.connect(mockConnection as any);
+
+      const insert = provider.insertEntity(portalEnvironment);
+      await taskRunner.runTask();
+      await insert;
+
+      expect(addedNames(mutations('full')[0])).toContain('staging');
+    });
+
+    it('commits a newer write after the full mutation that wrote an older copy', async () => {
+      const provider = newProvider();
+      const newer = {
+        ...portalEnvironment,
+        metadata: { name: 'dev', namespace: 'test-ns' },
+      };
+      setupPathBasedMocks({
+        '/api/v1/namespaces': okData({ items: [k8sNamespace] }),
+        '/api/v1/namespaces/{namespaceName}/environments': okData({
+          items: [k8sEnvironment],
+        }),
+      });
+      await provider.connect(mockConnection as any);
+      let insert: Promise<void> | undefined;
+      mockConnection.applyMutation.mockImplementation(async mutation => {
+        if (mutation.type === 'full') {
+          insert = provider.insertEntity(newer);
+        }
+      });
+
+      await taskRunner.runTask();
+      await insert;
+
+      const calls = mockConnection.applyMutation.mock.calls.map(
+        ([mutation]) => mutation,
+      );
+      expect(calls.map(m => m.type)).toEqual(['full', 'delta']);
+      expect(calls[1].added.map((d: any) => d.entity)).toEqual([newer]);
+    });
+
+    describe('removals during a full sync', () => {
+      const devRef = 'environment:test-ns/dev';
+
+      it('leaves an entity the snapshot read before its removal out of the full mutation', async () => {
+        const provider = newProvider();
+        setupPathBasedMocks({
+          '/api/v1/namespaces': okData({ items: [k8sNamespace] }),
+          '/api/v1/namespaces/{namespaceName}/environments': async () => {
+            // The sync reads `dev`, then its delete is applied.
+            await provider.removeEntity(devRef);
+            return okData({ items: [k8sEnvironment] });
+          },
+        });
+        await provider.connect(mockConnection as any);
+
+        await taskRunner.runTask();
+
+        expect(addedNames(mutations('full')[0])).not.toContain('dev');
+        // Only the removal itself; nothing to re-apply after the full sync.
+        expect(mutations('delta')).toEqual([
+          {
+            type: 'delta',
+            added: [],
+            removed: [{ entityRef: devRef, locationKey }],
+          },
+        ]);
+      });
+
+      it('commits a removal made while the full mutation is in flight after it', async () => {
+        const provider = newProvider();
+        setupPathBasedMocks({
+          '/api/v1/namespaces': okData({ items: [k8sNamespace] }),
+          '/api/v1/namespaces/{namespaceName}/environments': okData({
+            items: [k8sEnvironment],
+          }),
+        });
+        await provider.connect(mockConnection as any);
+        let removal: Promise<void> | undefined;
+        mockConnection.applyMutation.mockImplementation(async mutation => {
+          if (mutation.type === 'full') {
+            removal = provider.removeEntity(devRef);
+          }
+        });
+
+        await taskRunner.runTask();
+        await removal;
+
+        const calls = mockConnection.applyMutation.mock.calls.map(
+          ([mutation]) => mutation,
+        );
+        expect(calls.map(m => m.type)).toEqual(['full', 'delta']);
+        expect(addedNames(calls[0])).toContain('dev');
+        expect(calls[1]).toEqual({
+          type: 'delta',
+          added: [],
+          removed: [{ entityRef: devRef, locationKey }],
+        });
+      });
+    });
+  });
 });
