@@ -1,4 +1,4 @@
-import { useEffect, useMemo, type ReactElement } from 'react';
+import { useEffect, useMemo, useRef, type ReactElement } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAsyncRetry from 'react-use/esm/useAsyncRetry';
 import type { Entity } from '@backstage/catalog-model';
@@ -94,6 +94,23 @@ const PLATFORM_RESOURCE_KINDS = new Set([
 ]);
 
 /**
+ * The previous entity object when a refreshed one is unchanged, else the new
+ * one. The catalog changes an entity's etag whenever the entity changes.
+ */
+export function keepUnchangedEntity(
+  previous: Entity | undefined,
+  next: Entity | undefined,
+): Entity | undefined {
+  if (!previous || !next || previous === next) return next;
+  if (previous.metadata.uid !== next.metadata.uid) return next;
+  const unchanged =
+    previous.metadata.etag && next.metadata.etag
+      ? previous.metadata.etag === next.metadata.etag
+      : JSON.stringify(previous) === JSON.stringify(next);
+  return unchanged ? previous : next;
+}
+
+/**
  * Local copy of upstream's internal `useEntityFromUrl` hook (not on
  * `@backstage/plugin-catalog`'s public surface — see
  * `node_modules/@backstage/plugin-catalog/src/components/CatalogEntityPage/useEntityFromUrl.ts`).
@@ -126,7 +143,23 @@ function useEntityFromUrl(): EntityLoadingStatus {
     }
   }, [errorApi, navigate, error, loading, entity, name]);
 
-  return { entity, loading, error, refresh };
+  // A refresh of the entity on screen, e.g. a pane polling for a change,
+  // keeps the page as it is: it reports no loading, so the header doesn't
+  // flash its skeleton, and an unchanged entity keeps its object, so hooks
+  // keyed on it don't run again. The first load and a navigation to another
+  // entity still report loading.
+  const previousRef = useRef<Entity | undefined>(undefined);
+  const stableEntity = keepUnchangedEntity(previousRef.current, entity);
+  useEffect(() => {
+    previousRef.current = stableEntity;
+  });
+
+  return {
+    entity: stableEntity,
+    loading: loading && !isEntityAt(stableEntity, { kind, namespace, name }),
+    error,
+    refresh,
+  };
 }
 
 export interface OpenChoreoRoute {
@@ -275,6 +308,21 @@ function EntityChrome({ routes }: OpenChoreoCatalogEntityPageContentProps) {
   );
 }
 
+/** Whether an entity is the one the page's route names. */
+export function isEntityAt(
+  entity: Entity | undefined,
+  route: { kind: string; namespace: string; name: string },
+): boolean {
+  const same = (a: string, b: string) =>
+    a.toLocaleLowerCase('en-US') === b.toLocaleLowerCase('en-US');
+  return (
+    entity !== undefined &&
+    same(entity.kind, route.kind) &&
+    same(entity.metadata.namespace ?? 'default', route.namespace) &&
+    same(entity.metadata.name, route.name)
+  );
+}
+
 /**
  * Gate that waits for `useAsyncEntity()` to resolve before rendering
  * `EntityChrome` (which calls `useEntity()` unconditionally). Renders
@@ -282,8 +330,14 @@ function EntityChrome({ routes }: OpenChoreoCatalogEntityPageContentProps) {
  */
 function ChromeGate(props: OpenChoreoCatalogEntityPageContentProps) {
   const { entity, loading, error } = useAsyncEntity();
+  const { kind, namespace, name } = useRouteRefParams(entityRouteRef);
 
-  if (loading) return <Progress />;
+  // A refresh of the entity on screen keeps the page mounted, so tabs keep
+  // their state (selection, open panes); only a different entity, or the
+  // first load, waits behind the spinner.
+  if (loading && !isEntityAt(entity, { kind, namespace, name })) {
+    return <Progress />;
+  }
   if (error) {
     return (
       <Box py={4}>

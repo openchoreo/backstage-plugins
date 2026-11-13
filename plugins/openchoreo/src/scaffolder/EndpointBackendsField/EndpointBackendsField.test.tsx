@@ -10,7 +10,6 @@ import { TestApiProvider } from '@backstage/test-utils';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import {
   EndpointBackendsField,
-  deriveBackendName,
   endpointBackendsFieldValidation,
 } from './EndpointBackendsField';
 import { EndpointSchemaField } from '../EndpointSchemaField/EndpointSchemaField';
@@ -125,23 +124,6 @@ describe('workload endpoint options', () => {
       project: 'store',
       namespace: 'acme',
     });
-  });
-});
-
-describe('deriveBackendName', () => {
-  it('names a backend after its component and endpoint, uniquely', () => {
-    expect(deriveBackendName('orders', 'http', [])).toBe('orders-http');
-    expect(deriveBackendName('orders', 'http', ['orders-http'])).toBe(
-      'orders-http-2',
-    );
-    expect(deriveBackendName('Orders', 'HTTP_v2', [])).toBe('orders-http-v2');
-  });
-
-  it('never ends a long name with a hyphen', () => {
-    // The 60-character cut falls just after the hyphen.
-    const name = deriveBackendName('a'.repeat(59), 'b', []);
-    expect(name).toBe('a'.repeat(59));
-    expect(name).toMatch(/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/);
   });
 });
 

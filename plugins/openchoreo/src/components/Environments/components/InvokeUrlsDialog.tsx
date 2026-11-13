@@ -14,16 +14,46 @@ import {
 } from '@material-ui/core';
 import { useTheme } from '@material-ui/core/styles';
 import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
-import type { EndpointInfo } from '../hooks/useEnvironmentData';
-import { buildServiceUrl, buildUrl } from '../utils/invokeUrlUtils';
+import LockOutlinedIcon from '@material-ui/icons/LockOutlined';
+import LockOpenOutlinedIcon from '@material-ui/icons/LockOpenOutlined';
+import type {
+  EndpointInfo,
+  EndpointURLSecurity,
+} from '../hooks/useEnvironmentData';
+import {
+  buildServiceUrl,
+  buildUrl,
+  describeSecurity,
+} from '../utils/invokeUrlUtils';
 
 interface URLRowProps {
   url: string;
   label: string;
+  /** What a caller must present, for URLs that come from an Endpoint. */
+  security?: EndpointURLSecurity;
 }
 
-const URLRow = ({ url, label }: URLRowProps) => {
+/** Keeps a long URL on one line, cut off with an ellipsis. */
+const urlTextStyle = {
+  display: 'block',
+  fontFamily: 'monospace',
+  fontSize: '0.8rem',
+  whiteSpace: 'nowrap',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+} as const;
+
+/**
+ * One URL with its visibility label, a copy button and, for URLs that come
+ * from an Endpoint, a padlock describing the security a caller must present.
+ */
+export const URLRow = ({ url, label, security }: URLRowProps) => {
   const theme = useTheme();
+  const securityLabel = describeSecurity(security);
+  const LockIcon =
+    security?.scheme === 'none' ? LockOpenOutlinedIcon : LockOutlinedIcon;
+  // An address without a scheme (a TCP Endpoint, say) isn't a link.
+  const linkable = /^[a-z][a-z0-9+.-]*:\/\//i.test(url);
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -44,37 +74,58 @@ const URLRow = ({ url, label }: URLRowProps) => {
           size="small"
           style={{ fontSize: '0.7rem', height: 20 }}
         />
+        {securityLabel && (
+          <Tooltip title={securityLabel}>
+            <LockIcon
+              // SvgIcon hides itself from assistive tech by default; this
+              // one carries the security, so it's announced.
+              aria-hidden={false}
+              role="img"
+              aria-label={securityLabel}
+              color="action"
+              style={{ fontSize: 16, marginLeft: 6 }}
+            />
+          </Tooltip>
+        )}
       </Box>
       <Box display="flex" alignItems="flex-start">
         <Box
           style={{
             flex: 1,
+            // Lets the URL shrink below its width, so it's cut off instead
+            // of pushing the copy button out.
+            minWidth: 0,
             backgroundColor: 'rgba(0,0,0,0.04)',
             borderRadius: 4,
             padding: '6px 8px',
           }}
         >
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              fontFamily: 'monospace',
-              fontSize: '0.8rem',
-              wordBreak: 'break-all',
-              color: theme.palette.primary.main,
-              textDecoration: 'none',
-            }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLElement).style.textDecoration =
-                'underline';
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLElement).style.textDecoration = 'none';
-            }}
-          >
-            {url}
-          </a>
+          {linkable ? (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={url}
+              style={{
+                ...urlTextStyle,
+                color: theme.palette.primary.main,
+                textDecoration: 'none',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.textDecoration =
+                  'underline';
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.textDecoration = 'none';
+              }}
+            >
+              {url}
+            </a>
+          ) : (
+            <span title={url} style={urlTextStyle}>
+              {url}
+            </span>
+          )}
         </Box>
         <Tooltip
           title={copied ? 'Copied!' : 'Copy URL'}

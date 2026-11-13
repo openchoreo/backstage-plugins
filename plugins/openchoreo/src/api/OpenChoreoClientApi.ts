@@ -10,6 +10,7 @@ import type {
   ResolvedEndpointBackend,
 } from '@openchoreo/backstage-plugin-common';
 import type { Environment } from '../components/RuntimeLogs/types';
+import type { EndpointURLDetails } from '../components/Environments/hooks/useEnvironmentData';
 
 // ============================================
 // Response Types
@@ -248,6 +249,13 @@ export interface EndpointEnvironment {
   lastDeployed?: string;
   /** How each backend resolved in this environment. */
   backends?: ResolvedEndpointBackend[];
+  /** The URLs the Endpoint is invoked at here, per visibility. */
+  urls?: Partial<
+    Record<
+      'external' | 'internal' | 'namespace' | 'project',
+      EndpointURLDetails
+    >
+  >;
   promotionTargets?: {
     name: string;
     resourceName?: string;
@@ -860,6 +868,26 @@ export interface OpenChoreoClientApi {
     namespaceName: string,
     releaseName: string,
   ): Promise<{ success: boolean; data?: Record<string, unknown> }>;
+
+  /**
+   * Add a backend to an Endpoint entity's Endpoint. When the backend is on
+   * another component than the one owning the Endpoint, the API moves the
+   * Endpoint to its project. Each change cuts a new EndpointRelease.
+   */
+  addEndpointBackend(
+    entity: Entity,
+    backend: { component: string; workloadEndpoint: string; weight?: number },
+  ): Promise<{ name: string; backendName: string }>;
+
+  /** Set the weight of one of an Endpoint entity's backends. */
+  updateEndpointBackendWeight(
+    entity: Entity,
+    backendName: string,
+    weight: number,
+  ): Promise<void>;
+
+  /** Remove one of an Endpoint entity's backends; the last can't be removed. */
+  removeEndpointBackend(entity: Entity, backendName: string): Promise<void>;
 
   /**
    * Fetch per-environment deploy info for a Project entity. Returns one entry

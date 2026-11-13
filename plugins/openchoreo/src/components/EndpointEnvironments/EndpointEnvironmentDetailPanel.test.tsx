@@ -5,8 +5,42 @@ import { EndpointEnvironmentDetailPanel } from './EndpointEnvironmentDetailPanel
 import { EndpointSetupDetailPane } from './EndpointSetup';
 import {
   EndpointEnvironmentsProvider,
+  useEndpointEnvironmentsContext,
   type EndpointEnvironmentsContextValue,
 } from './EndpointEnvironmentsContext';
+import { useAwaitEndpointRelease } from './useAwaitEndpointRelease';
+
+// The Backends section reads the catalog entity and calls the API; it has its
+// own test file.
+// It reports a saved change through onChanged, which these tests trigger.
+jest.mock('./EndpointBackendsSection', () => ({
+  EndpointBackendsSection: ({ awaiting, onChanged }: any) => (
+    <div data-testid="backends-section" data-awaiting={String(awaiting)}>
+      <button
+        type="button"
+        onClick={() => onChanged({ kind: 'add', backendName: 'canary' })}
+      >
+        save change
+      </button>
+    </div>
+  ),
+}));
+
+// The release wait reads the backends from the catalog entity.
+let mockBackends: unknown[] = [{ name: 'primary', weight: 1 }];
+const mockRefresh = jest.fn();
+jest.mock('@backstage/plugin-catalog-react', () => ({
+  ...jest.requireActual('@backstage/plugin-catalog-react'),
+  useEntity: () => ({
+    entity: {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'Endpoint',
+      metadata: { name: 'orders-api' },
+      spec: { backends: mockBackends },
+    },
+  }),
+  useAsyncEntity: () => ({ refresh: mockRefresh }),
+}));
 
 jest.mock('@openchoreo/backstage-design-system', () => ({
   StatusBadge: ({ status }: any) => (
@@ -117,6 +151,55 @@ describe('EndpointEnvironmentDetailPanel', () => {
     ).toBeInTheDocument();
   });
 
+  it('lists the URLs the Endpoint is invoked at, with their security', () => {
+    renderWithCtx(
+      <EndpointEnvironmentDetailPanel
+        env={{
+          ...dev,
+          urls: {
+            external: {
+              scheme: 'https',
+              host: 'orders.dev.example.com',
+              port: 443,
+              path: '/orders',
+              security: {
+                scheme: 'apiKey',
+                apiKey: { in: 'header', name: 'api-key' },
+              },
+            },
+            namespace: { scheme: '', host: 'orders-api.dp.svc', port: 9000 },
+          },
+        }}
+        onClose={() => {}}
+      />,
+      { environments: [dev, prod] },
+    );
+
+    expect(screen.getByText('Invoke URLs')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {
+        name: 'https://orders.dev.example.com:443/orders',
+      }),
+    ).toBeInTheDocument();
+    // The security is a padlock, described by its label and tooltip.
+    expect(
+      screen.getByRole('img', { name: 'API key (header api-key)' }),
+    ).toBeInTheDocument();
+    // An address without a scheme is shown, not linked.
+    expect(screen.getByText('orders-api.dp.svc:9000')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'orders-api.dp.svc:9000' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows no URLs before the binding resolves any', () => {
+    renderWithCtx(
+      <EndpointEnvironmentDetailPanel env={dev} onClose={() => {}} />,
+      { environments: [dev, prod] },
+    );
+    expect(screen.queryByText('Invoke URLs')).not.toBeInTheDocument();
+  });
+
   it('promotes the release to the next environment by its K8s name', () => {
     const onPromote = jest.fn();
     renderWithCtx(
@@ -155,13 +238,35 @@ describe('EndpointEnvironmentDetailPanel', () => {
   });
 });
 
+// The Set up pane with the release wait wired as EndpointEnvironmentsList
+// wires it.
+const SetupPane = ({
+  firstEnvironment,
+}: {
+  firstEnvironment: EndpointEnvironment;
+}) => {
+  const { refetch } = useEndpointEnvironmentsContext();
+  const releaseAwait = useAwaitEndpointRelease({
+    latestRelease: firstEnvironment.latestRelease,
+    backends: mockBackends as { name: string }[],
+    refetchEnvironments: refetch,
+    refreshEntity: mockRefresh,
+  });
+  return (
+    <EndpointSetupDetailPane
+      firstEnvironment={firstEnvironment}
+      releaseAwait={releaseAwait}
+      onClose={() => {}}
+    />
+  );
+};
+
 describe('EndpointSetupDetailPane', () => {
   it('deploys the latest release to the first environment', () => {
     const onPromote = jest.fn();
     renderWithCtx(
-      <EndpointSetupDetailPane
+      <SetupPane
         firstEnvironment={{ ...prod, latestRelease: 'orders-api-def' }}
-        onClose={() => {}}
       />,
       { onPromote },
     );
@@ -172,9 +277,7 @@ describe('EndpointSetupDetailPane', () => {
   });
 
   it('is disabled when the first environment already runs the latest release', () => {
-    renderWithCtx(
-      <EndpointSetupDetailPane firstEnvironment={dev} onClose={() => {}} />,
-    );
+    renderWithCtx(<SetupPane firstEnvironment={dev} />);
 
     expect(screen.getByRole('button', { name: 'Deploy' })).toBeDisabled();
     expect(
@@ -183,11 +286,82 @@ describe('EndpointSetupDetailPane', () => {
   });
 
   it('is disabled until the endpoint has a release', () => {
-    renderWithCtx(
-      <EndpointSetupDetailPane firstEnvironment={prod} onClose={() => {}} />,
-    );
+    renderWithCtx(<SetupPane firstEnvironment={prod} />);
 
     expect(screen.getByRole('button', { name: 'Deploy' })).toBeDisabled();
     expect(screen.getByText(/has no release yet/i)).toBeInTheDocument();
+  });
+
+  it('shows a backend change in progress until its release is cut', async () => {
+    mockBackends = [{ name: 'primary', weight: 1 }];
+    const refetch = jest.fn();
+    const ctx = makeCtx({ refetch });
+    const pane = (latestRelease: string) => (
+      <MemoryRouter>
+        <EndpointEnvironmentsProvider value={ctx}>
+          <SetupPane firstEnvironment={{ ...dev, latestRelease }} />
+        </EndpointEnvironmentsProvider>
+      </MemoryRouter>
+    );
+    const { rerender } = render(pane('orders-api-abc'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'save change' }));
+
+    // In progress: a loader instead of the release text, Deploy held, and
+    // the latest release and the entity are re-read.
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'New release in progress…',
+    );
+    expect(screen.getByTestId('backends-section')).toHaveAttribute(
+      'data-awaiting',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'Deploy' })).toBeDisabled();
+    expect(refetch).toHaveBeenCalled();
+    expect(mockRefresh).toHaveBeenCalled();
+
+    // A new release alone isn't enough: the entity must show the change.
+    rerender(pane('orders-api-def'));
+    expect(screen.getByRole('status')).toBeInTheDocument();
+
+    mockBackends = [
+      { name: 'primary', weight: 1 },
+      { name: 'canary', weight: 1 },
+    ];
+    rerender(pane('orders-api-def'));
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Deploy the latest release, orders-api-def/),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Deploy' })).toBeEnabled();
+  });
+
+  it('holds an unconfirmed change, with a retry, once polling gives up', () => {
+    const retryAwait = jest.fn();
+    renderWithCtx(
+      <EndpointSetupDetailPane
+        firstEnvironment={{ ...prod, latestRelease: 'orders-api-def' }}
+        releaseAwait={{
+          awaitingNewRelease: true,
+          unconfirmed: true,
+          beginAwaitingNewRelease: () => {},
+          retryAwait,
+        }}
+        onClose={() => {}}
+      />,
+    );
+
+    expect(screen.getByRole('status')).toHaveTextContent(
+      "The new release hasn't shown up yet.",
+    );
+    expect(screen.getByTestId('backends-section')).toHaveAttribute(
+      'data-awaiting',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'Deploy' })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Check again' }));
+    expect(retryAwait).toHaveBeenCalled();
   });
 });

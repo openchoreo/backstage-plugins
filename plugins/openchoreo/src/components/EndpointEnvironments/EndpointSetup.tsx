@@ -1,6 +1,7 @@
 import {
   Box,
   Button,
+  CircularProgress,
   IconButton,
   Tooltip,
   Typography,
@@ -16,6 +17,8 @@ import {
 } from '../ResourceEnvironments/styles';
 import { useEndpointEnvironmentsContext } from './EndpointEnvironmentsContext';
 import { envResourceName } from './endpointEnvironmentUtils';
+import { EndpointBackendsSection } from './EndpointBackendsSection';
+import type { useAwaitEndpointRelease } from './useAwaitEndpointRelease';
 
 /** Compact Set up tile at the start of the Endpoint deploy canvas. */
 export const EndpointSetupCard = ({ selected }: { selected: boolean }) => {
@@ -28,22 +31,28 @@ export const EndpointSetupCard = ({ selected }: { selected: boolean }) => {
         <SettingsOutlinedIcon className={classes.titleIcon} />
         <Typography className={classes.title}>Set up</Typography>
       </Box>
-      <Typography className={classes.hint}>Deploy latest release</Typography>
+      <Typography className={classes.hint}>
+        Manage backends and deploy
+      </Typography>
     </Box>
   );
 };
 
 /**
- * Right-pane body for the Set up tile. Deploys the Endpoint's latest release
- * to the first environment in the pipeline, from where it is promoted
- * forward. The Endpoint itself is edited on the Definition tab; every change
- * cuts a new release, which shows up here as the latest.
+ * Right-pane body for the Set up tile: the Endpoint's backends, changed here,
+ * and the deploy of its latest release to the first environment in the
+ * pipeline, from where it is promoted forward. Every change to the Endpoint
+ * cuts a new release: while it's being cut, the pane shows it in progress,
+ * then the updated backends with the new release to deploy. The wait itself
+ * lives in the list, which stays mounted while the pane comes and goes.
  */
 export const EndpointSetupDetailPane = ({
   firstEnvironment,
+  releaseAwait,
   onClose,
 }: {
   firstEnvironment: EndpointEnvironment;
+  releaseAwait: ReturnType<typeof useAwaitEndpointRelease>;
   onClose: () => void;
 }) => {
   const classes = useResourceEnvironmentDetailPanelStyles();
@@ -53,6 +62,12 @@ export const EndpointSetupDetailPane = ({
     useEndpointPromoteToEnvPermission(targetEnv);
 
   const latest = firstEnvironment.latestRelease;
+  const {
+    awaitingNewRelease,
+    unconfirmed,
+    beginAwaitingNewRelease,
+    retryAwait,
+  } = releaseAwait;
   const onLatest =
     Boolean(latest) && firstEnvironment.endpointRelease === latest;
   const isDeploying =
@@ -93,9 +108,51 @@ export const EndpointSetupDetailPane = ({
       </Box>
 
       <Box className={classes.setupBody}>
-        <Typography variant="body2" color="textSecondary">
-          {description}
-        </Typography>
+        <EndpointBackendsSection
+          awaiting={awaitingNewRelease}
+          onChanged={beginAwaitingNewRelease}
+        />
+
+        <Box mt={3}>
+          <Typography variant="subtitle2" gutterBottom>
+            Release
+          </Typography>
+          {unconfirmed && (
+            <Box
+              display="flex"
+              alignItems="center"
+              gridGap={8}
+              role="status"
+              aria-live="polite"
+            >
+              <Typography variant="body2" color="textSecondary">
+                The new release hasn't shown up yet.
+              </Typography>
+              <Button size="small" color="primary" onClick={retryAwait}>
+                Check again
+              </Button>
+            </Box>
+          )}
+          {awaitingNewRelease && !unconfirmed && (
+            <Box
+              display="flex"
+              alignItems="center"
+              gridGap={8}
+              role="status"
+              aria-live="polite"
+            >
+              <CircularProgress size={14} />
+              <Typography variant="body2" color="textSecondary">
+                New release in progress…
+              </Typography>
+            </Box>
+          )}
+          {!awaitingNewRelease && (
+            <Typography variant="body2" color="textSecondary">
+              {description}
+            </Typography>
+          )}
+        </Box>
 
         <Box mt="auto" pt={2} display="flex" justifyContent="flex-end">
           <Tooltip
@@ -107,7 +164,12 @@ export const EndpointSetupDetailPane = ({
                 variant="contained"
                 color="primary"
                 disabled={
-                  !latest || onLatest || isDeploying || loading || !canPromote
+                  !latest ||
+                  onLatest ||
+                  isDeploying ||
+                  awaitingNewRelease ||
+                  loading ||
+                  !canPromote
                 }
                 onClick={() => latest && void onPromote(targetEnv, latest)}
               >

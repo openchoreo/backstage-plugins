@@ -27,7 +27,10 @@ import type { StreamParser } from '@codemirror/language';
 import { yaml as yamlMode } from '@codemirror/legacy-modes/mode/yaml';
 import { protobuf as protobufMode } from '@codemirror/legacy-modes/mode/protobuf';
 import { graphql as graphqlMode } from 'codemirror-graphql/cm6-legacy/mode';
-import type { WorkloadEndpoint } from '@openchoreo/backstage-plugin-common';
+import {
+  endpointProtocol,
+  type WorkloadEndpoint,
+} from '@openchoreo/backstage-plugin-common';
 import {
   useChoreoTokens,
   EditRowActions,
@@ -281,8 +284,9 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
   const classes = useStyles();
   const [schemaDialogOpen, setSchemaDialogOpen] = useState(false);
 
-  const isSchemaRequired = SCHEMA_REQUIRED_TYPES.has(endpoint.type);
-  const schemaType = ENDPOINT_TYPE_TO_SCHEMA_TYPE[endpoint.type];
+  const protocol = endpointProtocol(endpoint) || 'HTTP';
+  const isSchemaRequired = SCHEMA_REQUIRED_TYPES.has(protocol);
+  const schemaType = ENDPOINT_TYPE_TO_SCHEMA_TYPE[protocol];
   const schemaDisplayName = schemaType
     ? SCHEMA_TYPE_DISPLAY_NAMES[schemaType]
     : undefined;
@@ -307,7 +311,7 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
             {endpointName || '(no name)'}
           </Typography>
           <Typography className={classes.readOnlyDetails}>
-            {endpoint.type} : {endpoint.port}
+            {protocol} : {endpoint.port}
             {(() => {
               const vis = endpoint.visibility ?? [];
               const displayVis = vis.includes('project')
@@ -356,9 +360,12 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
           <FormControl fullWidth variant="outlined" size="small">
             <InputLabel>Type</InputLabel>
             <Select
-              value={endpoint.type || 'HTTP'}
+              value={protocol}
               onChange={e => {
                 const newType = e.target.value as string;
+                // The deprecated type is written alongside so readers of
+                // either field agree; the API keeps the two equal.
+                onChange('protocol', newType);
                 onChange('type', newType);
                 const suggestedSchemaType =
                   ENDPOINT_TYPE_TO_SCHEMA_TYPE[newType];

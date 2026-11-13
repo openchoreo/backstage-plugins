@@ -3,7 +3,7 @@ import { EmptyState } from '@backstage/core-components';
 import { PageLoader } from '@openchoreo/backstage-design-system';
 import { Box } from '@material-ui/core';
 import { useApi } from '@backstage/core-plugin-api';
-import { useEntity } from '@backstage/plugin-catalog-react';
+import { useAsyncEntity, useEntity } from '@backstage/plugin-catalog-react';
 import {
   ForbiddenState,
   MINI_ENV_NODE_HEIGHT,
@@ -37,6 +37,8 @@ import {
   resolveDefaultEndpointSelection,
   type EndpointReleaseDriftInfo,
 } from './endpointEnvironmentUtils';
+import { useAwaitEndpointRelease } from './useAwaitEndpointRelease';
+import type { EndpointBackend } from '../EndpointOverview/EndpointBackendList';
 
 // An Endpoint tile has a Backends row the default tile height has no room
 // for, which pushed the Promote button onto the tile's border.
@@ -53,6 +55,7 @@ const loadEndpointRelease: LoadRelease = (client, entity, releaseName) =>
 export const EndpointEnvironmentsList = () => {
   const canvasClasses = useResourceDeployFlowCanvasStyles();
   const { entity } = useEntity();
+  const { refresh } = useAsyncEntity();
   const client = useApi(openChoreoClientApiRef);
   const notification = useNotification();
 
@@ -72,6 +75,13 @@ export const EndpointEnvironmentsList = () => {
   );
   const [selectedSetup, setSelectedSetup] = useState(false);
   const cancelledRef = useRef(false);
+  // Requests can overlap (the release poll, a refreshed entity), and their
+  // responses can arrive out of order. Each request is numbered, and one
+  // older than the last applied response is dropped. A response isn't
+  // dropped just for a newer request still being in flight: with slow
+  // responses that would drop every one while polling goes on.
+  const fetchSeqRef = useRef(0);
+  const appliedSeqRef = useRef(0);
 
   // The right pane shows at most one of the Set up pane and an environment.
   const setSelectedEnvName = useCallback((name: string | null) => {
@@ -97,13 +107,19 @@ export const EndpointEnvironmentsList = () => {
   const fetchEnvs = useCallback(
     async (opts: { showProgress?: boolean } = {}) => {
       if (opts.showProgress) setLoading(true);
+      const seq = ++fetchSeqRef.current;
+      const superseded = () => {
+        if (cancelledRef.current || seq < appliedSeqRef.current) return true;
+        appliedSeqRef.current = seq;
+        return false;
+      };
       try {
         const res = await client.fetchEndpointEnvironmentInfo(entity);
-        if (cancelledRef.current) return;
+        if (superseded()) return;
         setEnvs(res ?? []);
         setError(null);
       } catch (err: unknown) {
-        if (cancelledRef.current) return;
+        if (superseded()) return;
         setError(err instanceof Error ? err : new Error(String(err)));
       } finally {
         if (!cancelledRef.current && opts.showProgress) setLoading(false);
@@ -112,8 +128,12 @@ export const EndpointEnvironmentsList = () => {
     [client, entity],
   );
 
+  // Only the first load shows the page loader. A refreshed entity (after a
+  // backend change, say) refetches quietly, so the open pane stays mounted.
+  const loadedOnceRef = useRef(false);
   useEffect(() => {
-    fetchEnvs({ showProgress: true });
+    fetchEnvs({ showProgress: !loadedOnceRef.current });
+    loadedOnceRef.current = true;
   }, [fetchEnvs]);
 
   // One-shot guard so the default selection below doesn't override the
@@ -149,6 +169,20 @@ export const EndpointEnvironmentsList = () => {
     setSelectedEnvName,
     handleSelectSetup,
   ]);
+
+  // A backend change made on the Set up pane is awaited here, not in the
+  // pane, so the wait survives the pane closing or another tile's selection.
+  const backends =
+    (entity.spec as { backends?: EndpointBackend[] } | undefined)?.backends ??
+    [];
+  const releaseAwait = useAwaitEndpointRelease({
+    // The view orders environments by the pipeline; the first carries the
+    // latest release.
+    latestRelease: envs[0]?.latestRelease,
+    backends,
+    refetchEnvironments: fetchEnvs,
+    refreshEntity: () => refresh?.(),
+  });
 
   // Poll while any binding is rolling out, until its routes are accepted.
   useEnvironmentPolling(
@@ -318,6 +352,7 @@ export const EndpointEnvironmentsList = () => {
             // where a new release enters.
             <EndpointSetupDetailPane
               firstEnvironment={envs[0]}
+              releaseAwait={releaseAwait}
               onClose={handleClearSelection}
             />
           ) : (
