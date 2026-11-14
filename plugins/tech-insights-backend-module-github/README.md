@@ -68,3 +68,67 @@ techInsights:
   github:
     branchAnnotations: []
 ```
+
+## GitHub Code Scanning
+
+A second retriever, `githubCodeScanningFactRetriever`, reads GitHub Code Scanning for every
+configured scanner: any tool whose SARIF results are uploaded to GitHub, such as CodeQL, Trivy or
+Semgrep. It reads the same branch as `githubRepositoryFactRetriever`, chosen as described above, so
+both describe the code the component builds from. A scan counts only when the scanner ran on that
+branch, so a component that builds from a branch the scan workflow doesn't cover reports the
+scanner as not run.
+
+Each scanner adds seven facts, named after its `id`. For `trivy`:
+
+| Fact                                                                   | Type    | Meaning                                              |
+| ---------------------------------------------------------------------- | ------- | ---------------------------------------------------- |
+| `githubTrivyScanEnabled`                                               | boolean | Whether Trivy uploaded an analysis for the branch    |
+| `githubTrivyOpenCriticalAlertCount` ... `githubTrivyOpenLowAlertCount` | integer | Open alerts with each security severity              |
+| `githubTrivyOpenAlertCount`                                            | integer | All open alerts, with or without a security severity |
+| `githubTrivyHasOpenCriticalAlerts`                                     | boolean | Whether there is at least one open critical alert    |
+
+`githubCodeScanners` lists the ids of the scanners that ran. It's a list, so rules test it with
+`contains` or `doesNotContain`, for example `githubCodeScanners contains trivy`.
+
+A scanner that never ran on the branch reports `ScanEnabled` false and null counts, while one that
+ran and found nothing reports real zeros, so checks fail a component that isn't scanned instead of
+passing it. A component that names no GitHub repository and branch the portal can read gets the
+same null facts, with `githubCodeScanners` null. Any other error, such as code scanning being
+disabled or credentials without access to it, skips the component, which keeps its previous facts
+until they expire.
+
+```yaml
+techInsights:
+  factRetrievers:
+    githubCodeScanningFactRetriever:
+      cadence: '0 */6 * * *'
+      lifecycle: { timeToLive: { days: 3 } }
+```
+
+A component costs a request for the repository, one or more to find its branch, one per scanner to
+ask whether it ran, and for each scanner that did, one per hundred open alerts (at least one).
+
+The credentials need read access to code scanning alerts: the **Code scanning alerts** read
+permission for a GitHub App or a fine-grained token, or the `security_events` scope for a classic
+token (`public_repo` covers public repositories only). GitHub refuses code scanning requests without
+credentials even for a public repository, answering HTTP 401, so every component is then skipped.
+
+Scanners default to CodeQL and Trivy. To change them, list every scanner and raise `schemaVersion`:
+
+```yaml
+techInsights:
+  github:
+    codeScanning:
+      # Increase whenever `tools` changes, and never lower it. Tech Insights keeps the schema it
+      # already has for a version, so otherwise the change has no effect.
+      schemaVersion: 2
+      tools:
+        - { id: codeql, toolName: CodeQL, label: CodeQL }
+        - { id: trivy, toolName: Trivy, label: Trivy }
+        - { id: semgrep, toolName: Semgrep OSS, label: Semgrep }
+```
+
+`id` names the facts (`semgrep` gives `githubSemgrepOpenAlertCount`) and must start with a
+lowercase letter and contain only letters and digits. `toolName` is the tool's name as GitHub's code
+scanning page shows it, and `label` is used in fact descriptions. The backend fails to start on an
+invalid `id`, or on an `id` or `toolName` listed twice.

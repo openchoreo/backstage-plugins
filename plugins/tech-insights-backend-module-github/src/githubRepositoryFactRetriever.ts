@@ -186,7 +186,7 @@ const UNRESOLVED_FACTS = unresolvedFacts(schema, 'githubRepositoryResolved');
  * 403. `getRepo` throws for a rate-limited 403 before it gets here, so that
  * one still stops the run instead.
  */
-function isUnreadable(status: number): boolean {
+export function isUnreadable(status: number): boolean {
   return status === 404 || status === 403;
 }
 
@@ -195,7 +195,7 @@ function isUnreadable(status: number): boolean {
  * `GET .../branches/{branch}` body. Undefined when none is, or when one is
  * refused.
  */
-async function findBranch(
+export async function findBranch(
   api: GithubApi,
   repository: GithubRepository,
   candidates: string[],
