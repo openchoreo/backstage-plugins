@@ -559,6 +559,13 @@ techInsights:
       cadence: '0 2 * * *'
       initialDelay: { seconds: 20 }
       lifecycle: { timeToLive: { days: 7 } }
+    # One retriever for every scanner in techInsights.github.codeScanning
+    # (CodeQL and Trivy by default); a check reads the scanner it names
+    # through the facts in its rule.
+    githubCodeScanningFactRetriever:
+      cadence: '0 */6 * * *'
+      initialDelay: { seconds: 40 }
+      lifecycle: { timeToLive: { days: 3 } }
     openchoreoComponentTypeFactRetriever:
       cadence: '0 * * * *'
       initialDelay: { seconds: 20 }
