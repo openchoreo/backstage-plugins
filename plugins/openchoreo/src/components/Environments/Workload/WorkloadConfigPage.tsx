@@ -27,6 +27,7 @@ import {
   isInheritedTrait,
   mergeOverrides,
   mergeTraits,
+  workloadEndpointsForSave,
 } from '@openchoreo/backstage-plugin-common';
 import {
   DetailPageLayout,
@@ -48,6 +49,33 @@ import { useReleases } from '../hooks/useReleases';
 import { useEnvironmentsContext } from '../EnvironmentsContext';
 import { useNotification } from '../../../hooks';
 import { pickOverridableProperties } from '../../ReleaseLines/releaseLineUtils';
+import { useComponentEndpoints } from './hooks/useComponentEndpoints';
+import {
+  endpointChangeList,
+  endpointFormSwitchSummary,
+  exposedEndpointNames,
+  planEndpointChanges,
+} from './componentEndpointDrafts';
+
+/**
+ * The workload with the given rows' visibilities beyond project dropped
+ * (their Endpoints carry them) and protocol set on every row. In the legacy
+ * form no row is exposed through an Endpoint, so all visibility is kept.
+ */
+function workloadForSave(
+  resource: WorkloadResource | null,
+  exposedThroughEndpoint: string[],
+): WorkloadResource | null {
+  const endpoints = resource?.spec?.endpoints;
+  if (!resource || !endpoints) return resource;
+  return {
+    ...resource,
+    spec: {
+      ...resource.spec,
+      endpoints: workloadEndpointsForSave(endpoints, exposedThroughEndpoint),
+    },
+  } as WorkloadResource;
+}
 
 /** Stable empty array to avoid unnecessary rerenders in WorkloadProvider */
 const EMPTY_BUILDS: never[] = [];
@@ -230,6 +258,88 @@ export const WorkloadConfigPage = ({
   // Calculate workload changes — compares full resources
   const workloadChanges = useWorkloadChanges(initialResource, workloadResource);
 
+  // The component's own Endpoints, staged with the workload and saved after
+  // it, so they can route to workload endpoints added or renamed here.
+  // Batch workloads have no endpoints to expose.
+  const workloadType = (
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT_TYPE] ?? ''
+  ).split('/')[0];
+  const componentEndpoints = useComponentEndpoints(entity, {
+    skip: workloadType === 'cronjob' || workloadType === 'job',
+    releaseLine,
+  });
+  const workloadEndpoints = workloadResource?.spec?.endpoints;
+  const {
+    allowedEndpoints,
+    choices: endpointChoices,
+    originals: endpointOriginals,
+    renames: endpointRenames,
+    mode: endpointMode,
+    initialMode: initialEndpointMode,
+  } = componentEndpoints;
+  const endpointPlanInput = useMemo(
+    () => ({
+      mode: endpointMode,
+      endpoints: workloadEndpoints ?? {},
+      allowedEndpoints,
+      choices: endpointChoices,
+      originals: endpointOriginals,
+      renames: endpointRenames,
+    }),
+    [
+      endpointMode,
+      workloadEndpoints,
+      allowedEndpoints,
+      endpointChoices,
+      endpointOriginals,
+      endpointRenames,
+    ],
+  );
+  const endpointChanges = useMemo(
+    () => planEndpointChanges(endpointPlanInput),
+    [endpointPlanInput],
+  );
+  const endpointChangeItems = useMemo(
+    () => endpointChangeList(endpointChanges),
+    [endpointChanges],
+  );
+  const endpointFormSwitch = useMemo(
+    () =>
+      endpointFormSwitchSummary(
+        initialEndpointMode,
+        endpointMode,
+        endpointChanges,
+      ),
+    [initialEndpointMode, endpointMode, endpointChanges],
+  );
+  const hasEndpointChanges = endpointChanges.length > 0;
+
+  // The workload as on the server; the form shows rows with their
+  // Endpoint's visibility merged in, which the saved workload does not carry.
+  const serverResourceRef = useRef<WorkloadResource | null>(null);
+
+  // Once the workload and the component's Endpoints have both loaded, pick
+  // the form the Endpoints tab opens with and show each row with the
+  // visibility its Endpoint carries.
+  const endpointsPreparedRef = useRef(false);
+  const { loading: endpointsLoading, prepare } = componentEndpoints;
+  useEffect(() => {
+    if (endpointsPreparedRef.current || endpointsLoading || isLoading) return;
+    if (!workloadResource) return;
+    endpointsPreparedRef.current = true;
+    const rows = workloadResource.spec?.endpoints;
+    if (!rows) {
+      prepare({});
+      return;
+    }
+    const prepared = {
+      ...workloadResource,
+      spec: { ...workloadResource.spec, endpoints: prepare(rows) },
+    } as WorkloadResource;
+    setWorkloadResource(prepared);
+    setInitialResource(JSON.parse(JSON.stringify(prepared)));
+  }, [endpointsLoading, isLoading, workloadResource, prepare]);
+
   // Fetch workload and component config
   useEffect(() => {
     const fetchData = async () => {
@@ -245,6 +355,7 @@ export const WorkloadConfigPage = ({
         // Handle workload result
         if (workloadResult.status === 'fulfilled') {
           const resource = workloadResult.value;
+          serverResourceRef.current = JSON.parse(JSON.stringify(resource));
           setWorkloadResource(resource);
           setInitialResource(JSON.parse(JSON.stringify(resource)));
           setIsNewWorkload(false);
@@ -444,6 +555,7 @@ export const WorkloadConfigPage = ({
     workloadChanges.hasChanges ||
     hasTraitChanges ||
     hasParameterChanges ||
+    hasEndpointChanges ||
     isEditing;
 
   // Warn user before leaving page with unsaved changes (browser navigation/tab close)
@@ -510,8 +622,9 @@ export const WorkloadConfigPage = ({
   const spec = workloadResource?.spec;
   const hasImage = !!spec?.container?.image?.trim();
 
-  const hasAnyChanges =
+  const hasComponentChanges =
     workloadChanges.hasChanges || hasTraitChanges || hasParameterChanges;
+  const hasAnyChanges = hasComponentChanges || hasEndpointChanges;
 
   const handleSave = async () => {
     if (!workloadResource) {
@@ -523,16 +636,35 @@ export const WorkloadConfigPage = ({
     }
     setIsProcessing(true);
     setSaveError(null);
+    // The workload as saved: in the Endpoints form, rows exposed through an
+    // Endpoint keep only project visibility; in the legacy form every row
+    // keeps its visibility. It is compared with the server copy rather than
+    // the form, since switching forms changes the workload without changing
+    // what the form shows.
+    const toSave = workloadForSave(
+      workloadResource,
+      exposedEndpointNames(endpointPlanInput),
+    );
+    const workloadDirty =
+      isNewWorkload ||
+      deepCompareObjects(
+        workloadForSave(serverResourceRef.current, []) ?? {},
+        workloadForSave(toSave, []) ?? {},
+      ).length > 0;
+    const componentChanged =
+      workloadDirty || hasTraitChanges || hasParameterChanges;
     try {
-      if (workloadChanges.hasChanges) {
+      if (workloadDirty && toSave) {
         const result = await client.applyWorkload(
           entity,
-          workloadResource,
+          toSave,
           isNewWorkload,
           releaseLine,
         );
-        setWorkloadResource(result);
-        setInitialResource(JSON.parse(JSON.stringify(result)));
+        serverResourceRef.current = JSON.parse(JSON.stringify(result));
+        // The form keeps its rows (with Endpoint visibility) as the new
+        // baseline, so a retry after an Endpoint failure plans the same calls.
+        setInitialResource(JSON.parse(JSON.stringify(workloadResource)));
         setIsNewWorkload(false);
       }
 
@@ -557,8 +689,21 @@ export const WorkloadConfigPage = ({
         );
       }
 
+      if (hasEndpointChanges) {
+        await componentEndpoints.apply(
+          workloadResource.spec?.endpoints ?? {},
+          !!autoDeployEnabled,
+        );
+      }
+
       setIsProcessing(false);
-      if (autoDeployEnabled) {
+      if (autoDeployEnabled && !componentChanged) {
+        // Only Endpoints changed: the component gets no new release, and each
+        // Endpoint deploys its own new release.
+        allowNavigationRef.current = true;
+        notification.showSuccess('Endpoints saved.');
+        onReleaseCreated();
+      } else if (autoDeployEnabled) {
         // Auto-deploy controller will create a ComponentRelease itself; manual
         // creation here would be a redundant sibling release that's never bound.
         // We're about to navigate via onReleaseCreated, so disarm the
@@ -653,7 +798,8 @@ export const WorkloadConfigPage = ({
     (hasTraitChanges
       ? traitsState.filter(t => t.state !== 'original').length
       : 0) +
-    parameterChanges.length;
+    parameterChanges.length +
+    endpointChangeItems.length;
 
   // Header actions - Next/Save & Next button
   const headerActions = !isLoading ? (
@@ -811,6 +957,8 @@ export const WorkloadConfigPage = ({
             hasParameterChanges={hasParameterChanges}
             workloadChanges={workloadChanges}
             parameterChangesCount={parameterChanges.length}
+            componentEndpoints={componentEndpoints}
+            endpointChangesCount={endpointChangeItems.length}
           />
         </WorkloadProvider>
       )}
@@ -823,6 +971,8 @@ export const WorkloadConfigPage = ({
         saving={isProcessing}
         traitsState={hasTraitChanges ? traitsState : undefined}
         parameterChanges={parameterChanges}
+        endpointChanges={endpointChangeItems}
+        endpointFormSwitch={endpointFormSwitch}
         autoDeploy={autoDeployEnabled}
         lowestEnvironmentName={lowestEnvironment}
       />

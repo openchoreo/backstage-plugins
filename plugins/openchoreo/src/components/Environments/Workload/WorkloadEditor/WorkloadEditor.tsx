@@ -35,6 +35,7 @@ import SettingsIcon from '@material-ui/icons/Settings';
 import type { ComponentTrait } from '../../../../api/OpenChoreoClientApi';
 import type { TraitWithState } from '../../../Traits/types';
 import type { WorkloadChanges } from '../hooks/useWorkloadChanges';
+import type { ComponentEndpointsState } from '../hooks/useComponentEndpoints';
 
 interface WorkloadEditorProps {
   componentTypeName?: string;
@@ -61,6 +62,9 @@ interface WorkloadEditorProps {
   hasParameterChanges?: boolean;
   workloadChanges?: WorkloadChanges;
   parameterChangesCount?: number;
+  /** The component's own Endpoints, edited alongside its workload endpoints. */
+  componentEndpoints?: ComponentEndpointsState;
+  endpointChangesCount?: number;
 }
 
 const WORKLOAD_SUB_TABS = new Set(['container', 'endpoints', 'dependencies']);
@@ -205,6 +209,8 @@ export function WorkloadEditor({
   hasParameterChanges: _hasParameterChanges,
   workloadChanges,
   parameterChangesCount = 0,
+  componentEndpoints,
+  endpointChangesCount = 0,
 }: WorkloadEditorProps) {
   const classes = useStyles();
   const {
@@ -552,7 +558,8 @@ export function WorkloadEditor({
   // --- Outer nav ---
 
   // Compute change indicators
-  const hasWorkloadChanges = workloadChanges?.hasChanges ?? false;
+  const hasWorkloadChanges =
+    (workloadChanges?.hasChanges ?? false) || endpointChangesCount > 0;
   const traitChangesCount = traitsState
     ? traitsState.filter(t => t.state !== 'original').length
     : 0;
@@ -757,6 +764,7 @@ export function WorkloadEditor({
                       onEndpointReplace={handleEndpointReplace}
                       onAddEndpoint={addEndpoint}
                       onRemoveEndpoint={removeEndpoint}
+                      componentEndpoints={componentEndpoints}
                     />
                   )}
                   {activeTab === 'dependencies' && (

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FC } from 'react';
+import { useEffect, useMemo, useState, type FC, type ReactNode } from 'react';
 import {
   TextField,
   IconButton,
@@ -56,6 +56,11 @@ const useStyles = makeStyles((theme: Theme) => ({
     marginBottom: theme.spacing(1),
     backgroundColor: theme.palette.background.default,
     boxShadow: `0 0 0 1px ${theme.palette.primary.main}`,
+  },
+  details: {
+    marginTop: theme.spacing(1),
+    paddingTop: theme.spacing(1),
+    borderTop: `1px dashed ${theme.palette.divider}`,
   },
   readOnlyName: {
     fontWeight: 600,
@@ -259,6 +264,18 @@ export interface EndpointEditorProps {
   onNameChange: (name: string) => void;
   /** Callback when the endpoint should be removed */
   onRemove: () => void;
+  /**
+   * Extra content shown inside the endpoint's card (for example how the
+   * endpoint is exposed): under the summary in read-only mode, and under the
+   * schema content field while editing.
+   */
+  details?: ReactNode;
+  /**
+   * When set, visibilities beyond project cannot be added and this reason is
+   * shown under the visibility field; ones already selected can still be
+   * cleared.
+   */
+  visibilityDisabledReason?: string;
 }
 
 /**
@@ -280,6 +297,8 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
   onChange,
   onNameChange,
   onRemove,
+  details,
+  visibilityDisabledReason,
 }) => {
   const classes = useStyles();
   const [schemaDialogOpen, setSchemaDialogOpen] = useState(false);
@@ -300,10 +319,12 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
 
   // Read-only display
   if (!isEditing) {
-    return (
+    const row = (
       <Box
         className={
-          className || `${classes.container} ${classes.readOnlyContainer}`
+          details
+            ? classes.readOnlyContainer
+            : className || `${classes.container} ${classes.readOnlyContainer}`
         }
       >
         <Box flex={1} className={classes.readOnlyContent}>
@@ -340,6 +361,15 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
         />
       </Box>
     );
+    if (!details) {
+      return row;
+    }
+    return (
+      <Box className={className || classes.container}>
+        {row}
+        <Box className={classes.details}>{details}</Box>
+      </Box>
+    );
   }
 
   // Edit mode
@@ -358,7 +388,7 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
       <Grid container spacing={1} alignItems="center">
         <Grid item xs={6}>
           <FormControl fullWidth variant="outlined" size="small">
-            <InputLabel>Type</InputLabel>
+            <InputLabel>Protocol</InputLabel>
             <Select
               value={protocol}
               onChange={e => {
@@ -376,7 +406,7 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
                   });
                 }
               }}
-              label="Type"
+              label="Protocol"
               disabled={disabled}
             >
               {PROTOCOL_TYPES.map(type => (
@@ -419,6 +449,7 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
                 const isChecked =
                   opt.alwaysSelected ||
                   (currentVisibility as string[]).includes(opt.value);
+                const blocked = !!visibilityDisabledReason && !isChecked;
                 return (
                   <FormControlLabel
                     key={opt.value}
@@ -437,11 +468,16 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
                       />
                     }
                     label={opt.label}
-                    disabled={disabled || opt.disabled}
+                    disabled={disabled || opt.disabled || blocked}
                   />
                 );
               })}
             </FormGroup>
+            {visibilityDisabledReason && (
+              <Typography variant="caption" color="textSecondary">
+                {visibilityDisabledReason}
+              </Typography>
+            )}
           </FormControl>
         </Grid>
         <Grid item xs={12}>
@@ -495,6 +531,7 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
           />
         </Grid>
       </Grid>
+      {details && <Box className={classes.details}>{details}</Box>}
       <EditRowActions
         isEditing
         itemLabel="endpoint"

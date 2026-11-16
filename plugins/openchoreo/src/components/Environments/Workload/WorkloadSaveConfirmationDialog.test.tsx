@@ -78,4 +78,20 @@ describe('WorkloadSaveConfirmationDialog', () => {
       'the lowest environment',
     );
   });
+
+  it('shows a switch between endpoint forms as its own section', () => {
+    render(
+      <WorkloadSaveConfirmationDialog
+        {...baseProps}
+        endpointChanges={[
+          { path: 'orders-api', type: 'removed', oldValue: 'Deleted' },
+        ]}
+        endpointFormSwitch="Switches to legacy endpoints. Deletes Endpoints orders-api."
+      />,
+    );
+    expect(screen.getByText('Endpoint form')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Deletes Endpoints orders-api',
+    );
+  });
 });

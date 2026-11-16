@@ -101,6 +101,13 @@ interface WorkloadSaveConfirmationDialogProps {
   saving: boolean;
   traitsState?: TraitWithState[];
   parameterChanges?: Change[];
+  /** Changes to the component's own Endpoints. */
+  endpointChanges?: Change[];
+  /**
+   * What switching between the Endpoints and legacy endpoint forms does on
+   * save; absent when the form was not switched.
+   */
+  endpointFormSwitch?: string | null;
   /** When true, surface that saving will trigger an auto-deploy. */
   autoDeploy?: boolean;
   /** Env name shown in the auto-deploy warning. Required when autoDeploy is true. */
@@ -117,6 +124,8 @@ export const WorkloadSaveConfirmationDialog: FC<
   saving,
   traitsState = [],
   parameterChanges = [],
+  endpointChanges = [],
+  endpointFormSwitch,
   autoDeploy = false,
   lowestEnvironmentName,
 }) => {
@@ -128,7 +137,10 @@ export const WorkloadSaveConfirmationDialog: FC<
   );
 
   const totalChanges =
-    changes.total + traitChanges.length + parameterChanges.length;
+    changes.total +
+    traitChanges.length +
+    parameterChanges.length +
+    endpointChanges.length;
 
   const workloadSections: ChangesSection[] = useMemo(() => {
     const result: ChangesSection[] = [];
@@ -167,6 +179,7 @@ export const WorkloadSaveConfirmationDialog: FC<
 
   const hasWorkloadChanges = workloadSections.length > 0;
   const hasComponentChanges = componentSections.length > 0;
+  const hasEndpointChanges = endpointChanges.length > 0;
 
   const confirmLabel = (() => {
     if (autoDeploy) return saving ? 'Deploying...' : 'Save & deploy';
@@ -213,7 +226,28 @@ export const WorkloadSaveConfirmationDialog: FC<
           </Box>
         )}
 
-        {!hasWorkloadChanges && !hasComponentChanges && (
+        {endpointFormSwitch && (
+          <Box className={classes.groupSection}>
+            <Typography className={classes.groupHeader}>
+              Endpoint form
+            </Typography>
+            <Alert severity="warning">{endpointFormSwitch}</Alert>
+          </Box>
+        )}
+
+        {hasEndpointChanges && (
+          <Box className={classes.groupSection}>
+            <Typography className={classes.groupHeader}>
+              Endpoint resources
+            </Typography>
+            <ChangesList
+              sections={[{ title: 'Endpoints', changes: endpointChanges }]}
+              emptyMessage="No changes"
+            />
+          </Box>
+        )}
+
+        {!hasWorkloadChanges && !hasComponentChanges && !hasEndpointChanges && (
           <Typography variant="body2" color="textSecondary">
             No changes to save.
           </Typography>
