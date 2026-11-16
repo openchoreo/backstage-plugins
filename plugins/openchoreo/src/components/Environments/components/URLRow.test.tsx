@@ -14,6 +14,16 @@ describe('URLRow', () => {
     });
   });
 
+  it.each([
+    'ws://chat.example.com/live',
+    'grpc://orders.example.com:443',
+    'orders.example.com:5432',
+  ])('shows %s as text, not a link', url => {
+    render(<URLRow url={url} label="External" />);
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(screen.getByText(url)).toHaveAttribute('title', url);
+  });
+
   it('shows the security as a padlock with a tooltip', async () => {
     render(
       <URLRow

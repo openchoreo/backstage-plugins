@@ -52,8 +52,9 @@ export const URLRow = ({ url, label, security }: URLRowProps) => {
   const securityLabel = describeSecurity(security);
   const LockIcon =
     security?.scheme === 'none' ? LockOpenOutlinedIcon : LockOutlinedIcon;
-  // An address without a scheme (a TCP Endpoint, say) isn't a link.
-  const linkable = /^[a-z][a-z0-9+.-]*:\/\//i.test(url);
+  // Only a web URL opens in a browser tab. An address without a scheme (a
+  // TCP Endpoint, say) or with another one (ws://, grpc://) is shown as text.
+  const linkable = /^https?:\/\//i.test(url);
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
