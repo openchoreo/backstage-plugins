@@ -2531,6 +2531,8 @@ export function translateEndpointToEntities(
     projectName: string;
     /** The owning component, when a component rather than the project owns it. */
     ownerComponent?: string;
+    /** The owning component's release line, when a line owns it. */
+    ownerReleaseLine?: string;
     typeName: string;
     typeKind: 'EndpointType' | 'ClusterEndpointType';
     visibility: string[];
@@ -2569,6 +2571,10 @@ export function translateEndpointToEntities(
         ...(endpoint.ownerComponent && {
           [CHOREO_ANNOTATIONS.ENDPOINT_OWNER_COMPONENT]:
             endpoint.ownerComponent,
+        }),
+        ...(endpoint.ownerReleaseLine && {
+          [CHOREO_ANNOTATIONS.ENDPOINT_OWNER_RELEASE_LINE]:
+            endpoint.ownerReleaseLine,
         }),
         [CHOREO_ANNOTATIONS.ENDPOINTTYPE]: endpoint.typeName,
         [CHOREO_ANNOTATIONS.ENDPOINTTYPE_KIND]: endpoint.typeKind,
@@ -2699,6 +2705,7 @@ export function translateNewEndpointToEntities(
       description: getDescription(endpoint),
       projectName: spec?.owner?.projectName ?? '',
       ownerComponent: spec?.owner?.componentName || undefined,
+      ownerReleaseLine: spec?.owner?.releaseLineName || undefined,
       typeName: spec?.type?.name ?? '',
       typeKind,
       visibility: (spec?.visibility ?? []).map(String),
@@ -2708,6 +2715,9 @@ export function translateNewEndpointToEntities(
         ...(ref.component && {
           component: ref.component.name,
           endpoint: ref.component.endpoint,
+          ...(ref.component.releaseLine && {
+            releaseLine: ref.component.releaseLine,
+          }),
         }),
         ...(ref.weight !== undefined && { weight: ref.weight }),
       })),

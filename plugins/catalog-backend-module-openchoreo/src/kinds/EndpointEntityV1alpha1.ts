@@ -15,6 +15,8 @@ export type EndpointBackendV1alpha1 = {
   component?: string;
   /** Workload endpoint name on the backend component. */
   endpoint?: string;
+  /** The backend component's release line; absent for its main line. */
+  releaseLine?: string;
   /** Relative share of traffic. */
   weight?: number;
 };
