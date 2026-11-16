@@ -19,7 +19,7 @@
   ],
   "versionField": "openChoreoVersion",
   "versionFile": "src/version.ts",
-  "lastSyncCommit": "8ceb8773",
-  "lastSyncDate": "2026-11-11T13:52:39+05:30",
-  "lastSyncDescription": "feat: add allowedEndpoints to ComponentTypes and deprecate workload endpoint visibility (#5383)"
+  "lastSyncCommit": "5efd7829",
+  "lastSyncDate": "2026-11-12T11:56:54+05:30",
+  "lastSyncDescription": "feat: route Endpoints to release lines and let a line own its Endpoints (#5389)"
 }

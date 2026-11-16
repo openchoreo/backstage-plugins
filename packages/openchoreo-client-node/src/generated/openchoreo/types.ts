@@ -6066,7 +6066,7 @@ export interface components {
     };
     /** @description Desired state of an Endpoint. spec.owner.projectName and spec.type are immutable after creation. */
     EndpointSpec: {
-      /** @description Identifies what owns this Endpoint, and so what deleting removes it: the component when componentName is set, otherwise the project. */
+      /** @description Identifies what owns this Endpoint, and so what deleting removes it: the release line when releaseLineName is set, the component when componentName is set, otherwise the project. */
       owner: {
         /**
          * @description Parent project name. Immutable.
@@ -6078,6 +6078,11 @@ export interface components {
          * @example orders
          */
         componentName?: string;
+        /**
+         * @description Release line of the owning component that owns this Endpoint. Requires componentName, and every backend must route to this line. When an update makes a backend route to another line or the main line, the API drops this field so the component owns the Endpoint. "main" and "default" are reserved and rejected.
+         * @example next
+         */
+        releaseLineName?: string;
       };
       type: components['schemas']['EndpointTypeRef'];
       /** @description Scopes this Endpoint exposes its backends to. The project scope is implicit for every workload endpoint and is not accepted. */
@@ -6130,6 +6135,11 @@ export interface components {
        * @example http
        */
       endpoint: string;
+      /**
+       * @description Release line of the component to route to. Omitted for the main line; "main" and "default" are reserved and rejected.
+       * @example next
+       */
+      releaseLine?: string;
     };
     /** @description Observed state of an Endpoint. */
     EndpointStatus: {
@@ -6305,7 +6315,7 @@ export interface components {
        */
       includeWhen?: string;
       /**
-       * @description URL scheme; must resolve to one of http, https, ws, wss, grpc, grpcs, tcp, tls.
+       * @description URL scheme, as a literal or a ${...} expression resolving to one of http, https, ws, wss, grpc, grpcs, tcp, tls.
        * @example https
        */
       scheme: string;
@@ -6329,7 +6339,7 @@ export interface components {
     /** @description Template for the security enforced at a URL, as declared by the EndpointType. */
     EndpointSecurityTemplate: {
       /**
-       * @description Must resolve to one of none, apiKey, oauth2, basicAuth.
+       * @description Authentication scheme, as a literal or a ${...} expression resolving to one of none, apiKey, oauth2, basicAuth.
        * @example apiKey
        */
       scheme: string;
