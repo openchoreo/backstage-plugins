@@ -143,22 +143,45 @@ function useEntityFromUrl(): EntityLoadingStatus {
     }
   }, [errorApi, navigate, error, loading, entity, name]);
 
-  // A refresh of the entity on screen, e.g. a pane polling for a change,
-  // keeps the page as it is: it reports no loading, so the header doesn't
-  // flash its skeleton, and an unchanged entity keeps its object, so hooks
-  // keyed on it don't run again. The first load and a navigation to another
-  // entity still report loading.
   const previousRef = useRef<Entity | undefined>(undefined);
-  const stableEntity = keepUnchangedEntity(previousRef.current, entity);
+  const resolved = resolveEntityLoad(
+    previousRef.current,
+    { entity, loading, error },
+    { kind, namespace, name },
+  );
   useEffect(() => {
-    previousRef.current = stableEntity;
+    previousRef.current = resolved.entity;
   });
 
+  return { ...resolved, refresh };
+}
+
+/**
+ * What the page shows for a load of the route's entity, given the entity it
+ * showed before. A refresh of the entity on screen, e.g. a pane polling for a
+ * change, keeps the page as it is:
+ * - it reports no loading, so the header doesn't flash its skeleton;
+ * - an unchanged entity keeps its object, so hooks keyed on it don't run
+ *   again;
+ * - a failed refresh keeps the entity and drops the error, so one failed poll
+ *   doesn't replace the page (and the poll with it) with an error. The next
+ *   refresh tries again.
+ * The first load and a navigation to another entity still report loading
+ * and errors.
+ */
+export function resolveEntityLoad(
+  previous: Entity | undefined,
+  load: { entity: Entity | undefined; loading: boolean; error?: Error },
+  route: { kind: string; namespace: string; name: string },
+): { entity: Entity | undefined; loading: boolean; error?: Error } {
+  if (load.error && isEntityAt(previous, route)) {
+    return { entity: previous, loading: false };
+  }
+  const entity = keepUnchangedEntity(previous, load.entity);
   return {
-    entity: stableEntity,
-    loading: loading && !isEntityAt(stableEntity, { kind, namespace, name }),
-    error,
-    refresh,
+    entity,
+    loading: load.loading && !isEntityAt(entity, route),
+    error: load.error,
   };
 }
 

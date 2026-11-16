@@ -2,6 +2,7 @@ import type { Entity } from '@backstage/catalog-model';
 import {
   isEntityAt,
   keepUnchangedEntity,
+  resolveEntityLoad,
 } from './OpenChoreoCatalogEntityPageContent';
 
 const entity: Entity = {
@@ -70,5 +71,58 @@ describe('keepUnchangedEntity', () => {
   it('passes through a first load or a missing entity', () => {
     expect(keepUnchangedEntity(undefined, v1)).toBe(v1);
     expect(keepUnchangedEntity(v1, undefined)).toBeUndefined();
+  });
+});
+
+describe('resolveEntityLoad', () => {
+  const route = { kind: 'endpoint', namespace: 'acme', name: 'orders-api' };
+  const failure = new Error('catalog unavailable');
+
+  it('keeps the entity on screen when its refresh fails', () => {
+    expect(
+      resolveEntityLoad(
+        entity,
+        { entity: undefined, loading: false, error: failure },
+        route,
+      ),
+    ).toEqual({ entity, loading: false });
+  });
+
+  it('reports a failed first load', () => {
+    expect(
+      resolveEntityLoad(
+        undefined,
+        { entity: undefined, loading: false, error: failure },
+        route,
+      ),
+    ).toEqual({ entity: undefined, loading: false, error: failure });
+  });
+
+  it('reports a failed load of another entity', () => {
+    const other = { ...route, name: 'payments-api' };
+    expect(
+      resolveEntityLoad(
+        entity,
+        { entity: undefined, loading: false, error: failure },
+        other,
+      ).error,
+    ).toBe(failure);
+  });
+
+  it('reports no loading while refreshing the entity on screen', () => {
+    expect(
+      resolveEntityLoad(entity, { entity, loading: true }, route).loading,
+    ).toBe(false);
+    expect(
+      resolveEntityLoad(undefined, { entity: undefined, loading: true }, route)
+        .loading,
+    ).toBe(true);
+  });
+
+  it('passes a deleted entity through as missing', () => {
+    expect(
+      resolveEntityLoad(entity, { entity: undefined, loading: false }, route)
+        .entity,
+    ).toBeUndefined();
   });
 });
