@@ -337,8 +337,9 @@ describe('EndpointSetupDetailPane', () => {
     expect(screen.getByRole('button', { name: 'Deploy' })).toBeEnabled();
   });
 
-  it('holds an unconfirmed change, with a retry, once polling gives up', () => {
+  it('holds an unconfirmed change, with a retry or a way out, once polling gives up', () => {
     const retryAwait = jest.fn();
+    const stopAwaiting = jest.fn();
     renderWithCtx(
       <EndpointSetupDetailPane
         firstEnvironment={{ ...prod, latestRelease: 'orders-api-def' }}
@@ -347,6 +348,7 @@ describe('EndpointSetupDetailPane', () => {
           unconfirmed: true,
           beginAwaitingNewRelease: () => {},
           retryAwait,
+          stopAwaiting,
         }}
         onClose={() => {}}
       />,
@@ -363,5 +365,8 @@ describe('EndpointSetupDetailPane', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Check again' }));
     expect(retryAwait).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Stop waiting' }));
+    expect(stopAwaiting).toHaveBeenCalled();
   });
 });

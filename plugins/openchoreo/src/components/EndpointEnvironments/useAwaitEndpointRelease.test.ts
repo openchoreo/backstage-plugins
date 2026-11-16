@@ -124,4 +124,29 @@ describe('useAwaitEndpointRelease', () => {
     expect(result.current.awaitingNewRelease).toBe(false);
     expect(result.current.unconfirmed).toBe(false);
   });
+
+  it('stops waiting for a change that never shows up', () => {
+    const { result, refetchEnvironments } = setup();
+
+    act(() =>
+      result.current.beginAwaitingNewRelease({
+        kind: 'add',
+        backendName: 'rejected',
+      }),
+    );
+    act(() => {
+      jest.advanceTimersByTime(30000);
+    });
+    expect(result.current.unconfirmed).toBe(true);
+
+    act(() => result.current.stopAwaiting());
+    expect(result.current.awaitingNewRelease).toBe(false);
+    expect(result.current.unconfirmed).toBe(false);
+
+    const calls = refetchEnvironments.mock.calls.length;
+    act(() => {
+      jest.advanceTimersByTime(10000);
+    });
+    expect(refetchEnvironments).toHaveBeenCalledTimes(calls);
+  });
 });

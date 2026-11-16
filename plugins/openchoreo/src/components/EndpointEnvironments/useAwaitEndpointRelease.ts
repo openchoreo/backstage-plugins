@@ -48,7 +48,9 @@ interface UseAwaitEndpointReleaseArgs {
  * the updated backends with the new release to deploy. Polling stops after 30
  * seconds, so a stuck controller doesn't spin forever, but the change stays
  * unconfirmed (and the controls that depend on it stay disabled) until both
- * conditions pass; `retryAwait` polls again.
+ * conditions pass. `retryAwait` polls again; `stopAwaiting` gives up on a
+ * change that won't show up (the controller rejected it, or a concurrent
+ * edit replaced it), so the controls are usable again.
  */
 export function useAwaitEndpointRelease({
   latestRelease,
@@ -63,6 +65,8 @@ export function useAwaitEndpointRelease({
   beginAwaitingNewRelease: (change: EndpointBackendChange) => void;
   /** Polls again for an unconfirmed change. */
   retryAwait: () => void;
+  /** Stops waiting for an unconfirmed change. */
+  stopAwaiting: () => void;
 } {
   const [pending, setPending] = useState<{
     baseline: string | undefined;
@@ -84,6 +88,10 @@ export function useAwaitEndpointRelease({
     [latestRelease],
   );
   const retryAwait = useCallback(() => setTimedOut(false), []);
+  const stopAwaiting = useCallback(() => {
+    setPending(null);
+    setTimedOut(false);
+  }, []);
 
   useEffect(() => {
     if (!pending) return;
@@ -118,5 +126,6 @@ export function useAwaitEndpointRelease({
     unconfirmed: pending !== null && timedOut,
     beginAwaitingNewRelease,
     retryAwait,
+    stopAwaiting,
   };
 }

@@ -67,6 +67,7 @@ export const EndpointSetupDetailPane = ({
     unconfirmed,
     beginAwaitingNewRelease,
     retryAwait,
+    stopAwaiting,
   } = releaseAwait;
   const onLatest =
     Boolean(latest) && firstEnvironment.endpointRelease === latest;
@@ -130,6 +131,9 @@ export const EndpointSetupDetailPane = ({
               </Typography>
               <Button size="small" color="primary" onClick={retryAwait}>
                 Check again
+              </Button>
+              <Button size="small" onClick={stopAwaiting}>
+                Stop waiting
               </Button>
             </Box>
           )}
