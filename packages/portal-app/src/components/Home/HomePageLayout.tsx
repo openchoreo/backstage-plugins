@@ -1,9 +1,7 @@
 import { Fragment } from 'react';
 import { Content, Page, Header } from '@backstage/core-components';
-import {
-  CustomHomepageGrid,
-  type LayoutConfiguration,
-} from '@backstage/plugin-home';
+import { CustomHomepageGrid } from './CustomHomepageGrid';
+import { type LayoutConfiguration } from './types';
 import type { HomePageLayoutProps } from '@backstage/plugin-home-react/alpha';
 import { HomePageSearchBar } from '@backstage/plugin-search';
 import { SearchContextProvider } from '@backstage/plugin-search-react';

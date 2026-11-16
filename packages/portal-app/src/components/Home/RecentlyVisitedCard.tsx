@@ -1,4 +1,4 @@
-import { useState, ComponentType } from 'react';
+import { useMemo, useState, ComponentType } from 'react';
 import useAsync from 'react-use/esm/useAsync';
 import { useApi, useApp, IconComponent } from '@backstage/core-plugin-api';
 import { Link } from '@backstage/core-components';
@@ -315,5 +315,49 @@ export const RecentlyVisitedContent = () => {
         </Box>
       )}
     </>
+  );
+};
+
+const MINUTE = 60 * 1000;
+
+// Sample visits for the "Add widget" gallery preview. Page visits only, so no
+// entity lookup is needed.
+const getSampleVisits = (): Visit[] => {
+  const now = Date.now();
+  return [
+    {
+      id: 'sample-home',
+      name: 'Home',
+      pathname: '/',
+      hits: 12,
+      timestamp: now,
+    },
+    {
+      id: 'sample-catalog',
+      name: 'Catalog',
+      pathname: '/catalog',
+      hits: 8,
+      timestamp: now - 12 * MINUTE,
+    },
+    {
+      id: 'sample-create',
+      name: 'Create',
+      pathname: '/create',
+      hits: 3,
+      timestamp: now - 90 * MINUTE,
+    },
+  ];
+};
+
+// Static preview of the "Recently Visited" widget, built from the same row
+// component with sample data. It never calls an API.
+export const RecentlyVisitedPreview = () => {
+  const visits = useMemo(getSampleVisits, []);
+  return (
+    <List dense disablePadding>
+      {visits.map(visit => (
+        <VisitItem visit={visit} key={visit.id} />
+      ))}
+    </List>
   );
 };
