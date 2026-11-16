@@ -5,6 +5,10 @@
 // delete them. New defaults ship as new files in this directory. The data is
 // written out here rather than imported, so this file seeds the same checks
 // however the code around it changes.
+//
+// Never edit, rename or delete a file here once it has shipped. Databases that
+// already ran it won't run it again, and knex refuses to migrate when its
+// ledger names a file that's gone.
 
 const COMPONENT = { kind: 'Component' };
 const COMPONENT_TYPE = { kind: ['ClusterComponentType', 'ComponentType'] };
@@ -125,7 +129,7 @@ const checks = [
     description:
       'No container the component type writes out can run privileged.',
     factIds: [COMPONENT_TYPE_FACTS],
-    filter: COMPONENT_TYPE,
+    filter: COMPONENT_TYPE_WITH_PODS,
     metadata: {
       rank: BRONZE,
       category: 'Security',

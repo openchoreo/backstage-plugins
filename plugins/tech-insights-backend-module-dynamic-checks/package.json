@@ -45,6 +45,9 @@
   "devDependencies": {
     "@backstage/backend-test-utils": "^1.11.3",
     "@backstage/cli": "^0.36.2",
+    "@openchoreo/backstage-plugin-tech-insights-backend-module-github": "workspace:^",
+    "@openchoreo/backstage-plugin-tech-insights-backend-module-openchoreo": "workspace:^",
+    "@openchoreo/openchoreo-auth": "workspace:^",
     "@types/express": "4.17.21",
     "@types/supertest": "^6.0.2",
     "supertest": "6.3.4"

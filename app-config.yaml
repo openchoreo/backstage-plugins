@@ -571,7 +571,8 @@ techInsights:
   # tech-insights-backend-module-dynamic-checks and managed on the
   # Scorecards page.
   dynamicChecks:
-    # Adds OpenChoreo's starter checks, published, once per database.
+    # Adds OpenChoreo's starter checks, published, once per database. Edits,
+    # unpublishing and deletion made afterwards are kept.
     openchoreoStarterChecks: true
   scorecards:
     # The Tech Insights backend, fact collectors and checks, and the

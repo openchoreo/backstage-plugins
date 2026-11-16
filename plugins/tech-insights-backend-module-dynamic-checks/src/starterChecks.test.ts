@@ -1,5 +1,18 @@
-import { resolvePackagePath } from '@backstage/backend-plugin-api';
-import { TestDatabases } from '@backstage/backend-test-utils';
+import {
+  createServiceFactory,
+  resolvePackagePath,
+} from '@backstage/backend-plugin-api';
+import { startTestBackend, TestDatabases } from '@backstage/backend-test-utils';
+import {
+  FactRetriever,
+  techInsightsFactRetrieversExtensionPoint,
+} from '@backstage-community/plugin-tech-insights-node';
+import githubFacts from '@openchoreo/backstage-plugin-tech-insights-backend-module-github';
+import openChoreoFacts from '@openchoreo/backstage-plugin-tech-insights-backend-module-openchoreo';
+import {
+  OpenChoreoTokenService,
+  openChoreoTokenServiceRef,
+} from '@openchoreo/openchoreo-auth';
 import { DynamicCheckRegistry } from './DynamicCheckRegistry';
 import { seedOpenChoreoStarterChecks } from './starterChecks';
 import { CheckValidator } from './validation';
@@ -18,6 +31,37 @@ async function createDatabase() {
     tableName: 'dynamic_checks_migrations',
   });
   return { knex, registry: new DynamicCheckRegistry(knex) };
+}
+
+/** The schemas of the retrievers the starter checks read, as their modules register them. */
+async function retrieverSchemas() {
+  const retrievers: FactRetriever[] = [];
+  const backend = await startTestBackend({
+    extensionPoints: [
+      [
+        techInsightsFactRetrieversExtensionPoint,
+        {
+          addFactRetrievers: added => {
+            retrievers.push(...Object.values(added));
+          },
+        },
+      ],
+    ],
+    features: [
+      githubFacts,
+      openChoreoFacts,
+      createServiceFactory({
+        service: openChoreoTokenServiceRef,
+        deps: {},
+        factory: () => ({} as OpenChoreoTokenService),
+      }),
+    ],
+  });
+  await backend.stop();
+  return retrievers.map(retriever => ({
+    id: retriever.id,
+    ...retriever.schema,
+  }));
 }
 
 const SAMPLE_ID = 'openchoreo-starter-image-pinned';
@@ -41,24 +85,10 @@ describe('seedOpenChoreoStarterChecks', () => {
     });
   });
 
-  it('builds every starter rule', async () => {
+  it('builds every starter rule from facts the retrievers report', async () => {
     const { knex, registry } = await createDatabase();
     await seedOpenChoreoStarterChecks(knex);
-    const factsByRetriever: Record<string, string[]> = {};
-    for (const check of await registry.listAll()) {
-      for (const id of check.factIds) {
-        factsByRetriever[id] = [
-          ...(factsByRetriever[id] ?? []),
-          ...JSON.stringify(check.rule)
-            .match(/"fact":"([^"]+)"/g)!
-            .map(match => match.slice(8, -1)),
-        ];
-      }
-    }
-    const schemas = Object.entries(factsByRetriever).map(([id, facts]) => ({
-      id,
-      ...Object.fromEntries(facts.map(fact => [fact, { type: 'boolean' }])),
-    }));
+    const schemas = await retrieverSchemas();
     const validator = new CheckValidator({
       getLatestSchemas: async () => schemas,
     } as any);

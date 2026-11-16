@@ -24,4 +24,6 @@ every other change.
 
 New starter checks ship as new seed files in `starter-checks/openchoreo/`, which keep their own
 migration ledger (`dynamic_checks_openchoreo_starter_migrations`). Turning the option on later
-still adds them. Nothing is seeded when `backend.database.migrations.skip` is set.
+still adds them. Nothing is seeded when `backend.database.migrations.skip` is set. Never edit,
+rename or delete a seed file once it has shipped. Databases that already ran it won't pick up the
+edit, and knex refuses to migrate when its ledger names a file that's gone.
