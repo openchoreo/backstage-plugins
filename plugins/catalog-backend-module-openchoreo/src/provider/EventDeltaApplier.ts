@@ -2184,7 +2184,7 @@ export class EventDeltaApplier {
     let response;
     try {
       response = await this.catalogService.getEntities(
-        { filter: { [annotationKey]: workloadName } },
+        { filter: { 'metadata.namespace': ns, [annotationKey]: workloadName } },
         { credentials },
       );
     } catch (err) {
