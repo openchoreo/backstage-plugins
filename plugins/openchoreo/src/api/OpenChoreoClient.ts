@@ -109,6 +109,7 @@ const API_ENDPOINTS = {
   DELETE_ENDPOINT_RELEASE_BINDING: '/delete-endpoint-release-binding',
   ENDPOINT_RELEASE: '/endpoint-release',
   ENDPOINT_RELEASE_SCHEMA: '/endpoint-release-schema',
+  ENDPOINT_BACKENDS: '/endpoint-backends',
   COMPONENT_TRAITS: '/component-traits',
   RELEASE_LINE: '/release-line',
   COMPONENT_CONFIG: '/component-config',
@@ -685,6 +686,43 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   ): Promise<{ success: boolean; data?: Record<string, unknown> }> {
     return this.apiFetch(API_ENDPOINTS.ENDPOINT_RELEASE_SCHEMA, {
       params: { namespaceName, releaseName },
+    });
+  }
+
+  async addEndpointBackend(
+    entity: Entity,
+    backend: { component: string; workloadEndpoint: string; weight?: number },
+  ): Promise<{ name: string; backendName: string }> {
+    const { namespaceName, endpointName } =
+      extractEndpointEntityMetadata(entity);
+    return this.apiFetch(API_ENDPOINTS.ENDPOINT_BACKENDS, {
+      method: 'POST',
+      body: { namespaceName, endpointName, ...backend },
+    });
+  }
+
+  async updateEndpointBackendWeight(
+    entity: Entity,
+    backendName: string,
+    weight: number,
+  ): Promise<void> {
+    const { namespaceName, endpointName } =
+      extractEndpointEntityMetadata(entity);
+    await this.apiFetch(API_ENDPOINTS.ENDPOINT_BACKENDS, {
+      method: 'PATCH',
+      body: { namespaceName, endpointName, backendName, weight },
+    });
+  }
+
+  async removeEndpointBackend(
+    entity: Entity,
+    backendName: string,
+  ): Promise<void> {
+    const { namespaceName, endpointName } =
+      extractEndpointEntityMetadata(entity);
+    await this.apiFetch(API_ENDPOINTS.ENDPOINT_BACKENDS, {
+      method: 'DELETE',
+      body: { namespaceName, endpointName, backendName },
     });
   }
 

@@ -1,5 +1,8 @@
 import { useState, useCallback } from 'react';
-import type { WorkloadEndpoint } from '@openchoreo/backstage-plugin-common';
+import {
+  endpointProtocol,
+  type WorkloadEndpoint,
+} from '@openchoreo/backstage-plugin-common';
 
 /** Tracks which endpoint row is currently being edited */
 export interface EndpointEditingRowState {
@@ -59,7 +62,10 @@ function isEndpointEmpty(
   endpoint: WorkloadEndpoint | undefined | null,
 ): boolean {
   if (!endpoint) return true;
-  return !endpoint.type && (endpoint.port === undefined || endpoint.port <= 0);
+  return (
+    !endpointProtocol(endpoint) &&
+    (endpoint.port === undefined || endpoint.port <= 0)
+  );
 }
 
 /**
@@ -69,10 +75,10 @@ function isEndpointValid(
   endpoint: WorkloadEndpoint | undefined | null,
 ): boolean {
   if (!endpoint) return false;
-  if (!endpoint.type || endpoint.port === undefined || endpoint.port <= 0)
+  const protocol = endpointProtocol(endpoint);
+  if (!protocol || endpoint.port === undefined || endpoint.port <= 0)
     return false;
-  if (endpoint.type === 'gRPC' && !endpoint.schema?.content?.trim())
-    return false;
+  if (protocol === 'gRPC' && !endpoint.schema?.content?.trim()) return false;
   return true;
 }
 

@@ -92,6 +92,9 @@ function createMockServices() {
     endpointInfoService: {
       fetchEndpointRelease: jest.fn(),
       fetchEndpointReleaseSchema: jest.fn(),
+      addEndpointBackend: jest.fn(),
+      updateEndpointBackendWeight: jest.fn(),
+      removeEndpointBackend: jest.fn(),
     },
     projectReleaseInfoService: {
       fetchProjectRelease: jest.fn(),
@@ -1230,6 +1233,117 @@ describe('createRouter', () => {
       expect(
         services.endpointInfoService.fetchEndpointReleaseSchema,
       ).toHaveBeenCalledWith('acme', 'orders-api-abc', 'mock-user-token');
+    });
+
+    describe('/endpoint-backends', () => {
+      const endpointRef = { namespaceName: 'acme', endpointName: 'orders-api' };
+
+      it('POST adds a backend', async () => {
+        services.endpointInfoService.addEndpointBackend.mockResolvedValue({
+          name: 'orders-api',
+          backendName: 'payments-http',
+        });
+        const body = {
+          ...endpointRef,
+          component: 'payments',
+          workloadEndpoint: 'http',
+          weight: 2,
+        };
+
+        const response = await request(app)
+          .post('/endpoint-backends')
+          .send(body);
+
+        expect(response.status).toBe(200);
+        expect(response.body.backendName).toBe('payments-http');
+        expect(
+          services.endpointInfoService.addEndpointBackend,
+        ).toHaveBeenCalledWith(body, 'mock-user-token');
+      });
+
+      it('POST requires a component and workload endpoint', async () => {
+        const response = await request(app)
+          .post('/endpoint-backends')
+          .send({ ...endpointRef, component: 'payments' });
+
+        expect(response.status).toBe(400);
+        expect(
+          services.endpointInfoService.addEndpointBackend,
+        ).not.toHaveBeenCalled();
+      });
+
+      it.each([-1, 1.5, 1_000_001, '2'])(
+        'POST rejects weight %p',
+        async weight => {
+          const response = await request(app)
+            .post('/endpoint-backends')
+            .send({
+              ...endpointRef,
+              component: 'payments',
+              workloadEndpoint: 'http',
+              weight,
+            });
+
+          expect(response.status).toBe(400);
+          expect(
+            services.endpointInfoService.addEndpointBackend,
+          ).not.toHaveBeenCalled();
+        },
+      );
+
+      it("PATCH sets a backend's weight", async () => {
+        services.endpointInfoService.updateEndpointBackendWeight.mockResolvedValue(
+          { success: true },
+        );
+        const body = { ...endpointRef, backendName: 'orders-api', weight: 0 };
+
+        const response = await request(app)
+          .patch('/endpoint-backends')
+          .send(body);
+
+        expect(response.status).toBe(200);
+        expect(
+          services.endpointInfoService.updateEndpointBackendWeight,
+        ).toHaveBeenCalledWith(body, 'mock-user-token');
+      });
+
+      it('PATCH requires a weight', async () => {
+        const response = await request(app)
+          .patch('/endpoint-backends')
+          .send({ ...endpointRef, backendName: 'orders-api' });
+
+        expect(response.status).toBe(400);
+        expect(
+          services.endpointInfoService.updateEndpointBackendWeight,
+        ).not.toHaveBeenCalled();
+      });
+
+      it('DELETE removes a backend', async () => {
+        services.endpointInfoService.removeEndpointBackend.mockResolvedValue({
+          success: true,
+        });
+        const body = { ...endpointRef, backendName: 'orders-api' };
+
+        const response = await request(app)
+          .delete('/endpoint-backends')
+          .send(body);
+
+        expect(response.status).toBe(200);
+        expect(
+          services.endpointInfoService.removeEndpointBackend,
+        ).toHaveBeenCalledWith(body, 'mock-user-token');
+      });
+
+      it('DELETE requires a backend name', async () => {
+        const response = await request(app)
+          .delete('/endpoint-backends')
+          .send(endpointRef);
+
+        expect(response.status).toBe(400);
+        expect(
+          services.endpointInfoService.removeEndpointBackend,
+        ).not.toHaveBeenCalled();
+      });
     });
   });
 

@@ -7,6 +7,21 @@ import { ResponseError } from '@backstage/errors';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
 import { EndpointEnvironmentsList } from './EndpointEnvironmentsList';
 
+// The Backends section reads the catalog entity and calls the API; it has its
+// own test file.
+const mockBackendsSectionMounts = jest.fn();
+jest.mock('./EndpointBackendsSection', () => {
+  const { useEffect } = jest.requireActual('react');
+  return {
+    EndpointBackendsSection: () => {
+      useEffect(() => {
+        mockBackendsSectionMounts();
+      }, []);
+      return <div data-testid="backends-section" />;
+    },
+  };
+});
+
 jest.mock('@backstage/core-components', () => ({
   Progress: () => <div data-testid="progress" />,
   EmptyState: ({ missing, title, description }: any) => (
@@ -168,6 +183,92 @@ describe('EndpointEnvironmentsList', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Development')).toBeInTheDocument();
     expect(screen.getByText('Production')).toBeInTheDocument();
+  });
+
+  it('refetches a refreshed entity quietly, keeping the open pane', async () => {
+    const fetchEndpointEnvironmentInfo = jest.fn().mockResolvedValue(ENVS);
+    const client = { fetchEndpointEnvironmentInfo };
+    const ui = (entity: Entity) => (
+      <MemoryRouter>
+        <TestApiProvider apis={[[openChoreoClientApiRef, client as any]]}>
+          <EntityProvider entity={entity}>
+            <EndpointEnvironmentsList />
+          </EntityProvider>
+        </TestApiProvider>
+      </MemoryRouter>
+    );
+    const { rerender } = render(ui(ENTITY));
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Select setup' }),
+    );
+    expect(screen.getByTestId('backends-section')).toBeInTheDocument();
+    mockBackendsSectionMounts.mockClear();
+
+    // A backend change refreshes the catalog entity: a new object.
+    rerender(ui({ ...ENTITY, spec: { ...ENTITY.spec } }));
+
+    await waitFor(() =>
+      expect(fetchEndpointEnvironmentInfo).toHaveBeenCalledTimes(2),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('backends-section')).toBeInTheDocument(),
+    );
+    // The section kept its state: it was never unmounted behind a loader.
+    expect(mockBackendsSectionMounts).not.toHaveBeenCalled();
+  });
+
+  it('applies overlapping environment responses unless a newer one landed first', async () => {
+    const pending: Array<(envs: typeof ENVS) => void> = [];
+    const fetchEndpointEnvironmentInfo = jest
+      .fn()
+      .mockResolvedValueOnce(ENVS)
+      .mockImplementation(() => new Promise(resolve => pending.push(resolve)));
+    const client = { fetchEndpointEnvironmentInfo };
+    const ui = (entity: Entity) => (
+      <MemoryRouter>
+        <TestApiProvider apis={[[openChoreoClientApiRef, client as any]]}>
+          <EntityProvider entity={entity}>
+            <EndpointEnvironmentsList />
+          </EntityProvider>
+        </TestApiProvider>
+      </MemoryRouter>
+    );
+    const { rerender } = render(ui(ENTITY));
+    // Each refreshed entity (a new object) starts another request.
+    const refetch = () => rerender(ui({ ...ENTITY, spec: { ...ENTITY.spec } }));
+    const withRelease = (latestRelease: string) =>
+      ENVS.map(e => ({ ...e, latestRelease }));
+    const showsRelease = (release: string) =>
+      screen.findByText(new RegExp(`Deploy the latest release, ${release}`));
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Select setup' }),
+    );
+
+    // A response applies while a newer request is still in flight, so slow
+    // responses don't starve a poll.
+    refetch();
+    await waitFor(() => expect(pending).toHaveLength(1));
+    refetch();
+    await waitFor(() => expect(pending).toHaveLength(2));
+    pending[0](withRelease('rel-2'));
+    expect(await showsRelease('rel-2')).toBeInTheDocument();
+    pending[1](withRelease('rel-3'));
+    expect(await showsRelease('rel-3')).toBeInTheDocument();
+
+    // A response older than one already applied is dropped.
+    refetch();
+    await waitFor(() => expect(pending).toHaveLength(3));
+    refetch();
+    await waitFor(() => expect(pending).toHaveLength(4));
+    pending[3](withRelease('rel-5'));
+    expect(await showsRelease('rel-5')).toBeInTheDocument();
+    pending[2](withRelease('rel-4'));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(
+      screen.getByText(/Deploy the latest release, rel-5/),
+    ).toBeInTheDocument();
   });
 
   it('deploys the latest release to the first environment from Set up', async () => {

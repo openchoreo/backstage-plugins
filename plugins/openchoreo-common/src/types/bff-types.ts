@@ -844,11 +844,28 @@ export interface SecretKeyRef {
   key: string;
 }
 
+export type WorkloadEndpointProtocol =
+  | 'TCP'
+  | 'UDP'
+  | 'HTTP'
+  | 'gRPC'
+  | 'Websocket'
+  | 'GraphQL';
+
 export interface WorkloadEndpoint {
-  /** @description Access scope for the endpoint. */
+  /**
+   * @description Access scope for the endpoint.
+   * @deprecated Exposure belongs on an Endpoint's visibility. Still honoured by
+   * ComponentType templates, and kept for endpoints no Endpoint exposes.
+   */
   visibility?: ('project' | 'namespace' | 'internal' | 'external')[];
-  /** @enum {string} */
-  type: 'TCP' | 'UDP' | 'HTTP' | 'gRPC' | 'Websocket' | 'GraphQL';
+  /** Protocol the endpoint serves. Replaces type; the API keeps them equal. */
+  protocol?: WorkloadEndpointProtocol;
+  /**
+   * @deprecated Use protocol. Read through endpointProtocol(), which falls back
+   * to it for workloads written before protocol existed.
+   */
+  type?: WorkloadEndpointProtocol;
   port: number;
   schema?: Schema;
 }

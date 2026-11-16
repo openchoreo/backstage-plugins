@@ -364,6 +364,87 @@ describe('EnvironmentInfoService endpoint bindings', () => {
         }),
       );
       expect(staging.bindingName).toBeUndefined();
+      expect(dev.urls).toBeUndefined();
+    });
+
+    it('reports the last deploy from lastSpecUpdateTime over Ready', async () => {
+      routeGets({
+        ...baseRoutes,
+        [BINDINGS]: {
+          items: [
+            binding('orders-api-dev', 'dev', {
+              status: {
+                // Redeploys keep Ready=True, so its transition time is stale.
+                lastSpecUpdateTime: '2026-10-21T08:30:00Z',
+                conditions: [
+                  {
+                    type: 'Ready',
+                    status: 'True',
+                    reason: 'Ready',
+                    lastTransitionTime: '2026-10-19T10:00:00Z',
+                  },
+                ],
+              },
+            }),
+          ],
+        },
+      });
+
+      const [dev] = await createService().fetchEndpointEnvironmentInfo(
+        target,
+        'token',
+      );
+
+      expect(dev.lastDeployed).toBe('2026-10-21T08:30:00Z');
+    });
+
+    it('reports the URLs the binding resolved, with their security', async () => {
+      routeGets({
+        ...baseRoutes,
+        [BINDINGS]: {
+          items: [
+            binding('orders-api-dev', 'dev', {
+              status: {
+                urls: {
+                  external: {
+                    scheme: 'https',
+                    host: 'orders.dev.example.com',
+                    port: 443,
+                    path: '/orders',
+                    security: {
+                      scheme: 'apiKey',
+                      apiKey: { in: 'header', name: 'api-key' },
+                    },
+                  },
+                  namespace: {
+                    host: 'orders-api.dp.svc',
+                    port: 8080,
+                  },
+                },
+              },
+            }),
+          ],
+        },
+      });
+
+      const [dev] = await createService().fetchEndpointEnvironmentInfo(
+        target,
+        'token',
+      );
+
+      expect(dev.urls).toEqual({
+        external: {
+          scheme: 'https',
+          host: 'orders.dev.example.com',
+          port: 443,
+          path: '/orders',
+          security: {
+            scheme: 'apiKey',
+            apiKey: { in: 'header', name: 'api-key' },
+          },
+        },
+        namespace: { scheme: '', host: 'orders-api.dp.svc', port: 8080 },
+      });
     });
 
     it('fails when the project has no deployment pipeline', async () => {
