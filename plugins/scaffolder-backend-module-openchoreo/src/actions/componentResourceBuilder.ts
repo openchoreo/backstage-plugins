@@ -1,7 +1,6 @@
 import {
   ComponentResource,
   ComponentTrait,
-  WorkloadEndpoint,
   WorkloadResource,
 } from './componentResourceInterface';
 
@@ -212,8 +211,6 @@ export interface WorkloadResourceInput {
   namespaceName: string;
   projectName: string;
   containerImage?: string;
-  port?: number;
-  endpoints?: Record<string, WorkloadEndpoint>;
   envVars?: Array<{
     key: string;
     value?: string;
@@ -231,7 +228,8 @@ export interface WorkloadResourceInput {
  * Builds a WorkloadResource object for component deployment.
  *
  * Created for deploy-from-image flow (with container image) or for any deployment
- * source when workload data exists (endpoints, env vars, file mounts).
+ * source when workload data exists (env vars, file mounts). It has no
+ * endpoints: those are defined on the configure page after creation.
  * The Component controller will use this Workload to create deployments.
  */
 export function buildWorkloadResource(
@@ -274,21 +272,6 @@ export function buildWorkloadResource(
     }
 
     resource.spec.container = container;
-  }
-
-  // Add endpoints from the new endpoints map
-  if (input.endpoints && Object.keys(input.endpoints).length > 0) {
-    resource.spec.endpoints = input.endpoints as any;
-  }
-  // Fallback: add endpoint if only port is provided (legacy deploy-from-image)
-  else if (input.port) {
-    resource.spec.endpoints = {
-      http: {
-        type: 'HTTP',
-        port: input.port,
-        visibility: ['external'],
-      },
-    };
   }
 
   return resource;

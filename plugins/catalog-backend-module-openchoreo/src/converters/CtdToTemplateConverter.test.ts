@@ -206,6 +206,8 @@ describe('CtdToTemplateConverter', () => {
       expect(options.namespaceName).toBe('test-org');
       expect(options.workloadType).toBe('deployment');
       expect(options.ctdDisplayName).toBe('Web Service');
+      // Endpoints are defined on the configure page, not at creation
+      expect(options).not.toHaveProperty('allowedEndpoints');
 
       // Check CTD schema is passed through
       expect(options.ctdSchema).toBeDefined();
