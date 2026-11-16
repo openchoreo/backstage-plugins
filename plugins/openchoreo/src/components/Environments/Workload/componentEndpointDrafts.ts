@@ -1,5 +1,6 @@
 import {
   NO_ENDPOINT,
+  defaultEndpointType,
   endpointTypeKey,
   exposableVisibilities,
   parseEndpointTypeKey,
@@ -27,6 +28,50 @@ import {
  *   Endpoints.
  */
 export type EndpointFormMode = 'endpoints' | 'legacy' | 'none';
+
+/**
+ * The name of a new workload endpoint. In the Endpoints form it's named
+ * after the Endpoint type an HTTP endpoint starts with (e.g.
+ * `unmanaged-http-1`); otherwise, or when no type serves HTTP, `endpoint-1`.
+ * The number is the lowest one no workload endpoint has, including those
+ * from before Endpoints that get no card.
+ */
+export function newEndpointName(
+  existing: Record<string, unknown>,
+  allowedEndpoints?: AllowedEndpointTypeEntry[],
+): string {
+  const typeKey = allowedEndpoints
+    ? defaultEndpointType('HTTP', allowedEndpoints)
+    : NO_ENDPOINT;
+  const prefix =
+    typeKey === NO_ENDPOINT ? 'endpoint' : parseEndpointTypeKey(typeKey).name;
+  let index = 1;
+  while (`${prefix}-${index}` in existing) index++;
+  return `${prefix}-${index}`;
+}
+
+/**
+ * The endpoints the Endpoints tab lists, as the form decides: in the
+ * Endpoints form one card per endpoint, except workload endpoints from
+ * before Endpoints that are still as loaded (their visibility stays on the
+ * workload until a card replaces them); none without a form; every workload
+ * endpoint in the legacy form.
+ */
+export function endpointCards<T extends ExposableEndpoint>(
+  endpoints: Record<string, T>,
+  mode: EndpointFormMode | undefined,
+  deprecatedRows: Record<string, ExposableEndpoint> | undefined,
+): Record<string, T> {
+  if (mode === 'none') return {};
+  if (mode !== 'endpoints' || !deprecatedRows) return endpoints;
+  return Object.fromEntries(
+    Object.entries(endpoints).filter(
+      ([name, endpoint]) =>
+        !deprecatedRows[name] ||
+        JSON.stringify(deprecatedRows[name]) !== JSON.stringify(endpoint),
+    ),
+  );
+}
 
 /**
  * The Endpoint type a row is exposed through: the type chosen for it, which

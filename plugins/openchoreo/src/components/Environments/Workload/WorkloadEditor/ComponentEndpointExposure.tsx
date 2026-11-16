@@ -60,8 +60,8 @@ function readiness(original: ComponentEndpointSummary): string {
  * The Endpoint part of an endpoint's card in the Endpoints form. A card with
  * visibility beyond project is exposed through an Endpoint: the one it has,
  * shown with its name, Ready state and (fixed) type, or a new one created on
- * save, whose type defaults to the protocol's default. A project-only card
- * has no Endpoint.
+ * save, whose type defaults to the protocol's default and which isn't
+ * labelled until it exists. A project-only card has no Endpoint.
  */
 export const ComponentEndpointExposure = ({
   workloadEndpoint,
@@ -105,11 +105,11 @@ export const ComponentEndpointExposure = ({
 
   return (
     <Box>
-      <Typography className={classes.title}>
-        {original
-          ? `Endpoint ${original.name} · ${readiness(original)}`
-          : 'New Endpoint · created on save'}
-      </Typography>
+      {original && (
+        <Typography className={classes.title}>
+          Endpoint {original.name} · {readiness(original)}
+        </Typography>
+      )}
       <EndpointExposure
         endpoint={endpoint}
         allowedEndpoints={state.allowedEndpoints}

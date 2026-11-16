@@ -93,14 +93,12 @@ describe('ComponentEndpointExposure', () => {
     expect(componentEndpoints.setChoice).not.toHaveBeenCalled();
   });
 
-  it('shows a new Endpoint as created on save', () => {
+  it("shows a new Endpoint's type without labelling it", () => {
     renderCard(state({ choices: { api: { type: HTTP_ROUTE } } }), {
       visibility: ['external'],
     });
 
-    expect(
-      screen.getByText('New Endpoint · created on save'),
-    ).toBeInTheDocument();
+    expect(screen.queryByText(/New Endpoint|created on save/)).toBeNull();
     expect(
       screen.getByRole('button', { name: /http-route/ }),
     ).toBeInTheDocument();

@@ -15,6 +15,7 @@ import {
 } from '@openchoreo/backstage-plugin-react';
 import { useWorkloadContext } from '../WorkloadContext';
 import type { ComponentEndpointsState } from '../hooks/useComponentEndpoints';
+import { endpointCards } from '../componentEndpointDrafts';
 import {
   chosenEndpointTypeKeys,
   useEndpointTypeSchemas,
@@ -148,20 +149,11 @@ export const EndpointContent: FC<EndpointContentProps> = ({
     [allowedEndpoints],
   );
 
-  // The Endpoints form shows one card per endpoint, except workload
-  // endpoints from before Endpoints that are still as loaded: their
-  // visibility stays on the workload until a card replaces them.
   const deprecatedRows = endpointsForm?.deprecatedRows;
-  const cards = useMemo(() => {
-    if (!deprecatedRows) return endpoints;
-    return Object.fromEntries(
-      Object.entries(endpoints).filter(
-        ([name, endpoint]) =>
-          !deprecatedRows[name] ||
-          JSON.stringify(deprecatedRows[name]) !== JSON.stringify(endpoint),
-      ),
-    );
-  }, [endpoints, deprecatedRows]);
+  const cards = useMemo(
+    () => endpointCards(endpoints, endpointsForm?.mode, deprecatedRows),
+    [endpoints, endpointsForm?.mode, deprecatedRows],
+  );
 
   if (componentEndpoints?.mode === 'none' && !componentEndpoints.loadError) {
     return (

@@ -36,6 +36,7 @@ import type { ComponentTrait } from '../../../../api/OpenChoreoClientApi';
 import type { TraitWithState } from '../../../Traits/types';
 import type { WorkloadChanges } from '../hooks/useWorkloadChanges';
 import type { ComponentEndpointsState } from '../hooks/useComponentEndpoints';
+import { endpointCards, newEndpointName } from '../componentEndpointDrafts';
 
 interface WorkloadEditorProps {
   componentTypeName?: string;
@@ -407,9 +408,11 @@ export function WorkloadEditor({
   };
 
   const addEndpoint = (): string => {
-    const endpointName = `endpoint-${
-      Object.keys(formData.endpoints || {}).length + 1
-    }`;
+    const inEndpointsForm = componentEndpoints?.mode === 'endpoints';
+    const endpointName = newEndpointName(
+      formData.endpoints || {},
+      inEndpointsForm ? componentEndpoints.allowedEndpoints : undefined,
+    );
     const updatedEndpoints = {
       ...formData.endpoints,
       // In the Endpoints form a row takes visibility beyond project only
@@ -417,8 +420,7 @@ export function WorkloadEditor({
       [endpointName]: {
         type: 'HTTP',
         port: 8080,
-        visibility:
-          componentEndpoints?.mode === 'endpoints' ? ['project'] : ['external'],
+        visibility: inEndpointsForm ? ['project'] : ['external'],
       } as WorkloadEndpoint,
     };
     updateSpec({ ...formData, endpoints: updatedEndpoints } as WorkloadSpec);
@@ -571,7 +573,14 @@ export function WorkloadEditor({
 
   // --- Inner nav items with counts ---
 
-  const endpointCount = Object.keys(formData.endpoints || {}).length;
+  // The Endpoints tab's count follows what it lists.
+  const endpointCount = Object.keys(
+    endpointCards(
+      formData.endpoints || {},
+      componentEndpoints?.mode,
+      componentEndpoints?.deprecatedRows,
+    ),
+  ).length;
   const dependencyCount =
     (formData.dependencies?.endpoints || []).length +
     (formData.dependencies?.resources || []).length;
