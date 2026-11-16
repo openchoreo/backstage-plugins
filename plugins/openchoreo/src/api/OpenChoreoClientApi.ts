@@ -8,6 +8,10 @@ import type {
   ReleaseLineOverrides,
   ReleaseLineResource,
   ResolvedEndpointBackend,
+  AllowedEndpointTypeEntry,
+  ComponentEndpointInput,
+  ComponentEndpointSummary,
+  EndpointTypeKind,
 } from '@openchoreo/backstage-plugin-common';
 import type { Environment } from '../components/RuntimeLogs/types';
 import type { EndpointURLDetails } from '../components/Environments/hooks/useEnvironmentData';
@@ -895,6 +899,82 @@ export interface OpenChoreoClientApi {
 
   /** Remove one of an Endpoint entity's backends; the last can't be removed. */
   removeEndpointBackend(entity: Entity, backendName: string): Promise<void>;
+
+  /**
+   * Fetch the parameters schema of a (Cluster)EndpointType by name, for the
+   * parameters of an Endpoint the configure page is about to create.
+   */
+  fetchEndpointTypeParametersSchema(
+    kind: 'EndpointType' | 'ClusterEndpointType',
+    name: string,
+    namespaceName?: string,
+  ): Promise<{ success: boolean; data?: Record<string, unknown> }>;
+
+  /**
+   * Fetch the Endpoints a component owns for its own workload endpoints, on
+   * its main line or on the given release line, with the allowedEndpoints of
+   * its ComponentType.
+   */
+  fetchComponentEndpoints(
+    entity: Entity,
+    releaseLine?: string,
+  ): Promise<{
+    endpoints: ComponentEndpointSummary[];
+    allowedEndpoints: AllowedEndpointTypeEntry[];
+  }>;
+
+  /**
+   * Fetch drafts of a release line's Endpoints: copies of the component's
+   * main-line Endpoints for the line, less those the line already has.
+   * Nothing is created; the line's configure page creates the drafts kept.
+   */
+  fetchReleaseLineEndpointDrafts(
+    entity: Entity,
+    releaseLine: string,
+  ): Promise<ComponentEndpointInput[]>;
+
+  /**
+   * Create an Endpoint for one of a component's workload endpoints, on its
+   * main line or on the given release line.
+   */
+  createComponentEndpoint(
+    entity: Entity,
+    endpoint: {
+      workloadEndpoint: string;
+      typeKind: EndpointTypeKind;
+      typeName: string;
+      visibility: string[];
+      parameters?: Record<string, unknown>;
+      autoDeploy: boolean;
+    },
+    releaseLine?: string,
+  ): Promise<{ name: string }>;
+
+  /**
+   * Update the visibility and parameters of one of a component's Endpoints,
+   * and the workload endpoint it routes to when that was renamed. The
+   * Endpoint must belong to the given line (main when omitted).
+   */
+  updateComponentEndpoint(
+    entity: Entity,
+    endpointName: string,
+    update: {
+      visibility: string[];
+      parameters?: Record<string, unknown>;
+      workloadEndpoint?: string;
+    },
+    releaseLine?: string,
+  ): Promise<ComponentEndpointSummary>;
+
+  /**
+   * Delete one of a component's Endpoints. The Endpoint must belong to the
+   * given line (main when omitted).
+   */
+  deleteComponentEndpoint(
+    entity: Entity,
+    endpointName: string,
+    releaseLine?: string,
+  ): Promise<void>;
 
   /**
    * Fetch per-environment deploy info for a Project entity. Returns one entry

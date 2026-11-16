@@ -1,5 +1,5 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import { InputError } from '@backstage/errors';
+import { InputError, NotAllowedError } from '@backstage/errors';
 import {
   createOpenChoreoApiClient,
   assertApiResponse,
@@ -7,12 +7,27 @@ import {
 } from '@openchoreo/openchoreo-client-node';
 import {
   MAX_ENDPOINT_BACKENDS,
+  buildComponentEndpoint,
+  componentEndpointName,
   deriveEndpointBackendName,
   endpointBackendsTakeTraffic,
+  endpointManagingComponent,
+  endpointManagingReleaseLine,
   isSameReleaseLine,
+  releaseLineEndpointInputs,
+  toStoredReleaseLine,
   type APIResponse,
+  type AllowedEndpointTypeEntry,
+  type ComponentEndpointInput,
+  type ComponentEndpointSummary,
+  type EndpointTypeKind,
 } from '@openchoreo/backstage-plugin-common';
 import type { ApiSchemaResponse } from '../types';
+import {
+  listComponentEndpoints,
+  toComponentEndpointSummary,
+  type ComponentRef,
+} from './componentEndpoints';
 
 type EndpointBackendRef = OpenChoreoComponents['schemas']['EndpointBackendRef'];
 
@@ -20,6 +35,14 @@ type EndpointBackendRef = OpenChoreoComponents['schemas']['EndpointBackendRef'];
 export interface EndpointRef {
   namespaceName: string;
   endpointName: string;
+}
+
+/** Names a component's line in messages: the component for its main line. */
+function lineSubject(request: ComponentRef): string {
+  const line = toStoredReleaseLine(request.releaseLine);
+  return line
+    ? `release line ${line} of component ${request.componentName}`
+    : `component ${request.componentName}`;
 }
 
 function requireBackend(
@@ -44,7 +67,8 @@ function requireTraffic(refs: EndpointBackendRef[], endpointName: string) {
 /**
  * BFF service for Endpoint reads beyond the catalog entity: the immutable
  * EndpointReleases the Endpoint controller cuts, and the environmentConfigs
- * schema frozen on each. Also changes an Endpoint's backends.
+ * schema frozen on each. Also changes an Endpoint's backends, and manages the
+ * Endpoints a component, or one of its release lines, owns.
  */
 export class EndpointInfoService {
   private logger: LoggerService;
@@ -127,6 +151,287 @@ export class EndpointInfoService {
       data: (environmentConfigs?.openAPIV3Schema ??
         {}) as ApiSchemaResponse['data'],
     };
+  }
+
+  /** Returns the parameters schema of a namespace-scoped EndpointType. */
+  async fetchEndpointTypeSchema(
+    namespaceName: string,
+    etName: string,
+    token?: string,
+  ): Promise<ApiSchemaResponse> {
+    const { data, error, response } = await this.client(token).GET(
+      '/api/v1/namespaces/{namespaceName}/endpointtypes/{etName}/schema',
+      { params: { path: { namespaceName, etName } } },
+    );
+    assertApiResponse({ data, error, response }, 'fetch endpoint type schema');
+    return { success: true, data: data as ApiSchemaResponse['data'] };
+  }
+
+  /** Returns the parameters schema of a ClusterEndpointType. */
+  async fetchClusterEndpointTypeSchema(
+    cetName: string,
+    token?: string,
+  ): Promise<ApiSchemaResponse> {
+    const { data, error, response } = await this.client(token).GET(
+      '/api/v1/clusterendpointtypes/{cetName}/schema',
+      { params: { path: { cetName } } },
+    );
+    assertApiResponse(
+      { data, error, response },
+      'fetch cluster endpoint type schema',
+    );
+    return { success: true, data: data as ApiSchemaResponse['data'] };
+  }
+
+  /**
+   * Returns a component's own Endpoints together with the allowedEndpoints of
+   * its (Cluster)ComponentType, which decide what can still be added. A
+   * ComponentType that cannot be read yields no allowedEndpoints rather than
+   * an error, so existing Endpoints can still be edited.
+   */
+  async fetchComponentEndpoints(
+    request: ComponentRef & {
+      componentTypeKind: 'ComponentType' | 'ClusterComponentType';
+      componentTypeName: string;
+    },
+    token?: string,
+  ): Promise<{
+    endpoints: ComponentEndpointSummary[];
+    allowedEndpoints: AllowedEndpointTypeEntry[];
+  }> {
+    const client = this.client(token);
+    const [endpoints, allowedEndpoints] = await Promise.all([
+      listComponentEndpoints(client, request),
+      this.fetchAllowedEndpoints(client, request),
+    ]);
+    return {
+      endpoints: endpoints
+        .map(toComponentEndpointSummary)
+        .sort((a, b) => a.name.localeCompare(b.name)),
+      allowedEndpoints,
+    };
+  }
+
+  private async fetchAllowedEndpoints(
+    client: ReturnType<EndpointInfoService['client']>,
+    request: {
+      namespaceName: string;
+      componentTypeKind: 'ComponentType' | 'ClusterComponentType';
+      componentTypeName: string;
+    },
+  ): Promise<AllowedEndpointTypeEntry[]> {
+    const { namespaceName, componentTypeName } = request;
+    const { data, error, response } =
+      request.componentTypeKind === 'ClusterComponentType'
+        ? await client.GET('/api/v1/clustercomponenttypes/{cctName}', {
+            params: { path: { cctName: componentTypeName } },
+          })
+        : await client.GET(
+            '/api/v1/namespaces/{namespaceName}/componenttypes/{ctName}',
+            { params: { path: { namespaceName, ctName: componentTypeName } } },
+          );
+    if (error || !response.ok || !data) {
+      this.logger.warn(
+        `Could not read ${request.componentTypeKind} ${componentTypeName} for its allowedEndpoints: ${response.status}`,
+      );
+      return [];
+    }
+    return (data.spec?.allowedEndpoints ?? []) as AllowedEndpointTypeEntry[];
+  }
+
+  /**
+   * Returns drafts of a release line's Endpoints: the generator's copies of
+   * the component's main-line Endpoints for the line, less those the line
+   * already has. Nothing is created: the line's configure page lets the user
+   * adjust each draft, such as its parameters, and creates the ones kept
+   * through createComponentEndpoint.
+   */
+  async fetchReleaseLineEndpointDrafts(
+    request: ComponentRef & { releaseLine: string; autoDeploy: boolean },
+    token?: string,
+  ): Promise<ComponentEndpointInput[]> {
+    const releaseLine = toStoredReleaseLine(request.releaseLine);
+    if (!releaseLine) {
+      throw new InputError('releaseLine must name a release line, not main');
+    }
+    const client = this.client(token);
+    const [main, line] = await Promise.all([
+      listComponentEndpoints(client, { ...request, releaseLine: undefined }),
+      listComponentEndpoints(client, { ...request, releaseLine }),
+    ]);
+    const existing = new Set(line.map(ep => ep.metadata.name));
+    return releaseLineEndpointInputs(main.map(toComponentEndpointSummary), {
+      componentName: request.componentName,
+      projectName: request.projectName,
+      releaseLine,
+      autoDeploy: request.autoDeploy,
+    }).filter(draft => !existing.has(draft.name));
+  }
+
+  /**
+   * Creates an Endpoint for one of a component's workload endpoints, on its
+   * main line or on one of its release lines, owned by the component and the
+   * line. When the plain name is taken, the EndpointType is appended, as for
+   * a workload endpoint exposed through more than one type.
+   */
+  async createComponentEndpoint(
+    request: ComponentRef & {
+      workloadEndpoint: string;
+      typeKind: EndpointTypeKind;
+      typeName: string;
+      visibility: string[];
+      parameters?: Record<string, unknown>;
+      autoDeploy: boolean;
+    },
+    token?: string,
+  ): Promise<{ name: string }> {
+    if (request.visibility.length === 0) {
+      throw new InputError('An Endpoint needs at least one visibility');
+    }
+    const client = this.client(token);
+    const releaseLine = toStoredReleaseLine(request.releaseLine);
+    const names = [
+      componentEndpointName(
+        request.componentName,
+        request.workloadEndpoint,
+        undefined,
+        releaseLine,
+      ),
+      componentEndpointName(
+        request.componentName,
+        request.workloadEndpoint,
+        request.typeName,
+        releaseLine,
+      ),
+    ];
+    for (const [i, name] of names.entries()) {
+      const { error, response } = await client.POST(
+        '/api/v1/namespaces/{namespaceName}/endpoints',
+        {
+          params: { path: { namespaceName: request.namespaceName } },
+          body: buildComponentEndpoint({
+            ...request,
+            releaseLine,
+            name,
+          }) as any,
+        },
+      );
+      if (response.status === 409 && i < names.length - 1) {
+        continue;
+      }
+      assertApiResponse(
+        { data: undefined, error, response },
+        'create component endpoint',
+      );
+      this.logger.info(
+        `Created Endpoint ${name} (${request.typeKind} ${
+          request.typeName
+        }) for workload endpoint ${request.workloadEndpoint} of ${lineSubject(
+          request,
+        )}`,
+      );
+      return { name };
+    }
+    // Unreachable: the last attempt either returns or throws.
+    throw new Error('create component endpoint: no name left to try');
+  }
+
+  /**
+   * Updates the visibility and parameters of one of a component's own
+   * Endpoints, and points its backends at the renamed workload endpoint when
+   * `workloadEndpoint` differs from the one it routes to. The type and
+   * project are immutable. Refuses Endpoints the component's line doesn't
+   * own.
+   */
+  async updateComponentEndpoint(
+    request: ComponentRef & {
+      endpointName: string;
+      visibility: string[];
+      parameters?: Record<string, unknown>;
+      workloadEndpoint?: string;
+    },
+    token?: string,
+  ): Promise<ComponentEndpointSummary> {
+    if (request.visibility.length === 0) {
+      throw new InputError(
+        'An Endpoint needs at least one visibility; delete it instead',
+      );
+    }
+    const client = this.client(token);
+    const endpoint = await this.getManagedEndpoint(client, request);
+    const spec = endpoint.spec;
+    const current = toComponentEndpointSummary(endpoint);
+    const renameTo =
+      request.workloadEndpoint &&
+      request.workloadEndpoint !== current.workloadEndpoint
+        ? request.workloadEndpoint
+        : undefined;
+
+    // Parameters are replaced as a whole, so a field cleared in the form is
+    // dropped rather than kept from the old spec.
+    const { parameters: _replaced, ...rest } = spec;
+    const body = {
+      metadata: endpoint.metadata,
+      spec: {
+        ...rest,
+        visibility: request.visibility as typeof spec.visibility,
+        ...(request.parameters &&
+          Object.keys(request.parameters).length > 0 && {
+            parameters: request.parameters,
+          }),
+        ...(renameTo && {
+          backendRefs: spec.backendRefs.map(ref =>
+            ref.component?.endpoint === current.workloadEndpoint
+              ? { ...ref, component: { ...ref.component, endpoint: renameTo } }
+              : ref,
+          ),
+        }),
+      },
+    };
+
+    const { data, error, response } = await client.PUT(
+      '/api/v1/namespaces/{namespaceName}/endpoints/{endpointName}',
+      {
+        params: {
+          path: {
+            namespaceName: request.namespaceName,
+            endpointName: request.endpointName,
+          },
+        },
+        body: body as any,
+      },
+    );
+    assertApiResponse({ data, error, response }, 'update component endpoint');
+    return toComponentEndpointSummary(data!);
+  }
+
+  /**
+   * Deletes one of a component's own Endpoints. The Endpoint controller
+   * removes its bindings, and so its routes, first. Refuses Endpoints the
+   * component's line doesn't own.
+   */
+  async deleteComponentEndpoint(
+    request: ComponentRef & { endpointName: string },
+    token?: string,
+  ): Promise<{ success: true }> {
+    const client = this.client(token);
+    await this.getManagedEndpoint(client, request);
+    const { error, response } = await client.DELETE(
+      '/api/v1/namespaces/{namespaceName}/endpoints/{endpointName}',
+      {
+        params: {
+          path: {
+            namespaceName: request.namespaceName,
+            endpointName: request.endpointName,
+          },
+        },
+      },
+    );
+    assertApiResponse(
+      { data: undefined, error, response },
+      'delete component endpoint',
+    );
+    return { success: true };
   }
 
   /**
@@ -287,5 +592,46 @@ export class EndpointInfoService {
       },
     );
     assertApiResponse(updated, action);
+  }
+
+  private async getManagedEndpoint(
+    client: ReturnType<EndpointInfoService['client']>,
+    request: ComponentRef & { endpointName: string },
+  ) {
+    const { data, error, response } = await client.GET(
+      '/api/v1/namespaces/{namespaceName}/endpoints/{endpointName}',
+      {
+        params: {
+          path: {
+            namespaceName: request.namespaceName,
+            endpointName: request.endpointName,
+          },
+        },
+      },
+    );
+    assertApiResponse({ data, error, response }, 'fetch endpoint');
+    const endpoint = data!;
+    const owner = endpoint.spec?.owner;
+    if (
+      !endpoint.spec ||
+      owner?.projectName !== request.projectName ||
+      endpointManagingComponent(owner) !== request.componentName
+    ) {
+      throw new NotAllowedError(
+        `Endpoint ${request.endpointName} is not owned by component ${request.componentName}; change it from its project instead`,
+      );
+    }
+    const line = endpointManagingReleaseLine(owner);
+    if (line !== (toStoredReleaseLine(request.releaseLine) ?? '')) {
+      // The component's Endpoint of another line: refused, so one line's page
+      // never rewrites another line's Endpoint.
+      throw new NotAllowedError(
+        `Endpoint ${request.endpointName} belongs to ${lineSubject({
+          ...request,
+          releaseLine: line,
+        })}, not ${lineSubject(request)}; change it from there instead`,
+      );
+    }
+    return { ...endpoint, spec: endpoint.spec };
   }
 }

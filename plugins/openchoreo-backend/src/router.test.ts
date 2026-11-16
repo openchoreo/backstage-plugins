@@ -95,6 +95,13 @@ function createMockServices() {
       addEndpointBackend: jest.fn(),
       updateEndpointBackendWeight: jest.fn(),
       removeEndpointBackend: jest.fn(),
+      fetchEndpointTypeSchema: jest.fn(),
+      fetchClusterEndpointTypeSchema: jest.fn(),
+      fetchComponentEndpoints: jest.fn(),
+      fetchReleaseLineEndpointDrafts: jest.fn(),
+      createComponentEndpoint: jest.fn(),
+      updateComponentEndpoint: jest.fn(),
+      deleteComponentEndpoint: jest.fn(),
     },
     projectReleaseInfoService: {
       fetchProjectRelease: jest.fn(),
@@ -1233,6 +1240,215 @@ describe('createRouter', () => {
       expect(
         services.endpointInfoService.fetchEndpointReleaseSchema,
       ).toHaveBeenCalledWith('acme', 'orders-api-abc', 'mock-user-token');
+    });
+
+    describe('/component-endpoints', () => {
+      const componentRef = {
+        componentName: 'orders',
+        projectName: 'store',
+        namespaceName: 'acme',
+      };
+
+      it("GET returns a line's Endpoints, reading main as the main line", async () => {
+        services.endpointInfoService.fetchComponentEndpoints.mockResolvedValue({
+          endpoints: [],
+          allowedEndpoints: [],
+        });
+
+        const response = await request(app)
+          .get('/component-endpoints')
+          .query({
+            ...componentRef,
+            releaseLine: 'main',
+            componentTypeKind: 'ClusterComponentType',
+            componentTypeName: 'service',
+          });
+
+        expect(response.status).toBe(200);
+        expect(
+          services.endpointInfoService.fetchComponentEndpoints,
+        ).toHaveBeenCalledWith(
+          {
+            ...componentRef,
+            releaseLine: undefined,
+            componentTypeKind: 'ClusterComponentType',
+            componentTypeName: 'service',
+          },
+          'mock-user-token',
+        );
+      });
+
+      it('GET requires the component and its type', async () => {
+        const missingType = await request(app)
+          .get('/component-endpoints')
+          .query(componentRef);
+        const missingProject = await request(app)
+          .get('/component-endpoints')
+          .query({ componentName: 'orders', componentTypeName: 'service' });
+
+        expect(missingType.status).toBe(400);
+        expect(missingProject.status).toBe(400);
+        expect(
+          services.endpointInfoService.fetchComponentEndpoints,
+        ).not.toHaveBeenCalled();
+      });
+
+      it("POST creates an Endpoint for a release line's workload endpoint", async () => {
+        services.endpointInfoService.createComponentEndpoint.mockResolvedValue({
+          name: 'orders-next-api',
+        });
+
+        const response = await request(app)
+          .post('/component-endpoints')
+          .send({
+            ...componentRef,
+            releaseLine: 'next',
+            workloadEndpoint: 'api',
+            typeKind: 'ClusterEndpointType',
+            typeName: 'http-route',
+            visibility: ['external'],
+            autoDeploy: true,
+          });
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual({ name: 'orders-next-api' });
+        expect(
+          services.endpointInfoService.createComponentEndpoint,
+        ).toHaveBeenCalledWith(
+          {
+            ...componentRef,
+            releaseLine: 'next',
+            workloadEndpoint: 'api',
+            typeKind: 'ClusterEndpointType',
+            typeName: 'http-route',
+            visibility: ['external'],
+            parameters: undefined,
+            autoDeploy: true,
+          },
+          'mock-user-token',
+        );
+      });
+
+      it('POST requires a workload endpoint, type and visibility', async () => {
+        const response = await request(app)
+          .post('/component-endpoints')
+          .send({ ...componentRef, workloadEndpoint: 'api' });
+
+        expect(response.status).toBe(400);
+        expect(
+          services.endpointInfoService.createComponentEndpoint,
+        ).not.toHaveBeenCalled();
+      });
+
+      it("PUT updates one of the component's Endpoints", async () => {
+        services.endpointInfoService.updateComponentEndpoint.mockResolvedValue({
+          name: 'orders-api',
+        });
+        const body = {
+          ...componentRef,
+          endpointName: 'orders-api',
+          visibility: ['internal'],
+          parameters: { host: 'a' },
+          workloadEndpoint: 'http',
+        };
+
+        const response = await request(app)
+          .put('/component-endpoints')
+          .send(body);
+
+        expect(response.status).toBe(200);
+        expect(
+          services.endpointInfoService.updateComponentEndpoint,
+        ).toHaveBeenCalledWith(
+          { ...body, releaseLine: undefined },
+          'mock-user-token',
+        );
+      });
+
+      it("DELETE deletes one of the component's Endpoints", async () => {
+        services.endpointInfoService.deleteComponentEndpoint.mockResolvedValue({
+          success: true,
+        });
+
+        const response = await request(app)
+          .delete('/component-endpoints')
+          .send({ ...componentRef, endpointName: 'orders-api' });
+
+        expect(response.status).toBe(200);
+        expect(
+          services.endpointInfoService.deleteComponentEndpoint,
+        ).toHaveBeenCalledWith(
+          {
+            ...componentRef,
+            releaseLine: undefined,
+            endpointName: 'orders-api',
+          },
+          'mock-user-token',
+        );
+      });
+
+      it("GET /release-line-endpoint-drafts drafts a release line's Endpoints", async () => {
+        services.endpointInfoService.fetchReleaseLineEndpointDrafts.mockResolvedValue(
+          [{ name: 'orders-next-api' }],
+        );
+
+        const response = await request(app)
+          .get('/release-line-endpoint-drafts')
+          .query({ ...componentRef, releaseLine: 'next', autoDeploy: 'true' });
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual([{ name: 'orders-next-api' }]);
+        expect(
+          services.endpointInfoService.fetchReleaseLineEndpointDrafts,
+        ).toHaveBeenCalledWith(
+          { ...componentRef, releaseLine: 'next', autoDeploy: true },
+          'mock-user-token',
+        );
+      });
+
+      it('GET /endpoint-type-schema reads an EndpointType', async () => {
+        services.endpointInfoService.fetchEndpointTypeSchema.mockResolvedValue({
+          success: true,
+          data: {},
+        });
+
+        const response = await request(app)
+          .get('/endpoint-type-schema')
+          .query({ namespaceName: 'acme', etName: 'http-route' });
+
+        expect(response.status).toBe(200);
+        expect(
+          services.endpointInfoService.fetchEndpointTypeSchema,
+        ).toHaveBeenCalledWith('acme', 'http-route', 'mock-user-token');
+      });
+
+      it('GET /cluster-endpoint-type-schema reads a ClusterEndpointType', async () => {
+        services.endpointInfoService.fetchClusterEndpointTypeSchema.mockResolvedValue(
+          { success: true, data: {} },
+        );
+
+        const response = await request(app)
+          .get('/cluster-endpoint-type-schema')
+          .query({ cetName: 'http-route' });
+        const missing = await request(app).get('/cluster-endpoint-type-schema');
+
+        expect(response.status).toBe(200);
+        expect(missing.status).toBe(400);
+        expect(
+          services.endpointInfoService.fetchClusterEndpointTypeSchema,
+        ).toHaveBeenCalledWith('http-route', 'mock-user-token');
+      });
+
+      it('GET /release-line-endpoint-drafts refuses the main line', async () => {
+        const response = await request(app)
+          .get('/release-line-endpoint-drafts')
+          .query({ ...componentRef, releaseLine: 'main' });
+
+        expect(response.status).toBe(400);
+        expect(
+          services.endpointInfoService.fetchReleaseLineEndpointDrafts,
+        ).not.toHaveBeenCalled();
+      });
     });
 
     describe('/endpoint-backends', () => {
