@@ -1,12 +1,10 @@
-import type { ReactNode } from 'react';
-import { Box, Button, Typography } from '@material-ui/core';
+import { useEffect, type ReactNode } from 'react';
+import { Box, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
-import AddIcon from '@material-ui/icons/Add';
 import {
   NO_ENDPOINT,
   defaultEndpointType,
   endpointProtocol,
-  endpointTypeCandidates,
   exposableVisibilities,
   type ComponentEndpointSummary,
   type ExposableEndpoint,
@@ -30,32 +28,26 @@ const useStyles = makeStyles(theme => ({
     fontSize: '0.8125rem',
     color: theme.palette.text.secondary,
   },
-  header: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: theme.spacing(1),
-    marginBottom: theme.spacing(1),
-  },
   title: {
     fontSize: '0.8125rem',
     fontWeight: 600,
+    marginBottom: theme.spacing(1),
   },
 }));
 
 export interface ComponentEndpointExposureProps {
-  /** The workload endpoint's name as the row is saved under. */
+  /** The workload endpoint's name as the card is saved under. */
   workloadEndpoint: string;
   /** The workload endpoint's values, as currently edited. */
   endpoint: ExposableEndpoint;
   state: ComponentEndpointsState;
   schemas: Record<string, SchemaState>;
   disabled: boolean;
-  /** Whether the row is open for editing; its Endpoint is read-only otherwise. */
+  /** Whether the card is open for editing; its Endpoint is read-only otherwise. */
   editing: boolean;
 }
 
-/** An existing Endpoint's Ready state, as the row's header shows it. */
+/** An existing Endpoint's Ready state, as the card shows it. */
 function readiness(original: ComponentEndpointSummary): string {
   if (!original.ready) return 'Pending';
   if (original.ready.status === 'True') return 'Ready';
@@ -65,15 +57,11 @@ function readiness(original: ComponentEndpointSummary): string {
 }
 
 /**
- * How one workload endpoint is exposed in the Endpoints form, inside its
- * row. A row has an Endpoint only once one exists or is added for it:
- * - an existing Endpoint shows its name and Ready state, with its type
- *   (fixed) and parameters;
- * - an Endpoint added on the page, or drafted from the main line on a
- *   release line, is created on save, and can be removed before then;
- * - a row without one offers to add one. Visibility beyond project that the
- *   workload still carries stays there (deprecated) until an Endpoint is
- *   added, which moves it onto the Endpoint.
+ * The Endpoint part of an endpoint's card in the Endpoints form. A card with
+ * visibility beyond project is exposed through an Endpoint: the one it has,
+ * shown with its name, Ready state and (fixed) type, or a new one created on
+ * save, whose type defaults to the protocol's default. A project-only card
+ * has no Endpoint.
  */
 export const ComponentEndpointExposure = ({
   workloadEndpoint,
@@ -90,67 +78,38 @@ export const ComponentEndpointExposure = ({
   const choice = state.choices[workloadEndpoint];
   const visibilities = exposableVisibilities(endpoint);
   const protocol = endpointProtocol(endpoint);
-  const canAdd =
-    editing &&
-    !disabled &&
-    endpointTypeCandidates(protocol, state.allowedEndpoints).length > 0;
+  const defaultType = defaultEndpointType(protocol, state.allowedEndpoints);
 
-  if (!original && !choice) {
-    return (
-      <Box className={classes.header}>
-        <Typography variant="body2" color="textSecondary">
-          {visibilities.length > 0
-            ? `No Endpoint. Its ${visibilities.join(
-                ', ',
-              )} visibility is on the workload (deprecated); add an Endpoint to expose it through one.`
-            : 'No Endpoint: reachable within the project only.'}
-        </Typography>
-        {canAdd && (
-          <Button
-            size="small"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={() =>
-              state.setChoice(workloadEndpoint, {
-                type: defaultEndpointType(protocol, state.allowedEndpoints),
-              })
-            }
-          >
-            Add Endpoint
-          </Button>
-        )}
-      </Box>
-    );
-  }
+  // Taking visibility beyond project in the card's editor gives it an
+  // Endpoint of the protocol's default type, which the editor can change.
+  // Recorded as the card's choice, so only cards someone edited plan one.
+  const { setChoice } = state;
+  const wantsEndpoint =
+    editing &&
+    !choice &&
+    visibilities.length > 0 &&
+    defaultType !== NO_ENDPOINT;
+  useEffect(() => {
+    if (wantsEndpoint) setChoice(workloadEndpoint, { type: defaultType });
+  }, [wantsEndpoint, setChoice, workloadEndpoint, defaultType]);
 
   const exposed =
     visibilities.length > 0 &&
     rowEndpointType(endpoint, state.allowedEndpoints, choice) !== NO_ENDPOINT;
+  if (!original && !exposed) return null;
+
   let notice: ReactNode;
   if (original && !exposed) {
     notice = `Endpoint ${original.name} is deleted on save.`;
-  } else if (!original && !exposed) {
-    notice =
-      'Select a visibility beyond project for it; without one, no Endpoint is created.';
   }
 
   return (
     <Box>
-      <Box className={classes.header}>
-        <Typography className={classes.title}>
-          {original
-            ? `Endpoint ${original.name} · ${readiness(original)}`
-            : 'New Endpoint · created on save'}
-        </Typography>
-        {!original && editing && !disabled && (
-          <Button
-            size="small"
-            onClick={() => state.restoreChoice(workloadEndpoint, undefined)}
-          >
-            Remove
-          </Button>
-        )}
-      </Box>
+      <Typography className={classes.title}>
+        {original
+          ? `Endpoint ${original.name} · ${readiness(original)}`
+          : 'New Endpoint · created on save'}
+      </Typography>
       <EndpointExposure
         endpoint={endpoint}
         allowedEndpoints={state.allowedEndpoints}
@@ -184,9 +143,8 @@ export const DetachedComponentEndpoints = ({
   state: ComponentEndpointsState;
 }) => {
   const classes = useStyles();
-  // A legacy ComponentType's components own no Endpoints, and the legacy
-  // form never changes them.
-  if (state.mode === 'legacy') return null;
+  // Only the Endpoints form lists or changes the component's Endpoints.
+  if (state.mode !== 'endpoints') return null;
   const primary = primaryOriginals(state.originals, state.renames);
   const detached = state.originals.filter(original => {
     const name = currentEndpointName(original, state.renames);

@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { EntityProvider } from '@backstage/plugin-catalog-react';
 import { mockComponentEntity } from '@openchoreo/test-utils';
+import type { ExposableEndpoint } from '@openchoreo/backstage-plugin-common';
 import type { ComponentEndpointsState } from '../hooks/useComponentEndpoints';
 import { EndpointContent } from './EndpointContent';
 
@@ -71,6 +72,7 @@ function state(
     choices: {},
     renames: {},
     mode: 'endpoints',
+    deprecatedRows: {},
     canUseEndpoints: true,
     setChoice: jest.fn(),
     restoreChoice: jest.fn(),
@@ -140,13 +142,37 @@ describe('EndpointContent', () => {
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
-  it('keeps every endpoint project-scoped when the ComponentType allows no Endpoint types', () => {
-    renderContent(state({ allowedEndpoints: [], canUseEndpoints: false }));
+  it('shows no form when the ComponentType allows no Endpoints', () => {
+    renderContent(
+      state({ mode: 'none', allowedEndpoints: [], canUseEndpoints: false }),
+    );
 
-    expect(screen.getAllByText(/endpoints-form/)).toHaveLength(2);
     expect(
-      screen.getAllByText(/allows no Endpoint types, so this endpoint stays/),
-    ).toHaveLength(2);
+      screen.getByText(/This component type doesn't allow Endpoints/),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('endpoint-list')).toBeNull();
+  });
+
+  it('shows no card for a workload endpoint from before Endpoints', () => {
+    renderContent(
+      state({
+        deprecatedRows: {
+          // As the workload has it, so unchanged.
+          api: {
+            type: 'HTTP',
+            port: 8080,
+            visibility: ['external'],
+          } as ExposableEndpoint,
+        },
+      }),
+    );
+
+    // Only the TCP row gets a card; api stays on the workload as it is.
+    expect(screen.getAllByText(/endpoints-form/)).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: 'edit api' })).toBeNull();
+    expect(
+      screen.getByRole('button', { name: 'edit raw' }),
+    ).toBeInTheDocument();
   });
 
   it("reports a ComponentType that couldn't be read", () => {

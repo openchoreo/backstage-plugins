@@ -134,6 +134,38 @@ describe('useComponentEndpoints on a release line', () => {
     expect(client.deleteComponentEndpoint).not.toHaveBeenCalled();
   });
 
+  it('shows no form for a ComponentType without the annotation or allowedEndpoints', async () => {
+    client.fetchComponentEndpoints.mockResolvedValue({
+      endpoints: [],
+      allowedEndpoints: [],
+      legacyEndpoints: false,
+    });
+    const { result } = renderHook(() => useComponentEndpoints(entity));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.mode).toBe('none');
+  });
+
+  it('records workload endpoints from before Endpoints, which get no card', async () => {
+    client.fetchComponentEndpoints.mockResolvedValue({
+      endpoints: [summary('orders-api', 'api')],
+      allowedEndpoints: [
+        { protocols: ['HTTP'], ref: unmanagedHttp, default: true },
+      ],
+    });
+    const { result } = renderHook(() => useComponentEndpoints(entity));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    const old = { protocol: 'HTTP', visibility: ['external'] };
+    act(() => {
+      result.current.prepare({
+        api: { protocol: 'HTTP' },
+        old,
+        internal: { protocol: 'HTTP', visibility: ['project'] },
+      });
+    });
+    expect(result.current.deprecatedRows).toEqual({ old });
+  });
+
   it('opens the Endpoints form for a ComponentType without the annotation', async () => {
     const { result } = renderHook(() => useComponentEndpoints(entity));
     await waitFor(() => expect(result.current.loading).toBe(false));

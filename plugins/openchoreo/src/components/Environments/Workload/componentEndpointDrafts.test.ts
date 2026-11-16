@@ -129,7 +129,18 @@ describe('planEndpointChanges', () => {
     expect(exposedEndpointNames(plan)).toEqual([]);
   });
 
-  it('keeps visibility on the workload until an Endpoint is added for the row', () => {
+  it('plans no Endpoint calls without a form', () => {
+    const plan = input({
+      mode: 'none',
+      endpoints: { api: { protocol: 'HTTP', visibility: ['external'] } },
+      choices: { api: { type: ROUTE } },
+      originals: [original()],
+    });
+    expect(planEndpointChanges(plan)).toEqual([]);
+    expect(exposedEndpointNames(plan)).toEqual([]);
+  });
+
+  it('keeps visibility on the workload for a row without a card', () => {
     const plan = input({
       endpoints: { api: { protocol: 'HTTP', visibility: ['external'] } },
     });

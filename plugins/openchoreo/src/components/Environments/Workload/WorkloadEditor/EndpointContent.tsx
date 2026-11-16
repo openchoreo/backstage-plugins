@@ -38,9 +38,8 @@ interface EndpointContentProps {
   disabled: boolean;
   /**
    * The component's own Endpoints and the form the tab shows, which its
-   * ComponentType decides: the Endpoints form exposes each row through an
-   * Endpoint, the legacy form keeps visibility on the workload. Without it
-   * the tab shows the legacy form.
+   * ComponentType decides (see EndpointFormMode). Without it the tab shows
+   * the legacy form.
    */
   componentEndpoints?: ComponentEndpointsState;
 }
@@ -134,29 +133,44 @@ export const EndpointContent: FC<EndpointContentProps> = ({
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ?? '',
   );
 
-  // In the Endpoints form, visibility beyond project needs an Endpoint: a
-  // row takes it once it has one, existing or added, and a protocol no
-  // allowed type serves stays project-scoped.
+  // In the Endpoints form, visibility beyond project is carried by an
+  // Endpoint, so a protocol no allowed type serves stays project-scoped.
   const visibilityDisabledReason = useCallback(
-    (endpoint: WorkloadEndpoint, savedName: string) => {
-      if (!allowedEndpoints || !choices) return undefined;
-      if (allowedEndpoints.length === 0) {
-        return 'This component type allows no Endpoint types, so this endpoint stays project-scoped.';
-      }
+    (endpoint: WorkloadEndpoint) => {
+      if (!allowedEndpoints) return undefined;
       const protocol = endpointProtocol(endpoint);
-      const noType =
-        endpointTypeCandidates(protocol, allowedEndpoints).length === 0
-          ? `No endpoint type is allowed for ${
-              protocol || 'this protocol'
-            }, so this endpoint stays project-scoped.`
-          : undefined;
-      if (noType) return noType;
-      return choices[savedName]
-        ? undefined
-        : 'Add an Endpoint to expose this endpoint beyond the project.';
+      return endpointTypeCandidates(protocol, allowedEndpoints).length === 0
+        ? `No endpoint type is allowed for ${
+            protocol || 'this protocol'
+          }, so this endpoint stays project-scoped.`
+        : undefined;
     },
-    [allowedEndpoints, choices],
+    [allowedEndpoints],
   );
+
+  // The Endpoints form shows one card per endpoint, except workload
+  // endpoints from before Endpoints that are still as loaded: their
+  // visibility stays on the workload until a card replaces them.
+  const deprecatedRows = endpointsForm?.deprecatedRows;
+  const cards = useMemo(() => {
+    if (!deprecatedRows) return endpoints;
+    return Object.fromEntries(
+      Object.entries(endpoints).filter(
+        ([name, endpoint]) =>
+          !deprecatedRows[name] ||
+          JSON.stringify(deprecatedRows[name]) !== JSON.stringify(endpoint),
+      ),
+    );
+  }, [endpoints, deprecatedRows]);
+
+  if (componentEndpoints?.mode === 'none' && !componentEndpoints.loadError) {
+    return (
+      <Typography variant="body2" color="textSecondary">
+        This component type doesn't allow Endpoints, so its endpoints can't be
+        configured here.
+      </Typography>
+    );
+  }
 
   return (
     <>
@@ -177,14 +191,14 @@ export const EndpointContent: FC<EndpointContentProps> = ({
             </Alert>
           </Box>
         )}
-      {Object.keys(endpoints).length === 0 && (
+      {Object.keys(endpointsForm ? cards : endpoints).length === 0 && (
         <Typography variant="body2" color="textSecondary" gutterBottom>
           No endpoints.
         </Typography>
       )}
       {endpointsForm ? (
         <EndpointList
-          endpoints={endpoints}
+          endpoints={cards}
           disabled={disabled}
           editBuffer={listEditBuffer}
           onRemoveEndpoint={onRemoveEndpoint}

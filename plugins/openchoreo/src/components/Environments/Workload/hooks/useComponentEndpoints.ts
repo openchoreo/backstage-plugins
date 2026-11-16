@@ -3,6 +3,7 @@ import type { Entity } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
 import {
   endpointTypeKey,
+  exposableVisibilities,
   parseEndpointTypeKey,
   toStoredReleaseLine,
   type AllowedEndpointTypeEntry,
@@ -39,10 +40,18 @@ export interface ComponentEndpointsState {
   /**
    * The form the Endpoints tab shows, set by the ComponentType: legacy when
    * it's annotated `openchoreo.dev/legacy-endpoints: "true"`, the Endpoints
-   * form otherwise. Legacy until the ComponentType has been read, since the
-   * legacy form saves no Endpoint changes.
+   * form when it has `allowedEndpoints`, and none otherwise. Legacy until the
+   * ComponentType has been read, since the legacy form saves no Endpoint
+   * changes.
    */
   mode: EndpointFormMode;
+  /**
+   * Workload endpoints from before Endpoints: they carry visibility beyond
+   * project on the workload but have no Endpoint. The Endpoints form shows
+   * no card for them while they're as loaded, and saving leaves them as
+   * they are.
+   */
+  deprecatedRows: Record<string, ExposableEndpoint>;
   /**
    * Whether the ComponentType allows any Endpoint type. Without one the
    * Endpoints form keeps every endpoint project-scoped.
@@ -97,6 +106,9 @@ export function useComponentEndpoints(
   const [choices, setChoices] = useState<EndpointExposures>({});
   const [renames, setRenames] = useState<Record<string, string>>({});
   const [mode, setMode] = useState<EndpointFormMode>('legacy');
+  const [deprecatedRows, setDeprecatedRows] = useState<
+    Record<string, ExposableEndpoint>
+  >({});
 
   useEffect(() => {
     if (options.skip) {
@@ -123,7 +135,9 @@ export function useComponentEndpoints(
       .then(({ result, lineDrafts }) => {
         if (cancelled) return;
         setAllowedEndpoints(result.allowedEndpoints ?? EMPTY);
-        setMode(result.legacyEndpoints ? 'legacy' : 'endpoints');
+        const allowed = result.allowedEndpoints ?? EMPTY;
+        if (result.legacyEndpoints) setMode('legacy');
+        else setMode(allowed.length > 0 ? 'endpoints' : 'none');
         setOriginals(result.endpoints);
         setDrafts(lineDrafts);
         const initial: EndpointExposures = {};
@@ -200,7 +214,7 @@ export function useComponentEndpoints(
 
   const prepare = useCallback(
     <T extends ExposableEndpoint>(endpoints: Record<string, T>) => {
-      if (mode === 'legacy') return endpoints;
+      if (mode !== 'endpoints') return endpoints;
       const primary = primaryOriginals(originals, {});
       // A line without Endpoints of its own starts from the main line's drafts.
       const drafted = new Map<string, ComponentEndpointInput>();
@@ -212,10 +226,14 @@ export function useComponentEndpoints(
         }
       }
       const result: Record<string, T> = {};
+      const deprecated: Record<string, ExposableEndpoint> = {};
       for (const [name, endpoint] of Object.entries(endpoints)) {
         const visibilitySource =
           primary.get(name)?.visibility ?? drafted.get(name)?.visibility;
         if (!visibilitySource) {
+          if (exposableVisibilities(endpoint).length > 0) {
+            deprecated[name] = endpoint;
+          }
           result[name] = endpoint;
           continue;
         }
@@ -224,6 +242,7 @@ export function useComponentEndpoints(
         ];
         result[name] = { ...endpoint, visibility };
       }
+      setDeprecatedRows(deprecated);
       return result;
     },
     [mode, originals, drafts],
@@ -333,6 +352,7 @@ export function useComponentEndpoints(
       choices,
       renames,
       mode,
+      deprecatedRows,
       canUseEndpoints: allowedEndpoints.length > 0,
       setChoice,
       restoreChoice,
@@ -349,6 +369,7 @@ export function useComponentEndpoints(
       choices,
       renames,
       mode,
+      deprecatedRows,
       setChoice,
       restoreChoice,
       renameWorkloadEndpoint,

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import type { ComponentEndpointSummary } from '@openchoreo/backstage-plugin-common';
 import type { ComponentEndpointsState } from '../hooks/useComponentEndpoints';
 import { ComponentEndpointExposure } from './ComponentEndpointExposure';
@@ -23,6 +23,7 @@ function state(
     choices: {},
     renames: {},
     mode: 'endpoints',
+    deprecatedRows: {},
     canUseEndpoints: true,
     setChoice: jest.fn(),
     restoreChoice: jest.fn(),
@@ -45,11 +46,11 @@ const original: ComponentEndpointSummary = {
   ready: { status: 'True', reason: 'Ready' },
 };
 
-function renderRow(
+function renderCard(
   componentEndpoints: ComponentEndpointsState,
   options: { visibility?: string[]; editing?: boolean } = {},
 ) {
-  render(
+  return render(
     <ComponentEndpointExposure
       workloadEndpoint="api"
       endpoint={{
@@ -65,71 +66,62 @@ function renderRow(
 }
 
 describe('ComponentEndpointExposure', () => {
-  it('offers to add an Endpoint to a row without one, preselecting the default type', () => {
+  it('shows nothing for a project-only card', () => {
     const componentEndpoints = state();
-    renderRow(componentEndpoints);
+    const { container } = renderCard(componentEndpoints);
 
-    expect(
-      screen.getByText('No Endpoint: reachable within the project only.'),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(/New Endpoint/)).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Add Endpoint' }));
+    expect(container).toBeEmptyDOMElement();
+    expect(componentEndpoints.setChoice).not.toHaveBeenCalled();
+  });
+
+  it('gives a card the default Endpoint type once its editor takes visibility beyond project', () => {
+    const componentEndpoints = state();
+    renderCard(componentEndpoints, { visibility: ['external'] });
+
     expect(componentEndpoints.setChoice).toHaveBeenCalledWith('api', {
       type: HTTP_ROUTE,
     });
   });
 
-  it('shows visibility the workload still carries as deprecated, without an Endpoint', () => {
-    renderRow(state(), { visibility: ['external'] });
-
-    expect(
-      screen.getByText(/external visibility is on the workload \(deprecated\)/),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Add Endpoint' }),
-    ).toBeInTheDocument();
-  });
-
-  it('only offers to add an Endpoint while the row is edited', () => {
-    renderRow(state(), { editing: false });
-
-    expect(screen.queryByRole('button', { name: 'Add Endpoint' })).toBeNull();
-  });
-
-  it('shows an added Endpoint as created on save, with a way to remove it', () => {
-    const componentEndpoints = state({
-      choices: { api: { type: HTTP_ROUTE } },
+  it('chooses nothing for a card that is not being edited', () => {
+    const componentEndpoints = state();
+    renderCard(componentEndpoints, {
+      visibility: ['external'],
+      editing: false,
     });
-    renderRow(componentEndpoints, { visibility: ['external'] });
+
+    expect(componentEndpoints.setChoice).not.toHaveBeenCalled();
+  });
+
+  it('shows a new Endpoint as created on save', () => {
+    renderCard(state({ choices: { api: { type: HTTP_ROUTE } } }), {
+      visibility: ['external'],
+    });
 
     expect(
       screen.getByText('New Endpoint · created on save'),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
-    expect(componentEndpoints.restoreChoice).toHaveBeenCalledWith(
-      'api',
-      undefined,
-    );
-  });
-
-  it('asks for a visibility for an added Endpoint that has none', () => {
-    renderRow(state({ choices: { api: { type: HTTP_ROUTE } } }));
-
     expect(
-      screen.getByText(/Select a visibility beyond project for it/),
+      screen.getByRole('button', { name: /http-route/ }),
     ).toBeInTheDocument();
   });
 
   it('names an existing Endpoint with its Ready state', () => {
-    renderRow(
-      state({
-        originals: [original],
-        choices: { api: { type: HTTP_ROUTE } },
-      }),
+    renderCard(
+      state({ originals: [original], choices: { api: { type: HTTP_ROUTE } } }),
       { visibility: ['external'] },
     );
 
     expect(screen.getByText('Endpoint orders-api · Ready')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Remove' })).toBeNull();
+  });
+
+  it('says an existing Endpoint is deleted once its card is project-only', () => {
+    renderCard(
+      state({ originals: [original], choices: { api: { type: HTTP_ROUTE } } }),
+    );
+
+    expect(
+      screen.getByText('Endpoint orders-api is deleted on save.'),
+    ).toBeInTheDocument();
   });
 });

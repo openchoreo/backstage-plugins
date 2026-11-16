@@ -14,24 +14,25 @@ Endpoints section, the scaffolder creates the workload without endpoints, and
 the legacy `port` parameter no longer adds an `http` endpoint. A component's
 endpoints are defined on its configure page after creation.
 
-The component's ComponentType decides the form of the configure page's
-Endpoints tab. Before upgrading, platform engineers annotate every
+The component's ComponentType decides what the configure page's Endpoints tab
+shows. Before upgrading, platform engineers annotate every
 (Cluster)ComponentType that predates Endpoints with
-`openchoreo.dev/legacy-endpoints: "true"`. Its components get the legacy form:
-visibility stays on the workload (deprecated), served by the type's own
-templated routes, and no Endpoints are created. Every other ComponentType gets
-the Endpoints form, where a workload endpoint is exposed beyond the project
-through an Endpoint added for it with **Add Endpoint**: its type comes from
-the EndpointTypes the ComponentType allows for the endpoint's protocol
-(`allowedEndpoints`; the protocol's default is preselected), and it carries
-the row's visibility beyond project, which is dropped from the workload. An
-Endpoint added on the page is created on save and can be removed before then.
-Visibility a workload still carries without an Endpoint stays there
-(deprecated) until an Endpoint is added for it. There's no switching between
-forms.
+`openchoreo.dev/legacy-endpoints: "true"`.
 
-Inside each workload endpoint's row, the page shows the Endpoint the
-component owns for it: name, Ready state, type and parameters. It can
+- An annotated type gets the legacy form: the workload endpoint editor, with
+  visibility on the workload (deprecated), served by the type's own templated
+  routes. No Endpoints are created.
+- A type with `allowedEndpoints` gets the Endpoints form: one card per
+  endpoint, added with **Add Endpoint**, with its name, protocol, port,
+  visibility and schema, and for visibility beyond project an Endpoint type
+  (the protocol's default preselected, from `allowedEndpoints`) and its
+  parameters. Saving creates the Endpoint, which carries that visibility, and
+  drops it from the workload; a project-only card has no Endpoint. Workload
+  endpoints from before Endpoints, which carry visibility beyond project but
+  have no Endpoint, get no card and stay on the workload as they are.
+- A type with neither shows no form, and saving changes no Endpoints.
+
+A card with an Endpoint shows its name, Ready state, type and parameters. It can
 be edited or deleted, and changes are staged with the workload and saved after
 it. A renamed workload endpoint keeps its Endpoints; one that's removed or
 loses its visibility beyond project has its Endpoints deleted on save. The

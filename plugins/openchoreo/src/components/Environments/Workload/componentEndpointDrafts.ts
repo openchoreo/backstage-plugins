@@ -16,24 +16,25 @@ import {
 } from '@openchoreo/backstage-plugin-react';
 
 /**
- * The two forms of the configure page's Endpoints tab, decided by the
- * component's ComponentType. In the Endpoints form each workload endpoint
- * with a visibility beyond project is exposed through an Endpoint, which
- * carries that visibility; a row gets an Endpoint only when one is added
- * for it (see rowEndpointType). The legacy form is for ComponentTypes
- * annotated `openchoreo.dev/legacy-endpoints: "true"`: the visibility stays
- * on the workload (deprecated), the type's own routes serve it, and the
- * component's Endpoints aren't touched.
+ * The form of the configure page's Endpoints tab, decided by the component's
+ * ComponentType:
+ * - `legacy`, for a type annotated `openchoreo.dev/legacy-endpoints: "true"`:
+ *   the workload endpoint editor, with visibility on the workload
+ *   (deprecated), served by the type's own templated routes;
+ * - `endpoints`, for a type with `allowedEndpoints`: one card per endpoint,
+ *   whose visibility beyond project is carried by an Endpoint;
+ * - `none`, for a type with neither: no form, and saving changes no
+ *   Endpoints.
  */
-export type EndpointFormMode = 'endpoints' | 'legacy';
+export type EndpointFormMode = 'endpoints' | 'legacy' | 'none';
 
 /**
- * The Endpoint type a row is exposed through: the type of its Endpoint, or of
- * the one added for it on the page (a release line's drafts count as added),
- * falling back to the protocol's default when that type is no longer allowed.
- * NO_ENDPOINT for a row without one: visibility beyond project alone doesn't
- * create an Endpoint, so a workload that still carries it keeps it there
- * (deprecated) until someone adds an Endpoint.
+ * The Endpoint type a row is exposed through: the type chosen for it, which
+ * its Endpoint, a release line's draft, or the card's editor sets, falling
+ * back to the protocol's default when that type is no longer allowed.
+ * NO_ENDPOINT for a row without a choice: a workload endpoint that still
+ * carries visibility beyond project from before Endpoints, and has no card,
+ * keeps it on the workload.
  */
 export function rowEndpointType(
   endpoint: ExposableEndpoint,
@@ -121,11 +122,11 @@ export function primaryOriginals(
 
 /**
  * The workload endpoints exposed through an Endpoint after saving, whose
- * visibility beyond project the workload no longer carries. None in the
- * legacy form.
+ * visibility beyond project the workload no longer carries. None outside
+ * the Endpoints form.
  */
 export function exposedEndpointNames(input: EndpointPlanInput): string[] {
-  if (input.mode === 'legacy') return [];
+  if (input.mode !== 'endpoints') return [];
   return Object.entries(input.endpoints)
     .filter(
       ([name, endpoint]) =>
@@ -142,13 +143,13 @@ export function exposedEndpointNames(input: EndpointPlanInput): string[] {
 /**
  * Plans the Endpoint calls that bring the server in line with the page:
  * deletes first, so a replacement never clashes with what it replaces, then
- * updates and creates. The legacy form plans none: its component keeps its
- * visibility on the workload.
+ * updates and creates. Only the Endpoints form plans any: the legacy form
+ * keeps visibility on the workload, and without a form nothing changes.
  */
 export function planEndpointChanges(
   input: EndpointPlanInput,
 ): EndpointChange[] {
-  if (input.mode === 'legacy') return [];
+  if (input.mode !== 'endpoints') return [];
   const deletes: EndpointChange[] = [];
   const updates: EndpointChange[] = [];
   const creates: EndpointChange[] = [];
