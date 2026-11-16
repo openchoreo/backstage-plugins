@@ -7,8 +7,9 @@ portal's service credentials (`openchoreo.auth`).
 | -------------------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `openchoreoComponentTypeFactRetriever` | `ClusterComponentType`, `ComponentType` | Workload type, allowed and embedded traits, allowed workflows, validation rules, whether templates set limits, run as non-root or allow privileged containers   |
 | `openchoreoDeploymentFactRetriever`    | `Component`                             | Image registry and whether it's pinned, external endpoints, secret-like plain env values, environments deployed to, production, ready and latest-release status |
+| `openchoreoBuildFactRetriever`         | `Component`                             | Whether the last finished build succeeded, and the share of the last 20 that did                                                                                |
 
-Each retriever reports a `…Resolved` fact. When the entity has no matching OpenChoreo resource it
+The component type and deployment retrievers report a `…Resolved` fact. When the entity has no matching OpenChoreo resource it
 is false and every other fact is null, so checks fail the entity instead of skipping it. jsonfc
 skips a check only when a fact it uses is missing. `notEqual`, `notIn` and `not` pass on null, so a
 check written with them should also require the `…Resolved` fact.
@@ -28,6 +29,13 @@ whose release is missing or failed to render doesn't count. `openchoreoRunsLates
 whether every binding points at the latest release, and readiness is left to
 `openchoreoReadyInAllEnvironments`. OpenChoreo records a component's latest release only when
 `autoDeploy` is on, so `openchoreoRunsLatestRelease` is left out for components deployed by hand.
+
+The build facts read a component's workflow runs on every release line. A run counts once it has
+finished, and one that failed validation before its workflow ran counts as failed.
+`openchoreoBuildSuccessRate` covers the newest 20 finished runs. OpenChoreo deletes a run a while
+after it finishes (`ttlAfterCompletion`, one day in the sample workflows), so both facts are left
+out when no finished run is retained, as they are for components built outside OpenChoreo and for
+Components OpenChoreo doesn't manage. Checks on them then show no result rather than failing.
 
 Trait and workflow facts are `Kind/name` values such as `ClusterTrait/observability`, since a
 Trait and a ClusterTrait can share a name. A reference without a kind gets the CRD default: `Trait`
@@ -68,6 +76,9 @@ techInsights:
     openchoreoDeploymentFactRetriever:
       cadence: '*/15 * * * *'
       lifecycle: { timeToLive: { hours: 6 } }
+    openchoreoBuildFactRetriever:
+      cadence: '*/30 * * * *'
+      lifecycle: { timeToLive: { hours: 6 } }
 ```
 
 ## Permissions
@@ -99,3 +110,9 @@ deployment facts has no result for that component. It neither passes nor fails, 
 component's tier is decided by its other checks. When a deployment check shows no result on
 components that are deployed, grant the service credentials `releasebinding:view` on them and
 `environment:view` on their namespace without conditions, along with `component:view`.
+
+The build facts need `workflowrun:view` on the component's path. The run list has the same partial
+visibility, so they are reported only when that grant covers the component with no CEL condition
+and no denial, and are left out otherwise. A failed read of the authz profile or the run list skips
+the component for that run, so it keeps its previous build facts until they expire. A component
+with more than 500 retained runs gets no build facts.
