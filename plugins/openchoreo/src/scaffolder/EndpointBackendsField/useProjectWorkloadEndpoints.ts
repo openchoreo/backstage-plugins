@@ -11,6 +11,8 @@ import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
  */
 export interface WorkloadEndpointOption {
   component: string;
+  /** The component's release line; absent for its main line. */
+  releaseLine?: string;
   endpoint: string;
   /** Schema format, e.g. `openapi` or `proto`, when the endpoint has one. */
   schemaType?: string;
@@ -69,7 +71,8 @@ export function projectKey(namespace: string, project: string): string {
  * Lists the workload endpoints of a project's components: the components come
  * from the catalog, their endpoints from each component's Workload. A
  * component without a Workload, or whose Workload can't be read, contributes
- * no endpoints. `components` lists the project's components from the catalog
+ * no endpoints. With `includeReleaseLines`, each release line's Workload
+ * contributes its endpoints too, marked with the line. `components` lists the project's components from the catalog
  * whether or not their Workloads loaded, so callers can tell which components
  * belong to the project. `loadedFor` is the {@link projectKey} both were
  * loaded for, so callers can tell them from results left from another project.
@@ -77,6 +80,7 @@ export function projectKey(namespace: string, project: string): string {
 export function useProjectWorkloadEndpoints(
   namespace: string | undefined,
   project: string | undefined,
+  { includeReleaseLines = false }: { includeReleaseLines?: boolean } = {},
 ): {
   options: WorkloadEndpointOption[];
   components: string[];
@@ -114,21 +118,41 @@ export function useProjectWorkloadEndpoints(
         const componentName = (component: (typeof items)[number]) =>
           component.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT] ??
           component.metadata.name;
+        // One line's workload endpoints; the main line when `releaseLine` is
+        // undefined.
+        const lineOptions = (
+          component: (typeof items)[number],
+          releaseLine?: string,
+        ) =>
+          client
+            .fetchWorkloadInfo(component, releaseLine)
+            .then(workload =>
+              workloadEndpointOptions(
+                componentName(component),
+                workload?.spec?.endpoints as
+                  | Record<string, WorkloadEndpointSpec>
+                  | undefined,
+              ).map(o => (releaseLine ? { ...o, releaseLine } : o)),
+            )
+            // No Workload yet (or not readable): nothing to route to.
+            .catch(() => [] as WorkloadEndpointOption[]);
+        const releaseLines = (component: (typeof items)[number]) =>
+          includeReleaseLines
+            ? client
+                .fetchReleaseLines(component)
+                .then(lines => lines.filter(l => !l.isMain).map(l => l.name))
+                // Lines that can't be read leave the main line's endpoints.
+                .catch(() => [] as string[])
+            : Promise.resolve([] as string[]);
         return Promise.all(
-          items.map(component =>
-            client
-              .fetchWorkloadInfo(component)
-              .then(workload =>
-                workloadEndpointOptions(
-                  componentName(component),
-                  workload?.spec?.endpoints as
-                    | Record<string, WorkloadEndpointSpec>
-                    | undefined,
-                ),
-              )
-              // No Workload yet (or not readable): nothing to route to.
-              .catch(() => [] as WorkloadEndpointOption[]),
-          ),
+          items.map(async component => {
+            const lines = await releaseLines(component);
+            const perLine = await Promise.all([
+              lineOptions(component),
+              ...lines.map(line => lineOptions(component, line)),
+            ]);
+            return perLine.flat();
+          }),
         ).then(perComponent => ({
           components: items.map(componentName),
           perComponent,
@@ -138,9 +162,10 @@ export function useProjectWorkloadEndpoints(
         if (cancelled) return;
         const options = perComponent
           .flat()
+          // The main line sorts before the component's release lines.
           .sort((a, b) =>
-            `${a.component}/${a.endpoint}`.localeCompare(
-              `${b.component}/${b.endpoint}`,
+            `${a.component}@${a.releaseLine ?? ''}/${a.endpoint}`.localeCompare(
+              `${b.component}@${b.releaseLine ?? ''}/${b.endpoint}`,
             ),
           );
         setState({ options, components, loading: false, loadedFor: key });
@@ -157,7 +182,7 @@ export function useProjectWorkloadEndpoints(
     return () => {
       cancelled = true;
     };
-  }, [catalogApi, client, namespace, project]);
+  }, [catalogApi, client, namespace, project, includeReleaseLines]);
 
   return state;
 }
