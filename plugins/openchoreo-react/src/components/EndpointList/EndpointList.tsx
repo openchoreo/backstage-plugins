@@ -41,9 +41,13 @@ export interface EndpointListProps {
   ) => ReactNode;
   /**
    * Why a row cannot take visibility beyond project, if it cannot. Receives
-   * the edited values, so it follows the protocol as it changes.
+   * the edited values, so it follows the protocol as it changes, and the
+   * name the row is saved under.
    */
-  visibilityDisabledReason?: (endpoint: WorkloadEndpoint) => string | undefined;
+  visibilityDisabledReason?: (
+    endpoint: WorkloadEndpoint,
+    savedName: string,
+  ) => string | undefined;
 }
 
 /**
@@ -94,7 +98,10 @@ export const EndpointList: FC<EndpointListProps> = ({
                   : endpointName
               }
               endpoint={shown}
-              visibilityDisabledReason={visibilityDisabledReason?.(shown)}
+              visibilityDisabledReason={visibilityDisabledReason?.(
+                shown,
+                endpointName,
+              )}
               disabled={disabled}
               isEditing={isCurrentlyEditing}
               onEdit={() => editBuffer.startEdit(endpointName)}

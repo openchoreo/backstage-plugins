@@ -412,10 +412,13 @@ export function WorkloadEditor({
     }`;
     const updatedEndpoints = {
       ...formData.endpoints,
+      // In the Endpoints form a row takes visibility beyond project only
+      // with an Endpoint, so a new row starts within the project.
       [endpointName]: {
         type: 'HTTP',
         port: 8080,
-        visibility: ['external'],
+        visibility:
+          componentEndpoints?.mode === 'endpoints' ? ['project'] : ['external'],
       } as WorkloadEndpoint,
     };
     updateSpec({ ...formData, endpoints: updatedEndpoints } as WorkloadSpec);

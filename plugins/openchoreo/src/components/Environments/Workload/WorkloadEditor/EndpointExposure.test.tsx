@@ -33,16 +33,19 @@ const HTTP_ROUTE_SCHEMA = {
 };
 
 describe('EndpointExposure', () => {
-  it('renders nothing for an endpoint with project visibility only', () => {
-    const { container } = render(
+  it('shows the type of an added Endpoint before any visibility is chosen', () => {
+    render(
       <EndpointExposure
         endpoint={{ protocol: 'HTTP', visibility: ['project'] }}
         allowedEndpoints={[httpRoute]}
-        schemas={{}}
+        choice={{ type: HTTP_ROUTE }}
+        schemas={{ [HTTP_ROUTE]: HTTP_ROUTE_SCHEMA }}
         onChange={jest.fn()}
       />,
     );
-    expect(container).toBeEmptyDOMElement();
+    expect(
+      screen.getByRole('button', { name: /http-route/ }),
+    ).toBeInTheDocument();
   });
 
   it('preselects the default type and shows its parameters', () => {
@@ -158,17 +161,21 @@ describe('EndpointExposure', () => {
 });
 
 describe('chosenEndpointTypeKeys', () => {
-  it('lists the resolved type of every exposable row', () => {
+  it('lists the type of every row with an Endpoint', () => {
     expect(
       chosenEndpointTypeKeys(
         {
           api: { protocol: 'HTTP', visibility: ['external'] },
-          rpc: { protocol: 'gRPC', visibility: ['internal'] },
-          admin: { protocol: 'HTTP', visibility: ['project'] },
+          rpc: { protocol: 'gRPC', visibility: ['project'] },
+          // Deprecated visibility without an Endpoint loads no schema.
+          admin: { protocol: 'HTTP', visibility: ['external'] },
           raw: { protocol: 'TCP', visibility: ['external'] },
         },
         [httpRoute, managed, grpcOptIn],
-        { api: { type: 'ClusterEndpointType/managed-api' } },
+        {
+          api: { type: 'ClusterEndpointType/managed-api' },
+          rpc: { type: 'ClusterEndpointType/grpc-route' },
+        },
       ),
     ).toEqual([
       'ClusterEndpointType/grpc-route',

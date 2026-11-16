@@ -20,17 +20,18 @@ Endpoints tab. Before upgrading, platform engineers annotate every
 `openchoreo.dev/legacy-endpoints: "true"`. Its components get the legacy form:
 visibility stays on the workload (deprecated), served by the type's own
 templated routes, and no Endpoints are created. Every other ComponentType gets
-the Endpoints form, which exposes each workload endpoint with a visibility
-beyond project through an Endpoint, from the EndpointTypes the ComponentType
-allows for the endpoint's protocol (`allowedEndpoints`; the protocol's default
-is preselected). The Endpoint carries that visibility, which is dropped from
-the workload; a protocol no allowed type serves stays project-scoped. When the
-annotation is removed, a component whose workload still carries visibility
-moves it to Endpoints with its next save, which the save confirmation lists.
-There's no switching between forms.
+the Endpoints form, where a workload endpoint is exposed beyond the project
+through an Endpoint added for it with **Add Endpoint**: its type comes from
+the EndpointTypes the ComponentType allows for the endpoint's protocol
+(`allowedEndpoints`; the protocol's default is preselected), and it carries
+the row's visibility beyond project, which is dropped from the workload. An
+Endpoint added on the page is created on save and can be removed before then.
+Visibility a workload still carries without an Endpoint stays there
+(deprecated) until an Endpoint is added for it. There's no switching between
+forms.
 
-Inside each workload endpoint's row, the page shows the Endpoints the
-component owns for it: type, visibility, Ready state and parameters. Each can
+Inside each workload endpoint's row, the page shows the Endpoint the
+component owns for it: name, Ready state, type and parameters. It can
 be edited or deleted, and changes are staged with the workload and saved after
 it. A renamed workload endpoint keeps its Endpoints; one that's removed or
 loses its visibility beyond project has its Endpoints deleted on save. The

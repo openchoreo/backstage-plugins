@@ -134,22 +134,28 @@ export const EndpointContent: FC<EndpointContentProps> = ({
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ?? '',
   );
 
-  // In the Endpoints form, visibility beyond project needs an Endpoint, so
-  // a protocol no allowed type serves stays project-scoped.
+  // In the Endpoints form, visibility beyond project needs an Endpoint: a
+  // row takes it once it has one, existing or added, and a protocol no
+  // allowed type serves stays project-scoped.
   const visibilityDisabledReason = useCallback(
-    (endpoint: WorkloadEndpoint) => {
-      if (!allowedEndpoints) return undefined;
+    (endpoint: WorkloadEndpoint, savedName: string) => {
+      if (!allowedEndpoints || !choices) return undefined;
       if (allowedEndpoints.length === 0) {
         return 'This component type allows no Endpoint types, so this endpoint stays project-scoped.';
       }
       const protocol = endpointProtocol(endpoint);
-      return endpointTypeCandidates(protocol, allowedEndpoints).length === 0
-        ? `No endpoint type is allowed for ${
-            protocol || 'this protocol'
-          }, so this endpoint stays project-scoped.`
-        : undefined;
+      const noType =
+        endpointTypeCandidates(protocol, allowedEndpoints).length === 0
+          ? `No endpoint type is allowed for ${
+              protocol || 'this protocol'
+            }, so this endpoint stays project-scoped.`
+          : undefined;
+      if (noType) return noType;
+      return choices[savedName]
+        ? undefined
+        : 'Add an Endpoint to expose this endpoint beyond the project.';
     },
-    [allowedEndpoints],
+    [allowedEndpoints, choices],
   );
 
   return (

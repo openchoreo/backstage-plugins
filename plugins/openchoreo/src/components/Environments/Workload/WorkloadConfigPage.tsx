@@ -51,12 +51,9 @@ import { useNotification } from '../../../hooks';
 import { pickOverridableProperties } from '../../ReleaseLines/releaseLineUtils';
 import { useComponentEndpoints } from './hooks/useComponentEndpoints';
 import {
-  editedEndpointChanges,
   endpointChangeList,
-  endpointMigration,
   exposedEndpointNames,
   planEndpointChanges,
-  type EndpointMigration,
 } from './componentEndpointDrafts';
 
 /**
@@ -300,24 +297,11 @@ export const WorkloadConfigPage = ({
     () => planEndpointChanges(endpointPlanInput),
     [endpointPlanInput],
   );
-  // Every planned Endpoint call, which the save applies and its
-  // confirmation lists.
   const endpointChangeItems = useMemo(
     () => endpointChangeList(endpointChanges),
     [endpointChanges],
   );
-  // A workload that still carries visibility moves it to Endpoints with the
-  // next save; that alone isn't an unsaved change. Recorded once the rows
-  // are prepared.
-  const [endpointsPrepared, setEndpointsPrepared] = useState(false);
-  const [migration, setMigration] = useState<EndpointMigration | null>(null);
-  const editedChangeCount = useMemo(
-    () =>
-      endpointChangeList(editedEndpointChanges(endpointChanges, migration))
-        .length,
-    [endpointChanges, migration],
-  );
-  const hasEndpointChanges = migration !== null && editedChangeCount > 0;
+  const hasEndpointChanges = endpointChanges.length > 0;
 
   // The workload as on the server; the form shows rows with their
   // Endpoint's visibility merged in, which the saved workload does not carry.
@@ -331,7 +315,6 @@ export const WorkloadConfigPage = ({
     if (endpointsPreparedRef.current || endpointsLoading || isLoading) return;
     if (!workloadResource) return;
     endpointsPreparedRef.current = true;
-    setEndpointsPrepared(true);
     const rows = workloadResource.spec?.endpoints;
     if (!rows) {
       prepare({});
@@ -344,28 +327,6 @@ export const WorkloadConfigPage = ({
     setWorkloadResource(prepared);
     setInitialResource(JSON.parse(JSON.stringify(prepared)));
   }, [endpointsLoading, isLoading, workloadResource, prepare]);
-
-  // A release line's drafts are offered for review, so saving them is a
-  // change like any other; only a workload's own visibility migrates quietly.
-  const { draftedFromMain } = componentEndpoints;
-  useEffect(() => {
-    if (!endpointsPrepared || migration) return;
-    setMigration(
-      draftedFromMain > 0
-        ? { names: [], signature: '[]' }
-        : endpointMigration(
-            serverResourceRef.current?.spec?.endpoints ?? {},
-            endpointOriginals,
-            endpointChanges,
-          ),
-    );
-  }, [
-    endpointsPrepared,
-    migration,
-    draftedFromMain,
-    endpointOriginals,
-    endpointChanges,
-  ]);
 
   // Fetch workload and component config
   useEffect(() => {
@@ -716,7 +677,7 @@ export const WorkloadConfigPage = ({
         );
       }
 
-      if (endpointChanges.length > 0) {
+      if (hasEndpointChanges) {
         await componentEndpoints.apply(
           workloadResource.spec?.endpoints ?? {},
           !!autoDeployEnabled,
@@ -826,7 +787,7 @@ export const WorkloadConfigPage = ({
       ? traitsState.filter(t => t.state !== 'original').length
       : 0) +
     parameterChanges.length +
-    editedChangeCount;
+    endpointChangeItems.length;
 
   // Header actions - Next/Save & Next button
   const headerActions = !isLoading ? (
@@ -985,7 +946,7 @@ export const WorkloadConfigPage = ({
             workloadChanges={workloadChanges}
             parameterChangesCount={parameterChanges.length}
             componentEndpoints={componentEndpoints}
-            endpointChangesCount={editedChangeCount}
+            endpointChangesCount={endpointChangeItems.length}
           />
         </WorkloadProvider>
       )}

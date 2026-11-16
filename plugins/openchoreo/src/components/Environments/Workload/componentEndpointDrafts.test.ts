@@ -1,8 +1,6 @@
 import type { ComponentEndpointSummary } from '@openchoreo/backstage-plugin-common';
 import {
-  editedEndpointChanges,
   endpointChangeList,
-  endpointMigration,
   exposedEndpointNames,
   planEndpointChanges,
   type EndpointPlanInput,
@@ -93,16 +91,23 @@ describe('planEndpointChanges', () => {
     expect(exposedEndpointNames(plan)).toEqual([]);
   });
 
-  it('migrates mixed rows: keeps the Endpoint, creates one for the deprecated row', () => {
+  it('keeps the Endpoint and leaves a deprecated row as it is until one is added for it', () => {
+    const rows = {
+      api: { protocol: 'HTTP', visibility: ['external'] },
+      old: { protocol: 'HTTP', visibility: ['internal'] },
+    };
+    const choices = { api: { type: ROUTE, parameters: {} } };
+    expect(
+      planEndpointChanges(
+        input({ endpoints: rows, choices, originals: [original()] }),
+      ),
+    ).toEqual([]);
     expect(
       ops(
         planEndpointChanges(
           input({
-            endpoints: {
-              api: { protocol: 'HTTP', visibility: ['external'] },
-              old: { protocol: 'HTTP', visibility: ['internal'] },
-            },
-            choices: { api: { type: ROUTE, parameters: {} } },
+            endpoints: rows,
+            choices: { ...choices, old: { type: ROUTE } },
             originals: [original()],
           }),
         ),
@@ -124,11 +129,23 @@ describe('planEndpointChanges', () => {
     expect(exposedEndpointNames(plan)).toEqual([]);
   });
 
-  it('migrates a workload that still carries visibility, in the Endpoints form', () => {
+  it('keeps visibility on the workload until an Endpoint is added for the row', () => {
+    const plan = input({
+      endpoints: { api: { protocol: 'HTTP', visibility: ['external'] } },
+    });
+    expect(planEndpointChanges(plan)).toEqual([]);
+    expect(exposedEndpointNames(plan)).toEqual([]);
+  });
+
+  it('creates an Endpoint for a row one was added for, moving its visibility', () => {
     const plan = input({
       endpoints: {
         api: { protocol: 'HTTP', visibility: ['external'] },
         internalOnly: { protocol: 'HTTP', visibility: ['project'] },
+      },
+      choices: {
+        api: { type: ROUTE },
+        internalOnly: { type: ROUTE },
       },
     });
     expect(ops(planEndpointChanges(plan))).toEqual(['create api']);
@@ -234,51 +251,5 @@ describe('endpointChangeList', () => {
         newValue: 'external, internal',
       },
     ]);
-  });
-});
-
-describe('endpointMigration', () => {
-  const saved = {
-    api: { protocol: 'HTTP', visibility: ['external'] },
-    owned: { protocol: 'HTTP', visibility: ['project'] },
-    internal: { protocol: 'HTTP', visibility: ['project'] },
-  };
-  const rows = {
-    ...saved,
-    owned: { protocol: 'HTTP', visibility: ['project', 'external'] },
-  };
-
-  it("doesn't count the workload's own visibility moving to Endpoints as an edit", () => {
-    const originals = [
-      original({ name: 'orders-owned', workloadEndpoint: 'owned' }),
-    ];
-    const changes = planEndpointChanges(input({ endpoints: rows, originals }));
-    const migration = endpointMigration(saved, originals, changes);
-
-    expect(migration.names).toEqual(['api']);
-    expect(ops(changes)).toContain('create api');
-    expect(ops(editedEndpointChanges(changes, migration))).not.toContain(
-      'create api',
-    );
-  });
-
-  it('counts the migration once the developer changes it', () => {
-    const changes = planEndpointChanges(input({ endpoints: rows }));
-    const migration = endpointMigration(saved, [], changes);
-    const edited = planEndpointChanges(
-      input({
-        endpoints: rows,
-        choices: { api: { type: MANAGED, parameters: {} } },
-      }),
-    );
-
-    expect(ops(editedEndpointChanges(edited, migration))).toContain(
-      'create api',
-    );
-  });
-
-  it('counts every change without a recorded migration', () => {
-    const changes = planEndpointChanges(input({ endpoints: rows }));
-    expect(editedEndpointChanges(changes, null)).toBe(changes);
   });
 });

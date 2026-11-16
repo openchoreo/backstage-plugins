@@ -16,7 +16,6 @@ import {
   endpointProtocol,
   endpointTypeCandidates,
   endpointTypeKey,
-  exposableVisibilities,
   parseEndpointTypeKey,
   resolveEndpointType,
   type AllowedEndpointTypeEntry,
@@ -62,8 +61,8 @@ function hasProperties(schema: JSONSchema7): boolean {
 }
 
 /**
- * The EndpointTypes the Endpoints form currently uses: the resolved type of
- * every row with a visibility beyond project that some type can expose.
+ * The EndpointTypes the Endpoints form currently uses: the type of every row
+ * with an Endpoint, existing or added on the page.
  */
 export function chosenEndpointTypeKeys(
   endpoints: Record<string, ExposableEndpoint>,
@@ -72,7 +71,7 @@ export function chosenEndpointTypeKeys(
 ): string[] {
   const keys = new Set<string>();
   for (const [name, endpoint] of Object.entries(endpoints)) {
-    if (exposableVisibilities(endpoint).length === 0) continue;
+    if (!choices[name]) continue;
     const type = resolveEndpointType(endpoint, allowedEndpoints, choices[name]);
     if (type !== NO_ENDPOINT) keys.add(type);
   }
@@ -135,10 +134,10 @@ interface EndpointExposureProps {
 }
 
 /**
- * How one workload endpoint is exposed in the Endpoints form, shown inside
- * its row once it has a visibility beyond project: the Endpoint type, from
- * those allowed for its protocol (the default one preselected), and that
- * type's parameters. The Endpoint carries the row's visibility.
+ * The form of a row's Endpoint, existing or added on the page: the Endpoint
+ * type, from those allowed for the row's protocol (the default one
+ * preselected), and that type's parameters. The Endpoint carries the row's
+ * visibility beyond project.
  */
 export const EndpointExposure = ({
   endpoint,
@@ -152,24 +151,18 @@ export const EndpointExposure = ({
   disabled,
 }: EndpointExposureProps) => {
   const classes = useStyles();
-  const visibilities = exposableVisibilities(endpoint);
   const protocol = endpointProtocol(endpoint);
   const candidates = endpointTypeCandidates(protocol, allowedEndpoints);
   const noticeBox = notice ? (
     <Box className={classes.note}>{notice}</Box>
   ) : null;
-  if (visibilities.length === 0) {
-    return noticeBox;
-  }
   if (candidates.length === 0) {
-    // Only reachable from data saved elsewhere: the editor does not offer
-    // visibility beyond project for a protocol no type can expose.
+    // The protocol changed to one no type serves since the Endpoint was
+    // added; the editor offers no visibility beyond project for it.
     return (
       <Box>
         <Typography className={classes.note}>
-          No endpoint type is allowed for {protocol || 'this protocol'}, so{' '}
-          {visibilities.join(', ')} visibility stays on the workload
-          (deprecated).
+          No endpoint type is allowed for {protocol || 'this protocol'}.
         </Typography>
         {noticeBox}
       </Box>
