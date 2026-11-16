@@ -110,11 +110,20 @@ describe('useProjectContentsPage', () => {
     expect(mockCatalogApi.queryEntities).toHaveBeenCalledWith(
       expect.objectContaining({
         limit: 5,
-        filter: {
-          kind: ['Component', 'Resource', 'Endpoint'],
-          'spec.system': 'url-shortener',
-          'metadata.namespace': 'default',
-        },
+        filter: [
+          {
+            kind: ['Component', 'Resource'],
+            'spec.system': 'url-shortener',
+            'metadata.namespace': 'default',
+          },
+          {
+            // Component-managed Endpoints are left out of project contents.
+            kind: 'Endpoint',
+            'spec.system': 'url-shortener',
+            'metadata.namespace': 'default',
+            'metadata.labels.openchoreo.io/endpoint-scope': 'project',
+          },
+        ],
         orderFields: [{ field: 'metadata.title', order: 'asc' }],
       }),
     );
@@ -165,10 +174,29 @@ describe('useProjectContentsPage', () => {
     await waitFor(() =>
       expect(mockCatalogApi.queryEntities).toHaveBeenCalledWith(
         expect.objectContaining({
-          filter: expect.objectContaining({
-            kind: ['Resource'],
-            'spec.type': ['postgres'],
-          }),
+          filter: [
+            expect.objectContaining({
+              kind: ['Resource'],
+              'spec.type': ['postgres'],
+            }),
+          ],
+        }),
+      ),
+    );
+  });
+
+  it('selects only project-owned Endpoints when filtering to Endpoints', async () => {
+    renderPage({ ...baseParams, kinds: new Set(['endpoint']) });
+
+    await waitFor(() =>
+      expect(mockCatalogApi.queryEntities).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filter: [
+            expect.objectContaining({
+              kind: 'Endpoint',
+              'metadata.labels.openchoreo.io/endpoint-scope': 'project',
+            }),
+          ],
         }),
       ),
     );

@@ -3,6 +3,7 @@ import type { JsonObject } from '@backstage/types';
 import {
   CHOREO_ANNOTATIONS,
   CHOREO_LABELS,
+  ENDPOINT_SCOPE,
   getRepositoryInfo,
   getRepositoryUrl,
   ComponentTypeUtils,
@@ -2586,6 +2587,11 @@ export function translateEndpointToEntities(
       },
       labels: {
         [CHOREO_LABELS.MANAGED]: 'true',
+        // Always set, so views can select project-owned Endpoints with a
+        // value (the catalog can't filter on a missing field).
+        [CHOREO_LABELS.ENDPOINT_SCOPE]: endpoint.ownerComponent
+          ? ENDPOINT_SCOPE.COMPONENT
+          : ENDPOINT_SCOPE.PROJECT,
       },
     },
     spec: {
