@@ -15,6 +15,12 @@ describe('deriveEndpointBackendName', () => {
     );
   });
 
+  it("puts a release line's name between the component and endpoint", () => {
+    expect(deriveEndpointBackendName('orders', 'http', [], 'next')).toBe(
+      'orders-next-http',
+    );
+  });
+
   it('never ends a long name with a hyphen', () => {
     // The 60-character cut falls just after the hyphen.
     const name = deriveEndpointBackendName('a'.repeat(59), 'b', []);

@@ -15,16 +15,20 @@ export function isEndpointBackendWeight(weight: unknown): weight is number {
 }
 
 /**
- * Derives a backend's name from its component and workload endpoint, made
- * unique among the taken names. Backend names key the Endpoint's backendRefs.
+ * Derives a backend's name from its component, release line (none for the
+ * main line) and workload endpoint, made unique among the taken names.
+ * Backend names key the Endpoint's backendRefs.
  */
 export function deriveEndpointBackendName(
   component: string,
   endpoint: string,
   taken: Iterable<string>,
+  releaseLine?: string,
 ): string {
   const used = new Set(taken);
-  const base = `${component}-${endpoint}`
+  const base = [component, releaseLine, endpoint]
+    .filter(Boolean)
+    .join('-')
     .toLowerCase()
     .replace(/[^a-z0-9-]/g, '-')
     // Cut before trimming, so a cut just after a hyphen can't leave the name
