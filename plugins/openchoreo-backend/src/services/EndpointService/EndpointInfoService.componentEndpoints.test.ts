@@ -112,6 +112,7 @@ describe('EndpointInfoService component Endpoints', () => {
       });
 
       expect(result.allowedEndpoints).toEqual(allowed);
+      expect(result.legacyEndpoints).toBe(false);
       expect(result.endpoints).toEqual([
         {
           name: 'orders-api',
@@ -140,12 +141,36 @@ describe('EndpointInfoService component Endpoints', () => {
       );
     });
 
-    it('still returns the Endpoints when the ComponentType cannot be read', async () => {
+    it('fails when the ComponentType cannot be read', async () => {
       mockGET.mockImplementation((path: string) =>
         Promise.resolve(
           path.endsWith('/endpoints')
             ? createOkResponse({ items: [endpoint('orders-api')] })
             : createErrorResponse(404, 'not found'),
+        ),
+      );
+
+      await expect(
+        service.fetchComponentEndpoints({
+          ...ref,
+          componentTypeKind: 'ComponentType',
+          componentTypeName: 'service',
+        }),
+      ).rejects.toThrow();
+    });
+
+    it('reports a ComponentType kept on legacy endpoints', async () => {
+      mockGET.mockImplementation((path: string) =>
+        Promise.resolve(
+          path.endsWith('/endpoints')
+            ? createOkResponse({ items: [] })
+            : createOkResponse({
+                metadata: {
+                  name: 'service',
+                  annotations: { 'openchoreo.dev/legacy-endpoints': 'true' },
+                },
+                spec: {},
+              }),
         ),
       );
 
@@ -155,8 +180,11 @@ describe('EndpointInfoService component Endpoints', () => {
         componentTypeName: 'service',
       });
 
-      expect(result.allowedEndpoints).toEqual([]);
-      expect(result.endpoints.map(e => e.name)).toEqual(['orders-api']);
+      expect(result).toEqual({
+        endpoints: [],
+        allowedEndpoints: [],
+        legacyEndpoints: true,
+      });
     });
 
     it("keeps the main line's and a release line's Endpoints apart", async () => {

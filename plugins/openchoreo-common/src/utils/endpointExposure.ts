@@ -19,6 +19,22 @@ export interface AllowedEndpointTypeEntry {
 
 export type EndpointTypeKind = 'EndpointType' | 'ClusterEndpointType';
 
+/**
+ * The annotation that keeps a (Cluster)ComponentType on legacy endpoints:
+ * its components keep visibility on their workload endpoints (deprecated),
+ * served by the type's own templated routes, and own no Endpoints. Platform
+ * engineers add it to every ComponentType that predates Endpoints before
+ * upgrading; types without it expose endpoints through Endpoints.
+ */
+export const LEGACY_ENDPOINTS_ANNOTATION = 'openchoreo.dev/legacy-endpoints';
+
+/** Whether a (Cluster)ComponentType's annotations keep it on legacy endpoints. */
+export function isLegacyEndpointsComponentType(
+  annotations: Record<string, string> | undefined,
+): boolean {
+  return annotations?.[LEGACY_ENDPOINTS_ANNOTATION] === 'true';
+}
+
 /** The part of a workload endpoint that decides how it can be exposed. */
 export interface ExposableEndpoint {
   protocol?: string;

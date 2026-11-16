@@ -15,29 +15,16 @@ import {
 } from '@openchoreo/backstage-plugin-react';
 
 /**
- * The two forms of the configure page's Endpoints tab. In the Endpoints
- * form each workload endpoint with a visibility beyond project is exposed
- * through an Endpoint, which carries that visibility. In the legacy form the
- * visibility stays on the workload (deprecated) and the component has no
- * Endpoints; the ComponentType's own routes serve it, if it defines any.
+ * The two forms of the configure page's Endpoints tab, decided by the
+ * component's ComponentType. In the Endpoints form each workload endpoint
+ * with a visibility beyond project is exposed through an Endpoint, which
+ * carries that visibility; a workload that still carries it moves it to
+ * Endpoints on the next save. The legacy form is for ComponentTypes
+ * annotated `openchoreo.dev/legacy-endpoints: "true"`: the visibility stays
+ * on the workload (deprecated), the type's own routes serve it, and the
+ * component's Endpoints aren't touched.
  */
 export type EndpointFormMode = 'endpoints' | 'legacy';
-
-/**
- * The form the page opens with, derived from the component's data: legacy
- * only when workload endpoints carry the deprecated visibility and the
- * component has no Endpoints; the Endpoints form otherwise, even when the
- * ComponentType allows no Endpoint types.
- */
-export function initialEndpointMode(
-  endpoints: Record<string, ExposableEndpoint>,
-  originals: ComponentEndpointSummary[],
-): EndpointFormMode {
-  if (originals.length > 0) return 'endpoints';
-  return Object.values(endpoints).some(e => exposableVisibilities(e).length > 0)
-    ? 'legacy'
-    : 'endpoints';
-}
 
 /**
  * The calls that save a component's Endpoints from its configure page. In
@@ -64,11 +51,7 @@ export type EndpointChange =
   | {
       op: 'delete';
       original: ComponentEndpointSummary;
-      reason:
-        | 'notExposed'
-        | 'workloadEndpointRemoved'
-        | 'typeChanged'
-        | 'legacyForm';
+      reason: 'notExposed' | 'workloadEndpointRemoved' | 'typeChanged';
     };
 
 export interface EndpointPlanInput {
@@ -140,18 +123,13 @@ export function exposedEndpointNames(input: EndpointPlanInput): string[] {
 /**
  * Plans the Endpoint calls that bring the server in line with the page:
  * deletes first, so a replacement never clashes with what it replaces, then
- * updates and creates.
+ * updates and creates. The legacy form plans none: its component keeps its
+ * visibility on the workload.
  */
 export function planEndpointChanges(
   input: EndpointPlanInput,
 ): EndpointChange[] {
-  if (input.mode === 'legacy') {
-    return input.originals.map(original => ({
-      op: 'delete',
-      original,
-      reason: 'legacyForm',
-    }));
-  }
+  if (input.mode === 'legacy') return [];
   const deletes: EndpointChange[] = [];
   const updates: EndpointChange[] = [];
   const creates: EndpointChange[] = [];
@@ -227,39 +205,64 @@ const DELETE_REASONS = {
   notExposed: 'Deleted (no visibility beyond project)',
   workloadEndpointRemoved: 'Deleted (workload endpoint removed)',
   typeChanged: 'Replaced (endpoint type changed)',
-  legacyForm: 'Deleted (switched to legacy endpoints)',
 };
 
 /**
- * What switching forms does on save, for the save confirmation; null when
- * the page is still in the form it opened with.
+ * The Endpoint creates a save makes without the developer asking: a
+ * workload that still carries visibility beyond project on a row with no
+ * Endpoint moves it to an Endpoint with the next save, as its ComponentType
+ * no longer keeps legacy endpoints. Recorded when the page opens, so the
+ * migration alone doesn't count as an unsaved change.
  */
-export function endpointFormSwitchSummary(
-  initialMode: EndpointFormMode,
-  mode: EndpointFormMode,
-  changes: EndpointChange[],
-): string | null {
-  if (initialMode === mode) return null;
-  if (mode === 'legacy') {
-    const deleted = changes.flatMap(c =>
-      c.op === 'delete' ? [c.original.name] : [],
-    );
-    return deleted.length > 0
-      ? `Switches to legacy endpoints. Deletes Endpoints ${deleted.join(
-          ', ',
-        )}: their visibility is stored on the workload instead and served by the component type's own routes, if it defines any, possibly at a different host.`
-      : 'Switches to legacy endpoints: visibility beyond project is stored on the workload.';
-  }
-  const moved = changes.flatMap(c =>
-    c.op === 'create' ? [c.workloadEndpoint] : [],
+export interface EndpointMigration {
+  /** The rows the migration moves, by workload endpoint name. */
+  names: string[];
+  /** The planned creates for those rows, as the page opened. */
+  signature: string;
+}
+
+function migrationCreates(changes: EndpointChange[], names: string[]) {
+  return changes.filter(
+    c => c.op === 'create' && names.includes(c.workloadEndpoint),
   );
-  return moved.length > 0
-    ? `Switches to Endpoints. Moves ${moved.length} endpoint${
-        moved.length === 1 ? '' : 's'
-      } to Endpoints (${moved.join(
-        ', ',
-      )}): their visibility beyond project leaves the workload.`
-    : 'Switches to Endpoints: endpoints with visibility beyond project are exposed through Endpoints.';
+}
+
+/**
+ * Records the migration a save makes: the rows of the saved workload that
+ * carry visibility beyond project and have no Endpoint yet, and the creates
+ * planned for them.
+ */
+export function endpointMigration(
+  savedEndpoints: Record<string, ExposableEndpoint>,
+  originals: ComponentEndpointSummary[],
+  changes: EndpointChange[],
+): EndpointMigration {
+  const exposed = new Set(originals.map(o => o.workloadEndpoint));
+  const names = Object.entries(savedEndpoints)
+    .filter(
+      ([name, endpoint]) =>
+        !exposed.has(name) && exposableVisibilities(endpoint).length > 0,
+    )
+    .map(([name]) => name);
+  return {
+    names,
+    signature: JSON.stringify(migrationCreates(changes, names)),
+  };
+}
+
+/**
+ * The planned changes the developer made: all of them, less the migration's
+ * creates while those are still as the page opened. The save applies every
+ * planned change either way.
+ */
+export function editedEndpointChanges(
+  changes: EndpointChange[],
+  migration: EndpointMigration | null,
+): EndpointChange[] {
+  if (!migration || migration.names.length === 0) return changes;
+  const creates = migrationCreates(changes, migration.names);
+  if (JSON.stringify(creates) !== migration.signature) return changes;
+  return changes.filter(c => !creates.includes(c));
 }
 
 /** The planned Endpoint calls, as the save confirmation lists them. */

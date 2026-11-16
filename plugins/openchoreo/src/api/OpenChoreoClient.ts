@@ -773,6 +773,8 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   ): Promise<{
     endpoints: ComponentEndpointSummary[];
     allowedEndpoints: AllowedEndpointTypeEntry[];
+    /** Whether the ComponentType stays on legacy endpoints. */
+    legacyEndpoints: boolean;
   }> {
     const { component, project, namespace } = extractEntityMetadata(entity);
     const annotations = entity.metadata.annotations ?? {};

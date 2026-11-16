@@ -206,6 +206,8 @@ export {
 } from './utils/endpointBackends';
 export {
   NO_ENDPOINT,
+  LEGACY_ENDPOINTS_ANNOTATION,
+  isLegacyEndpointsComponentType,
   endpointProtocol,
   endpointTypeKey,
   parseEndpointTypeKey,

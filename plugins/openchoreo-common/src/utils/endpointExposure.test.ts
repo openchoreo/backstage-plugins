@@ -3,6 +3,7 @@ import {
   defaultEndpointType,
   endpointProtocol,
   endpointTypeCandidates,
+  isLegacyEndpointsComponentType,
   resolveEndpointType,
   workloadEndpointsForSave,
   type AllowedEndpointTypeEntry,
@@ -29,6 +30,23 @@ describe('endpointProtocol', () => {
     expect(endpointProtocol({ protocol: 'gRPC', type: 'HTTP' })).toBe('gRPC');
     expect(endpointProtocol({ type: 'HTTP' })).toBe('HTTP');
     expect(endpointProtocol({})).toBe('');
+  });
+});
+
+describe('isLegacyEndpointsComponentType', () => {
+  it('is true only for the annotation set to "true"', () => {
+    expect(
+      isLegacyEndpointsComponentType({
+        'openchoreo.dev/legacy-endpoints': 'true',
+      }),
+    ).toBe(true);
+    expect(
+      isLegacyEndpointsComponentType({
+        'openchoreo.dev/legacy-endpoints': 'false',
+      }),
+    ).toBe(false);
+    expect(isLegacyEndpointsComponentType({})).toBe(false);
+    expect(isLegacyEndpointsComponentType(undefined)).toBe(false);
   });
 });
 

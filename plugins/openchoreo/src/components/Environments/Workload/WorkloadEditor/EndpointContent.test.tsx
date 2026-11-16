@@ -71,8 +71,6 @@ function state(
     choices: {},
     renames: {},
     mode: 'endpoints',
-    initialMode: 'endpoints',
-    setMode: jest.fn(),
     canUseEndpoints: true,
     setChoice: jest.fn(),
     restoreChoice: jest.fn(),
@@ -102,16 +100,12 @@ function renderContent(componentEndpoints?: ComponentEndpointsState) {
 }
 
 describe('EndpointContent', () => {
-  it('shows the Endpoints form with a switch to legacy', () => {
-    const setMode = jest.fn();
-    renderContent(state({ setMode }));
+  it('shows the Endpoints form, with no way to switch forms', () => {
+    renderContent(state());
 
-    expect(
-      screen.getByText(/still uses the ComponentType templated routes/),
-    ).toBeInTheDocument();
     expect(screen.getAllByText(/endpoints-form/)).toHaveLength(2);
-    fireEvent.click(screen.getByRole('button', { name: 'Switch' }));
-    expect(setMode).toHaveBeenCalledWith('legacy');
+    expect(screen.queryByRole('button', { name: /Switch|Migrate/ })).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it("says a release line's rows are prefilled from the main line", () => {
@@ -138,67 +132,28 @@ describe('EndpointContent', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows the legacy form with a switch to Endpoints', () => {
-    const setMode = jest.fn();
-    renderContent(state({ mode: 'legacy', initialMode: 'legacy', setMode }));
+  it('shows the legacy form for a ComponentType kept on legacy endpoints', () => {
+    renderContent(state({ mode: 'legacy' }));
 
-    expect(
-      screen.getByText(
-        /deprecated in favour of the new Endpoint implementation/,
-      ),
-    ).toBeInTheDocument();
     expect(screen.getAllByText('legacy-form')).toHaveLength(2);
-    fireEvent.click(screen.getByRole('button', { name: 'Migrate' }));
-    expect(setMode).toHaveBeenCalledWith('endpoints');
+    expect(screen.queryByRole('button', { name: /Switch|Migrate/ })).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
-  it('opens the Endpoints form even when the ComponentType allows no Endpoint types', () => {
-    const setMode = jest.fn();
-    renderContent(
-      state({ allowedEndpoints: [], canUseEndpoints: false, setMode }),
-    );
+  it('keeps every endpoint project-scoped when the ComponentType allows no Endpoint types', () => {
+    renderContent(state({ allowedEndpoints: [], canUseEndpoints: false }));
 
-    expect(
-      screen.getByText(/endpoints are reachable within the project only/),
-    ).toBeInTheDocument();
     expect(screen.getAllByText(/endpoints-form/)).toHaveLength(2);
     expect(
       screen.getAllByText(/allows no Endpoint types, so this endpoint stays/),
     ).toHaveLength(2);
-    fireEvent.click(screen.getByRole('button', { name: 'Switch' }));
-    expect(setMode).toHaveBeenCalledWith('legacy');
   });
 
-  it('offers no migration for legacy endpoints without Endpoint types', () => {
-    renderContent(
-      state({
-        mode: 'legacy',
-        initialMode: 'legacy',
-        allowedEndpoints: [],
-        canUseEndpoints: false,
-      }),
-    );
+  it("reports a ComponentType that couldn't be read", () => {
+    renderContent(state({ mode: 'legacy', loadError: 'forbidden' }));
 
     expect(
-      screen.getByText(/a platform engineer must allow Endpoint types/),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /Migrate|Switch/ }),
-    ).not.toBeInTheDocument();
-  });
-
-  it('switches back to Endpoints from legacy without Endpoint types', () => {
-    renderContent(
-      state({
-        mode: 'legacy',
-        initialMode: 'endpoints',
-        allowedEndpoints: [],
-        canUseEndpoints: false,
-      }),
-    );
-
-    expect(
-      screen.getByRole('button', { name: 'Switch to Endpoints' }),
+      screen.getByText(/Could not load the component's Endpoints: forbidden/),
     ).toBeInTheDocument();
   });
 

@@ -109,6 +109,37 @@ describe('useComponentEndpoints on a release line', () => {
     ]);
   });
 
+  it('keeps a legacy ComponentType in the legacy form, saving no Endpoints', async () => {
+    client.fetchComponentEndpoints.mockResolvedValue({
+      endpoints: [],
+      allowedEndpoints: [],
+      legacyEndpoints: true,
+    });
+    const { result } = renderHook(() => useComponentEndpoints(entity));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.mode).toBe('legacy');
+
+    const endpoints: Record<
+      string,
+      { protocol: string; visibility: string[] }
+    > = { api: { protocol: 'HTTP', visibility: ['external'] } };
+    let rows = endpoints;
+    act(() => {
+      rows = result.current.prepare(endpoints);
+    });
+    expect(rows).toBe(endpoints);
+    await act(() => result.current.apply(rows, true));
+    expect(client.createComponentEndpoint).not.toHaveBeenCalled();
+    expect(client.updateComponentEndpoint).not.toHaveBeenCalled();
+    expect(client.deleteComponentEndpoint).not.toHaveBeenCalled();
+  });
+
+  it('opens the Endpoints form for a ComponentType without the annotation', async () => {
+    const { result } = renderHook(() => useComponentEndpoints(entity));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.mode).toBe('endpoints');
+  });
+
   it("loads the main line's Endpoints without a release line", async () => {
     const { result } = renderHook(() => useComponentEndpoints(entity));
     await waitFor(() => expect(result.current.loading).toBe(false));

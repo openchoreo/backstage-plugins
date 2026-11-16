@@ -103,11 +103,6 @@ interface WorkloadSaveConfirmationDialogProps {
   parameterChanges?: Change[];
   /** Changes to the component's own Endpoints. */
   endpointChanges?: Change[];
-  /**
-   * What switching between the Endpoints and legacy endpoint forms does on
-   * save; absent when the form was not switched.
-   */
-  endpointFormSwitch?: string | null;
   /** When true, surface that saving will trigger an auto-deploy. */
   autoDeploy?: boolean;
   /** Env name shown in the auto-deploy warning. Required when autoDeploy is true. */
@@ -125,7 +120,6 @@ export const WorkloadSaveConfirmationDialog: FC<
   traitsState = [],
   parameterChanges = [],
   endpointChanges = [],
-  endpointFormSwitch,
   autoDeploy = false,
   lowestEnvironmentName,
 }) => {
@@ -223,15 +217,6 @@ export const WorkloadSaveConfirmationDialog: FC<
               sections={componentSections}
               emptyMessage="No changes"
             />
-          </Box>
-        )}
-
-        {endpointFormSwitch && (
-          <Box className={classes.groupSection}>
-            <Typography className={classes.groupHeader}>
-              Endpoint form
-            </Typography>
-            <Alert severity="warning">{endpointFormSwitch}</Alert>
           </Box>
         )}
 

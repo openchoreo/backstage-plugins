@@ -912,8 +912,9 @@ export interface OpenChoreoClientApi {
 
   /**
    * Fetch the Endpoints a component owns for its own workload endpoints, on
-   * its main line or on the given release line, with the allowedEndpoints of
-   * its ComponentType.
+   * its main line or on the given release line, with its ComponentType's
+   * endpoint policy: the allowedEndpoints, and whether the type stays on
+   * legacy endpoints (`openchoreo.dev/legacy-endpoints: "true"`).
    */
   fetchComponentEndpoints(
     entity: Entity,
@@ -921,6 +922,8 @@ export interface OpenChoreoClientApi {
   ): Promise<{
     endpoints: ComponentEndpointSummary[];
     allowedEndpoints: AllowedEndpointTypeEntry[];
+    /** Whether the ComponentType stays on legacy endpoints. */
+    legacyEndpoints: boolean;
   }>;
 
   /**

@@ -79,19 +79,19 @@ describe('WorkloadSaveConfirmationDialog', () => {
     );
   });
 
-  it('shows a switch between endpoint forms as its own section', () => {
+  it('lists Endpoint changes in their own section', () => {
     render(
       <WorkloadSaveConfirmationDialog
         {...baseProps}
         endpointChanges={[
-          { path: 'orders-api', type: 'removed', oldValue: 'Deleted' },
+          {
+            path: 'new Endpoint for api',
+            type: 'new',
+            newValue: 'unmanaged-http, external',
+          },
         ]}
-        endpointFormSwitch="Switches to legacy endpoints. Deletes Endpoints orders-api."
       />,
     );
-    expect(screen.getByText('Endpoint form')).toBeInTheDocument();
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'Deletes Endpoints orders-api',
-    );
+    expect(screen.getByText('Endpoint resources')).toBeInTheDocument();
   });
 });

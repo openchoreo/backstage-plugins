@@ -51,10 +51,12 @@ import { useNotification } from '../../../hooks';
 import { pickOverridableProperties } from '../../ReleaseLines/releaseLineUtils';
 import { useComponentEndpoints } from './hooks/useComponentEndpoints';
 import {
+  editedEndpointChanges,
   endpointChangeList,
-  endpointFormSwitchSummary,
+  endpointMigration,
   exposedEndpointNames,
   planEndpointChanges,
+  type EndpointMigration,
 } from './componentEndpointDrafts';
 
 /**
@@ -275,7 +277,6 @@ export const WorkloadConfigPage = ({
     originals: endpointOriginals,
     renames: endpointRenames,
     mode: endpointMode,
-    initialMode: initialEndpointMode,
   } = componentEndpoints;
   const endpointPlanInput = useMemo(
     () => ({
@@ -299,34 +300,38 @@ export const WorkloadConfigPage = ({
     () => planEndpointChanges(endpointPlanInput),
     [endpointPlanInput],
   );
+  // Every planned Endpoint call, which the save applies and its
+  // confirmation lists.
   const endpointChangeItems = useMemo(
     () => endpointChangeList(endpointChanges),
     [endpointChanges],
   );
-  const endpointFormSwitch = useMemo(
+  // A workload that still carries visibility moves it to Endpoints with the
+  // next save; that alone isn't an unsaved change. Recorded once the rows
+  // are prepared.
+  const [endpointsPrepared, setEndpointsPrepared] = useState(false);
+  const [migration, setMigration] = useState<EndpointMigration | null>(null);
+  const editedChangeCount = useMemo(
     () =>
-      endpointFormSwitchSummary(
-        initialEndpointMode,
-        endpointMode,
-        endpointChanges,
-      ),
-    [initialEndpointMode, endpointMode, endpointChanges],
+      endpointChangeList(editedEndpointChanges(endpointChanges, migration))
+        .length,
+    [endpointChanges, migration],
   );
-  const hasEndpointChanges = endpointChanges.length > 0;
+  const hasEndpointChanges = migration !== null && editedChangeCount > 0;
 
   // The workload as on the server; the form shows rows with their
   // Endpoint's visibility merged in, which the saved workload does not carry.
   const serverResourceRef = useRef<WorkloadResource | null>(null);
 
-  // Once the workload and the component's Endpoints have both loaded, pick
-  // the form the Endpoints tab opens with and show each row with the
-  // visibility its Endpoint carries.
+  // Once the workload and the component's Endpoints have both loaded, show
+  // each row with the visibility its Endpoint carries.
   const endpointsPreparedRef = useRef(false);
   const { loading: endpointsLoading, prepare } = componentEndpoints;
   useEffect(() => {
     if (endpointsPreparedRef.current || endpointsLoading || isLoading) return;
     if (!workloadResource) return;
     endpointsPreparedRef.current = true;
+    setEndpointsPrepared(true);
     const rows = workloadResource.spec?.endpoints;
     if (!rows) {
       prepare({});
@@ -339,6 +344,28 @@ export const WorkloadConfigPage = ({
     setWorkloadResource(prepared);
     setInitialResource(JSON.parse(JSON.stringify(prepared)));
   }, [endpointsLoading, isLoading, workloadResource, prepare]);
+
+  // A release line's drafts are offered for review, so saving them is a
+  // change like any other; only a workload's own visibility migrates quietly.
+  const { draftedFromMain } = componentEndpoints;
+  useEffect(() => {
+    if (!endpointsPrepared || migration) return;
+    setMigration(
+      draftedFromMain > 0
+        ? { names: [], signature: '[]' }
+        : endpointMigration(
+            serverResourceRef.current?.spec?.endpoints ?? {},
+            endpointOriginals,
+            endpointChanges,
+          ),
+    );
+  }, [
+    endpointsPrepared,
+    migration,
+    draftedFromMain,
+    endpointOriginals,
+    endpointChanges,
+  ]);
 
   // Fetch workload and component config
   useEffect(() => {
@@ -689,7 +716,7 @@ export const WorkloadConfigPage = ({
         );
       }
 
-      if (hasEndpointChanges) {
+      if (endpointChanges.length > 0) {
         await componentEndpoints.apply(
           workloadResource.spec?.endpoints ?? {},
           !!autoDeployEnabled,
@@ -799,7 +826,7 @@ export const WorkloadConfigPage = ({
       ? traitsState.filter(t => t.state !== 'original').length
       : 0) +
     parameterChanges.length +
-    endpointChangeItems.length;
+    editedChangeCount;
 
   // Header actions - Next/Save & Next button
   const headerActions = !isLoading ? (
@@ -958,7 +985,7 @@ export const WorkloadConfigPage = ({
             workloadChanges={workloadChanges}
             parameterChangesCount={parameterChanges.length}
             componentEndpoints={componentEndpoints}
-            endpointChangesCount={endpointChangeItems.length}
+            endpointChangesCount={editedChangeCount}
           />
         </WorkloadProvider>
       )}
@@ -972,7 +999,6 @@ export const WorkloadConfigPage = ({
         traitsState={hasTraitChanges ? traitsState : undefined}
         parameterChanges={parameterChanges}
         endpointChanges={endpointChangeItems}
-        endpointFormSwitch={endpointFormSwitch}
         autoDeploy={autoDeployEnabled}
         lowestEnvironmentName={lowestEnvironment}
       />

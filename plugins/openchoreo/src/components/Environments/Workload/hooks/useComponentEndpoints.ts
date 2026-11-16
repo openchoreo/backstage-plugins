@@ -16,7 +16,6 @@ import { openChoreoClientApiRef } from '../../../../api/OpenChoreoClientApi';
 import { getErrorMessage } from '../../../../utils/errorUtils';
 import {
   currentEndpointName,
-  initialEndpointMode,
   planEndpointChanges,
   primaryOriginals,
   type EndpointFormMode,
@@ -37,19 +36,16 @@ export interface ComponentEndpointsState {
   /** The Endpoint type chosen per workload endpoint, by current name. */
   choices: EndpointExposures;
   renames: Record<string, string>;
-  /** The form the Endpoints tab shows, applied on save. */
-  mode: EndpointFormMode;
-  /** The form the page opened with (or last saved). */
-  initialMode: EndpointFormMode;
   /**
-   * Switches forms. Nothing is applied until save, and switching back
-   * restores the loaded state, since the rows are the same in both forms.
+   * The form the Endpoints tab shows, set by the ComponentType: legacy when
+   * it's annotated `openchoreo.dev/legacy-endpoints: "true"`, the Endpoints
+   * form otherwise. Legacy until the ComponentType has been read, since the
+   * legacy form saves no Endpoint changes.
    */
-  setMode: (mode: EndpointFormMode) => void;
+  mode: EndpointFormMode;
   /**
    * Whether the ComponentType allows any Endpoint type. Without one the
-   * Endpoints form keeps every endpoint project-scoped, and legacy
-   * endpoints cannot be migrated.
+   * Endpoints form keeps every endpoint project-scoped.
    */
   canUseEndpoints: boolean;
   setChoice: (workloadEndpoint: string, choice: EndpointExposureChoice) => void;
@@ -63,7 +59,7 @@ export interface ComponentEndpointsState {
   /**
    * The workload endpoints as the page edits them: each one exposed through
    * an Endpoint shows that Endpoint's visibility, which the workload itself
-   * no longer carries. Also picks the form the page opens with.
+   * no longer carries. The legacy form shows the workload as it is.
    */
   prepare: <T extends ExposableEndpoint>(
     endpoints: Record<string, T>,
@@ -101,7 +97,6 @@ export function useComponentEndpoints(
   const [choices, setChoices] = useState<EndpointExposures>({});
   const [renames, setRenames] = useState<Record<string, string>>({});
   const [mode, setMode] = useState<EndpointFormMode>('legacy');
-  const [initialMode, setInitialMode] = useState<EndpointFormMode>('legacy');
 
   useEffect(() => {
     if (options.skip) {
@@ -128,6 +123,7 @@ export function useComponentEndpoints(
       .then(({ result, lineDrafts }) => {
         if (cancelled) return;
         setAllowedEndpoints(result.allowedEndpoints ?? EMPTY);
+        setMode(result.legacyEndpoints ? 'legacy' : 'endpoints');
         setOriginals(result.endpoints);
         setDrafts(lineDrafts);
         const initial: EndpointExposures = {};
@@ -204,8 +200,9 @@ export function useComponentEndpoints(
 
   const prepare = useCallback(
     <T extends ExposableEndpoint>(endpoints: Record<string, T>) => {
+      if (mode === 'legacy') return endpoints;
       const primary = primaryOriginals(originals, {});
-      // A line's drafts open the Endpoints form, like Endpoints it had.
+      // A line without Endpoints of its own starts from the main line's drafts.
       const drafted = new Map<string, ComponentEndpointInput>();
       if (originals.length === 0) {
         for (const draft of drafts) {
@@ -214,12 +211,6 @@ export function useComponentEndpoints(
           }
         }
       }
-      const opening =
-        drafted.size > 0
-          ? 'endpoints'
-          : initialEndpointMode(endpoints, originals);
-      setMode(opening);
-      setInitialMode(opening);
       const result: Record<string, T> = {};
       for (const [name, endpoint] of Object.entries(endpoints)) {
         const visibilitySource =
@@ -235,7 +226,7 @@ export function useComponentEndpoints(
       }
       return result;
     },
-    [originals, drafts],
+    [mode, originals, drafts],
   );
 
   const apply = useCallback(
@@ -319,7 +310,6 @@ export function useComponentEndpoints(
         }
       }
       setRenames({});
-      setInitialMode(mode);
     },
     [
       client,
@@ -343,8 +333,6 @@ export function useComponentEndpoints(
       choices,
       renames,
       mode,
-      initialMode,
-      setMode,
       canUseEndpoints: allowedEndpoints.length > 0,
       setChoice,
       restoreChoice,
@@ -361,7 +349,6 @@ export function useComponentEndpoints(
       choices,
       renames,
       mode,
-      initialMode,
       setChoice,
       restoreChoice,
       renameWorkloadEndpoint,

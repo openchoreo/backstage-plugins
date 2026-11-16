@@ -13,6 +13,7 @@ import {
   endpointBackendsTakeTraffic,
   endpointManagingComponent,
   endpointManagingReleaseLine,
+  isLegacyEndpointsComponentType,
   isSameReleaseLine,
   releaseLineEndpointInputs,
   toStoredReleaseLine,
@@ -184,10 +185,12 @@ export class EndpointInfoService {
   }
 
   /**
-   * Returns a component's own Endpoints together with the allowedEndpoints of
-   * its (Cluster)ComponentType, which decide what can still be added. A
-   * ComponentType that cannot be read yields no allowedEndpoints rather than
-   * an error, so existing Endpoints can still be edited.
+   * Returns a component's own Endpoints together with its
+   * (Cluster)ComponentType's endpoint policy: the allowedEndpoints, which
+   * decide what can be added, and whether the type stays on legacy endpoints
+   * (see LEGACY_ENDPOINTS_ANNOTATION), which decides the configure page's
+   * form. The policy decides what saving does, so a ComponentType that can't
+   * be read is an error rather than an empty policy.
    */
   async fetchComponentEndpoints(
     request: ComponentRef & {
@@ -198,30 +201,34 @@ export class EndpointInfoService {
   ): Promise<{
     endpoints: ComponentEndpointSummary[];
     allowedEndpoints: AllowedEndpointTypeEntry[];
+    legacyEndpoints: boolean;
   }> {
     const client = this.client(token);
-    const [endpoints, allowedEndpoints] = await Promise.all([
+    const [endpoints, policy] = await Promise.all([
       listComponentEndpoints(client, request),
-      this.fetchAllowedEndpoints(client, request),
+      this.fetchEndpointPolicy(client, request),
     ]);
     return {
       endpoints: endpoints
         .map(toComponentEndpointSummary)
         .sort((a, b) => a.name.localeCompare(b.name)),
-      allowedEndpoints,
+      ...policy,
     };
   }
 
-  private async fetchAllowedEndpoints(
+  private async fetchEndpointPolicy(
     client: ReturnType<EndpointInfoService['client']>,
     request: {
       namespaceName: string;
       componentTypeKind: 'ComponentType' | 'ClusterComponentType';
       componentTypeName: string;
     },
-  ): Promise<AllowedEndpointTypeEntry[]> {
+  ): Promise<{
+    allowedEndpoints: AllowedEndpointTypeEntry[];
+    legacyEndpoints: boolean;
+  }> {
     const { namespaceName, componentTypeName } = request;
-    const { data, error, response } =
+    const res =
       request.componentTypeKind === 'ClusterComponentType'
         ? await client.GET('/api/v1/clustercomponenttypes/{cctName}', {
             params: { path: { cctName: componentTypeName } },
@@ -230,13 +237,18 @@ export class EndpointInfoService {
             '/api/v1/namespaces/{namespaceName}/componenttypes/{ctName}',
             { params: { path: { namespaceName, ctName: componentTypeName } } },
           );
-    if (error || !response.ok || !data) {
-      this.logger.warn(
-        `Could not read ${request.componentTypeKind} ${componentTypeName} for its allowedEndpoints: ${response.status}`,
-      );
-      return [];
-    }
-    return (data.spec?.allowedEndpoints ?? []) as AllowedEndpointTypeEntry[];
+    assertApiResponse(
+      res,
+      `fetch ${request.componentTypeKind} ${componentTypeName}`,
+    );
+    const componentType = res.data!;
+    return {
+      allowedEndpoints: (componentType.spec?.allowedEndpoints ??
+        []) as AllowedEndpointTypeEntry[],
+      legacyEndpoints: isLegacyEndpointsComponentType(
+        componentType.metadata?.annotations,
+      ),
+    };
   }
 
   /**

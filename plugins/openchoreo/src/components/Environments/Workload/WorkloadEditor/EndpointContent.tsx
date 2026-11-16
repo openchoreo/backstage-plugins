@@ -1,5 +1,5 @@
-import { FC, ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
-import { Box, Button, Typography } from '@material-ui/core';
+import { FC, useCallback, useEffect, useMemo, useRef } from 'react';
+import { Box, Typography } from '@material-ui/core';
 import { Alert } from '@material-ui/lab';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import {
@@ -37,75 +37,25 @@ interface EndpointContentProps {
   onRemoveEndpoint: (endpointName: string) => void;
   disabled: boolean;
   /**
-   * The component's own Endpoints and the form the tab shows: the Endpoints
-   * form exposes each row through an Endpoint, the legacy form keeps
-   * visibility on the workload. Without it the tab shows the legacy form.
+   * The component's own Endpoints and the form the tab shows, which its
+   * ComponentType decides: the Endpoints form exposes each row through an
+   * Endpoint, the legacy form keeps visibility on the workload. Without it
+   * the tab shows the legacy form.
    */
   componentEndpoints?: ComponentEndpointsState;
 }
-
-/**
- * The banner on top of the tab: what the current form does, and the way to
- * the other one. The Endpoints form always offers legacy endpoints, for
- * components that still rely on the ComponentType's templated routes. The legacy
- * form asks to migrate, which needs an Endpoint type to migrate to.
- */
-const FormBanner = ({
-  state,
-  disabled,
-}: {
-  state?: ComponentEndpointsState;
-  disabled: boolean;
-}) => {
-  const switchButton = (to: 'endpoints' | 'legacy', label: string) =>
-    state && (
-      <Button
-        color="inherit"
-        size="small"
-        disabled={disabled}
-        onClick={() => state.setMode(to)}
-      >
-        {label}
-      </Button>
-    );
-
-  if (state?.mode === 'endpoints') {
-    return (
-      <Alert severity="info" action={switchButton('legacy', 'Switch')}>
-        {state.canUseEndpoints
-          ? 'If this component still uses the ComponentType templated routes, switch to legacy endpoints.'
-          : 'This component type allows no Endpoint types, so endpoints are reachable within the project only. If this component still uses the ComponentType templated routes, switch to legacy endpoints.'}
-      </Alert>
-    );
-  }
-
-  // Migrating needs an Endpoint type; switching back is always possible for
-  // a page that opened in the Endpoints form.
-  let action: ReactNode = null;
-  if (state?.canUseEndpoints) {
-    action = switchButton('endpoints', 'Migrate');
-  } else if (state?.initialMode === 'endpoints') {
-    action = switchButton('endpoints', 'Switch to Endpoints');
-  }
-  return (
-    <Alert severity="warning" action={action}>
-      The Visibility and Type fields of the Workload are deprecated in favour of
-      the new Endpoint implementation.{' '}
-      {state?.canUseEndpoints
-        ? 'Migrate to Endpoints for continued support.'
-        : 'To migrate to Endpoints for continued support, a platform engineer must allow Endpoint types on this component type.'}
-    </Alert>
-  );
-};
 
 export const EndpointContent: FC<EndpointContentProps> = ({
   endpoints,
   onEndpointReplace,
   onAddEndpoint,
   onRemoveEndpoint,
-  disabled,
+  disabled: disabledProp,
   componentEndpoints,
 }) => {
+  // Until the ComponentType has been read, the tab doesn't know its form, so
+  // its rows can't be edited.
+  const disabled = disabledProp || !!componentEndpoints?.loadError;
   const { setEditingSection } = useWorkloadContext();
   const { entity } = useEntity();
 
@@ -221,9 +171,6 @@ export const EndpointContent: FC<EndpointContentProps> = ({
             </Alert>
           </Box>
         )}
-      <Box mb={2}>
-        <FormBanner state={componentEndpoints} disabled={disabled} />
-      </Box>
       {Object.keys(endpoints).length === 0 && (
         <Typography variant="body2" color="textSecondary" gutterBottom>
           No endpoints.
