@@ -204,9 +204,35 @@ export {
   isEndpointBackendWeight,
 } from './utils/endpointBackends';
 export {
+  NO_ENDPOINT,
   endpointProtocol,
+  endpointTypeKey,
+  parseEndpointTypeKey,
+  exposableVisibilities,
+  endpointTypeCandidates,
+  defaultEndpointType,
+  resolveEndpointType,
+  workloadEndpointsForSave,
+  type AllowedEndpointTypeEntry,
+  type EndpointTypeKind,
   type ExposableEndpoint,
+  type EndpointExposureChoice,
+  type EndpointExposures,
 } from './utils/endpointExposure';
+export {
+  endpointManagingComponent,
+  endpointManagingReleaseLine,
+  type EndpointOwner,
+} from './utils/endpointOwnership';
+export {
+  toDnsLabel,
+  componentEndpointName,
+  buildComponentEndpoint,
+  releaseLineEndpointInputs,
+  type ComponentEndpointInput,
+  type ComponentEndpointSummary,
+  type ReleaseLineEndpointTarget,
+} from './utils/componentEndpoint';
 
 // Feature flags types
 export type { OpenChoreoFeatures, FeatureName } from './types/features';
