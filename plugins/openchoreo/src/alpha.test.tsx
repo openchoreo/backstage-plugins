@@ -40,6 +40,11 @@ const ALPHA_EXTENSION_NAMES = [
   ['entity-card', 'resource-parameters'],
   ['entity-card', 'resource-deployments'],
   ['entity-card', 'consuming-components'],
+  // endpoint
+  ['entity-content', 'endpoint-deploy'],
+  ['entity-card', 'endpoint-routing'],
+  ['entity-card', 'endpoint-deployments'],
+  ['entity-card', 'endpoint-api'],
   // environment
   ['entity-card', 'environment-status-summary'],
   ['entity-card', 'environment-promotion'],
@@ -99,6 +104,8 @@ const ALPHA_EXTENSION_NAMES = [
   ['scaffolder-form-field', 'project-namespace-field'],
   ['scaffolder-form-field', 'project-parameters-field'],
   ['scaffolder-form-field', 'project-type-yaml-editor'],
+  ['scaffolder-form-field', 'endpoint-backends-field'],
+  ['scaffolder-form-field', 'endpoint-schema-field'],
   ['scaffolder-form-field', 'resource-name-picker'],
   ['scaffolder-form-field', 'resource-parameters-field'],
   ['scaffolder-form-field', 'resource-type-yaml-editor'],
@@ -112,6 +119,7 @@ const ALPHA_EXTENSION_NAMES = [
   ['entity-content-layout', 'system-overview'],
   ['entity-content-layout', 'domain-overview'],
   ['entity-content-layout', 'resource-overview'],
+  ['entity-content-layout', 'endpoint-overview'],
   ['entity-content-layout', 'environment-overview'],
   ['entity-content-layout', 'dataplane-overview'],
   ['entity-content-layout', 'cluster-dataplane-overview'],

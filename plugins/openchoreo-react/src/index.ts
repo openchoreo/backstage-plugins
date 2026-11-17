@@ -524,6 +524,22 @@ export {
   type UseResourcePromoteToEnvPermissionResult,
 } from './hooks/useResourcePromoteToEnvPermission';
 export {
+  useEndpointReleaseBindingCreatePermission,
+  type UseEndpointReleaseBindingCreatePermissionResult,
+} from './hooks/useEndpointReleaseBindingCreatePermission';
+export {
+  useEndpointReleaseBindingUpdatePermission,
+  type UseEndpointReleaseBindingUpdatePermissionResult,
+} from './hooks/useEndpointReleaseBindingUpdatePermission';
+export {
+  useEndpointReleaseBindingDeletePermission,
+  type UseEndpointReleaseBindingDeletePermissionResult,
+} from './hooks/useEndpointReleaseBindingDeletePermission';
+export {
+  useEndpointPromoteToEnvPermission,
+  type UseEndpointPromoteToEnvPermissionResult,
+} from './hooks/useEndpointPromoteToEnvPermission';
+export {
   useReleaseBindingPermission,
   type UseReleaseBindingPermissionResult,
 } from './hooks/useReleaseBindingPermission';
@@ -575,6 +591,10 @@ export {
   useResourceCreatePermission,
   type UseResourceCreatePermissionResult,
 } from './hooks/useResourceCreatePermission';
+export {
+  useEndpointCreatePermission,
+  type UseEndpointCreatePermissionResult,
+} from './hooks/useEndpointCreatePermission';
 export {
   useResourceDefinitionPermission,
   type UseResourceDefinitionPermissionResult,
@@ -758,6 +778,10 @@ export {
   useCreateResourcePath,
   type UseCreateResourcePathResult,
 } from './hooks/useCreateResourcePath';
+export {
+  useCreateEndpointPath,
+  type UseCreateEndpointPathResult,
+} from './hooks/useCreateEndpointPath';
 
 // Re-export graph types for consumers
 export { type EntityNode } from '@backstage/plugin-catalog-graph';

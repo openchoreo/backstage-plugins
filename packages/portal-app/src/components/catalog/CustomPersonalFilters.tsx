@@ -296,7 +296,8 @@ export const ProjectChip = () => {
     if (
       kindLower !== 'component' &&
       kindLower !== 'api' &&
-      kindLower !== 'resource'
+      kindLower !== 'resource' &&
+      kindLower !== 'endpoint'
     ) {
       setAvailableProjects([]);
       return undefined;
@@ -324,7 +325,8 @@ export const ProjectChip = () => {
     if (
       kindLower !== 'component' &&
       kindLower !== 'api' &&
-      kindLower !== 'resource'
+      kindLower !== 'resource' &&
+      kindLower !== 'endpoint'
     ) {
       return;
     }
@@ -355,7 +357,8 @@ export const ProjectChip = () => {
   if (
     kindLower !== 'component' &&
     kindLower !== 'api' &&
-    kindLower !== 'resource'
+    kindLower !== 'resource' &&
+    kindLower !== 'endpoint'
   ) {
     return null;
   }

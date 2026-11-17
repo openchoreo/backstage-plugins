@@ -37,15 +37,20 @@ describe('useProjectContentFacets', () => {
       // Resource facet call.
       .mockResolvedValueOnce({
         facets: { 'spec.type': [{ value: 'postgres', count: 2 }] },
+      })
+      // Endpoint facet call.
+      .mockResolvedValueOnce({
+        facets: { 'spec.type': [{ value: 'http-weighted', count: 1 }] },
       });
 
     const { result } = renderFacets();
 
     await waitFor(() =>
       expect(result.current.counts).toEqual({
-        all: 6,
+        all: 7,
         component: 4,
         resource: 2,
+        endpoint: 1,
       }),
     );
     expect(result.current.typesByKind.component).toEqual([
@@ -53,6 +58,7 @@ describe('useProjectContentFacets', () => {
       'deployment/web',
     ]);
     expect(result.current.typesByKind.resource).toEqual(['postgres']);
+    expect(result.current.typesByKind.endpoint).toEqual(['http-weighted']);
     expect(result.current.loading).toBe(false);
   });
 
@@ -78,6 +84,12 @@ describe('useProjectContentFacets', () => {
         facets: ['spec.type'],
       }),
     );
+    expect(mockCatalogApi.getEntityFacets).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filter: expect.objectContaining({ kind: 'Endpoint' }),
+        facets: ['spec.type'],
+      }),
+    );
   });
 
   it('returns empty facets when the query fails', async () => {
@@ -90,7 +102,12 @@ describe('useProjectContentFacets', () => {
       all: 0,
       component: 0,
       resource: 0,
+      endpoint: 0,
     });
-    expect(result.current.typesByKind).toEqual({ component: [], resource: [] });
+    expect(result.current.typesByKind).toEqual({
+      component: [],
+      resource: [],
+      endpoint: [],
+    });
   });
 });

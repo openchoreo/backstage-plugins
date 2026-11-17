@@ -22,6 +22,12 @@ export type { ResourceTypeEntityV1alpha1 } from './ResourceTypeEntityV1alpha1';
 export type { ClusterProjectTypeEntityV1alpha1 } from './ClusterProjectTypeEntityV1alpha1';
 export type { ProjectTypeEntityV1alpha1 } from './ProjectTypeEntityV1alpha1';
 export type {
+  EndpointEntityV1alpha1,
+  EndpointBackendV1alpha1,
+} from './EndpointEntityV1alpha1';
+export type { EndpointTypeEntityV1alpha1 } from './EndpointTypeEntityV1alpha1';
+export type { ClusterEndpointTypeEntityV1alpha1 } from './ClusterEndpointTypeEntityV1alpha1';
+export type {
   ObservabilityAlertsNotificationChannelEntityV1alpha1,
   NotificationSecretKeyRef,
   NotificationSecretValueFrom,

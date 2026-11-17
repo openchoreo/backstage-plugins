@@ -97,6 +97,26 @@ describe('LogEntry', () => {
     expect(screen.getByText('api-service')).toBeInTheDocument();
   });
 
+  it('renders the release line when ReleaseLine field is selected', () => {
+    renderLogEntry({
+      log: {
+        ...sampleLog,
+        metadata: { ...sampleLog.metadata, releaseLineName: 'canary' },
+      },
+      selectedFields: [...allFields, LogEntryField.ReleaseLine],
+    });
+
+    expect(screen.getByText('canary')).toBeInTheDocument();
+  });
+
+  it('names the main line for an entry without a release line', () => {
+    renderLogEntry({
+      selectedFields: [...allFields, LogEntryField.ReleaseLine],
+    });
+
+    expect(screen.getByText('main')).toBeInTheDocument();
+  });
+
   it('expands to show metadata on row click', async () => {
     const user = userEvent.setup();
     renderLogEntry();

@@ -86,26 +86,107 @@ describe('getRepositoryUrl', () => {
     );
   });
 
-  it('defaults to main branch when branch is missing', () => {
+  it('returns the repository URL when the branch is unknown', () => {
     const comp = makeComponent({
       repository: {
         url: 'https://github.com/org/repo',
         appPath: 'app',
       },
     });
-    expect(getRepositoryUrl(comp)).toBe(
-      'https://github.com/org/repo/tree/main/app',
-    );
+    expect(getRepositoryUrl(comp)).toBe('https://github.com/org/repo');
   });
 
-  it('returns just URL when path is missing', () => {
+  it('points at the branch root when path is missing', () => {
     const comp = makeComponent({
       repository: {
         url: 'https://github.com/org/repo',
         revision: { branch: 'main' },
       },
     });
-    expect(getRepositoryUrl(comp)).toBe('https://github.com/org/repo');
+    expect(getRepositoryUrl(comp)).toBe(
+      'https://github.com/org/repo/tree/main',
+    );
+  });
+
+  it('strips a .git suffix and a leading ./ from the path', () => {
+    const comp = makeComponent({
+      repository: {
+        url: 'https://github.com/org/repo.git',
+        revision: { branch: 'main' },
+        appPath: './services/api/',
+      },
+    });
+    expect(getRepositoryUrl(comp)).toBe(
+      'https://github.com/org/repo/tree/main/services/api',
+    );
+  });
+
+  it('treats a root path as the branch root', () => {
+    const comp = makeComponent({
+      repository: {
+        url: 'https://github.com/org/repo',
+        revision: { branch: 'feature/login' },
+        appPath: '/',
+      },
+    });
+    expect(getRepositoryUrl(comp)).toBe(
+      'https://github.com/org/repo/tree/feature/login',
+    );
+  });
+
+  it('encodes the branch and path segments but keeps their slashes', () => {
+    const comp = makeComponent({
+      repository: {
+        url: 'https://github.com/org/repo',
+        revision: { branch: 'release/#1' },
+        appPath: 'services/api?v2',
+      },
+    });
+    expect(getRepositoryUrl(comp)).toBe(
+      'https://github.com/org/repo/tree/release/%231/services/api%3Fv2',
+    );
+  });
+
+  it('uses the /-/tree/ form on GitLab, including self-hosted', () => {
+    const comp = (url: string) =>
+      makeComponent({
+        repository: { url, revision: { branch: 'main' }, appPath: 'svc' },
+      });
+    expect(
+      getRepositoryUrl(comp('https://gitlab.com/group/sub/repo.git')),
+    ).toBe('https://gitlab.com/group/sub/repo/-/tree/main/svc');
+    expect(getRepositoryUrl(comp('https://gitlab.example.com/g/repo'))).toBe(
+      'https://gitlab.example.com/g/repo/-/tree/main/svc',
+    );
+  });
+
+  it('recognises a self-hosted GitHub by its host', () => {
+    const comp = makeComponent({
+      repository: {
+        url: 'https://github.example.com/org/repo',
+        revision: { branch: 'main' },
+        appPath: 'svc',
+      },
+    });
+    expect(getRepositoryUrl(comp)).toBe(
+      'https://github.example.com/org/repo/tree/main/svc',
+    );
+  });
+
+  it('returns the repository URL for other hosts and SSH URLs', () => {
+    const comp = (url: string) =>
+      makeComponent({
+        repository: { url, revision: { branch: 'main' }, appPath: 'svc' },
+      });
+    expect(getRepositoryUrl(comp('https://bitbucket.org/ws/repo.git'))).toBe(
+      'https://bitbucket.org/ws/repo',
+    );
+    expect(
+      getRepositoryUrl(comp('https://dev.azure.com/org/project/_git/repo')),
+    ).toBe('https://dev.azure.com/org/project/_git/repo');
+    expect(getRepositoryUrl(comp('git@github.com:org/repo.git'))).toBe(
+      'git@github.com:org/repo',
+    );
   });
 
   it('returns undefined when no URL', () => {

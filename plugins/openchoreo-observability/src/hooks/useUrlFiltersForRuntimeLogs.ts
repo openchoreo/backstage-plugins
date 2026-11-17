@@ -4,15 +4,21 @@ import {
   RuntimeLogsFilters,
   LogEntryField,
   LOG_LEVELS,
-  SELECTED_FIELDS,
+  FIXED_FIELDS,
+  selectableFields,
 } from '../components/RuntimeLogs/types';
 import { Environment } from '@openchoreo/backstage-plugin-react';
 import { useAutoSelectFirstEnvironment } from './useAutoSelectFirstEnvironment';
 import { parseUrlTimeRange, writeUrlTimeRange } from '../utils/urlTimeRange';
+import { parseComponentsParam } from '../utils/urlComponents';
 
 interface UseUrlFiltersForRuntimeLogsOptions {
   /** Available environments to map envName from URL */
   environments: Environment[];
+  /** Offer the release line column, shown by default. */
+  releaseLineColumn?: boolean;
+  /** Offer the component name column, always shown. */
+  componentNameColumn?: boolean;
 }
 
 /**
@@ -32,8 +38,18 @@ interface UseUrlFiltersForRuntimeLogsOptions {
  */
 export function useUrlFiltersForRuntimeLogs({
   environments,
+  releaseLineColumn = false,
+  componentNameColumn = false,
 }: UseUrlFiltersForRuntimeLogsOptions) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const fieldOptions = useMemo(
+    () =>
+      selectableFields({
+        releaseLine: releaseLineColumn,
+        componentName: componentNameColumn,
+      }),
+    [releaseLineColumn, componentNameColumn],
+  );
 
   // Parse filters from URL
   const filters = useMemo<RuntimeLogsFilters>(() => {
@@ -58,13 +74,7 @@ export function useUrlFiltersForRuntimeLogs({
       rawSortOrder === 'asc' || rawSortOrder === 'desc' ? rawSortOrder : 'asc';
 
     const isLive = searchParams.get('live') === 'true';
-    const componentsParam = searchParams.get('components');
-    const components = componentsParam
-      ? componentsParam
-          .split(',')
-          .map(v => v.trim())
-          .filter(Boolean)
-      : [];
+    const components = parseComponentsParam(searchParams);
 
     // Parse selectedFields from URL
     const fieldsParam = searchParams.get('fields');
@@ -74,17 +84,15 @@ export function useUrlFiltersForRuntimeLogs({
         .split(',')
         .filter(f => Object.values(LogEntryField).includes(f as LogEntryField))
         .map(f => f as LogEntryField);
-      // Ensure Log field is always included
-      if (!selectedFields.includes(LogEntryField.Log)) {
-        selectedFields.push(LogEntryField.Log);
-      }
-      // Sort by the order of the SELECTED_FIELDS array to maintain consistent column order
-      selectedFields = SELECTED_FIELDS.filter(field =>
+      // Ensure the fixed fields are always included
+      selectedFields.push(...FIXED_FIELDS);
+      // Sort by the order of the offered fields to maintain consistent column order
+      selectedFields = fieldOptions.filter(field =>
         selectedFields.includes(field),
       );
     } else {
       // Default to all fields
-      selectedFields = [...SELECTED_FIELDS];
+      selectedFields = [...fieldOptions];
     }
 
     const environment = envName
@@ -103,7 +111,7 @@ export function useUrlFiltersForRuntimeLogs({
       sortOrder,
       isLive: isLive || false,
     };
-  }, [searchParams, environments]);
+  }, [searchParams, environments, fieldOptions]);
 
   // Auto-select first environment if none selected or URL has a stale env id
   useAutoSelectFirstEnvironment(environments, searchParams, setSearchParams);
@@ -139,22 +147,19 @@ export function useUrlFiltersForRuntimeLogs({
       }
 
       if (newFilters.selectedFields !== undefined) {
-        // Ensure Log field is always included
-        let fields = newFilters.selectedFields;
-        if (!fields.includes(LogEntryField.Log)) {
-          fields = [...fields, LogEntryField.Log];
-        }
+        // Ensure the fixed fields are always included
+        const fields = [...newFilters.selectedFields, ...FIXED_FIELDS];
 
-        // Normalize order to match SELECTED_FIELDS
-        const normalizedFields = SELECTED_FIELDS.filter(field =>
+        // Normalize order to match the offered fields
+        const normalizedFields = fieldOptions.filter(field =>
           fields.includes(field),
         );
 
         // Only store in URL if not the default (all fields selected)
         const isDefaultFields =
-          normalizedFields.length === SELECTED_FIELDS.length &&
+          normalizedFields.length === fieldOptions.length &&
           normalizedFields.every(
-            (field, index) => field === SELECTED_FIELDS[index],
+            (field, index) => field === fieldOptions[index],
           );
 
         if (isDefaultFields) {
@@ -199,7 +204,7 @@ export function useUrlFiltersForRuntimeLogs({
 
       setSearchParams(newParams, { replace: true });
     },
-    [searchParams, setSearchParams],
+    [searchParams, setSearchParams, fieldOptions],
   );
 
   // Reset filters to defaults
@@ -211,5 +216,5 @@ export function useUrlFiltersForRuntimeLogs({
     setSearchParams(newParams, { replace: true });
   }, [environments, setSearchParams]);
 
-  return { filters, updateFilters, resetFilters };
+  return { filters, updateFilters, resetFilters, fieldOptions };
 }

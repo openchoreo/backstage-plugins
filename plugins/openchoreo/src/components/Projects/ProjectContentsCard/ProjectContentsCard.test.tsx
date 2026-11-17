@@ -137,8 +137,13 @@ const setup = (
       all: 7,
       component: items.filter(i => i.kind === 'component').length,
       resource: items.filter(i => i.kind === 'resource').length,
+      endpoint: 0,
     },
-    typesByKind: { component: ['deployment/service'], resource: ['postgres'] },
+    typesByKind: {
+      component: ['deployment/service'],
+      resource: ['postgres'],
+      endpoint: [],
+    },
     loading: false,
     isRefetching: false,
     refetch: jest.fn().mockResolvedValue(undefined),
@@ -195,8 +200,12 @@ describe('ProjectContentsCard', () => {
       refetch: pageRefetch,
     });
     mockUseProjectContentFacets.mockReturnValue({
-      counts: { all: 1, component: 1, resource: 0 },
-      typesByKind: { component: ['deployment/service'], resource: [] },
+      counts: { all: 1, component: 1, resource: 0, endpoint: 0 },
+      typesByKind: {
+        component: ['deployment/service'],
+        resource: [],
+        endpoint: [],
+      },
       loading: false,
       isRefetching: false,
       refetch: facetsRefetch,
@@ -214,8 +223,12 @@ describe('ProjectContentsCard', () => {
     const deleted = item('component', 'snip-api', 'deployment/service');
     setup([deleted]);
     mockUseProjectContentFacets.mockReturnValue({
-      counts: { all: 1, component: 1, resource: 0 },
-      typesByKind: { component: ['deployment/service'], resource: [] },
+      counts: { all: 1, component: 1, resource: 0, endpoint: 0 },
+      typesByKind: {
+        component: ['deployment/service'],
+        resource: [],
+        endpoint: [],
+      },
       loading: false,
       isRefetching: false,
       refetch: facetsRefetch,
@@ -257,8 +270,8 @@ describe('ProjectContentsCard', () => {
       error: null,
     });
     mockUseProjectContentFacets.mockReturnValue({
-      counts: { all: 0, component: 0, resource: 0 },
-      typesByKind: { component: [], resource: [] },
+      counts: { all: 0, component: 0, resource: 0, endpoint: 0 },
+      typesByKind: { component: [], resource: [], endpoint: [] },
       loading: true,
     });
     mockUseEnvironments.mockReturnValue({ environments: [], loading: false });

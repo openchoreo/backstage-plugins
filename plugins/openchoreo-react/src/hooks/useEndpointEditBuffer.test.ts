@@ -275,6 +275,21 @@ describe('useEndpointEditBuffer', () => {
     expect(result.current.isBufferValid).toBe(true);
   });
 
+  it('isEndpointValid reads protocol when the deprecated type is unset', () => {
+    const { result } = renderHook(() => useEndpointEditBuffer(makeOptions()));
+
+    act(() => {
+      result.current.startNew('grpc-ep', { protocol: 'gRPC', port: 9090 });
+    });
+    // gRPC by protocol alone still needs a schema.
+    expect(result.current.isBufferValid).toBe(false);
+
+    act(() => {
+      result.current.updateBuffer('schema', { content: 'syntax = "proto3";' });
+    });
+    expect(result.current.isBufferValid).toBe(true);
+  });
+
   it('updateBufferName updates the buffered endpoint name', () => {
     const { result } = renderHook(() => useEndpointEditBuffer(makeOptions()));
 

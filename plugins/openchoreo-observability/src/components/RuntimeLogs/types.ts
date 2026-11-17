@@ -61,6 +61,7 @@ export enum LogEntryField {
   Log = 'Log',
   LogLevel = 'LogLevel',
   ComponentName = 'Component Name',
+  ReleaseLine = 'Release Line',
 }
 
 export const SELECTED_FIELDS = [
@@ -68,3 +69,25 @@ export const SELECTED_FIELDS = [
   LogEntryField.LogLevel,
   LogEntryField.Log,
 ];
+
+/**
+ * The fields the column selector offers, in column order. All of them show by
+ * default. The release line column is offered when the logs cover every line
+ * of a component with release lines, and the component name column on
+ * project-level logs.
+ */
+export function selectableFields({
+  releaseLine = false,
+  componentName = false,
+} = {}): LogEntryField[] {
+  return [
+    LogEntryField.Timestamp,
+    LogEntryField.LogLevel,
+    ...(componentName ? [LogEntryField.ComponentName] : []),
+    ...(releaseLine ? [LogEntryField.ReleaseLine] : []),
+    LogEntryField.Log,
+  ];
+}
+
+/** Fields shown wherever they are offered. The selector lists them checked and disabled. */
+export const FIXED_FIELDS = [LogEntryField.ComponentName, LogEntryField.Log];

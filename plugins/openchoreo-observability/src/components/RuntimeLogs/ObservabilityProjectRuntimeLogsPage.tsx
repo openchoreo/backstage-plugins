@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { PageLoader } from '@openchoreo/backstage-design-system';
 import { Box, Typography, Button } from '@material-ui/core';
 
@@ -20,9 +21,11 @@ import {
   useProjectEnvironments,
 } from '@openchoreo/backstage-plugin-react';
 import { EnvironmentsStatusNotice, ReleaseLineFilter } from '../common';
+import { useProjectReleaseLineComponents } from '../../hooks/useComponentReleaseLines';
+import { useSelectedReleaseLine } from '../../hooks/useSelectedReleaseLine';
+import { parseComponentsParam } from '../../utils/urlComponents';
 import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { useRuntimeLogsStyles } from './styles';
-import { LogEntryField } from './types';
 import type { RenderLogRowAction } from './LogEntry';
 import { logRowActionRendererApiRef } from '../../api/LogRowActionRendererApi';
 
@@ -52,29 +55,30 @@ const ObservabilityProjectRuntimeLogsContent = ({
     error: componentsError,
   } = useGetComponentsByProject(entity);
 
-  const { filters, updateFilters } = useUrlFiltersForRuntimeLogs({
+  // Logs that cover several lines of a component with release lines show each
+  // entry's line. One selected component is narrowed by the line filter.
+  const lineComponents = useProjectReleaseLineComponents(
+    namespace,
+    projectName,
+  );
+  const selectedReleaseLine = useSelectedReleaseLine();
+  const [searchParams] = useSearchParams();
+  const selectedComponents = parseComponentsParam(searchParams);
+  const releaseLineColumn =
+    (selectedComponents.length > 0
+      ? selectedComponents.some(c => lineComponents.includes(c))
+      : lineComponents.length > 0) &&
+    !(selectedComponents.length === 1 && selectedReleaseLine !== undefined);
+
+  const { filters, updateFilters, fieldOptions } = useUrlFiltersForRuntimeLogs({
     environments,
+    releaseLineColumn,
+    componentNameColumn: true,
   });
 
   const selectedEnvironment = environments.find(
     env => env.name === filters.environment,
   );
-  const tableSelectedFields = useMemo(() => {
-    const withoutComponent = filters.selectedFields.filter(
-      field => field !== LogEntryField.ComponentName,
-    );
-    const logIndex = withoutComponent.indexOf(LogEntryField.Log);
-
-    if (logIndex === -1) {
-      return [...withoutComponent, LogEntryField.ComponentName];
-    }
-
-    return [
-      ...withoutComponent.slice(0, logIndex),
-      LogEntryField.ComponentName,
-      ...withoutComponent.slice(logIndex),
-    ];
-  }, [filters.selectedFields]);
 
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
@@ -234,6 +238,7 @@ const ObservabilityProjectRuntimeLogsContent = ({
         components={components}
         componentsLoading={componentsLoading}
         disabled={logsLoading}
+        fieldOptions={fieldOptions}
       />
 
       {logsError && renderError(logsError)}
@@ -250,7 +255,7 @@ const ObservabilityProjectRuntimeLogsContent = ({
           />
 
           <LogsTable
-            selectedFields={tableSelectedFields}
+            selectedFields={filters.selectedFields}
             logs={logs}
             loading={logsLoading}
             hasMore={hasMore}

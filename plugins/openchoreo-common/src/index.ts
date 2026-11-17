@@ -43,6 +43,8 @@ export {
   RELATION_BUILDS,
   RELATION_NOTIFIES,
   RELATION_NOTIFIED_BY,
+  RELATION_ROUTES_TO,
+  RELATION_ROUTED_BY,
   OPENCHOREO_TOKEN_HEADER,
   OPENCHOREO_DIRECT_HEADER,
 } from './constants';
@@ -84,6 +86,9 @@ export {
   openchoreoResourceReleaseBindingDeletePermission,
   openchoreoResourceReleaseBindingRollbackPermission,
   openchoreoResourceReleaseBindingDeleteRevisionPermission,
+  openchoreoEndpointReleaseBindingUpdatePermission,
+  openchoreoEndpointReleaseBindingCreatePermission,
+  openchoreoEndpointReleaseBindingDeletePermission,
   openchoreoRoleViewPermission,
   openchoreoRoleCreatePermission,
   openchoreoRoleUpdatePermission,
@@ -119,6 +124,7 @@ export {
   openchoreoResourceTypeCreatePermission,
   openchoreoProjectTypeCreatePermission,
   openchoreoResourceCreatePermission,
+  openchoreoEndpointCreatePermission,
   openchoreoClusterComponentTypeCreatePermission,
   openchoreoClusterResourceTypeCreatePermission,
   openchoreoClusterProjectTypeCreatePermission,
@@ -134,6 +140,10 @@ export {
   openchoreoProjectTypeDeletePermission,
   openchoreoResourceUpdatePermission,
   openchoreoResourceDeletePermission,
+  openchoreoEndpointUpdatePermission,
+  openchoreoEndpointDeletePermission,
+  openchoreoEndpointTypeUpdatePermission,
+  openchoreoEndpointTypeDeletePermission,
   openchoreoTraitUpdatePermission,
   openchoreoTraitDeletePermission,
   openchoreoWorkflowUpdatePermission,
@@ -157,6 +167,8 @@ export {
   openchoreoClusterComponentTypeDeletePermission,
   openchoreoClusterResourceTypeUpdatePermission,
   openchoreoClusterResourceTypeDeletePermission,
+  openchoreoClusterEndpointTypeUpdatePermission,
+  openchoreoClusterEndpointTypeDeletePermission,
   openchoreoClusterProjectTypeUpdatePermission,
   openchoreoClusterProjectTypeDeletePermission,
   openchoreoClusterTraitUpdatePermission,
@@ -188,6 +200,17 @@ export {
   type PageVariant,
   type ComponentTypeMapping,
 } from './utils/componentTypeUtils';
+export {
+  MAX_ENDPOINT_BACKENDS,
+  MAX_ENDPOINT_BACKEND_WEIGHT,
+  deriveEndpointBackendName,
+  endpointBackendsTakeTraffic,
+  isEndpointBackendWeight,
+} from './utils/endpointBackends';
+export {
+  endpointProtocol,
+  type ExposableEndpoint,
+} from './utils/endpointExposure';
 
 // Feature flags types
 export type { OpenChoreoFeatures, FeatureName } from './types/features';
@@ -235,6 +258,8 @@ export type {
   ReleaseBindingResponse,
   ReleaseBindingCondition,
   ResourceReleaseBindingResponse,
+  ResolvedEndpointBackend,
+  EndpointServiceURL,
   ProjectReleaseBindingResponse,
   ResolvedResourceOutput,
   ResourceSecretKeyRef,
@@ -258,6 +283,7 @@ export type {
   EnvVarValueFrom,
   SecretKeyRef,
   WorkloadEndpoint,
+  WorkloadEndpointProtocol,
   Dependency,
   DependencyEnvBindings,
   WorkloadOwner,

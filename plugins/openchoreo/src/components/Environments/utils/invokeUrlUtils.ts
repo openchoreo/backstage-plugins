@@ -1,14 +1,19 @@
 import type {
   EndpointInfo,
   EndpointURLDetails,
+  EndpointURLSecurity,
 } from '../hooks/useEnvironmentData';
 import type { ResourceTreeData } from '../ReleaseDataRenderer/types';
 
-/** Build a full URL from EndpointURLDetails, including path. */
+/**
+ * Build a full URL from EndpointURLDetails, including path. A URL without a
+ * scheme, such as an Endpoint's TCP address, is shown as host and port.
+ */
 export function buildUrl(details: EndpointURLDetails): string {
+  const schemePart = details.scheme ? `${details.scheme}://` : '';
   const portPart = details.port ? `:${details.port}` : '';
   const pathPart = details.path || '';
-  return `${details.scheme}://${details.host}${portPart}${pathPart}`;
+  return `${schemePart}${details.host}${portPart}${pathPart}`;
 }
 
 /**
@@ -52,6 +57,31 @@ export function derivePrimaryUrl(
     }
   }
   return null;
+}
+
+/**
+ * Describes what a caller must present at a URL, e.g. "API key (header
+ * api-key)". Returns null when the URL declares no security, which is the
+ * case for every URL that comes from a ReleaseBinding.
+ */
+export function describeSecurity(
+  security: EndpointURLSecurity | undefined,
+): string | null {
+  if (!security) return null;
+  switch (security.scheme) {
+    case 'apiKey':
+      return security.apiKey
+        ? `API key (${security.apiKey.in} ${security.apiKey.name})`
+        : 'API key';
+    case 'oauth2':
+      return 'OAuth2';
+    case 'basicAuth':
+      return 'Basic auth';
+    case 'none':
+      return 'No authentication';
+    default:
+      return null;
+  }
 }
 
 /**

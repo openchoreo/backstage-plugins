@@ -39,6 +39,12 @@ import {
   openchoreoClusterProjectTypeDeletePermission,
   openchoreoResourceUpdatePermission,
   openchoreoResourceDeletePermission,
+  openchoreoEndpointUpdatePermission,
+  openchoreoEndpointDeletePermission,
+  openchoreoEndpointTypeUpdatePermission,
+  openchoreoEndpointTypeDeletePermission,
+  openchoreoClusterEndpointTypeUpdatePermission,
+  openchoreoClusterEndpointTypeDeletePermission,
   openchoreoClusterTraitUpdatePermission,
   openchoreoClusterTraitDeletePermission,
   openchoreoClusterDataplaneUpdatePermission,
@@ -113,6 +119,16 @@ export const KIND_TO_PERMISSIONS: Record<string, PermissionEntry> = {
     delete: openchoreoResourceDeletePermission,
     isResourceScoped: true,
   },
+  endpoint: {
+    update: openchoreoEndpointUpdatePermission,
+    delete: openchoreoEndpointDeletePermission,
+    isResourceScoped: true,
+  },
+  endpointtype: {
+    update: openchoreoEndpointTypeUpdatePermission,
+    delete: openchoreoEndpointTypeDeletePermission,
+    isResourceScoped: true,
+  },
   componenttype: {
     update: openchoreoComponentTypeUpdatePermission,
     delete: openchoreoComponentTypeDeletePermission,
@@ -181,6 +197,11 @@ export const KIND_TO_PERMISSIONS: Record<string, PermissionEntry> = {
   clusterresourcetype: {
     update: openchoreoClusterResourceTypeUpdatePermission,
     delete: openchoreoClusterResourceTypeDeletePermission,
+    isResourceScoped: false,
+  },
+  clusterendpointtype: {
+    update: openchoreoClusterEndpointTypeUpdatePermission,
+    delete: openchoreoClusterEndpointTypeDeletePermission,
     isResourceScoped: false,
   },
   clusterprojecttype: {

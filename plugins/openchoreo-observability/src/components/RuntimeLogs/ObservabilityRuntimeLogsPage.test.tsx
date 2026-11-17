@@ -19,6 +19,7 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
   ),
   useProjectEnvironments: (...args: any[]) =>
     mockUseProjectEnvironments(...args),
+  useReleaseLine: () => ({}),
 }));
 
 const mockUseGetNamespaceAndProjectByEntity = jest.fn();
@@ -92,11 +93,17 @@ const defaultFilters = {
   isLive: false,
 };
 
-function renderPage() {
+const entityWithReleaseLine = {
+  ...defaultEntity,
+  relations: [{ type: 'hasPart', targetRef: 'releaseline:default/canary' }],
+};
+
+function renderPage(entity: any = defaultEntity, route = '/') {
   return renderInTestApp(
-    <EntityProvider entity={defaultEntity}>
+    <EntityProvider entity={entity}>
       <ObservabilityRuntimeLogsPage />
     </EntityProvider>,
+    { routeEntries: [route] },
   );
 }
 
@@ -195,6 +202,32 @@ describe('ObservabilityRuntimeLogsPage', () => {
 
     expect(screen.getByTestId('env-count')).toHaveTextContent('2');
   });
+
+  it.each([
+    [
+      'all lines of a component with release lines',
+      entityWithReleaseLine,
+      '/?releaseLine=*',
+      true,
+    ],
+    [
+      'the main line of a component with release lines',
+      entityWithReleaseLine,
+      '/',
+      false,
+    ],
+    ['one release line', entityWithReleaseLine, '/?releaseLine=canary', false],
+    ['a component without release lines', defaultEntity, '/', false],
+  ])(
+    'offers the release line column for %s: %s',
+    async (_view, entity, route, releaseLineColumn) => {
+      await renderPage(entity, route);
+
+      expect(mockUseUrlFiltersForRuntimeLogs).toHaveBeenLastCalledWith(
+        expect.objectContaining({ releaseLineColumn }),
+      );
+    },
+  );
 
   it('renders log entries in the table', async () => {
     await renderPage();

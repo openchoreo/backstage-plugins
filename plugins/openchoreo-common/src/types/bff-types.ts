@@ -641,6 +641,29 @@ export interface ResourceReleaseBindingResponse {
   outputs?: ResolvedResourceOutput[];
 }
 
+/** In-cluster address a backend resolved to in one environment. */
+export interface EndpointServiceURL {
+  scheme?: string;
+  host?: string;
+  port?: number;
+  path?: string;
+}
+
+/**
+ * How one of an Endpoint's backends resolved in a binding's environment. An
+ * unresolved backend carries the reason, e.g. its component is not deployed
+ * there or its workload endpoint is not internal/external.
+ */
+export interface ResolvedEndpointBackend {
+  name: string;
+  kind: string;
+  weight?: number;
+  resolved: boolean;
+  serviceURL?: EndpointServiceURL;
+  reason?: string;
+  message?: string;
+}
+
 export interface ProjectReleaseBindingResponse {
   name: string;
   projectName: string;
@@ -821,11 +844,28 @@ export interface SecretKeyRef {
   key: string;
 }
 
+export type WorkloadEndpointProtocol =
+  | 'TCP'
+  | 'UDP'
+  | 'HTTP'
+  | 'gRPC'
+  | 'Websocket'
+  | 'GraphQL';
+
 export interface WorkloadEndpoint {
-  /** @description Access scope for the endpoint. */
+  /**
+   * @description Access scope for the endpoint.
+   * @deprecated Exposure belongs on an Endpoint's visibility. Still honoured by
+   * ComponentType templates, and kept for endpoints no Endpoint exposes.
+   */
   visibility?: ('project' | 'namespace' | 'internal' | 'external')[];
-  /** @enum {string} */
-  type: 'TCP' | 'UDP' | 'HTTP' | 'gRPC' | 'Websocket' | 'GraphQL';
+  /** Protocol the endpoint serves. Replaces type; the API keeps them equal. */
+  protocol?: WorkloadEndpointProtocol;
+  /**
+   * @deprecated Use protocol. Read through endpointProtocol(), which falls back
+   * to it for workloads written before protocol existed.
+   */
+  type?: WorkloadEndpointProtocol;
   port: number;
   schema?: Schema;
 }

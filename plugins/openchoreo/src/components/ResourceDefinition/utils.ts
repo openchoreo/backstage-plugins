@@ -14,6 +14,12 @@ export function mapKindToApiKind(backstageKind: string): PlatformResourceKind {
       return 'components';
     case 'resource':
       return 'resources';
+    case 'endpoint':
+      return 'endpoints';
+    case 'endpointtype':
+      return 'endpointtypes';
+    case 'clusterendpointtype':
+      return 'clusterendpointtypes';
     case 'componenttype':
       return 'componenttypes';
     case 'resourcetype':
@@ -74,6 +80,12 @@ export function mapKindToCrdKind(backstageKind: string): string {
       return 'Component';
     case 'resource':
       return 'Resource';
+    case 'endpoint':
+      return 'Endpoint';
+    case 'endpointtype':
+      return 'EndpointType';
+    case 'clusterendpointtype':
+      return 'ClusterEndpointType';
     case 'componenttype':
       return 'ComponentType';
     case 'resourcetype':
@@ -127,6 +139,7 @@ export function isClusterScopedKind(kind: string): boolean {
   return [
     'clustercomponenttype',
     'clusterresourcetype',
+    'clusterendpointtype',
     'clusterprojecttype',
     'clustertraittype',
     'clusterworkflow',
@@ -171,6 +184,9 @@ export function isSupportedKind(kind: string): boolean {
     'domain',
     'component',
     'resource',
+    'endpoint',
+    'endpointtype',
+    'clusterendpointtype',
     'componenttype',
     'resourcetype',
     'projecttype',

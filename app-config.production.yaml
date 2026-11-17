@@ -188,6 +188,19 @@ techInsights:
       plural: resources
     # Suggested in the check editor, which also accepts new ones.
     categories: [Security, Reliability, Documentation]
+  factRetrievers:
+    # Tech Insights schedules only the retrievers listed here. timeToLive is
+    # kept at several cadences so an entity skipped by a transient failure
+    # keeps its last facts instead of losing them after one missed run.
+    githubRepositoryFactRetriever:
+      cadence: '0 2 * * *'
+      lifecycle: { timeToLive: { days: 7 } }
+    openchoreoComponentTypeFactRetriever:
+      cadence: '0 * * * *'
+      lifecycle: { timeToLive: { days: 1 } }
+    openchoreoDeploymentFactRetriever:
+      cadence: '*/15 * * * *'
+      lifecycle: { timeToLive: { hours: 6 } }
 
 auth:
   providers:
@@ -371,8 +384,8 @@ openchoreo:
     assistant:
       enabled: ${OPENCHOREO_FEATURES_ASSISTANT_ENABLED}
     # Delivery Insights (DORA metrics) page
-    # Opt-in: defaults to false. Feature preview, and separate from the Observer
-    # flag that collects the data (observer.deliveryInsights.enabled on the
+    # Defaults to true. Feature preview, and separate from the Observer
+    # flag that collects the data (observer.featurePreview.deliveryInsights.enabled on the
     # observability plane) -- both are needed for the page to show anything.
     # When disabled, hides the Delivery Insights sidebar item.
     deliveryInsights:

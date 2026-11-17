@@ -32,6 +32,8 @@ type ResourceKind =
   | 'resourcetypes'
   | 'projecttypes'
   | 'resources'
+  | 'endpoints'
+  | 'endpointtypes'
   | 'traits'
   | 'workflows'
   | 'component-workflows'
@@ -44,6 +46,7 @@ type ResourceKind =
   | 'deploymentpipelines'
   | 'clustercomponenttypes'
   | 'clusterresourcetypes'
+  | 'clusterendpointtypes'
   | 'clusterprojecttypes'
   | 'clustertraits'
   | 'clusterdataplanes'
@@ -59,6 +62,8 @@ const RESOURCE_KIND_TO_CRD_KIND: Record<ResourceKind, string> = {
   resourcetypes: 'ResourceType',
   projecttypes: 'ProjectType',
   resources: 'Resource',
+  endpoints: 'Endpoint',
+  endpointtypes: 'EndpointType',
   traits: 'Trait',
   workflows: 'Workflow',
   'component-workflows': 'ComponentWorkflow',
@@ -72,6 +77,7 @@ const RESOURCE_KIND_TO_CRD_KIND: Record<ResourceKind, string> = {
   deploymentpipelines: 'DeploymentPipeline',
   clustercomponenttypes: 'ClusterComponentType',
   clusterresourcetypes: 'ClusterResourceType',
+  clusterendpointtypes: 'ClusterEndpointType',
   clusterprojecttypes: 'ClusterProjectType',
   clustertraits: 'ClusterTrait',
   clusterworkflows: 'ClusterWorkflow',
@@ -88,6 +94,8 @@ const NEW_API_KINDS: ReadonlySet<ResourceKind> = new Set([
   'resourcetypes',
   'projecttypes',
   'resources',
+  'endpoints',
+  'endpointtypes',
   'traits',
   'environments',
   'observabilityalertsnotificationchannels',
@@ -99,6 +107,7 @@ const NEW_API_KINDS: ReadonlySet<ResourceKind> = new Set([
   'deploymentpipelines',
   'clustercomponenttypes',
   'clusterresourcetypes',
+  'clusterendpointtypes',
   'clusterprojecttypes',
   'clustertraits',
   'clusterworkflows',
@@ -444,6 +453,38 @@ export class PlatformResourceService {
           resource = data as Record<string, unknown>;
           break;
         }
+        case 'endpoints': {
+          const { data, error, response } = await client.GET(
+            '/api/v1/namespaces/{namespaceName}/endpoints/{endpointName}',
+            {
+              params: {
+                path: { namespaceName, endpointName: resourceName },
+              },
+            },
+          );
+          assertApiResponse(
+            { data, error, response },
+            `fetch ${crdKind} definition`,
+          );
+          resource = data as Record<string, unknown>;
+          break;
+        }
+        case 'endpointtypes': {
+          const { data, error, response } = await client.GET(
+            '/api/v1/namespaces/{namespaceName}/endpointtypes/{etName}',
+            {
+              params: {
+                path: { namespaceName, etName: resourceName },
+              },
+            },
+          );
+          assertApiResponse(
+            { data, error, response },
+            `fetch ${crdKind} definition`,
+          );
+          resource = data as Record<string, unknown>;
+          break;
+        }
         case 'workflows': {
           const { data, error, response } = await client.GET(
             '/api/v1/namespaces/{namespaceName}/workflows/{workflowName}',
@@ -514,6 +555,22 @@ export class PlatformResourceService {
             {
               params: {
                 path: { crtName: resourceName },
+              },
+            },
+          );
+          assertApiResponse(
+            { data, error, response },
+            `fetch ${crdKind} definition`,
+          );
+          resource = data as Record<string, unknown>;
+          break;
+        }
+        case 'clusterendpointtypes': {
+          const { data, error, response } = await client.GET(
+            '/api/v1/clusterendpointtypes/{cetName}',
+            {
+              params: {
+                path: { cetName: resourceName },
               },
             },
           );
@@ -851,6 +908,38 @@ export class PlatformResourceService {
           );
           break;
         }
+        case 'endpoints': {
+          const { error, response } = await client.PUT(
+            '/api/v1/namespaces/{namespaceName}/endpoints/{endpointName}',
+            {
+              params: {
+                path: { namespaceName, endpointName: resourceName },
+              },
+              body,
+            },
+          );
+          assertApiResponse(
+            { data: undefined, error, response },
+            `update ${crdKind} definition`,
+          );
+          break;
+        }
+        case 'endpointtypes': {
+          const { error, response } = await client.PUT(
+            '/api/v1/namespaces/{namespaceName}/endpointtypes/{etName}',
+            {
+              params: {
+                path: { namespaceName, etName: resourceName },
+              },
+              body,
+            },
+          );
+          assertApiResponse(
+            { data: undefined, error, response },
+            `update ${crdKind} definition`,
+          );
+          break;
+        }
         case 'deploymentpipelines': {
           const { error, response } = await client.PUT(
             '/api/v1/namespaces/{namespaceName}/deploymentpipelines/{deploymentPipelineName}',
@@ -921,6 +1010,22 @@ export class PlatformResourceService {
             {
               params: {
                 path: { crtName: resourceName },
+              },
+              body,
+            },
+          );
+          assertApiResponse(
+            { data: undefined, error, response },
+            `update ${crdKind} definition`,
+          );
+          break;
+        }
+        case 'clusterendpointtypes': {
+          const { error, response } = await client.PUT(
+            '/api/v1/clusterendpointtypes/{cetName}',
+            {
+              params: {
+                path: { cetName: resourceName },
               },
               body,
             },
@@ -1218,6 +1323,36 @@ export class PlatformResourceService {
           );
           break;
         }
+        case 'endpoints': {
+          const { error, response } = await client.DELETE(
+            '/api/v1/namespaces/{namespaceName}/endpoints/{endpointName}',
+            {
+              params: {
+                path: { namespaceName, endpointName: resourceName },
+              },
+            },
+          );
+          assertApiResponse(
+            { data: undefined, error, response },
+            `delete ${crdKind} definition`,
+          );
+          break;
+        }
+        case 'endpointtypes': {
+          const { error, response } = await client.DELETE(
+            '/api/v1/namespaces/{namespaceName}/endpointtypes/{etName}',
+            {
+              params: {
+                path: { namespaceName, etName: resourceName },
+              },
+            },
+          );
+          assertApiResponse(
+            { data: undefined, error, response },
+            `delete ${crdKind} definition`,
+          );
+          break;
+        }
         case 'deploymentpipelines': {
           const { error, response } = await client.DELETE(
             '/api/v1/namespaces/{namespaceName}/deploymentpipelines/{deploymentPipelineName}',
@@ -1302,6 +1437,21 @@ export class PlatformResourceService {
             {
               params: {
                 path: { crtName: resourceName },
+              },
+            },
+          );
+          assertApiResponse(
+            { data: undefined, error, response },
+            `delete ${crdKind} definition`,
+          );
+          break;
+        }
+        case 'clusterendpointtypes': {
+          const { error, response } = await client.DELETE(
+            '/api/v1/clusterendpointtypes/{cetName}',
+            {
+              params: {
+                path: { cetName: resourceName },
               },
             },
           );

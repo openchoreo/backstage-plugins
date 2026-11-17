@@ -50,13 +50,44 @@ export function getRepositoryInfo(
 }
 
 /**
- * Constructs a GitHub/GitLab-style URL to view the component source code at a specific path and branch.
+ * The path segment GitHub or GitLab puts before the ref in a URL that browses
+ * a folder. Other hosts build that URL differently (Bitbucket uses `/src/`,
+ * Azure DevOps a query string), so for them only the repository URL is known
+ * to open. A self-hosted GitHub or GitLab is recognised by a host whose first
+ * label is `github` or `gitlab`.
+ */
+function treeSegment(repository: string): string | undefined {
+  let host: string;
+  try {
+    host = new URL(repository).hostname.toLowerCase();
+  } catch {
+    return undefined;
+  }
+  const label = host.split('.')[0];
+  if (host === 'github.com' || label === 'github') {
+    return 'tree';
+  }
+  if (host === 'gitlab.com' || label === 'gitlab') {
+    return '-/tree';
+  }
+  return undefined;
+}
+
+/**
+ * Constructs a URL to view the component source code at a specific path and branch.
  *
  * **IMPORTANT:** This function relies on `getRepositoryInfo()` and therefore assumes the same
  * workflow schema structure. See `getRepositoryInfo()` documentation for details.
  *
+ * The branch is never guessed: without one the repository URL is returned
+ * as is, so a consumer falls back to the repository's default branch.
+ *
  * @param component - The component response from the OpenChoreo API
- * @returns Full URL to the repository path at the specified branch, or base repository URL if path is not available
+ * @returns `<repo>/tree/<branch>/<path>` on GitHub and
+ * `<repo>/-/tree/<branch>/<path>` on GitLab when the branch is known (without
+ * `/<path>` when the component sits at the repository root), the repository
+ * URL when the branch is unknown or the host is neither, or undefined when
+ * there is no repository
  *
  * @example
  * ```typescript
@@ -73,12 +104,23 @@ export function getRepositoryUrl(
     return undefined;
   }
 
-  if (!path) {
-    return url;
+  const repository = url.replace(/\/+$/, '').replace(/\.git$/, '');
+  const segment = treeSegment(repository);
+  if (!branch || !segment) {
+    return repository;
   }
 
-  const separator = url.endsWith('/') ? '' : '/';
-  return `${url}${separator}tree/${branch || 'main'}/${path}`;
+  const appPath = (path ?? '').replace(/^\.?\/+/, '').replace(/\/+$/, '');
+  const tree = `${repository}/${segment}/${encodePath(branch)}`;
+  return appPath && appPath !== '.' ? `${tree}/${encodePath(appPath)}` : tree;
+}
+
+/**
+ * Encodes each segment of a branch or path, keeping `/`, so characters such
+ * as `#` and `?` stay part of the path instead of ending it.
+ */
+function encodePath(value: string): string {
+  return value.split('/').map(encodeURIComponent).join('/');
 }
 
 /**

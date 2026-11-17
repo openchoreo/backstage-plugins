@@ -12,6 +12,7 @@ import { createComponentTypeDefinitionAction } from './actions/componentType';
 import { createResourceTypeDefinitionAction } from './actions/resourceType';
 import { createProjectTypeDefinitionAction } from './actions/projectType';
 import { createResourceAction } from './actions/resource';
+import { createEndpointAction } from './actions/endpoint';
 import { createTraitDefinitionAction } from './actions/trait';
 import { createComponentWorkflowDefinitionAction } from './actions/componentWorkflow';
 import { createClusterComponentTypeDefinitionAction } from './actions/clusterComponentType';
@@ -60,6 +61,7 @@ export const scaffolderModule = createBackendModule({
           createResourceTypeDefinitionAction(config, immediateCatalog),
           createProjectTypeDefinitionAction(config, immediateCatalog),
           createResourceAction(config, immediateCatalog),
+          createEndpointAction(config, immediateCatalog),
           createTraitDefinitionAction(config, immediateCatalog),
           createComponentWorkflowDefinitionAction(config, immediateCatalog),
           createEnvironmentAction(config, immediateCatalog),

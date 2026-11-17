@@ -30,6 +30,15 @@ export const CHOREO_ANNOTATIONS = {
   ENDPOINT_TYPE: 'openchoreo.io/endpoint-type',
   ENDPOINT_PORT: 'openchoreo.io/endpoint-port',
   ENDPOINT_VISIBILITY: 'openchoreo.io/endpoint-visibility',
+  // Endpoint entity (the OpenChoreo Endpoint CR). ENDPOINT carries the CR
+  // name; ENDPOINT_TYPE above is taken by a workload endpoint's protocol type
+  // on API entities, so the (Cluster)EndpointType reference uses its own keys.
+  ENDPOINT_UID: 'openchoreo.io/endpoint-uid',
+  ENDPOINTTYPE: 'openchoreo.io/endpointtype',
+  ENDPOINTTYPE_KIND: 'openchoreo.io/endpointtype-kind',
+  // The component owning an Endpoint (its spec.owner.componentName); absent
+  // when the project owns it.
+  ENDPOINT_OWNER_COMPONENT: 'openchoreo.io/endpoint-owner-component',
   // Component Type Definition (CTD) annotations
   CTD_NAME: 'openchoreo.io/ctd-name',
   CTD_DISPLAY_NAME: 'openchoreo.io/ctd-display-name',
@@ -46,6 +55,14 @@ export const CHOREO_ANNOTATIONS = {
   RTD_DISPLAY_NAME: 'openchoreo.io/rtd-display-name',
   RTD_GENERATED: 'openchoreo.io/rtd-generated',
   RTD_KIND: 'openchoreo.io/rtd-kind',
+  // (Cluster)EndpointType Definition (ETD) annotations
+  // Umbrella prefix `ETD` mirrors `RTD`/`CTD`: marks scaffolder Templates
+  // generated per (Cluster)EndpointType so the Endpoint-creation browse view
+  // (`?view=endpoints`) can list them. The kind is carried in ETD_KIND.
+  ETD_NAME: 'openchoreo.io/etd-name',
+  ETD_DISPLAY_NAME: 'openchoreo.io/etd-display-name',
+  ETD_GENERATED: 'openchoreo.io/etd-generated',
+  ETD_KIND: 'openchoreo.io/etd-kind',
   // (Cluster)ProjectType Definition (PTD) annotations
   // Umbrella prefix `PTD` mirrors `RTD`/`CTD`: marks scaffolder Templates
   // generated per (Cluster)ProjectType so the Project-creation browse view
@@ -204,6 +221,18 @@ export const RELATION_NOTIFIES = 'notifies';
  * RELATION_NOTIFIES.
  */
 export const RELATION_NOTIFIED_BY = 'notifiedBy';
+
+/**
+ * A relation indicating that an Endpoint routes traffic to a Component.
+ * The source is the Endpoint, the target is a backend Component.
+ */
+export const RELATION_ROUTES_TO = 'routesTo';
+
+/**
+ * A relation indicating that a Component receives traffic through an
+ * Endpoint. This is the inverse of RELATION_ROUTES_TO.
+ */
+export const RELATION_ROUTED_BY = 'routedBy';
 
 /**
  * Header carrying the user's OpenChoreo IDP access token from the browser to

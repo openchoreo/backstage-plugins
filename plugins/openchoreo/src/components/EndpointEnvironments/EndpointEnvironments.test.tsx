@@ -1,0 +1,369 @@
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { EntityProvider } from '@backstage/plugin-catalog-react';
+import type { Entity } from '@backstage/catalog-model';
+import { TestApiProvider } from '@backstage/test-utils';
+import { ResponseError } from '@backstage/errors';
+import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
+import { EndpointEnvironmentsList } from './EndpointEnvironmentsList';
+
+// The Backends section reads the catalog entity and calls the API; it has its
+// own test file.
+const mockBackendsSectionMounts = jest.fn();
+jest.mock('./EndpointBackendsSection', () => {
+  const { useEffect } = jest.requireActual('react');
+  return {
+    EndpointBackendsSection: () => {
+      useEffect(() => {
+        mockBackendsSectionMounts();
+      }, []);
+      return <div data-testid="backends-section" />;
+    },
+  };
+});
+
+jest.mock('@backstage/core-components', () => ({
+  Progress: () => <div data-testid="progress" />,
+  EmptyState: ({ missing, title, description }: any) => (
+    <div data-testid={missing === 'data' ? 'error-state' : 'empty-state'}>
+      <span>{title}</span>
+      <span>{typeof description === 'string' ? description : ''}</span>
+    </div>
+  ),
+}));
+
+jest.mock('@openchoreo/backstage-design-system', () => ({
+  YamlViewer: () => null,
+  Card: ({ children }: any) => <div data-testid="card">{children}</div>,
+  StatusBadge: ({ status }: any) => (
+    <span data-testid="status-badge">{status}</span>
+  ),
+  PageLoader: () => <div data-testid="page-loader" />,
+  useChoreoTokens: () => ({ graph: { canvasDotPattern: '' } }),
+}));
+
+jest.mock('@openchoreo/backstage-plugin-react', () => ({
+  ForbiddenState: ({ message }: any) => (
+    <div data-testid="forbidden">{message}</div>
+  ),
+  EmptyState: ({ title, description }: any) => (
+    <div data-testid="empty-state">
+      <span>{title}</span>
+      <span>{description}</span>
+    </div>
+  ),
+  ErrorState: ({ title, message }: any) => (
+    <div data-testid="error-state">
+      <span>{title}</span>
+      <span>{message}</span>
+    </div>
+  ),
+  useEndpointReleaseBindingUpdatePermission: () => ({
+    canUpdate: true,
+    loading: false,
+    deniedTooltip: '',
+  }),
+  useEndpointReleaseBindingCreatePermission: () => ({
+    canCreate: true,
+    loading: false,
+    deniedTooltip: '',
+  }),
+  useEndpointReleaseBindingDeletePermission: () => ({
+    canDelete: true,
+    loading: false,
+    deniedTooltip: '',
+  }),
+  useEndpointPromoteToEnvPermission: () => ({
+    canPromote: true,
+    loading: false,
+    deniedTooltip: '',
+  }),
+  // The canvas internals are exercised in their own test; here we stub the
+  // graph layout so jsdom doesn't need to mount the real dagre + zoom infra.
+  // Mirror the real buildEnvPipelineNodes shape: prepend a synthetic setup
+  // node so the canvas exercises the Setup-tile render path.
+  buildEnvPipelineNodes: (envs: any[]) => [
+    { id: '__setup__', isSetup: true, data: undefined, parents: [] },
+    ...envs.map((e: any) => ({
+      id: e.name,
+      isSetup: false,
+      data: e,
+      parents: [],
+    })),
+  ],
+  computePipelineLayout: (nodes: any[]) => ({
+    width: 200,
+    height: 200,
+    nodes: nodes.map(n => ({ ...n, x: 0, y: 0, width: 100, height: 100 })),
+    edges: [],
+  }),
+  GraphControls: () => <div data-testid="graph-controls" />,
+  PipelineEdge: () => null,
+  MINI_ENV_NODE_WIDTH: 100,
+  MINI_ENV_NODE_HEIGHT: 100,
+  MINI_SETUP_NODE_WIDTH: 100,
+  MINI_SETUP_NODE_HEIGHT: 100,
+  useHtmlGraphZoom: () => ({
+    containerRef: { current: null },
+    contentRef: { current: null },
+    containerSize: { width: 500, height: 500 },
+    zoomIn: () => {},
+    zoomOut: () => {},
+    fitToView: () => {},
+    resetZoom: () => {},
+  }),
+}));
+
+jest.mock('../Environments/components', () => ({
+  NotificationBanner: ({ notification }: any) =>
+    notification ? (
+      <div data-testid="notification" data-type={notification.type}>
+        {notification.message}
+      </div>
+    ) : null,
+}));
+
+jest.mock('../Environments/components/NoEnvironmentsEmptyState', () => ({
+  NoEnvironmentsEmptyState: () => (
+    <div>
+      This project's deployment pipeline has no environments configured.
+    </div>
+  ),
+}));
+
+const ENTITY: Entity = {
+  apiVersion: 'backstage.io/v1alpha1',
+  kind: 'Endpoint',
+  metadata: {
+    name: 'orders-api',
+    namespace: 'acme',
+    annotations: {
+      'openchoreo.io/namespace': 'acme',
+      'openchoreo.io/project': 'store',
+      'openchoreo.io/endpoint': 'orders-api',
+    },
+  },
+  spec: { type: 'http-route' } as any,
+};
+
+const ENVS = [
+  {
+    name: 'Development',
+    resourceName: 'development',
+    latestRelease: 'orders-api-abc',
+    promotionTargets: [{ name: 'Production', resourceName: 'production' }],
+  },
+  {
+    name: 'Production',
+    resourceName: 'production',
+    latestRelease: 'orders-api-abc',
+  },
+];
+
+function renderList(client: Record<string, jest.Mock>) {
+  return render(
+    <MemoryRouter>
+      <TestApiProvider apis={[[openChoreoClientApiRef, client as any]]}>
+        <EntityProvider entity={ENTITY}>
+          <EndpointEnvironmentsList />
+        </EntityProvider>
+      </TestApiProvider>
+    </MemoryRouter>,
+  );
+}
+
+describe('EndpointEnvironmentsList', () => {
+  it('renders a tile per environment on the canvas', async () => {
+    renderList({
+      fetchEndpointEnvironmentInfo: jest.fn().mockResolvedValue(ENVS),
+    });
+
+    expect(
+      await screen.findByTestId('endpoint-deploy-flow-canvas'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Development')).toBeInTheDocument();
+    expect(screen.getByText('Production')).toBeInTheDocument();
+  });
+
+  it('refetches a refreshed entity quietly, keeping the open pane', async () => {
+    const fetchEndpointEnvironmentInfo = jest.fn().mockResolvedValue(ENVS);
+    const client = { fetchEndpointEnvironmentInfo };
+    const ui = (entity: Entity) => (
+      <MemoryRouter>
+        <TestApiProvider apis={[[openChoreoClientApiRef, client as any]]}>
+          <EntityProvider entity={entity}>
+            <EndpointEnvironmentsList />
+          </EntityProvider>
+        </TestApiProvider>
+      </MemoryRouter>
+    );
+    const { rerender } = render(ui(ENTITY));
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Select setup' }),
+    );
+    expect(screen.getByTestId('backends-section')).toBeInTheDocument();
+    mockBackendsSectionMounts.mockClear();
+
+    // A backend change refreshes the catalog entity: a new object.
+    rerender(ui({ ...ENTITY, spec: { ...ENTITY.spec } }));
+
+    await waitFor(() =>
+      expect(fetchEndpointEnvironmentInfo).toHaveBeenCalledTimes(2),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('backends-section')).toBeInTheDocument(),
+    );
+    // The section kept its state: it was never unmounted behind a loader.
+    expect(mockBackendsSectionMounts).not.toHaveBeenCalled();
+  });
+
+  it('applies overlapping environment responses unless a newer one landed first', async () => {
+    const pending: Array<(envs: typeof ENVS) => void> = [];
+    const fetchEndpointEnvironmentInfo = jest
+      .fn()
+      .mockResolvedValueOnce(ENVS)
+      .mockImplementation(() => new Promise(resolve => pending.push(resolve)));
+    const client = { fetchEndpointEnvironmentInfo };
+    const ui = (entity: Entity) => (
+      <MemoryRouter>
+        <TestApiProvider apis={[[openChoreoClientApiRef, client as any]]}>
+          <EntityProvider entity={entity}>
+            <EndpointEnvironmentsList />
+          </EntityProvider>
+        </TestApiProvider>
+      </MemoryRouter>
+    );
+    const { rerender } = render(ui(ENTITY));
+    // Each refreshed entity (a new object) starts another request.
+    const refetch = () => rerender(ui({ ...ENTITY, spec: { ...ENTITY.spec } }));
+    const withRelease = (latestRelease: string) =>
+      ENVS.map(e => ({ ...e, latestRelease }));
+    const showsRelease = (release: string) =>
+      screen.findByText(new RegExp(`Deploy the latest release, ${release}`));
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Select setup' }),
+    );
+
+    // A response applies while a newer request is still in flight, so slow
+    // responses don't starve a poll.
+    refetch();
+    await waitFor(() => expect(pending).toHaveLength(1));
+    refetch();
+    await waitFor(() => expect(pending).toHaveLength(2));
+    pending[0](withRelease('rel-2'));
+    expect(await showsRelease('rel-2')).toBeInTheDocument();
+    pending[1](withRelease('rel-3'));
+    expect(await showsRelease('rel-3')).toBeInTheDocument();
+
+    // A response older than one already applied is dropped.
+    refetch();
+    await waitFor(() => expect(pending).toHaveLength(3));
+    refetch();
+    await waitFor(() => expect(pending).toHaveLength(4));
+    pending[3](withRelease('rel-5'));
+    expect(await showsRelease('rel-5')).toBeInTheDocument();
+    pending[2](withRelease('rel-4'));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(
+      screen.getByText(/Deploy the latest release, rel-5/),
+    ).toBeInTheDocument();
+  });
+
+  it('deploys the latest release to the first environment from Set up', async () => {
+    const updateEndpointReleaseBinding = jest.fn().mockResolvedValue({});
+    renderList({
+      fetchEndpointEnvironmentInfo: jest.fn().mockResolvedValue(ENVS),
+      updateEndpointReleaseBinding,
+    });
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Select setup' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Deploy' }));
+
+    await waitFor(() =>
+      expect(updateEndpointReleaseBinding).toHaveBeenCalledWith(
+        ENTITY,
+        'development',
+        { endpointRelease: 'orders-api-abc' },
+      ),
+    );
+  });
+
+  it('opens Set up when the Endpoint is deployed nowhere', async () => {
+    renderList({
+      fetchEndpointEnvironmentInfo: jest.fn().mockResolvedValue(ENVS),
+    });
+
+    // No click on the Set up card: it is selected by default.
+    expect(
+      await screen.findByRole('button', { name: 'Deploy' }),
+    ).toBeInTheDocument();
+  });
+
+  it('opens the lowest environment the Endpoint is deployed to', async () => {
+    renderList({
+      fetchEndpointEnvironmentInfo: jest.fn().mockResolvedValue([
+        {
+          ...ENVS[0],
+          bindingName: 'orders-api-development',
+          endpointRelease: 'orders-api-def',
+          status: 'Ready',
+        },
+        {
+          ...ENVS[1],
+          bindingName: 'orders-api-production',
+          endpointRelease: 'orders-api-abc',
+          status: 'Ready',
+        },
+      ]),
+    });
+
+    expect(await screen.findByTitle('orders-api-def')).toBeInTheDocument();
+    expect(screen.queryByTitle('orders-api-abc')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Deploy' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps the right pane closed after the user closes it', async () => {
+    renderList({
+      fetchEndpointEnvironmentInfo: jest.fn().mockResolvedValue([
+        ENVS[0],
+        {
+          ...ENVS[1],
+          bindingName: 'orders-api-production',
+          endpointRelease: 'orders-api-abc',
+          status: 'Ready',
+        },
+      ]),
+    });
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Close detail panel' }),
+    );
+
+    await waitFor(() =>
+      expect(screen.queryByTitle('orders-api-abc')).not.toBeInTheDocument(),
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Close detail panel' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows a forbidden state when the user cannot view environments', async () => {
+    renderList({
+      fetchEndpointEnvironmentInfo: jest
+        .fn()
+        .mockRejectedValue(
+          await ResponseError.fromResponse(
+            new Response('forbidden', { status: 403 }),
+          ),
+        ),
+    });
+
+    expect(await screen.findByTestId('forbidden')).toBeInTheDocument();
+  });
+});

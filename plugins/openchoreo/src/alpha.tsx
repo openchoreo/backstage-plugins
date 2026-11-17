@@ -410,6 +410,53 @@ const consumingComponentsCard = EntityCardBlueprint.make({
   },
 });
 
+// ─── Endpoint page tab + cards (kind:endpoint) ───────────────────────────
+
+const endpointDeployEntityContent = EntityContentBlueprint.make({
+  name: 'endpoint-deploy',
+  params: {
+    path: '/environments',
+    title: 'Deploy',
+    group: 'deploy',
+    filter: isOpenChoreoManagedOfKind('endpoint'),
+    loader: () =>
+      import('./components/EndpointEnvironments').then(m => (
+        <m.EndpointEnvironments />
+      )),
+  },
+});
+
+const endpointRoutingCard = EntityCardBlueprint.make({
+  name: 'endpoint-routing',
+  params: {
+    filter: isOpenChoreoManagedOfKind('endpoint'),
+    loader: () =>
+      import('./components/EndpointOverview').then(m => (
+        <m.EndpointRoutingCard />
+      )),
+  },
+});
+
+const endpointDeploymentsCard = EntityCardBlueprint.make({
+  name: 'endpoint-deployments',
+  params: {
+    filter: isOpenChoreoManagedOfKind('endpoint'),
+    loader: () =>
+      import('./components/EndpointOverview').then(m => (
+        <m.EndpointDeploymentsCard />
+      )),
+  },
+});
+
+const endpointApiCard = EntityCardBlueprint.make({
+  name: 'endpoint-api',
+  params: {
+    filter: isOpenChoreoManagedOfKind('endpoint'),
+    loader: () =>
+      import('./components/EndpointOverview').then(m => <m.EndpointApiCard />),
+  },
+});
+
 // ─── Environment page cards (kind:environment) ────────────────────────────
 const environmentStatusSummaryCard = EntityCardBlueprint.make({
   name: 'environment-status-summary',
@@ -797,6 +844,17 @@ const resourceOverviewLayout = EntityContentLayoutBlueprint.make({
   },
 });
 
+const endpointOverviewLayout = EntityContentLayoutBlueprint.make({
+  name: 'endpoint-overview',
+  params: {
+    filter: isOpenChoreoManagedOfKind('endpoint'),
+    loader: () =>
+      import('./extensions/entityLayouts/EndpointOverviewLayout').then(
+        m => m.default,
+      ),
+  },
+});
+
 const environmentOverviewLayout = EntityContentLayoutBlueprint.make({
   name: 'environment-overview',
   params: {
@@ -1073,6 +1131,10 @@ export const openChoreoPlugin = createFrontendPlugin({
     resourceParametersCard,
     resourceDeploymentsCard,
     consumingComponentsCard,
+    endpointDeployEntityContent,
+    endpointRoutingCard,
+    endpointDeploymentsCard,
+    endpointApiCard,
     environmentStatusSummaryCard,
     environmentPromotionCard,
     environmentDeployedComponentsCard,
@@ -1105,6 +1167,7 @@ export const openChoreoPlugin = createFrontendPlugin({
     systemOverviewLayout,
     domainOverviewLayout,
     resourceOverviewLayout,
+    endpointOverviewLayout,
     environmentOverviewLayout,
     dataplaneOverviewLayout,
     clusterDataplaneOverviewLayout,

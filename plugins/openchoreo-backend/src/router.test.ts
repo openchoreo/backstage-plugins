@@ -31,6 +31,9 @@ function createMockServices() {
       fetchResourceEnvironmentInfo: jest.fn(),
       updateResourceReleaseBinding: jest.fn(),
       deleteResourceReleaseBinding: jest.fn(),
+      fetchEndpointEnvironmentInfo: jest.fn(),
+      updateEndpointReleaseBinding: jest.fn(),
+      deleteEndpointReleaseBinding: jest.fn(),
       fetchProjectEnvironmentInfo: jest.fn(),
       fetchProjectReleaseBindings: jest.fn(),
       updateProjectReleaseBinding: jest.fn(),
@@ -85,6 +88,13 @@ function createMockServices() {
     resourceReleaseInfoService: {
       fetchResourceRelease: jest.fn(),
       fetchResourceReleaseSchema: jest.fn(),
+    },
+    endpointInfoService: {
+      fetchEndpointRelease: jest.fn(),
+      fetchEndpointReleaseSchema: jest.fn(),
+      addEndpointBackend: jest.fn(),
+      updateEndpointBackendWeight: jest.fn(),
+      removeEndpointBackend: jest.fn(),
     },
     projectReleaseInfoService: {
       fetchProjectRelease: jest.fn(),
@@ -1580,6 +1590,232 @@ describe('createRouter', () => {
             'resourceName, projectName and namespaceName are required',
           ),
         }),
+      });
+    });
+  });
+
+  describe('Endpoint routes', () => {
+    const endpointQuery = {
+      endpointName: 'orders-api',
+      projectName: 'store',
+      namespaceName: 'acme',
+    };
+
+    it('GET /endpoint-environment-info forwards to the service', async () => {
+      const envInfo = [{ name: 'dev', bindingName: 'orders-api-dev' }];
+      services.environmentInfoService.fetchEndpointEnvironmentInfo.mockResolvedValue(
+        envInfo,
+      );
+
+      const response = await request(app)
+        .get('/endpoint-environment-info')
+        .query(endpointQuery);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual(envInfo);
+      expect(
+        services.environmentInfoService.fetchEndpointEnvironmentInfo,
+      ).toHaveBeenCalledWith(endpointQuery, 'mock-user-token');
+    });
+
+    it('GET /endpoint-environment-info requires the endpoint coordinates', async () => {
+      const response = await request(app)
+        .get('/endpoint-environment-info')
+        .query({ endpointName: 'orders-api' });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toMatchObject({
+        error: expect.objectContaining({
+          message: expect.stringContaining(
+            'endpointName, projectName and namespaceName are required',
+          ),
+        }),
+      });
+    });
+
+    it('PUT /update-endpoint-release-binding passes only the provided fields', async () => {
+      services.environmentInfoService.updateEndpointReleaseBinding.mockResolvedValue(
+        {},
+      );
+
+      const response = await request(app)
+        .put('/update-endpoint-release-binding')
+        .send({ ...endpointQuery, environment: 'dev' });
+
+      expect(response.status).toBe(200);
+      expect(
+        services.environmentInfoService.updateEndpointReleaseBinding,
+      ).toHaveBeenCalledWith(
+        {
+          ...endpointQuery,
+          environment: 'dev',
+          releaseName: undefined,
+          endpointTypeEnvironmentConfigs: undefined,
+        },
+        'mock-user-token',
+      );
+    });
+
+    it('PUT /update-endpoint-release-binding requires an environment', async () => {
+      const response = await request(app)
+        .put('/update-endpoint-release-binding')
+        .send(endpointQuery);
+
+      expect(response.status).toBe(400);
+    });
+
+    it('DELETE /delete-endpoint-release-binding forwards to the service', async () => {
+      services.environmentInfoService.deleteEndpointReleaseBinding.mockResolvedValue(
+        { success: true },
+      );
+
+      const response = await request(app)
+        .delete('/delete-endpoint-release-binding')
+        .send({ ...endpointQuery, environment: 'dev' });
+
+      expect(response.status).toBe(200);
+      expect(
+        services.environmentInfoService.deleteEndpointReleaseBinding,
+      ).toHaveBeenCalledWith(
+        { ...endpointQuery, environment: 'dev' },
+        'mock-user-token',
+      );
+    });
+
+    it('GET /endpoint-release-schema requires a release', async () => {
+      const response = await request(app)
+        .get('/endpoint-release-schema')
+        .query({ namespaceName: 'acme' });
+
+      expect(response.status).toBe(400);
+      expect(
+        services.endpointInfoService.fetchEndpointReleaseSchema,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('GET /endpoint-release-schema forwards to the service', async () => {
+      services.endpointInfoService.fetchEndpointReleaseSchema.mockResolvedValue(
+        { success: true, data: {} },
+      );
+
+      const response = await request(app)
+        .get('/endpoint-release-schema')
+        .query({ namespaceName: 'acme', releaseName: 'orders-api-abc' });
+
+      expect(response.status).toBe(200);
+      expect(
+        services.endpointInfoService.fetchEndpointReleaseSchema,
+      ).toHaveBeenCalledWith('acme', 'orders-api-abc', 'mock-user-token');
+    });
+
+    describe('/endpoint-backends', () => {
+      const endpointRef = { namespaceName: 'acme', endpointName: 'orders-api' };
+
+      it('POST adds a backend', async () => {
+        services.endpointInfoService.addEndpointBackend.mockResolvedValue({
+          name: 'orders-api',
+          backendName: 'payments-http',
+        });
+        const body = {
+          ...endpointRef,
+          component: 'payments',
+          workloadEndpoint: 'http',
+          weight: 2,
+        };
+
+        const response = await request(app)
+          .post('/endpoint-backends')
+          .send(body);
+
+        expect(response.status).toBe(200);
+        expect(response.body.backendName).toBe('payments-http');
+        expect(
+          services.endpointInfoService.addEndpointBackend,
+        ).toHaveBeenCalledWith(body, 'mock-user-token');
+      });
+
+      it('POST requires a component and workload endpoint', async () => {
+        const response = await request(app)
+          .post('/endpoint-backends')
+          .send({ ...endpointRef, component: 'payments' });
+
+        expect(response.status).toBe(400);
+        expect(
+          services.endpointInfoService.addEndpointBackend,
+        ).not.toHaveBeenCalled();
+      });
+
+      it.each([-1, 1.5, 1_000_001, '2'])(
+        'POST rejects weight %p',
+        async weight => {
+          const response = await request(app)
+            .post('/endpoint-backends')
+            .send({
+              ...endpointRef,
+              component: 'payments',
+              workloadEndpoint: 'http',
+              weight,
+            });
+
+          expect(response.status).toBe(400);
+          expect(
+            services.endpointInfoService.addEndpointBackend,
+          ).not.toHaveBeenCalled();
+        },
+      );
+
+      it("PATCH sets a backend's weight", async () => {
+        services.endpointInfoService.updateEndpointBackendWeight.mockResolvedValue(
+          { success: true },
+        );
+        const body = { ...endpointRef, backendName: 'orders-api', weight: 0 };
+
+        const response = await request(app)
+          .patch('/endpoint-backends')
+          .send(body);
+
+        expect(response.status).toBe(200);
+        expect(
+          services.endpointInfoService.updateEndpointBackendWeight,
+        ).toHaveBeenCalledWith(body, 'mock-user-token');
+      });
+
+      it('PATCH requires a weight', async () => {
+        const response = await request(app)
+          .patch('/endpoint-backends')
+          .send({ ...endpointRef, backendName: 'orders-api' });
+
+        expect(response.status).toBe(400);
+        expect(
+          services.endpointInfoService.updateEndpointBackendWeight,
+        ).not.toHaveBeenCalled();
+      });
+
+      it('DELETE removes a backend', async () => {
+        services.endpointInfoService.removeEndpointBackend.mockResolvedValue({
+          success: true,
+        });
+        const body = { ...endpointRef, backendName: 'orders-api' };
+
+        const response = await request(app)
+          .delete('/endpoint-backends')
+          .send(body);
+
+        expect(response.status).toBe(200);
+        expect(
+          services.endpointInfoService.removeEndpointBackend,
+        ).toHaveBeenCalledWith(body, 'mock-user-token');
+      });
+
+      it('DELETE requires a backend name', async () => {
+        const response = await request(app)
+          .delete('/endpoint-backends')
+          .send(endpointRef);
+
+        expect(response.status).toBe(400);
+        expect(
+          services.endpointInfoService.removeEndpointBackend,
+        ).not.toHaveBeenCalled();
       });
     });
   });

@@ -10,6 +10,7 @@ export interface KindPalette {
 const KIND_LABELS: Record<string, string> = {
   component: 'Component',
   resource: 'Resource',
+  endpoint: 'Endpoint',
 };
 
 export function getKindLabel(kind: string): string {

@@ -3,6 +3,7 @@ import type { ObservabilityComponents } from '@openchoreo/openchoreo-client-node
 import type {
   WorkloadResource,
   ReleaseBindingCondition,
+  ResolvedEndpointBackend,
 } from '@openchoreo/backstage-plugin-common';
 import type { ModelsSecretReferences } from './services/SecretReferencesService/SecretReferencesService';
 import type {
@@ -80,11 +81,27 @@ export interface EnvironmentService {
   }): Promise<unknown>;
 }
 
+/** Security an Endpoint's type declares for one of its URLs. */
+export interface EndpointURLSecurity {
+  scheme: 'none' | 'apiKey' | 'oauth2' | 'basicAuth';
+  apiKey?: { in: 'header' | 'query'; name: string };
+}
+
 export interface EndpointURLDetails {
   host: string;
   path?: string;
   port: number;
   scheme: string;
+  /** Present for URLs that come from an Endpoint's status.urls. */
+  security?: EndpointURLSecurity;
+}
+
+/** An Endpoint's resolved URLs in one environment, per visibility. */
+export interface EndpointInvokeURLs {
+  project?: EndpointURLDetails;
+  namespace?: EndpointURLDetails;
+  internal?: EndpointURLDetails;
+  external?: EndpointURLDetails;
 }
 
 export interface EndpointInfo {
@@ -163,6 +180,39 @@ export interface ResourceEnvironment {
     resourceName?: string;
   }[];
   /** Latest ResourceRelease cut by the Resource controller, if any. */
+  latestRelease?: string;
+}
+
+/**
+ * Per-environment view of an Endpoint's deploy state. One entry per
+ * environment in the project's deployment pipeline, including environments
+ * where no EndpointReleaseBinding exists yet (so the UI can render a Deploy
+ * affordance against them).
+ */
+export interface EndpointEnvironment {
+  uid?: string;
+  name: string;
+  resourceName?: string;
+  dataPlaneRef?: string;
+  dataPlaneKind?: 'DataPlane' | 'ClusterDataPlane';
+  bindingName?: string;
+  /** The EndpointRelease pinned to this environment (binding.spec.endpointRelease). */
+  endpointRelease?: string;
+  /** Per-environment values for the type's environmentConfigs schema. */
+  endpointTypeEnvironmentConfigs?: Record<string, unknown>;
+  status?: 'Ready' | 'NotReady' | 'Failed';
+  statusReason?: string;
+  statusMessage?: string;
+  lastDeployed?: string;
+  /** How each backend resolved in this environment. */
+  backends?: ResolvedEndpointBackend[];
+  /** The URLs the Endpoint is invoked at here, per visibility. */
+  urls?: EndpointInvokeURLs;
+  promotionTargets?: {
+    name: string;
+    resourceName?: string;
+  }[];
+  /** Latest EndpointRelease cut by the Endpoint controller, if any. */
   latestRelease?: string;
 }
 

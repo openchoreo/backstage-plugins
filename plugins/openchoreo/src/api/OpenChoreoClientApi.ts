@@ -12,8 +12,10 @@ import type {
   ReleaseLineSummary,
   ReleaseLineOverrides,
   ReleaseLineResource,
+  ResolvedEndpointBackend,
 } from '@openchoreo/backstage-plugin-common';
 import type { Environment } from '../components/RuntimeLogs/types';
+import type { EndpointURLDetails } from '../components/Environments/hooks/useEnvironmentData';
 
 // ============================================
 // Response Types
@@ -218,6 +220,47 @@ export interface ResourceEnvironment {
   statusMessage?: string;
   lastDeployed?: string;
   outputs?: ResourceBindingOutput[];
+  promotionTargets?: {
+    name: string;
+    resourceName?: string;
+  }[];
+  latestRelease?: string;
+}
+
+/** Full EndpointRelease CR — used to show the snapshot pinned to an environment */
+export interface EndpointReleaseResponse {
+  success: boolean;
+  data?: Record<string, unknown>;
+}
+
+/**
+ * Per-environment view of an Endpoint. One entry per environment in the
+ * project's deployment pipeline, including environments with no binding (so
+ * the UI can offer to deploy there). Matches the backend `EndpointEnvironment`
+ * shape in `plugins/openchoreo-backend/src/types.ts`.
+ */
+export interface EndpointEnvironment {
+  uid?: string;
+  name: string;
+  resourceName?: string;
+  dataPlaneRef?: string;
+  dataPlaneKind?: 'DataPlane' | 'ClusterDataPlane';
+  bindingName?: string;
+  endpointRelease?: string;
+  endpointTypeEnvironmentConfigs?: Record<string, unknown>;
+  status?: 'Ready' | 'NotReady' | 'Failed';
+  statusReason?: string;
+  statusMessage?: string;
+  lastDeployed?: string;
+  /** How each backend resolved in this environment. */
+  backends?: ResolvedEndpointBackend[];
+  /** The URLs the Endpoint is invoked at here, per visibility. */
+  urls?: Partial<
+    Record<
+      'external' | 'internal' | 'namespace' | 'project',
+      EndpointURLDetails
+    >
+  >;
   promotionTargets?: {
     name: string;
     resourceName?: string;
@@ -582,6 +625,8 @@ export type PlatformResourceKind =
   | 'resourcetypes'
   | 'projecttypes'
   | 'resources'
+  | 'endpoints'
+  | 'endpointtypes'
   | 'traits'
   | 'workflows'
   | 'component-workflows'
@@ -594,6 +639,7 @@ export type PlatformResourceKind =
   | 'deploymentpipelines'
   | 'clustercomponenttypes'
   | 'clusterresourcetypes'
+  | 'clusterendpointtypes'
   | 'clusterprojecttypes'
   | 'clustertraits'
   | 'clusterworkflows'
@@ -607,6 +653,7 @@ export const CLUSTER_SCOPED_RESOURCE_KINDS: ReadonlySet<PlatformResourceKind> =
   new Set([
     'clustercomponenttypes',
     'clusterresourcetypes',
+    'clusterendpointtypes',
     'clusterprojecttypes',
     'clustertraits',
     'clusterworkflows',
@@ -782,6 +829,70 @@ export interface OpenChoreoClientApi {
     entity: Entity,
     environment: string,
   ): Promise<unknown>;
+
+  /**
+   * Fetch per-environment info for an Endpoint entity: one entry per
+   * environment in the project's deployment pipeline (including environments
+   * without a binding), with the pinned release, status and how each backend
+   * resolved there.
+   */
+  fetchEndpointEnvironmentInfo(entity: Entity): Promise<EndpointEnvironment[]>;
+
+  /**
+   * Deploy, promote or save overrides for an Endpoint in an environment.
+   * Updates the binding pinned to the environment, or creates one. Omitted
+   * options are left as they are.
+   */
+  updateEndpointReleaseBinding(
+    entity: Entity,
+    environment: string,
+    options: {
+      endpointRelease?: string;
+      endpointTypeEnvironmentConfigs?: Record<string, unknown>;
+    },
+  ): Promise<unknown>;
+
+  /** Undeploy an Endpoint from an environment by deleting its binding there. */
+  deleteEndpointReleaseBinding(
+    entity: Entity,
+    environment: string,
+  ): Promise<unknown>;
+
+  /** Fetch a single EndpointRelease CR by name. */
+  fetchEndpointRelease(
+    entity: Entity,
+    releaseName: string,
+  ): Promise<EndpointReleaseResponse>;
+
+  /**
+   * Fetch the environmentConfigs schema from the EndpointType snapshot frozen
+   * on an EndpointRelease, so overrides validate against what the pinned
+   * release was cut against.
+   */
+  fetchEndpointReleaseSchema(
+    namespaceName: string,
+    releaseName: string,
+  ): Promise<{ success: boolean; data?: Record<string, unknown> }>;
+
+  /**
+   * Add a backend to an Endpoint entity's Endpoint. When the backend is on
+   * another component than the one owning the Endpoint, the API moves the
+   * Endpoint to its project. Each change cuts a new EndpointRelease.
+   */
+  addEndpointBackend(
+    entity: Entity,
+    backend: { component: string; workloadEndpoint: string; weight?: number },
+  ): Promise<{ name: string; backendName: string }>;
+
+  /** Set the weight of one of an Endpoint entity's backends. */
+  updateEndpointBackendWeight(
+    entity: Entity,
+    backendName: string,
+    weight: number,
+  ): Promise<void>;
+
+  /** Remove one of an Endpoint entity's backends; the last can't be removed. */
+  removeEndpointBackend(entity: Entity, backendName: string): Promise<void>;
 
   /**
    * Fetch per-environment deploy info for a Project entity. Returns one entry

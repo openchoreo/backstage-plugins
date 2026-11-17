@@ -19,6 +19,12 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
   ),
   useProjectEnvironments: (...args: any[]) =>
     mockUseProjectEnvironments(...args),
+  useReleaseLine: () => ({}),
+}));
+
+let mockLineComponents: string[] = [];
+jest.mock('../../hooks/useComponentReleaseLines', () => ({
+  useProjectReleaseLineComponents: () => mockLineComponents,
 }));
 
 const mockUseGetComponentsByProject = jest.fn();
@@ -94,11 +100,12 @@ const defaultFilters = {
   components: [],
 };
 
-function renderPage() {
+function renderPage(route = '/') {
   return renderInTestApp(
     <EntityProvider entity={defaultEntity}>
       <ObservabilityProjectRuntimeLogsPage />
     </EntityProvider>,
+    { routeEntries: [route] },
   );
 }
 
@@ -163,7 +170,56 @@ describe('ObservabilityProjectRuntimeLogsPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     setupDefaultMocks();
+    mockLineComponents = [];
   });
+
+  it.each([
+    ['every component of a project with release lines', ['svc-a'], '/', true],
+    ['a project without release lines', [], '/', false],
+    [
+      'components including one with release lines',
+      ['svc-a'],
+      '/?components=svc-a,svc-b',
+      true,
+    ],
+    [
+      'one component without release lines',
+      ['svc-a'],
+      '/?components=svc-b',
+      false,
+    ],
+    [
+      'every line of one component',
+      ['svc-a'],
+      '/?components=svc-a&releaseLine=*',
+      true,
+    ],
+    [
+      'one line of one component',
+      ['svc-a'],
+      '/?components=svc-a&releaseLine=canary',
+      false,
+    ],
+    [
+      'one line of one component listed twice',
+      ['svc-a'],
+      '/?components=svc-a,svc-a&releaseLine=canary',
+      false,
+    ],
+  ])(
+    'offers the release line column for %s',
+    async (_view, lineComponents, route, releaseLineColumn) => {
+      mockLineComponents = lineComponents;
+      await renderPage(route);
+
+      expect(mockUseUrlFiltersForRuntimeLogs).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          releaseLineColumn,
+          componentNameColumn: true,
+        }),
+      );
+    },
+  );
 
   it('shows progress while checking permissions', async () => {
     mockUseLogsPermission.mockReturnValue({

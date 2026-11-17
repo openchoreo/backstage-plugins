@@ -934,6 +934,76 @@ describe('translateComponentToEntity — spec.dependsOn', () => {
   });
 });
 
+describe('translateComponentToEntity — repository annotations', () => {
+  const config = {
+    defaultOwner: 'group:default/openchoreo',
+    componentTypeUtils: { generateTags: () => [] } as any,
+    locationKey: 'test',
+  };
+  const withRepository = (repository: Record<string, unknown>) =>
+    translateComponentToEntity(
+      {
+        name: 'api',
+        type: 'service',
+        componentWorkflow: { name: 'build', parameters: { repository } },
+      } as any,
+      'finance',
+      'analytics',
+      config,
+    );
+
+  it('points source-location at the branch and app path', () => {
+    const entity = withRepository({
+      url: 'https://github.com/org/repo.git',
+      revision: { branch: 'feature/login' },
+      appPath: './services/api',
+    });
+
+    expect(entity.metadata.annotations).toMatchObject({
+      'backstage.io/source-location':
+        'url:https://github.com/org/repo/tree/feature/login/services/api/',
+      'openchoreo.io/branch': 'feature/login',
+    });
+  });
+
+  it('falls back to the repository URL without a branch', () => {
+    const entity = withRepository({ url: 'https://github.com/org/repo' });
+
+    expect(entity.metadata.annotations?.['backstage.io/source-location']).toBe(
+      'url:https://github.com/org/repo/',
+    );
+    expect(
+      entity.metadata.annotations?.['openchoreo.io/branch'],
+    ).toBeUndefined();
+  });
+
+  it('keeps the repository URL on hosts without a /tree/ form', () => {
+    const entity = withRepository({
+      url: 'https://bitbucket.org/ws/repo.git',
+      revision: { branch: 'main' },
+      appPath: 'svc',
+    });
+
+    expect(entity.metadata.annotations).toMatchObject({
+      'backstage.io/source-location': 'url:https://bitbucket.org/ws/repo/',
+      'openchoreo.io/branch': 'main',
+    });
+  });
+
+  it('sets no repository annotations for a component without a build workflow', () => {
+    const entity = translateComponentToEntity(
+      { name: 'api', type: 'service' } as any,
+      'finance',
+      'analytics',
+      config,
+    );
+
+    expect(
+      entity.metadata.annotations?.['backstage.io/source-location'],
+    ).toBeUndefined();
+  });
+});
+
 describe('translateNewComponentToEntity — spec.dependsOn', () => {
   const ctx = {
     providerName: 'openchoreo-provider',

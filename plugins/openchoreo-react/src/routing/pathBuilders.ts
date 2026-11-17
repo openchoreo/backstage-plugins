@@ -152,6 +152,27 @@ export function buildCreateResourcePath(
 }
 
 /**
+ * Build path to the endpoint template list, scoped to a project and the
+ * given template namespaces.
+ */
+export function buildCreateEndpointPath(
+  projectName: string,
+  namespaces: string[],
+): string {
+  const params = new URLSearchParams();
+  params.set('view', 'endpoints');
+  params.append('filters[type]', 'endpoint');
+  for (const ns of namespaces) {
+    params.append('filters[namespace]', ns);
+  }
+  params.set('project', projectName);
+  if (namespaces.length > 0) {
+    params.set('namespace', namespaces[0]);
+  }
+  return `/create?${params.toString()}`;
+}
+
+/**
  * Build path to workflow list with specific tab
  */
 export function buildWorkflowListPath(

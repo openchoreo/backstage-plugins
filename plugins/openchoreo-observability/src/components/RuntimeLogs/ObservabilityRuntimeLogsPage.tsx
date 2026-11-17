@@ -20,7 +20,10 @@ import {
   useProjectEnvironments,
 } from '@openchoreo/backstage-plugin-react';
 import { EnvironmentsStatusNotice, ReleaseLineFilter } from '../common';
-import { componentDefaultReleaseLine } from '../../hooks/useSelectedReleaseLine';
+import {
+  componentDefaultReleaseLine,
+  useSelectedReleaseLine,
+} from '../../hooks/useSelectedReleaseLine';
 import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { useRuntimeLogsStyles } from './styles';
 import { LOG_LEVELS } from './types';
@@ -47,8 +50,15 @@ const ObservabilityRuntimeLogsContent = ({
     status: environmentsStatus,
   } = useProjectEnvironments(project, namespace);
 
-  const { filters, updateFilters } = useUrlFiltersForRuntimeLogs({
+  // Every line of a component with release lines shows each entry's line.
+  const defaultReleaseLine = componentDefaultReleaseLine(entity);
+  const selectedReleaseLine = useSelectedReleaseLine(defaultReleaseLine);
+  const releaseLineColumn =
+    defaultReleaseLine !== undefined && selectedReleaseLine === undefined;
+
+  const { filters, updateFilters, fieldOptions } = useUrlFiltersForRuntimeLogs({
     environments,
+    releaseLineColumn,
   });
 
   const selectedEnvironment = environments.find(
@@ -237,10 +247,11 @@ const ObservabilityRuntimeLogsContent = ({
         environments={environments}
         environmentsLoading={environmentsLoading}
         disabled={logsLoading}
+        fieldOptions={fieldOptions}
         releaseLineFilter={
           <ReleaseLineFilter
             gridItem
-            defaultLine={componentDefaultReleaseLine(entity)}
+            defaultLine={defaultReleaseLine}
             namespace={namespace}
             component={componentName}
             disabled={logsLoading}

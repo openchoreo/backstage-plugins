@@ -27,6 +27,7 @@ import {
   ResourceReleaseInfoService,
   type ResourceReleaseSchemaSection,
 } from './services/ResourceReleaseService/ResourceReleaseInfoService';
+import { EndpointInfoService } from './services/EndpointService/EndpointInfoService';
 import {
   ProjectReleaseInfoService,
   type ProjectReleaseSchemaSection,
@@ -49,6 +50,8 @@ import type { AuthService, LoggerService } from '@backstage/backend-plugin-api';
 import type { CatalogService } from '@backstage/plugin-catalog-node';
 import {
   CHOREO_ANNOTATIONS,
+  MAX_ENDPOINT_BACKEND_WEIGHT,
+  isEndpointBackendWeight,
   reservedReleaseLineNameError,
   toStoredReleaseLine,
   type ReleaseLineResource,
@@ -67,6 +70,7 @@ import {
 const CLUSTER_SCOPED_KINDS = [
   'clustercomponenttypes',
   'clusterresourcetypes',
+  'clusterendpointtypes',
   'clusterprojecttypes',
   'clustertraits',
   'clusterworkflows',
@@ -82,6 +86,8 @@ const VALID_PLATFORM_RESOURCE_KINDS = [
   'resourcetypes',
   'projecttypes',
   'resources',
+  'endpoints',
+  'endpointtypes',
   'traits',
   'workflows',
   'component-workflows',
@@ -159,6 +165,8 @@ function requestReleaseLine(req: express.Request): string | undefined {
   return typeof value === 'string' ? toStoredReleaseLine(value) : undefined;
 }
 
+const ENDPOINT_BACKEND_WEIGHT_ERROR = `weight must be an integer from 0 to ${MAX_ENDPOINT_BACKEND_WEIGHT}`;
+
 export async function createRouter({
   environmentInfoService,
   cellDiagramInfoService,
@@ -173,6 +181,7 @@ export async function createRouter({
   resourceTypeInfoService,
   clusterResourceTypeInfoService,
   resourceReleaseInfoService,
+  endpointInfoService,
   projectReleaseInfoService,
   releaseBindingRevisionService,
   secretReferencesInfoService,
@@ -206,6 +215,7 @@ export async function createRouter({
   resourceTypeInfoService: ResourceTypeInfoService;
   clusterResourceTypeInfoService: ClusterResourceTypeInfoService;
   resourceReleaseInfoService: ResourceReleaseInfoService;
+  endpointInfoService: EndpointInfoService;
   projectReleaseInfoService: ProjectReleaseInfoService;
   releaseBindingRevisionService: ReleaseBindingRevisionService;
   secretReferencesInfoService: SecretReferencesService;
@@ -1487,6 +1497,176 @@ export async function createRouter({
           namespaceName: namespaceName as string,
         },
         userToken,
+      ),
+    );
+  });
+
+  // ---------------------------------------------------------------------------
+  // Endpoints
+  // ---------------------------------------------------------------------------
+
+  const requireEndpointQuery = (query: Record<string, unknown>) => {
+    const { endpointName, projectName, namespaceName } = query;
+    if (!endpointName || !projectName || !namespaceName) {
+      throw new InputError(
+        'endpointName, projectName and namespaceName are required query parameters',
+      );
+    }
+    return {
+      endpointName: endpointName as string,
+      projectName: projectName as string,
+      namespaceName: namespaceName as string,
+    };
+  };
+
+  router.get('/endpoint-environment-info', async (req, res) => {
+    res.json(
+      await environmentInfoService.fetchEndpointEnvironmentInfo(
+        requireEndpointQuery(req.query),
+        getUserTokenFromRequest(req),
+      ),
+    );
+  });
+
+  // Deploy, promote or save overrides: updates the binding pinned to the
+  // environment, or creates one. Omitted fields are left as they are.
+  router.put(
+    '/update-endpoint-release-binding',
+    requireAuth,
+    async (req, res) => {
+      const {
+        endpointName,
+        projectName,
+        namespaceName,
+        environment,
+        releaseName,
+        endpointTypeEnvironmentConfigs,
+      } = req.body;
+
+      if (!endpointName || !projectName || !namespaceName || !environment) {
+        throw new InputError(
+          'endpointName, projectName, namespaceName and environment are required in request body',
+        );
+      }
+
+      res.json(
+        await environmentInfoService.updateEndpointReleaseBinding(
+          {
+            endpointName,
+            projectName,
+            namespaceName,
+            environment,
+            releaseName,
+            endpointTypeEnvironmentConfigs,
+          },
+          getUserTokenFromRequest(req),
+        ),
+      );
+    },
+  );
+
+  router.delete(
+    '/delete-endpoint-release-binding',
+    requireAuth,
+    async (req, res) => {
+      const { endpointName, projectName, namespaceName, environment } =
+        req.body;
+
+      if (!endpointName || !projectName || !namespaceName || !environment) {
+        throw new InputError(
+          'endpointName, projectName, namespaceName and environment are required in request body',
+        );
+      }
+
+      res.json(
+        await environmentInfoService.deleteEndpointReleaseBinding(
+          { endpointName, projectName, namespaceName, environment },
+          getUserTokenFromRequest(req),
+        ),
+      );
+    },
+  );
+
+  router.get('/endpoint-release', async (req, res) => {
+    const { namespaceName, releaseName } = req.query;
+    if (!namespaceName || !releaseName) {
+      throw new InputError(
+        'namespaceName and releaseName are required query parameters',
+      );
+    }
+    res.json(
+      await endpointInfoService.fetchEndpointRelease(
+        namespaceName as string,
+        releaseName as string,
+        getUserTokenFromRequest(req),
+      ),
+    );
+  });
+
+  router.get('/endpoint-release-schema', async (req, res) => {
+    const { namespaceName, releaseName } = req.query;
+    if (!namespaceName || !releaseName) {
+      throw new InputError(
+        'namespaceName and releaseName are required query parameters',
+      );
+    }
+    res.json(
+      await endpointInfoService.fetchEndpointReleaseSchema(
+        namespaceName as string,
+        releaseName as string,
+        getUserTokenFromRequest(req),
+      ),
+    );
+  });
+
+  router.post('/endpoint-backends', requireAuth, async (req, res) => {
+    const { namespaceName, endpointName, component, workloadEndpoint, weight } =
+      req.body;
+    if (!namespaceName || !endpointName || !component || !workloadEndpoint) {
+      throw new InputError(
+        'namespaceName, endpointName, component and workloadEndpoint are required in request body',
+      );
+    }
+    if (weight !== undefined && !isEndpointBackendWeight(weight)) {
+      throw new InputError(ENDPOINT_BACKEND_WEIGHT_ERROR);
+    }
+    res.json(
+      await endpointInfoService.addEndpointBackend(
+        { namespaceName, endpointName, component, workloadEndpoint, weight },
+        getUserTokenFromRequest(req),
+      ),
+    );
+  });
+
+  router.patch('/endpoint-backends', requireAuth, async (req, res) => {
+    const { namespaceName, endpointName, backendName, weight } = req.body;
+    if (!namespaceName || !endpointName || !backendName) {
+      throw new InputError(
+        'namespaceName, endpointName and backendName are required in request body',
+      );
+    }
+    if (!isEndpointBackendWeight(weight)) {
+      throw new InputError(ENDPOINT_BACKEND_WEIGHT_ERROR);
+    }
+    res.json(
+      await endpointInfoService.updateEndpointBackendWeight(
+        { namespaceName, endpointName, backendName, weight },
+        getUserTokenFromRequest(req),
+      ),
+    );
+  });
+
+  router.delete('/endpoint-backends', requireAuth, async (req, res) => {
+    const { namespaceName, endpointName, backendName } = req.body;
+    if (!namespaceName || !endpointName || !backendName) {
+      throw new InputError(
+        'namespaceName, endpointName and backendName are required in request body',
+      );
+    }
+    res.json(
+      await endpointInfoService.removeEndpointBackend(
+        { namespaceName, endpointName, backendName },
+        getUserTokenFromRequest(req),
       ),
     );
   });

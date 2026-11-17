@@ -389,8 +389,8 @@ openchoreo:
     assistant:
       enabled: ${OPENCHOREO_FEATURES_ASSISTANT_ENABLED}
     # Delivery Insights (DORA metrics) page
-    # Opt-in: defaults to false. Feature preview, and separate from the Observer
-    # flag that collects the data (observer.deliveryInsights.enabled on the
+    # Defaults to true. Feature preview, and separate from the Observer
+    # flag that collects the data (observer.featurePreview.deliveryInsights.enabled on the
     # observability plane) -- both are needed for the page to show anything.
     # When disabled, hides the Delivery Insights sidebar item.
     deliveryInsights:
@@ -543,7 +543,30 @@ permission:
   enabled: true
 
 # Tech Insights — scorecards/checks against catalog entities.
+# Play environment: short initialDelay so facts populate right after backend
+# startup instead of waiting for the first cadence tick.
 techInsights:
+  factRetrievers:
+    # None of the built-in retrievers are enabled; a built-in with no entry
+    # here is never scheduled. Retrievers added via the
+    # techInsightsFactRetrieversExtensionPoint are likewise silently dropped
+    # unless listed here.
+    #
+    # timeToLive is enforced on every run across all entities, so it is kept
+    # at several cadences: an entity skipped by a transient failure keeps
+    # its last facts instead of losing them after one missed run.
+    githubRepositoryFactRetriever:
+      cadence: '0 2 * * *'
+      initialDelay: { seconds: 20 }
+      lifecycle: { timeToLive: { days: 7 } }
+    openchoreoComponentTypeFactRetriever:
+      cadence: '0 * * * *'
+      initialDelay: { seconds: 20 }
+      lifecycle: { timeToLive: { days: 1 } }
+    openchoreoDeploymentFactRetriever:
+      cadence: '*/15 * * * *'
+      initialDelay: { seconds: 30 }
+      lifecycle: { timeToLive: { hours: 6 } }
   # No factChecker.checks: checks are stored by
   # tech-insights-backend-module-dynamic-checks and managed on the
   # Scorecards page.

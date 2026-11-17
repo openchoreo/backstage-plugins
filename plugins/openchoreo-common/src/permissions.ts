@@ -248,6 +248,15 @@ export const openchoreoResourceCreatePermission = createPermission({
 });
 
 /**
+ * Permission to create a new endpoint in a project. Project context resolved
+ * server-side.
+ */
+export const openchoreoEndpointCreatePermission = createPermission({
+  name: 'openchoreo.endpoint.create',
+  attributes: { action: 'create' },
+});
+
+/**
  * Permission to create a new cluster component type.
  * Cluster-scoped permission (no namespace context required).
  */
@@ -388,6 +397,46 @@ export const openchoreoResourceUpdatePermission = createPermission({
  */
 export const openchoreoResourceDeletePermission = createPermission({
   name: 'openchoreo.resource.delete',
+  attributes: { action: 'delete' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to update an endpoint.
+ * Resource-based: requires the specific entity context.
+ */
+export const openchoreoEndpointUpdatePermission = createPermission({
+  name: 'openchoreo.endpoint.update',
+  attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to delete an endpoint.
+ * Resource-based: requires the specific entity context.
+ */
+export const openchoreoEndpointDeletePermission = createPermission({
+  name: 'openchoreo.endpoint.delete',
+  attributes: { action: 'delete' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to update an endpoint type.
+ * Resource-based: requires the specific entity context.
+ */
+export const openchoreoEndpointTypeUpdatePermission = createPermission({
+  name: 'openchoreo.endpointtype.update',
+  attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to delete an endpoint type.
+ * Resource-based: requires the specific entity context.
+ */
+export const openchoreoEndpointTypeDeletePermission = createPermission({
+  name: 'openchoreo.endpointtype.delete',
   attributes: { action: 'delete' },
   resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
@@ -614,6 +663,24 @@ export const openchoreoClusterResourceTypeUpdatePermission = createPermission({
  */
 export const openchoreoClusterResourceTypeDeletePermission = createPermission({
   name: 'openchoreo.clusterresourcetype.delete',
+  attributes: { action: 'delete' },
+});
+
+/**
+ * Permission to update a cluster endpoint type.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterEndpointTypeUpdatePermission = createPermission({
+  name: 'openchoreo.clusterendpointtype.update',
+  attributes: { action: 'update' },
+});
+
+/**
+ * Permission to delete a cluster endpoint type.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterEndpointTypeDeletePermission = createPermission({
+  name: 'openchoreo.clusterendpointtype.delete',
   attributes: { action: 'delete' },
 });
 
@@ -855,6 +922,42 @@ export const openchoreoResourceReleaseBindingCreatePermission =
 export const openchoreoResourceReleaseBindingDeletePermission =
   createPermission({
     name: 'openchoreo.resourcereleasebinding.delete',
+    attributes: { action: 'delete' },
+    resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+  });
+
+/**
+ * Permission to update an EndpointReleaseBinding (promote to a newer
+ * EndpointRelease, or save per-environment overrides). Resource-scoped on the
+ * Endpoint entity, and independent of the component and resource binding
+ * permissions.
+ */
+export const openchoreoEndpointReleaseBindingUpdatePermission =
+  createPermission({
+    name: 'openchoreo.endpointreleasebinding.update',
+    attributes: { action: 'update' },
+    resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+  });
+
+/**
+ * Permission to create an EndpointReleaseBinding (deploy an Endpoint to an
+ * environment for the first time). Resource-scoped on the Endpoint entity.
+ */
+export const openchoreoEndpointReleaseBindingCreatePermission =
+  createPermission({
+    name: 'openchoreo.endpointreleasebinding.create',
+    attributes: { action: 'create' },
+    resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+  });
+
+/**
+ * Permission to delete an EndpointReleaseBinding (undeploy an Endpoint from an
+ * environment, removing its routes there). Resource-scoped on the Endpoint
+ * entity.
+ */
+export const openchoreoEndpointReleaseBindingDeletePermission =
+  createPermission({
+    name: 'openchoreo.endpointreleasebinding.delete',
     attributes: { action: 'delete' },
     resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
   });
@@ -1200,6 +1303,9 @@ export const openchoreoPermissions = [
   openchoreoResourceReleaseBindingDeleteRevisionPermission,
   openchoreoResourceReleaseBindingCreatePermission,
   openchoreoResourceReleaseBindingDeletePermission,
+  openchoreoEndpointReleaseBindingUpdatePermission,
+  openchoreoEndpointReleaseBindingCreatePermission,
+  openchoreoEndpointReleaseBindingDeletePermission,
   openchoreoRoleViewPermission,
   openchoreoRoleCreatePermission,
   openchoreoRoleUpdatePermission,
@@ -1235,6 +1341,7 @@ export const openchoreoPermissions = [
   openchoreoResourceTypeCreatePermission,
   openchoreoProjectTypeCreatePermission,
   openchoreoResourceCreatePermission,
+  openchoreoEndpointCreatePermission,
   openchoreoClusterComponentTypeCreatePermission,
   openchoreoClusterResourceTypeCreatePermission,
   openchoreoClusterProjectTypeCreatePermission,
@@ -1252,6 +1359,10 @@ export const openchoreoPermissions = [
   openchoreoProjectTypeDeletePermission,
   openchoreoResourceUpdatePermission,
   openchoreoResourceDeletePermission,
+  openchoreoEndpointUpdatePermission,
+  openchoreoEndpointDeletePermission,
+  openchoreoEndpointTypeUpdatePermission,
+  openchoreoEndpointTypeDeletePermission,
   openchoreoTraitUpdatePermission,
   openchoreoTraitDeletePermission,
   openchoreoWorkflowUpdatePermission,
@@ -1274,6 +1385,8 @@ export const openchoreoPermissions = [
   openchoreoClusterComponentTypeDeletePermission,
   openchoreoClusterResourceTypeUpdatePermission,
   openchoreoClusterResourceTypeDeletePermission,
+  openchoreoClusterEndpointTypeUpdatePermission,
+  openchoreoClusterEndpointTypeDeletePermission,
   openchoreoClusterProjectTypeUpdatePermission,
   openchoreoClusterProjectTypeDeletePermission,
   openchoreoClusterTraitUpdatePermission,
@@ -1334,6 +1447,9 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
     'resourcereleasebinding:delete-revision',
   'openchoreo.resourcereleasebinding.create': 'resourcereleasebinding:create',
   'openchoreo.resourcereleasebinding.delete': 'resourcereleasebinding:delete',
+  'openchoreo.endpointreleasebinding.update': 'endpointreleasebinding:update',
+  'openchoreo.endpointreleasebinding.create': 'endpointreleasebinding:create',
+  'openchoreo.endpointreleasebinding.delete': 'endpointreleasebinding:delete',
   'openchoreo.role.view': 'authzrole:view',
   'openchoreo.role.create': 'authzrole:create',
   'openchoreo.role.update': 'authzrole:update',
@@ -1368,6 +1484,7 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.componenttype.create': 'componenttype:create',
   'openchoreo.resourcetype.create': 'resourcetype:create',
   'openchoreo.resource.create': 'resource:create',
+  'openchoreo.endpoint.create': 'endpoint:create',
   'openchoreo.workflow.create': 'workflow:create',
   'openchoreo.clusterworkflow.create': 'clusterworkflow:create',
   'openchoreo.componentworkflow.create': 'workflow:create',
@@ -1384,6 +1501,10 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.projecttype.update': 'projecttype:update',
   'openchoreo.projecttype.delete': 'projecttype:delete',
   'openchoreo.resource.update': 'resource:update',
+  'openchoreo.endpoint.update': 'endpoint:update',
+  'openchoreo.endpoint.delete': 'endpoint:delete',
+  'openchoreo.endpointtype.update': 'endpointtype:update',
+  'openchoreo.endpointtype.delete': 'endpointtype:delete',
   'openchoreo.resource.delete': 'resource:delete',
   'openchoreo.trait.update': 'trait:update',
   'openchoreo.trait.delete': 'trait:delete',
@@ -1409,6 +1530,8 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.clustercomponenttype.update': 'clustercomponenttype:update',
   'openchoreo.clustercomponenttype.delete': 'clustercomponenttype:delete',
   'openchoreo.clusterresourcetype.update': 'clusterresourcetype:update',
+  'openchoreo.clusterendpointtype.update': 'clusterendpointtype:update',
+  'openchoreo.clusterendpointtype.delete': 'clusterendpointtype:delete',
   'openchoreo.clusterresourcetype.delete': 'clusterresourcetype:delete',
   'openchoreo.clusterprojecttype.update': 'clusterprojecttype:update',
   'openchoreo.clusterprojecttype.delete': 'clusterprojecttype:delete',
@@ -1453,6 +1576,7 @@ export const OPENCHOREO_MANAGED_ENTITY_KINDS = [
   'Component',
   'ReleaseLine',
   'Resource',
+  'Endpoint',
   'System',
   'Domain',
   'Dataplane',
@@ -1464,9 +1588,11 @@ export const OPENCHOREO_MANAGED_ENTITY_KINDS = [
   'ClusterObservabilityPlane',
   'ComponentType',
   'ResourceType',
+  'EndpointType',
   'ProjectType',
   'ClusterComponentType',
   'ClusterResourceType',
+  'ClusterEndpointType',
   'ClusterProjectType',
   'TraitType',
   'ClusterTraitType',
@@ -1508,6 +1634,11 @@ export const CATALOG_KIND_TO_ACTION: Record<string, Record<string, string>> = {
     'catalog.entity.delete': 'resource:delete',
     'catalog.entity.refresh': 'resource:update',
   },
+  endpoint: {
+    'catalog.entity.read': 'endpoint:view',
+    'catalog.entity.delete': 'endpoint:delete',
+    'catalog.entity.refresh': 'endpoint:update',
+  },
   system: {
     'catalog.entity.read': 'project:view',
   },
@@ -1541,6 +1672,9 @@ export const CATALOG_KIND_TO_ACTION: Record<string, Record<string, string>> = {
   resourcetype: {
     'catalog.entity.read': 'resourcetype:view',
   },
+  endpointtype: {
+    'catalog.entity.read': 'endpointtype:view',
+  },
   projecttype: {
     'catalog.entity.read': 'projecttype:view',
   },
@@ -1549,6 +1683,9 @@ export const CATALOG_KIND_TO_ACTION: Record<string, Record<string, string>> = {
   },
   clusterresourcetype: {
     'catalog.entity.read': 'clusterresourcetype:view',
+  },
+  clusterendpointtype: {
+    'catalog.entity.read': 'clusterendpointtype:view',
   },
   clusterprojecttype: {
     'catalog.entity.read': 'clusterprojecttype:view',

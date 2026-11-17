@@ -21,6 +21,7 @@ import {
   RuntimeLogsFilters,
   LOG_LEVELS,
   SELECTED_FIELDS,
+  FIXED_FIELDS,
   LogEntryField,
 } from './types';
 import { useFilterRowStyles } from '../common/styles';
@@ -35,6 +36,8 @@ interface LogsFilterProps {
   disabled?: boolean;
   /** Release line filter, placed before the environment. */
   releaseLineFilter?: ReactNode;
+  /** Fields the column selector offers, in column order. */
+  fieldOptions?: LogEntryField[];
 }
 
 export const LogsFilter: FC<LogsFilterProps> = ({
@@ -46,6 +49,7 @@ export const LogsFilter: FC<LogsFilterProps> = ({
   componentsLoading = false,
   disabled = false,
   releaseLineFilter,
+  fieldOptions = SELECTED_FIELDS,
 }) => {
   const filterRowClasses = useFilterRowStyles();
   const [searchInput, handleSearchChange] = useDebouncedSearch(
@@ -78,15 +82,15 @@ export const LogsFilter: FC<LogsFilterProps> = ({
   const handleSelectedFieldsChange = (
     event: ChangeEvent<{ value: unknown }>,
   ) => {
-    let selectedFields = event.target.value as LogEntryField[];
-    // Ensure Log field is always included
-    if (!selectedFields.includes(LogEntryField.Log)) {
-      selectedFields = [...selectedFields, LogEntryField.Log];
-    }
-    // sort by the order of the SELECTED_FIELDS array
+    // Ensure the fixed fields are always included
+    const selectedFields = [
+      ...(event.target.value as LogEntryField[]),
+      ...FIXED_FIELDS,
+    ];
+    // sort by the order of the offered fields
     // Customizing the order of the selected fields is not supported yet
     onFiltersChange({
-      selectedFields: SELECTED_FIELDS.filter(field =>
+      selectedFields: fieldOptions.filter(field =>
         selectedFields.includes(field),
       ),
     });
@@ -145,35 +149,33 @@ export const LogsFilter: FC<LogsFilterProps> = ({
         </Grid>
       )}
 
-      {!components.length && (
-        <Grid item xs={12} md={2}>
-          <FormControl fullWidth disabled={disabled} variant="outlined">
-            <InputLabel id="selected-fields-label">Selected Fields</InputLabel>
-            <Select
-              multiple
-              value={filters.selectedFields}
-              onChange={handleSelectedFieldsChange}
-              labelId="selected-fields-label"
-              label="Selected Fields"
-              renderValue={selected => (selected as LogEntryField[]).join(', ')}
-            >
-              {SELECTED_FIELDS.map((field: LogEntryField) => (
-                <MenuItem
-                  key={field}
-                  value={field}
-                  disabled={field === LogEntryField.Log}
-                >
-                  <Checkbox
-                    checked={filters.selectedFields.includes(field)}
-                    disabled={field === LogEntryField.Log}
-                  />
-                  {field}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-      )}
+      <Grid item xs={12} md={2}>
+        <FormControl fullWidth disabled={disabled} variant="outlined">
+          <InputLabel id="selected-fields-label">Selected Fields</InputLabel>
+          <Select
+            multiple
+            value={filters.selectedFields}
+            onChange={handleSelectedFieldsChange}
+            labelId="selected-fields-label"
+            label="Selected Fields"
+            renderValue={selected => (selected as LogEntryField[]).join(', ')}
+          >
+            {fieldOptions.map((field: LogEntryField) => (
+              <MenuItem
+                key={field}
+                value={field}
+                disabled={FIXED_FIELDS.includes(field)}
+              >
+                <Checkbox
+                  checked={filters.selectedFields.includes(field)}
+                  disabled={FIXED_FIELDS.includes(field)}
+                />
+                {field}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Grid>
 
       <Grid item xs={12} md={2}>
         <FormControl fullWidth disabled={disabled} variant="outlined">

@@ -4,7 +4,9 @@ import AddIcon from '@material-ui/icons/Add';
 import { SplitButton } from '@openchoreo/backstage-design-system';
 import {
   useCreateComponentPath,
+  useCreateEndpointPath,
   useCreateResourcePath,
+  useEndpointCreatePermission,
   useScopedComponentCreatePermission,
   useResourceCreatePermission,
 } from '@openchoreo/backstage-plugin-react';
@@ -12,7 +14,7 @@ import {
 /**
  * "Create" split button for the Project Contents table. The primary action
  * defaults to creating a Component; the dropdown switches to creating a
- * Resource. Each kind is independently permission-gated.
+ * Resource or an Endpoint. Each kind is independently permission-gated.
  */
 export const CreateProjectContentButton = ({ entity }: { entity: Entity }) => {
   const navigate = useNavigate();
@@ -21,6 +23,8 @@ export const CreateProjectContentButton = ({ entity }: { entity: Entity }) => {
     useCreateComponentPath(entity);
   const { path: resourcePath, loading: resourcePathLoading } =
     useCreateResourcePath(entity);
+  const { path: endpointPath, loading: endpointPathLoading } =
+    useCreateEndpointPath(entity);
 
   const {
     canCreate: canCreateComponent,
@@ -32,13 +36,21 @@ export const CreateProjectContentButton = ({ entity }: { entity: Entity }) => {
     loading: resourcePermLoading,
     createDeniedTooltip: resourceDeniedTooltip,
   } = useResourceCreatePermission();
+  const {
+    canCreate: canCreateEndpoint,
+    loading: endpointPermLoading,
+    createDeniedTooltip: endpointDeniedTooltip,
+  } = useEndpointCreatePermission();
 
   const loading =
     componentPathLoading ||
     resourcePathLoading ||
+    endpointPathLoading ||
     componentPermLoading ||
-    resourcePermLoading;
-  const groupDisabled = !canCreateComponent && !canCreateResource;
+    resourcePermLoading ||
+    endpointPermLoading;
+  const groupDisabled =
+    !canCreateComponent && !canCreateResource && !canCreateEndpoint;
 
   const options = [
     {
@@ -53,6 +65,12 @@ export const CreateProjectContentButton = ({ entity }: { entity: Entity }) => {
       icon: <AddIcon />,
       disabled: !canCreateResource,
     },
+    {
+      key: 'endpoint',
+      label: 'Create Endpoint',
+      icon: <AddIcon />,
+      disabled: !canCreateEndpoint,
+    },
   ];
 
   const handleClick = (key: string) => {
@@ -60,6 +78,8 @@ export const CreateProjectContentButton = ({ entity }: { entity: Entity }) => {
       navigate(componentPath);
     } else if (key === 'resource' && canCreateResource) {
       navigate(resourcePath);
+    } else if (key === 'endpoint' && canCreateEndpoint) {
+      navigate(endpointPath);
     }
   };
 
@@ -74,7 +94,11 @@ export const CreateProjectContentButton = ({ entity }: { entity: Entity }) => {
       size="small"
       minWidth={180}
       tooltip={
-        groupDisabled ? componentDeniedTooltip || resourceDeniedTooltip : ''
+        groupDisabled
+          ? componentDeniedTooltip ||
+            resourceDeniedTooltip ||
+            endpointDeniedTooltip
+          : ''
       }
     />
   );
