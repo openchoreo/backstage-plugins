@@ -87,6 +87,7 @@ export {
 } from './components/FileVarStatusBadge';
 export {
   EndpointEditor,
+  endpointProtocolChanges,
   type EndpointEditorProps,
 } from './components/EndpointEditor';
 export {

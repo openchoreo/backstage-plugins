@@ -4,9 +4,11 @@ import { Alert } from '@material-ui/lab';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import {
   CHOREO_ANNOTATIONS,
-  endpointProtocol,
+  NO_ENDPOINT,
+  defaultEndpointType,
+  endpointTypeProtocols,
+  exposableVisibilities,
   type EndpointExposureChoice,
-  endpointTypeCandidates,
   WorkloadEndpoint,
 } from '@openchoreo/backstage-plugin-common';
 import {
@@ -22,7 +24,9 @@ import {
 } from './EndpointExposure';
 import {
   ComponentEndpointExposure,
+  ComponentEndpointTypeField,
   DetachedComponentEndpoints,
+  cardEndpointType,
 } from './ComponentEndpointExposure';
 
 const NO_KEYS: string[] = [];
@@ -97,14 +101,30 @@ export const EndpointContent: FC<EndpointContentProps> = ({
   } | null>(null);
   const formChoices = endpointsForm?.choices;
   const restoreChoice = endpointsForm?.restoreChoice;
+  // A card with an Endpoint type needs a visibility beyond project for its
+  // Endpoint to carry, so it can't be applied without one.
+  const editingName = editBuffer.editingRow?.endpointName;
+  const missingVisibility =
+    !!endpointsForm &&
+    !!editingName &&
+    !!editBuffer.editBuffer &&
+    cardEndpointType(editBuffer.editBuffer, endpointsForm, editingName) !==
+      NO_ENDPOINT &&
+    exposableVisibilities(editBuffer.editBuffer).length === 0;
   const listEditBuffer = useMemo(
     () =>
       formChoices && restoreChoice
         ? {
             ...editBuffer,
+            isBufferValid: editBuffer.isBufferValid && !missingVisibility,
             startEdit: (name: string) => {
               editStart.current = { name, choice: formChoices[name] };
               editBuffer.startEdit(name);
+            },
+            // A new card has no choice to go back to.
+            startNew: (name: string, initial?: WorkloadEndpoint) => {
+              editStart.current = { name, choice: undefined };
+              editBuffer.startNew(name, initial);
             },
             applyEdit: () => {
               editStart.current = null;
@@ -118,7 +138,7 @@ export const EndpointContent: FC<EndpointContentProps> = ({
             },
           }
         : editBuffer,
-    [editBuffer, formChoices, restoreChoice],
+    [editBuffer, formChoices, restoreChoice, missingVisibility],
   );
   const choices = endpointsForm?.choices;
   const allowedEndpoints = endpointsForm?.allowedEndpoints;
@@ -134,20 +154,51 @@ export const EndpointContent: FC<EndpointContentProps> = ({
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ?? '',
   );
 
-  // In the Endpoints form, visibility beyond project is carried by an
-  // Endpoint, so a protocol no allowed type serves stays project-scoped.
-  const visibilityDisabledReason = useCallback(
-    (endpoint: WorkloadEndpoint) => {
-      if (!allowedEndpoints) return undefined;
-      const protocol = endpointProtocol(endpoint);
-      return endpointTypeCandidates(protocol, allowedEndpoints).length === 0
-        ? `No endpoint type is allowed for ${
-            protocol || 'this protocol'
-          }, so this endpoint stays project-scoped.`
-        : undefined;
+  // In the Endpoints form a card starts with how it's exposed: its Endpoint
+  // type decides the protocols it can take, and only a card with a type
+  // takes visibility beyond project, which its Endpoint carries.
+  const updateBuffer = listEditBuffer.updateBuffer;
+  const rowEditorProps = useCallback(
+    (savedName: string, endpoint: WorkloadEndpoint, isEditing: boolean) => {
+      if (!endpointsForm) return undefined;
+      const typeKey = cardEndpointType(endpoint, endpointsForm, savedName);
+      const exposed = typeKey !== NO_ENDPOINT;
+      const protocols = exposed
+        ? endpointTypeProtocols(typeKey, endpointsForm.allowedEndpoints)
+        : [];
+      return {
+        header: isEditing ? (
+          <ComponentEndpointTypeField
+            workloadEndpoint={savedName}
+            endpoint={endpoint}
+            state={endpointsForm}
+            onEndpointChange={updateBuffer}
+            disabled={disabled}
+          />
+        ) : undefined,
+        protocolOptions: protocols.length > 0 ? protocols : undefined,
+        visibilityDisabledReason: exposed
+          ? undefined
+          : 'Choose an Endpoint type under "Exposed as" to make this endpoint visible beyond the project.',
+        visibilityError:
+          exposed && exposableVisibilities(endpoint).length === 0
+            ? 'Select a visibility beyond Project for the Endpoint, or choose Project only.'
+            : undefined,
+      };
     },
-    [allowedEndpoints],
+    [endpointsForm, updateBuffer, disabled],
   );
+
+  // A new card starts exposed through the Endpoint type it's named after.
+  const setChoice = endpointsForm?.setChoice;
+  const handleAddEndpoint = useCallback(() => {
+    const name = onAddEndpoint();
+    if (allowedEndpoints && setChoice) {
+      const type = defaultEndpointType('HTTP', allowedEndpoints);
+      if (type !== NO_ENDPOINT) setChoice(name, { type });
+    }
+    return name;
+  }, [onAddEndpoint, allowedEndpoints, setChoice]);
 
   const deprecatedRows = endpointsForm?.deprecatedRows;
   const cards = useMemo(
@@ -194,8 +245,8 @@ export const EndpointContent: FC<EndpointContentProps> = ({
           disabled={disabled}
           editBuffer={listEditBuffer}
           onRemoveEndpoint={onRemoveEndpoint}
-          onAddEndpoint={onAddEndpoint}
-          visibilityDisabledReason={visibilityDisabledReason}
+          onAddEndpoint={handleAddEndpoint}
+          rowEditorProps={rowEditorProps}
           renderDetails={(_name, endpoint, savedName, isEditing) => (
             <ComponentEndpointExposure
               workloadEndpoint={savedName}

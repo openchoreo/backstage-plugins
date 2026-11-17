@@ -1,15 +1,24 @@
-import { useEffect, type ReactNode } from 'react';
-import { Box, Typography } from '@material-ui/core';
+import { useEffect } from 'react';
+import { Box, MenuItem, TextField, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import {
   NO_ENDPOINT,
   defaultEndpointType,
   endpointProtocol,
+  endpointTypeKey,
+  endpointTypeOptions,
   exposableVisibilities,
+  protocolForEndpointType,
   type ComponentEndpointSummary,
   type ExposableEndpoint,
+  type WorkloadEndpoint,
 } from '@openchoreo/backstage-plugin-common';
-import { EndpointExposure, type SchemaState } from './EndpointExposure';
+import { endpointProtocolChanges } from '@openchoreo/backstage-plugin-react';
+import {
+  EndpointTypeParameters,
+  endpointTypeLabel,
+  type SchemaState,
+} from './EndpointExposure';
 import {
   currentEndpointName,
   primaryOriginals,
@@ -28,12 +37,180 @@ const useStyles = makeStyles(theme => ({
     fontSize: '0.8125rem',
     color: theme.palette.text.secondary,
   },
-  title: {
+  typeField: {
+    minWidth: 280,
+  },
+  status: {
     fontSize: '0.8125rem',
+    color: theme.palette.text.secondary,
+    marginTop: theme.spacing(0.75),
+  },
+  summary: {
+    fontSize: '0.8125rem',
+    color: theme.palette.text.secondary,
+  },
+  summaryType: {
     fontWeight: 600,
-    marginBottom: theme.spacing(1),
+    color: theme.palette.text.primary,
   },
 }));
+
+/** An existing Endpoint's Ready state, as the card shows it. */
+function readiness(original: ComponentEndpointSummary): string {
+  if (!original.ready) return 'Pending';
+  if (original.ready.status === 'True') return 'Ready';
+  return original.ready.reason
+    ? `Not ready (${original.ready.reason})`
+    : 'Not ready';
+}
+
+/** What the "Exposed as" field shows for a card without an Endpoint type. */
+export const PROJECT_ONLY_LABEL = 'Project only (no Endpoint)';
+
+/**
+ * The Endpoint type a card shows: the one chosen for it, or none (project
+ * only) without a choice. It decides the protocols the card can take, and
+ * whether it can take visibility beyond project.
+ */
+export function cardEndpointType(
+  endpoint: ExposableEndpoint,
+  state: ComponentEndpointsState,
+  workloadEndpoint: string,
+): string {
+  return rowEndpointType(
+    endpoint,
+    state.allowedEndpoints,
+    state.choices[workloadEndpoint],
+  );
+}
+
+/** The Endpoint a card shows, if the card has one on the server. */
+function cardOriginal(
+  state: ComponentEndpointsState,
+  workloadEndpoint: string,
+): ComponentEndpointSummary | undefined {
+  return primaryOriginals(state.originals, state.renames).get(workloadEndpoint);
+}
+
+function originalTypeKey(original: ComponentEndpointSummary): string {
+  return endpointTypeKey({ kind: original.typeKind, name: original.typeName });
+}
+
+export interface ComponentEndpointTypeFieldProps {
+  /** The workload endpoint's name as the card is saved under. */
+  workloadEndpoint: string;
+  /** The workload endpoint's values, as currently edited. */
+  endpoint: WorkloadEndpoint;
+  state: ComponentEndpointsState;
+  /** Changes a field of the card's workload endpoint. */
+  onEndpointChange: (field: keyof WorkloadEndpoint, value: unknown) => void;
+  disabled: boolean;
+}
+
+/**
+ * The first field of a card being edited: how the endpoint is exposed,
+ * either within the project only or through an Endpoint of an allowed type.
+ * Picking a type limits the card's protocols to those the type serves. An
+ * existing Endpoint's type is fixed; choosing "Project only" deletes the
+ * Endpoint on save.
+ */
+export const ComponentEndpointTypeField = ({
+  workloadEndpoint,
+  endpoint,
+  state,
+  onEndpointChange,
+  disabled,
+}: ComponentEndpointTypeFieldProps) => {
+  const classes = useStyles();
+  const original = cardOriginal(state, workloadEndpoint);
+  const lockedType = original ? originalTypeKey(original) : undefined;
+  const choice = state.choices[workloadEndpoint];
+  const value = cardEndpointType(endpoint, state, workloadEndpoint);
+  const options = endpointTypeOptions(state.allowedEndpoints);
+
+  const select = (typeKey: string) => {
+    if (typeKey === NO_ENDPOINT) {
+      state.restoreChoice(workloadEndpoint, undefined);
+      onEndpointChange(
+        'visibility',
+        (endpoint.visibility ?? []).filter(v => v === 'project'),
+      );
+      return;
+    }
+    // Back to the Endpoint the card has: its parameters and visibility.
+    const backToOriginal = !!original && typeKey === lockedType;
+    let parameters: Record<string, unknown> = {};
+    if (backToOriginal) parameters = original.parameters ?? {};
+    else if (choice?.type === typeKey) parameters = choice.parameters ?? {};
+    state.setChoice(workloadEndpoint, { type: typeKey, parameters });
+
+    const protocol = endpointProtocol(endpoint);
+    const next = protocolForEndpointType(
+      protocol,
+      typeKey,
+      state.allowedEndpoints,
+    );
+    if (next !== protocol) {
+      for (const [field, change] of endpointProtocolChanges(endpoint, next)) {
+        onEndpointChange(field, change);
+      }
+    }
+    if (backToOriginal && exposableVisibilities(endpoint).length === 0) {
+      onEndpointChange('visibility', [
+        ...new Set([...(endpoint.visibility ?? []), ...original.visibility]),
+      ]);
+    }
+  };
+
+  let status: string | undefined;
+  if (original && value === NO_ENDPOINT) {
+    status = `Endpoint ${original.name} is deleted on save.`;
+  } else if (original) {
+    status = `Endpoint ${original.name} · ${readiness(original)}`;
+  }
+
+  return (
+    <Box>
+      <TextField
+        select
+        variant="outlined"
+        size="small"
+        label="Exposed as"
+        // Labels the select for assistive technology.
+        id={`exposed-as-${workloadEndpoint}`}
+        className={classes.typeField}
+        value={value}
+        disabled={disabled}
+        helperText={
+          lockedType
+            ? "An Endpoint's type is fixed once created. Choose Project only to delete it."
+            : 'The Endpoint type decides the protocols and parameters below.'
+        }
+        onChange={e => select(e.target.value)}
+      >
+        <MenuItem value={NO_ENDPOINT}>{PROJECT_ONLY_LABEL}</MenuItem>
+        {options.map(option => (
+          <MenuItem
+            key={option.key}
+            value={option.key}
+            disabled={!!lockedType && option.key !== lockedType}
+          >
+            {endpointTypeLabel(option.key, state.allowedEndpoints)}
+            {' · '}
+            {option.protocols.join(', ')}
+          </MenuItem>
+        ))}
+        {/* An Endpoint whose type is no longer allowed keeps showing it. */}
+        {lockedType && !options.some(o => o.key === lockedType) && (
+          <MenuItem value={lockedType}>
+            {endpointTypeLabel(lockedType, state.allowedEndpoints)}
+          </MenuItem>
+        )}
+      </TextField>
+      {status && <Typography className={classes.status}>{status}</Typography>}
+    </Box>
+  );
+};
 
 export interface ComponentEndpointExposureProps {
   /** The workload endpoint's name as the card is saved under. */
@@ -47,21 +224,20 @@ export interface ComponentEndpointExposureProps {
   editing: boolean;
 }
 
-/** An existing Endpoint's Ready state, as the card shows it. */
-function readiness(original: ComponentEndpointSummary): string {
-  if (!original.ready) return 'Pending';
-  if (original.ready.status === 'True') return 'Ready';
-  return original.ready.reason
-    ? `Not ready (${original.ready.reason})`
-    : 'Not ready';
+/** A read-only line of an Endpoint's parameters, e.g. `path: /orders`. */
+function parameterSummary(parameters: Record<string, unknown>): string {
+  return Object.entries(parameters)
+    .filter(([, v]) => v !== undefined && v !== null && typeof v !== 'object')
+    .map(([k, v]) => `${k}: ${String(v)}`)
+    .join(' · ');
 }
 
 /**
- * The Endpoint part of an endpoint's card in the Endpoints form. A card with
- * visibility beyond project is exposed through an Endpoint: the one it has,
- * shown with its name, Ready state and (fixed) type, or a new one created on
- * save, whose type defaults to the protocol's default and which isn't
- * labelled until it exists. A project-only card has no Endpoint.
+ * The Endpoint part of an endpoint's card in the Endpoints form, under its
+ * fields. While editing, the chosen type's parameters; otherwise a summary
+ * of how the card is exposed: the Endpoint type, the Endpoint with its
+ * Ready state, and the parameters. A project-only card shows nothing,
+ * unless its Endpoint is deleted on save.
  */
 export const ComponentEndpointExposure = ({
   workloadEndpoint,
@@ -72,17 +248,16 @@ export const ComponentEndpointExposure = ({
   editing,
 }: ComponentEndpointExposureProps) => {
   const classes = useStyles();
-  const original = primaryOriginals(state.originals, state.renames).get(
-    workloadEndpoint,
-  );
+  const original = cardOriginal(state, workloadEndpoint);
   const choice = state.choices[workloadEndpoint];
   const visibilities = exposableVisibilities(endpoint);
   const protocol = endpointProtocol(endpoint);
   const defaultType = defaultEndpointType(protocol, state.allowedEndpoints);
 
-  // Taking visibility beyond project in the card's editor gives it an
-  // Endpoint of the protocol's default type, which the editor can change.
-  // Recorded as the card's choice, so only cards someone edited plan one.
+  // A card that takes visibility beyond project without a type, such as a
+  // workload endpoint from before Endpoints, gets the protocol's default
+  // type once edited. Recorded as the card's choice, so only cards someone
+  // edited plan an Endpoint.
   const { setChoice } = state;
   const wantsEndpoint =
     editing &&
@@ -93,40 +268,41 @@ export const ComponentEndpointExposure = ({
     if (wantsEndpoint) setChoice(workloadEndpoint, { type: defaultType });
   }, [wantsEndpoint, setChoice, workloadEndpoint, defaultType]);
 
-  const exposed =
-    visibilities.length > 0 &&
-    rowEndpointType(endpoint, state.allowedEndpoints, choice) !== NO_ENDPOINT;
-  if (!original && !exposed) return null;
+  const typeKey = cardEndpointType(endpoint, state, workloadEndpoint);
 
-  let notice: ReactNode;
-  if (original && !exposed) {
-    notice = `Endpoint ${original.name} is deleted on save.`;
+  if (editing) {
+    if (typeKey === NO_ENDPOINT) return null;
+    return (
+      <EndpointTypeParameters
+        typeKey={typeKey}
+        parameters={choice?.type === typeKey ? choice.parameters ?? {} : {}}
+        schemas={schemas}
+        onChange={parameters =>
+          state.setChoice(workloadEndpoint, { type: typeKey, parameters })
+        }
+        disabled={disabled}
+      />
+    );
   }
 
+  const exposed = visibilities.length > 0 && typeKey !== NO_ENDPOINT;
+  if (!exposed) {
+    return original ? (
+      <Typography className={classes.summary}>
+        Endpoint {original.name} is deleted on save.
+      </Typography>
+    ) : null;
+  }
+  const parameters = parameterSummary(choice?.parameters ?? {});
   return (
-    <Box>
-      {original && (
-        <Typography className={classes.title}>
-          Endpoint {original.name} · {readiness(original)}
-        </Typography>
-      )}
-      <EndpointExposure
-        endpoint={endpoint}
-        allowedEndpoints={state.allowedEndpoints}
-        choice={choice}
-        schemas={schemas}
-        onChange={next => state.setChoice(workloadEndpoint, next)}
-        typeLocked={!!original}
-        notice={
-          notice && (
-            <Typography variant="body2" color="textSecondary">
-              {notice}
-            </Typography>
-          )
-        }
-        disabled={disabled || !editing}
-      />
-    </Box>
+    <Typography className={classes.summary}>
+      Exposed as{' '}
+      <span className={classes.summaryType}>
+        {endpointTypeLabel(typeKey, state.allowedEndpoints)}
+      </span>
+      {original && ` · Endpoint ${original.name} · ${readiness(original)}`}
+      {parameters && ` · ${parameters}`}
+    </Typography>
   );
 };
 

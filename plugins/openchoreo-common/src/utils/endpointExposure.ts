@@ -109,6 +109,69 @@ export function endpointTypeCandidates(
   });
 }
 
+/** An Endpoint type the developer can pick, with the protocols it serves. */
+export interface EndpointTypeOption {
+  key: string;
+  /** The entry the option is shown as: the default one, else the first. */
+  entry: AllowedEndpointTypeEntry;
+  /** Every protocol the allowed entries for this type serve. */
+  protocols: string[];
+}
+
+/**
+ * The Endpoint types a workload endpoint can be exposed through, default
+ * entries first. Each EndpointType appears once, serving the protocols of
+ * every entry that references it.
+ */
+export function endpointTypeOptions(
+  entries: AllowedEndpointTypeEntry[],
+): EndpointTypeOption[] {
+  const ordered = [
+    ...entries.filter(e => e.default),
+    ...entries.filter(e => !e.default),
+  ];
+  const options = new Map<string, EndpointTypeOption>();
+  for (const entry of ordered) {
+    const key = endpointTypeKey(entry.ref);
+    const option = options.get(key);
+    if (option) {
+      for (const protocol of entry.protocols) {
+        if (!option.protocols.includes(protocol)) {
+          option.protocols.push(protocol);
+        }
+      }
+    } else {
+      options.set(key, { key, entry, protocols: [...entry.protocols] });
+    }
+  }
+  return [...options.values()];
+}
+
+/** The protocols an Endpoint type serves; none when it isn't allowed. */
+export function endpointTypeProtocols(
+  typeKey: string,
+  entries: AllowedEndpointTypeEntry[],
+): string[] {
+  return (
+    endpointTypeOptions(entries).find(o => o.key === typeKey)?.protocols ?? []
+  );
+}
+
+/**
+ * The protocol a workload endpoint takes when exposed through an Endpoint
+ * type: its current protocol when the type serves it, otherwise HTTP when
+ * the type serves that, otherwise the type's first protocol.
+ */
+export function protocolForEndpointType(
+  current: string,
+  typeKey: string,
+  entries: AllowedEndpointTypeEntry[],
+): string {
+  const protocols = endpointTypeProtocols(typeKey, entries);
+  if (protocols.length === 0 || protocols.includes(current)) return current;
+  return protocols.includes('HTTP') ? 'HTTP' : protocols[0];
+}
+
 /**
  * The EndpointType key a protocol starts with: its default entry, otherwise
  * the first allowed one, or {@link NO_ENDPOINT} when none is allowed.

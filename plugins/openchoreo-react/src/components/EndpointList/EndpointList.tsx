@@ -3,7 +3,7 @@ import { Box, Button } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
 import type { WorkloadEndpoint } from '@openchoreo/backstage-plugin-common';
-import { EndpointEditor } from '../EndpointEditor';
+import { EndpointEditor, type EndpointEditorProps } from '../EndpointEditor';
 import type { UseEndpointEditBufferResult } from '../../hooks/useEndpointEditBuffer';
 
 const useStyles = makeStyles(theme => ({
@@ -40,11 +40,23 @@ export interface EndpointListProps {
     isEditing: boolean,
   ) => ReactNode;
   /**
-   * Why a row cannot take visibility beyond project, if it cannot. Receives
-   * the edited values, so it follows the protocol as it changes.
+   * Further editor settings for a row, such as a header above its fields,
+   * the protocols it can take and what its visibility field says. Receives
+   * the row's saved name and its values (the edited ones while editing), so
+   * the settings follow the form as the developer types.
    */
-  visibilityDisabledReason?: (endpoint: WorkloadEndpoint) => string | undefined;
+  rowEditorProps?: (
+    savedName: string,
+    endpoint: WorkloadEndpoint,
+    isEditing: boolean,
+  ) => RowEditorProps | undefined;
 }
+
+/** The editor settings a list can set per row. */
+export type RowEditorProps = Pick<
+  EndpointEditorProps,
+  'header' | 'protocolOptions' | 'visibilityDisabledReason' | 'visibilityError'
+>;
 
 /**
  * Endpoint list with inline editing support.
@@ -57,7 +69,7 @@ export const EndpointList: FC<EndpointListProps> = ({
   onRemoveEndpoint,
   onAddEndpoint,
   renderDetails,
-  visibilityDisabledReason,
+  rowEditorProps,
 }) => {
   const classes = useStyles();
 
@@ -93,8 +105,8 @@ export const EndpointList: FC<EndpointListProps> = ({
                   ? editBuffer.editBufferName
                   : endpointName
               }
+              {...rowEditorProps?.(endpointName, shown, isCurrentlyEditing)}
               endpoint={shown}
-              visibilityDisabledReason={visibilityDisabledReason?.(shown)}
               disabled={disabled}
               isEditing={isCurrentlyEditing}
               onEdit={() => editBuffer.startEdit(endpointName)}

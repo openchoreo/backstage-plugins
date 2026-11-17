@@ -57,6 +57,11 @@ const useStyles = makeStyles((theme: Theme) => ({
     backgroundColor: theme.palette.background.default,
     boxShadow: `0 0 0 1px ${theme.palette.primary.main}`,
   },
+  header: {
+    marginBottom: theme.spacing(1.5),
+    paddingBottom: theme.spacing(1.5),
+    borderBottom: `1px dashed ${theme.palette.divider}`,
+  },
   details: {
     marginTop: theme.spacing(1),
     paddingTop: theme.spacing(1),
@@ -126,6 +131,26 @@ const ENDPOINT_TYPE_TO_SCHEMA_TYPE: Record<string, string> = {
 };
 
 const SCHEMA_REQUIRED_TYPES = new Set(['gRPC']);
+
+/**
+ * The field changes that set a workload endpoint's protocol: the deprecated
+ * type written alongside, so readers of either field agree (the API keeps
+ * the two equal), and the protocol's schema format when it has one.
+ */
+export function endpointProtocolChanges(
+  endpoint: WorkloadEndpoint,
+  protocol: string,
+): Array<[keyof WorkloadEndpoint, unknown]> {
+  const changes: Array<[keyof WorkloadEndpoint, unknown]> = [
+    ['protocol', protocol],
+    ['type', protocol],
+  ];
+  const schemaType = ENDPOINT_TYPE_TO_SCHEMA_TYPE[protocol];
+  if (schemaType) {
+    changes.push(['schema', { ...endpoint.schema, type: schemaType }]);
+  }
+  return changes;
+}
 
 const SCHEMA_TYPE_DISPLAY_NAMES: Record<string, string> = {
   openapi: 'OpenAPI',
@@ -276,6 +301,15 @@ export interface EndpointEditorProps {
    * cleared.
    */
   visibilityDisabledReason?: string;
+  /** Shown as an error under the visibility field, e.g. a missing choice. */
+  visibilityError?: string;
+  /**
+   * Content shown at the top of the edit form, above the name (for example
+   * how the endpoint is exposed, which decides the fields below it).
+   */
+  header?: ReactNode;
+  /** The protocols the endpoint can take; every protocol when unset. */
+  protocolOptions?: readonly string[];
 }
 
 /**
@@ -299,6 +333,9 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
   onRemove,
   details,
   visibilityDisabledReason,
+  visibilityError,
+  header,
+  protocolOptions,
 }) => {
   const classes = useStyles();
   const [schemaDialogOpen, setSchemaDialogOpen] = useState(false);
@@ -373,8 +410,10 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
   }
 
   // Edit mode
+  const protocols: readonly string[] = protocolOptions ?? PROTOCOL_TYPES;
   return (
     <Box className={className || classes.containerEditing}>
+      {header && <Box className={classes.header}>{header}</Box>}
       <TextField
         label="Endpoint Name"
         value={endpointName || ''}
@@ -392,24 +431,18 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
             <Select
               value={protocol}
               onChange={e => {
-                const newType = e.target.value as string;
-                // The deprecated type is written alongside so readers of
-                // either field agree; the API keeps the two equal.
-                onChange('protocol', newType);
-                onChange('type', newType);
-                const suggestedSchemaType =
-                  ENDPOINT_TYPE_TO_SCHEMA_TYPE[newType];
-                if (suggestedSchemaType) {
-                  onChange('schema', {
-                    ...endpoint.schema,
-                    type: suggestedSchemaType,
-                  });
+                for (const [field, value] of endpointProtocolChanges(
+                  endpoint,
+                  e.target.value as string,
+                )) {
+                  onChange(field, value);
                 }
               }}
               label="Protocol"
-              disabled={disabled}
+              // One protocol leaves nothing to choose.
+              disabled={disabled || protocols.length <= 1}
             >
-              {PROTOCOL_TYPES.map(type => (
+              {protocols.map(type => (
                 <MenuItem key={type} value={type}>
                   {type}
                 </MenuItem>
@@ -476,6 +509,11 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
             {visibilityDisabledReason && (
               <Typography variant="caption" color="textSecondary">
                 {visibilityDisabledReason}
+              </Typography>
+            )}
+            {visibilityError && (
+              <Typography variant="caption" color="error">
+                {visibilityError}
               </Typography>
             )}
           </FormControl>

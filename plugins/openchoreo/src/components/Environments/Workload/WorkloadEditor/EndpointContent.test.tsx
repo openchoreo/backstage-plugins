@@ -10,7 +10,7 @@ jest.mock('../WorkloadContext', () => ({
 }));
 
 // The list stub shows which form is rendered: the Endpoints form passes
-// row details and a visibility rule, the legacy form neither.
+// row details and per-row editor settings, the legacy form neither.
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
   useEndpointEditBuffer: () => ({
     isAnyRowEditing: false,
@@ -24,7 +24,14 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
         ([name, endpoint]: [string, any]) => (
           <div key={name}>
             {props.renderDetails ? 'endpoints-form' : 'legacy-form'}
-            {props.visibilityDisabledReason?.(endpoint)}
+            {props.rowEditorProps?.(name, endpoint, false)
+              ?.visibilityDisabledReason}
+            <span>
+              protocols {name}:{' '}
+              {props.rowEditorProps?.(name, endpoint, false)?.protocolOptions?.join(
+                ',',
+              ) ?? 'any'}
+            </span>
             {props.renderDetails?.(name, endpoint, name, false)}
             <button
               type="button"
@@ -38,6 +45,9 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
           </div>
         ),
       )}
+      <button type="button" onClick={() => props.onAddEndpoint()}>
+        add
+      </button>
     </div>
   ),
 }));
@@ -51,7 +61,10 @@ jest.mock('./ComponentEndpointExposure', () => ({
   ComponentEndpointExposure: (props: any) => (
     <span>{props.editing ? 'details-editable' : 'details-read-only'}</span>
   ),
+  ComponentEndpointTypeField: () => null,
   DetachedComponentEndpoints: () => null,
+  cardEndpointType: (_endpoint: any, form: any, name: string) =>
+    form.choices[name]?.type ?? 'none',
 }));
 
 const httpRoute = {
@@ -126,12 +139,34 @@ describe('EndpointContent', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('keeps a protocol no type serves project-scoped in the Endpoints form', () => {
+  it('keeps a card without an Endpoint type within the project', () => {
     renderContent(state());
 
     expect(
-      screen.getByText(/No endpoint type is allowed for TCP/),
-    ).toBeInTheDocument();
+      screen.getAllByText(/Choose an Endpoint type under "Exposed as"/),
+    ).toHaveLength(2);
+    expect(screen.getByText('protocols api: any')).toBeInTheDocument();
+  });
+
+  it("limits a card to its Endpoint type's protocols", () => {
+    renderContent(
+      state({
+        choices: { api: { type: 'ClusterEndpointType/http-route' } },
+      }),
+    );
+
+    expect(screen.getByText('protocols api: HTTP')).toBeInTheDocument();
+    expect(screen.getByText('protocols raw: any')).toBeInTheDocument();
+  });
+
+  it('starts a new card on the default Endpoint type', () => {
+    const setChoice = jest.fn();
+    renderContent(state({ setChoice }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'add' }));
+    expect(setChoice).toHaveBeenCalledWith('new', {
+      type: 'ClusterEndpointType/http-route',
+    });
   });
 
   it('shows the legacy form for a ComponentType kept on legacy endpoints', () => {

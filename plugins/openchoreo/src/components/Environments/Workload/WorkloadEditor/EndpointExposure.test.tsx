@@ -4,8 +4,9 @@ import { TestApiProvider } from '@backstage/test-utils';
 import type { ReactNode } from 'react';
 import { openChoreoClientApiRef } from '../../../../api/OpenChoreoClientApi';
 import {
-  EndpointExposure,
+  EndpointTypeParameters,
   chosenEndpointTypeKeys,
+  endpointTypeLabel,
   useEndpointTypeSchemas,
 } from './EndpointExposure';
 
@@ -32,131 +33,63 @@ const HTTP_ROUTE_SCHEMA = {
   },
 };
 
-describe('EndpointExposure', () => {
-  it('shows the type of an added Endpoint before any visibility is chosen', () => {
-    render(
-      <EndpointExposure
-        endpoint={{ protocol: 'HTTP', visibility: ['project'] }}
-        allowedEndpoints={[httpRoute]}
-        choice={{ type: HTTP_ROUTE }}
-        schemas={{ [HTTP_ROUTE]: HTTP_ROUTE_SCHEMA }}
-        onChange={jest.fn()}
-      />,
-    );
-    expect(
-      screen.getByRole('button', { name: /http-route/ }),
-    ).toBeInTheDocument();
-  });
-
-  it('preselects the default type and shows its parameters', () => {
-    render(
-      <EndpointExposure
-        endpoint={{ protocol: 'HTTP', visibility: ['external'] }}
-        allowedEndpoints={[httpRoute, managed]}
-        schemas={{ [HTTP_ROUTE]: HTTP_ROUTE_SCHEMA }}
-        onChange={jest.fn()}
-      />,
-    );
-    expect(
-      screen.getByRole('button', { name: /http-route/ }),
-    ).toBeInTheDocument();
-    expect(screen.getByLabelText(/Path prefix/)).toBeInTheDocument();
-  });
-
-  it('reports a different type, resetting its parameters', async () => {
+describe('EndpointTypeParameters', () => {
+  it("shows the type's parameters and reports changes", () => {
     const onChange = jest.fn();
     render(
-      <EndpointExposure
-        endpoint={{ protocol: 'HTTP', visibility: ['external'] }}
-        allowedEndpoints={[httpRoute, managed]}
+      <EndpointTypeParameters
+        typeKey={HTTP_ROUTE}
+        parameters={{ pathPrefix: '/orders' }}
         schemas={{ [HTTP_ROUTE]: HTTP_ROUTE_SCHEMA }}
         onChange={onChange}
       />,
     );
-    fireEvent.mouseDown(screen.getByRole('button', { name: /http-route/ }));
-    fireEvent.click(await screen.findByText(/managed-api/));
-    expect(onChange).toHaveBeenCalledWith({
-      type: 'ClusterEndpointType/managed-api',
-    });
+
+    const field = screen.getByLabelText(/Path prefix/);
+    expect(field).toHaveValue('/orders');
+    fireEvent.change(field, { target: { value: '/v2' } });
+    expect(onChange).toHaveBeenLastCalledWith({ pathPrefix: '/v2' });
   });
 
-  it('fixes the type of a row already exposed through an Endpoint', () => {
-    render(
-      <EndpointExposure
-        endpoint={{ protocol: 'HTTP', visibility: ['external'] }}
-        allowedEndpoints={[httpRoute, managed]}
-        choice={{ type: HTTP_ROUTE }}
-        schemas={{ [HTTP_ROUTE]: HTTP_ROUTE_SCHEMA }}
+  it('shows nothing for a type without parameters', () => {
+    const { container } = render(
+      <EndpointTypeParameters
+        typeKey={HTTP_ROUTE}
+        parameters={{}}
+        schemas={{ [HTTP_ROUTE]: { type: 'object' } }}
         onChange={jest.fn()}
-        typeLocked
       />,
     );
-    expect(screen.getByRole('button', { name: /http-route/ })).toHaveAttribute(
-      'aria-disabled',
-      'true',
-    );
-    expect(screen.getByText(/fixed once created/)).toBeInTheDocument();
+    expect(container).toBeEmptyDOMElement();
   });
 
-  it('starts on the first allowed type when the protocol has no default', () => {
+  it("says the defaults are used when the schema can't be loaded", () => {
     render(
-      <EndpointExposure
-        endpoint={{ protocol: 'gRPC', visibility: ['external'] }}
-        allowedEndpoints={[httpRoute, grpcOptIn]}
-        schemas={{}}
+      <EndpointTypeParameters
+        typeKey={HTTP_ROUTE}
+        parameters={{}}
+        schemas={{ [HTTP_ROUTE]: 'error' }}
         onChange={jest.fn()}
       />,
     );
     expect(
-      screen.getByRole('button', { name: /grpc-route/ }),
+      screen.getByText(/Could not load the parameters of http-route/),
     ).toBeInTheDocument();
   });
+});
 
-  it('offers no "none" option and no default suffix', async () => {
-    render(
-      <EndpointExposure
-        endpoint={{ protocol: 'HTTP', visibility: ['external'] }}
-        allowedEndpoints={[httpRoute, managed]}
-        schemas={{ [HTTP_ROUTE]: HTTP_ROUTE_SCHEMA }}
-        onChange={jest.fn()}
-      />,
-    );
-    fireEvent.mouseDown(screen.getByRole('button', { name: /http-route/ }));
-    const options = await screen.findAllByRole('option');
-    expect(options.map(o => o.textContent)).toEqual([
+describe('endpointTypeLabel', () => {
+  it("names a type with its entry's name, if any", () => {
+    expect(endpointTypeLabel(HTTP_ROUTE, [httpRoute, managed])).toBe(
       'http-route',
-      'managed-api (managed)',
-    ]);
-  });
-
-  it('preselects the default type for a row loaded with a "none" choice', () => {
-    render(
-      <EndpointExposure
-        endpoint={{ type: 'HTTP', visibility: ['external'] }}
-        allowedEndpoints={[httpRoute]}
-        choice={{ type: 'none' }}
-        schemas={{}}
-        onChange={jest.fn()}
-      />,
     );
     expect(
-      screen.getByRole('button', { name: /http-route/ }),
-    ).toBeInTheDocument();
+      endpointTypeLabel('ClusterEndpointType/managed-api', [httpRoute, managed]),
+    ).toBe('managed-api (managed)');
   });
 
-  it('notes that visibility stays on the workload when no type fits the protocol', () => {
-    render(
-      <EndpointExposure
-        endpoint={{ protocol: 'TCP', visibility: ['external'] }}
-        allowedEndpoints={[httpRoute]}
-        schemas={{}}
-        onChange={jest.fn()}
-      />,
-    );
-    expect(screen.queryByRole('button')).not.toBeInTheDocument();
-    expect(
-      screen.getByText(/No endpoint type is allowed for TCP/),
-    ).toBeInTheDocument();
+  it("falls back to the type's name when it isn't allowed", () => {
+    expect(endpointTypeLabel('EndpointType/gone', [httpRoute])).toBe('gone');
   });
 });
 
