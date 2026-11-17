@@ -22,6 +22,8 @@ interface LogsTableProps {
   projectName?: string;
   componentName?: string;
   renderRowAction?: RenderLogRowAction;
+  /** Links each entry's component name to that component's logs page. */
+  getComponentLogsUrl?: (componentName: string) => string;
 }
 
 // Matches the height the table scroll area used to have (full viewport minus
@@ -38,6 +40,7 @@ export const LogsTable: FC<LogsTableProps> = ({
   projectName,
   componentName,
   renderRowAction,
+  getComponentLogsUrl,
 }) => {
   const classes = useLogsTableStyles();
 
@@ -168,6 +171,7 @@ export const LogsTable: FC<LogsTableProps> = ({
                 onToggleExpand={() => toggle(key)}
                 getLogsSnapshot={getLogsSnapshot}
                 renderRowAction={renderRowAction}
+                getComponentLogsUrl={getComponentLogsUrl}
               />
             );
           }}
