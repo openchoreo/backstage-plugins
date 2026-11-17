@@ -399,7 +399,7 @@ describe('ReleaseBindingRevisionService', () => {
     });
     const environment = (limit?: number) => ({
       metadata: { name: 'development' },
-      spec: limit === undefined ? {} : { revisionHistoryLimit: limit },
+      spec: limit === undefined ? {} : { componentRevisionHistoryLimit: limit },
     });
     const kinds = [
       [

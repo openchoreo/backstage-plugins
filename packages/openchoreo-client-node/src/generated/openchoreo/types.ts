@@ -1907,7 +1907,7 @@ export interface paths {
      * Delete a component release binding revision
      * @description Deletes one revision from its binding's history. The remaining revisions keep their numbers and a deleted revision's number is never reused: new revisions are numbered above the binding's status.highestRevision. A deleted revision can no longer be rolled back to; deploying its spec again records a new revision.
      *
-     *     Refused with 409 REVISION_PROTECTED when the revision is active, is the newest known-good revision, is annotated openchoreo.dev/keep: "true" (the revisions the history limit never deletes), when the binding's spec matches it (a rollback to it is being applied), or when the controller has not finished recording it. The delete is conditional on the revision as checked, so one made active meanwhile is refused with 409 CONCURRENT_MODIFICATION. With dryRun every check runs and nothing is deleted. Requires the releasebinding:delete-revision permission on the binding.
+     *     Refused with 409 REVISION_PROTECTED when the revision is active, is the newest known-good revision, when the binding's spec matches it (a rollback to it is being applied), or when the controller has not finished recording it. The delete is conditional on the revision as checked, so one made active meanwhile is refused with 409 CONCURRENT_MODIFICATION. With dryRun every check runs and nothing is deleted. Requires the releasebinding:delete-revision permission on the binding.
      */
     delete: operations['deleteReleaseBindingRevision'];
     options?: never;
@@ -2671,7 +2671,7 @@ export interface paths {
      * Delete a resource release binding revision
      * @description Deletes one revision from its binding's history. The remaining revisions keep their numbers and a deleted revision's number is never reused: new revisions are numbered above the binding's status.highestRevision. A deleted revision can no longer be rolled back to; deploying its spec again records a new revision.
      *
-     *     Refused with 409 REVISION_PROTECTED when the revision is active, is the newest known-good revision, is annotated openchoreo.dev/keep: "true" (the revisions the history limit never deletes), when the binding's spec matches it (a rollback to it is being applied), or when the controller has not finished recording it. The delete is conditional on the revision as checked, so one made active meanwhile is refused with 409 CONCURRENT_MODIFICATION. With dryRun every check runs and nothing is deleted. Requires the resourcereleasebinding:delete-revision permission on the binding.
+     *     Refused with 409 REVISION_PROTECTED when the revision is active, is the newest known-good revision, when the binding's spec matches it (a rollback to it is being applied), or when the controller has not finished recording it. The delete is conditional on the revision as checked, so one made active meanwhile is refused with 409 CONCURRENT_MODIFICATION. With dryRun every check runs and nothing is deleted. Requires the resourcereleasebinding:delete-revision permission on the binding.
      */
     delete: operations['deleteResourceReleaseBindingRevision'];
     options?: never;
@@ -3758,10 +3758,10 @@ export interface components {
       gateway?: components['schemas']['GatewaySpec'];
       /**
        * Format: int32
-       * @description Number of old revisions kept, to allow rollback, for each ReleaseBinding and ResourceReleaseBinding in this environment. The active revision is always kept and does not count. 0 keeps no old revisions. A binding's own revisionHistoryLimit overrides it. When unset, the controller's --revision-history-limit applies.
+       * @description Number of old revisions kept, to allow rollback, for each ReleaseBinding in this environment, and for each ResourceReleaseBinding too. The active revision is always kept and does not count. 0 keeps no old revisions. A binding's own revisionHistoryLimit overrides it. When unset, the controller's --component-revision-history-limit applies.
        * @example 10
        */
-      revisionHistoryLimit?: number;
+      componentRevisionHistoryLimit?: number;
     };
     /** @description Observed state of an Environment */
     EnvironmentStatus: {
@@ -5409,7 +5409,7 @@ export interface components {
       state: 'Active' | 'Undeploy';
       /**
        * Format: int32
-       * @description Number of old revisions kept for this binding to allow rollback. The active revision is always kept and does not count. 0 keeps no old revisions, so the binding cannot be rolled back. When unset, the Environment's revisionHistoryLimit applies, then the controller's --revision-history-limit. Changing it creates no revision, and a rollback leaves it as it is.
+       * @description Number of old revisions kept for this binding to allow rollback. The active revision is always kept and does not count. 0 keeps no old revisions, so the binding cannot be rolled back. When unset, the Environment's componentRevisionHistoryLimit applies, then the controller's --component-revision-history-limit. Changing it creates no revision, and a rollback leaves it as it is.
        * @example 10
        */
       revisionHistoryLimit?: number;
@@ -6170,7 +6170,7 @@ export interface components {
       };
       /**
        * Format: int32
-       * @description Number of old revisions kept for this binding to allow rollback. The active revision is always kept and does not count. 0 keeps no old revisions, so the binding cannot be rolled back. When unset, the Environment's revisionHistoryLimit applies, then the controller's --revision-history-limit. Changing it creates no revision, and a rollback leaves it as it is.
+       * @description Number of old revisions kept for this binding to allow rollback. The active revision is always kept and does not count. 0 keeps no old revisions, so the binding cannot be rolled back. When unset, the Environment's componentRevisionHistoryLimit applies, then the controller's --component-revision-history-limit. Changing it creates no revision, and a rollback leaves it as it is.
        * @example 10
        */
       revisionHistoryLimit?: number;

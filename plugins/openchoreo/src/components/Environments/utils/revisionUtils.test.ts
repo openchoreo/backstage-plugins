@@ -256,12 +256,10 @@ describe('deleteBlockedReason', () => {
     );
   });
 
-  it('protects a kept revision', () => {
-    const kept = makeRevision(3);
-    kept.metadata.annotations = { 'openchoreo.dev/keep': 'true' };
-    expect(deleteBlockedReason(kept, history, allowed)).toMatch(
-      /openchoreo.dev\/keep/,
-    );
+  it('does not protect a revision annotated openchoreo.dev/keep', () => {
+    const annotated = makeRevision(3, { health: 'Failed' });
+    annotated.metadata.annotations = { 'openchoreo.dev/keep': 'true' };
+    expect(deleteBlockedReason(annotated, history, allowed)).toBeNull();
   });
 
   it('explains a missing permission first', () => {

@@ -222,15 +222,9 @@ export const isNotFound = (error: unknown): boolean =>
   error instanceof ResponseError && error.statusCode === 404;
 
 /**
- * The annotation that exempts a revision from deletion, by hand or by the
- * history limit.
- */
-const KEEP_ANNOTATION = 'openchoreo.dev/keep';
-
-/**
  * Why a revision may not be deleted, or null when it may. Mirrors the
- * server's rules -- the active revision, the newest known-good revision and
- * revisions annotated openchoreo.dev/keep are protected -- so the Delete
+ * server's rules -- the active revision and the newest known-good revision
+ * are protected -- so the Delete
  * action is disabled up front; the server checks again and has the final say.
  * revisions is the binding's whole history.
  */
@@ -248,11 +242,6 @@ export const deleteBlockedReason = (
   }
   if (isActive(rev)) {
     return `${revisionName(rev)} is currently active and cannot be deleted.`;
-  }
-  if (rev.metadata.annotations?.[KEEP_ANNOTATION] === 'true') {
-    return `${revisionName(
-      rev,
-    )} is marked ${KEEP_ANNOTATION}: "true" and cannot be deleted.`;
   }
   const newestKnownGood = revisions
     .filter(isKnownGood)

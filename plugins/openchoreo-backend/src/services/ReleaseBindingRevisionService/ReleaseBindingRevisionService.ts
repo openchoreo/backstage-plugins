@@ -636,7 +636,7 @@ export class ReleaseBindingRevisionService {
   }
 
   /**
-   * The Environment's spec.revisionHistoryLimit, null when it sets none. It is
+   * The Environment's spec.componentRevisionHistoryLimit, null when it sets none. It is
    * only shown as the value a binding inherits, so an Environment that cannot
    * be read does not fail the request: it is reported as unreadable instead,
    * so the portal does not mistake it for one that sets no limit.
@@ -667,7 +667,9 @@ export class ReleaseBindingRevisionService {
         { params: { path: { namespaceName, envName: environment } } },
       );
       if (!response.ok) return unreadable;
-      return { environmentLimit: data?.spec?.revisionHistoryLimit ?? null };
+      return {
+        environmentLimit: data?.spec?.componentRevisionHistoryLimit ?? null,
+      };
     } catch (err) {
       this.logger.debug(
         `Could not read environment ${environment} for its revision history limit: ${err}`,

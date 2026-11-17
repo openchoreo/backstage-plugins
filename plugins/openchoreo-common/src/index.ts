@@ -390,7 +390,7 @@ export interface BindingRevisionHistoryLimit {
   /** The binding's spec.revisionHistoryLimit; null when unset. */
   bindingLimit: number | null;
   /**
-   * The Environment's spec.revisionHistoryLimit; null when unset or when the
+   * The Environment's spec.componentRevisionHistoryLimit; null when unset or when the
    * Environment could not be read (see environmentLimitUnreadable).
    */
   environmentLimit: number | null;
