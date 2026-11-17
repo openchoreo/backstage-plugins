@@ -870,13 +870,20 @@ export interface OpenChoreoClientApi {
   ): Promise<{ success: boolean; data?: Record<string, unknown> }>;
 
   /**
-   * Add a backend to an Endpoint entity's Endpoint. When the backend is on
-   * another component than the one owning the Endpoint, the API moves the
-   * Endpoint to its project. Each change cuts a new EndpointRelease.
+   * Add a backend to an Endpoint entity's Endpoint, on a component's main line
+   * or, with `releaseLine`, on one of its release lines. The API widens the
+   * Endpoint's ownership to cover the backend: from a release line to its
+   * component, or from a component to its project. Each change cuts a new
+   * EndpointRelease.
    */
   addEndpointBackend(
     entity: Entity,
-    backend: { component: string; workloadEndpoint: string; weight?: number },
+    backend: {
+      component: string;
+      workloadEndpoint: string;
+      releaseLine?: string;
+      weight?: number;
+    },
   ): Promise<{ name: string; backendName: string }>;
 
   /** Set the weight of one of an Endpoint entity's backends. */

@@ -1261,6 +1261,33 @@ describe('createRouter', () => {
         ).toHaveBeenCalledWith(body, 'mock-user-token');
       });
 
+      it.each([
+        ['a release line', 'next', 'next'],
+        ['the main line by name', 'main', undefined],
+      ])('POST passes %s through', async (_, sent, stored) => {
+        services.endpointInfoService.addEndpointBackend.mockResolvedValue({
+          name: 'orders-api',
+          backendName: 'payments-next-http',
+        });
+        const body = {
+          ...endpointRef,
+          component: 'payments',
+          workloadEndpoint: 'http',
+        };
+
+        const response = await request(app)
+          .post('/endpoint-backends')
+          .send({ ...body, releaseLine: sent });
+
+        expect(response.status).toBe(200);
+        expect(
+          services.endpointInfoService.addEndpointBackend,
+        ).toHaveBeenCalledWith(
+          { ...body, releaseLine: stored, weight: undefined },
+          'mock-user-token',
+        );
+      });
+
       it('POST requires a component and workload endpoint', async () => {
         const response = await request(app)
           .post('/endpoint-backends')

@@ -14,6 +14,7 @@ jest.mock(
         ? [
             { component: 'orders', endpoint: 'api' },
             { component: 'orders', endpoint: 'admin' },
+            { component: 'orders', releaseLine: 'next', endpoint: 'api' },
             { component: 'payments', endpoint: 'http' },
           ]
         : [],
@@ -21,7 +22,10 @@ jest.mock(
   }),
 );
 
-function makeEntity(ownerComponent?: string): Entity {
+function makeEntity(
+  ownerComponent?: string,
+  ownerReleaseLine?: string,
+): Entity {
   return {
     apiVersion: 'backstage.io/v1alpha1',
     kind: 'Endpoint',
@@ -32,6 +36,9 @@ function makeEntity(ownerComponent?: string): Entity {
         'openchoreo.io/project': 'store',
         ...(ownerComponent && {
           'openchoreo.io/endpoint-owner-component': ownerComponent,
+        }),
+        ...(ownerReleaseLine && {
+          'openchoreo.io/endpoint-owner-release-line': ownerReleaseLine,
         }),
       },
     },
@@ -76,10 +83,27 @@ describe('AddEndpointBackendDialog', () => {
       screen.getByRole('button', { name: /Workload endpoint/ }),
     );
     const options = await screen.findAllByRole('option');
+    // The main line's orders / api is taken; its release line's isn't.
     expect(options.map(o => o.textContent)).toEqual([
       'orders / admin',
+      'orders @ next / api',
       'payments / http',
     ]);
+  });
+
+  it("adds a backend on a component's release line", async () => {
+    const { client, entity, onAdded } = renderDialog();
+
+    await pick('orders @ next / api');
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+
+    await waitFor(() => expect(onAdded).toHaveBeenCalled());
+    expect(client.addEndpointBackend).toHaveBeenCalledWith(entity, {
+      component: 'orders',
+      workloadEndpoint: 'api',
+      releaseLine: 'next',
+      weight: 1,
+    });
   });
 
   it('adds the chosen backend with its weight', async () => {
@@ -133,6 +157,16 @@ describe('AddEndpointBackendDialog', () => {
 
     await waitFor(() => expect(onAdded).toHaveBeenCalled());
     expect(client.addEndpointBackend).toHaveBeenCalled();
+  });
+
+  it('warns that a release line owns the Endpoint', () => {
+    renderDialog(makeEntity('orders', 'next'));
+
+    expect(
+      screen.getByText(
+        'Release line next of component orders owns orders-api endpoint. Adding a backend on another line of orders moves it to the component, and one on another component moves it to project store, so deleting next no longer deletes it.',
+      ),
+    ).toBeVisible();
   });
 
   it("doesn't warn for an Endpoint the project owns", () => {

@@ -691,7 +691,12 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
 
   async addEndpointBackend(
     entity: Entity,
-    backend: { component: string; workloadEndpoint: string; weight?: number },
+    backend: {
+      component: string;
+      workloadEndpoint: string;
+      releaseLine?: string;
+      weight?: number;
+    },
   ): Promise<{ name: string; backendName: string }> {
     const { namespaceName, endpointName } =
       extractEndpointEntityMetadata(entity);

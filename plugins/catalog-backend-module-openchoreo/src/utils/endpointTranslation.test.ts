@@ -177,6 +177,60 @@ describe('translateNewEndpointToEntities', () => {
     expect(
       endpoint.metadata.annotations?.['openchoreo.io/endpoint-owner-component'],
     ).toBe('orders');
+    expect(
+      endpoint.metadata.annotations?.[
+        'openchoreo.io/endpoint-owner-release-line'
+      ],
+    ).toBeUndefined();
+  });
+
+  it("records the owning release line and each backend's line", () => {
+    const [endpoint] = translateNewEndpointToEntities(
+      {
+        metadata: { name: 'orders-canary', namespace: 'acme' },
+        spec: {
+          owner: {
+            projectName: 'store',
+            componentName: 'orders',
+            releaseLineName: 'next',
+          },
+          type: { name: 'http-route' },
+          visibility: ['external'],
+          backendRefs: [
+            {
+              name: 'next',
+              component: {
+                name: 'orders',
+                endpoint: 'http',
+                releaseLine: 'next',
+              },
+              weight: 1,
+            },
+          ],
+        },
+      } as any,
+      'acme',
+      {
+        providerName: 'openchoreo-provider',
+        defaultOwner: 'group:default/openchoreo',
+      } as any,
+    );
+
+    expect(
+      endpoint.metadata.annotations?.[
+        'openchoreo.io/endpoint-owner-release-line'
+      ],
+    ).toBe('next');
+    expect(endpoint.spec?.backends).toEqual([
+      {
+        name: 'next',
+        kind: 'Component',
+        component: 'orders',
+        endpoint: 'http',
+        releaseLine: 'next',
+        weight: 1,
+      },
+    ]);
   });
 });
 

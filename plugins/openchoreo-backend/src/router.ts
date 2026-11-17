@@ -1577,7 +1577,14 @@ export async function createRouter({
     }
     res.json(
       await endpointInfoService.addEndpointBackend(
-        { namespaceName, endpointName, component, workloadEndpoint, weight },
+        {
+          namespaceName,
+          endpointName,
+          component,
+          workloadEndpoint,
+          releaseLine: requestReleaseLine(req),
+          weight,
+        },
         getUserTokenFromRequest(req),
       ),
     );

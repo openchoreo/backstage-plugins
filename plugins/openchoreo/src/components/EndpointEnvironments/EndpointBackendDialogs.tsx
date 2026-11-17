@@ -24,7 +24,9 @@ import type { EndpointBackendChange } from './useAwaitEndpointRelease';
 
 export const backendLabel = (backend: EndpointBackend) =>
   backend.component
-    ? `${backend.component}${backend.endpoint ? ` / ${backend.endpoint}` : ''}`
+    ? `${backend.component}${
+        backend.releaseLine ? ` @ ${backend.releaseLine}` : ''
+      }${backend.endpoint ? ` / ${backend.endpoint}` : ''}`
     : backend.name;
 
 /** Runs a save, keeping the dialog open with the error when it fails. */

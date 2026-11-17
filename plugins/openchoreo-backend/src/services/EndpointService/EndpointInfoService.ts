@@ -9,6 +9,7 @@ import {
   MAX_ENDPOINT_BACKENDS,
   deriveEndpointBackendName,
   endpointBackendsTakeTraffic,
+  isSameReleaseLine,
   type APIResponse,
 } from '@openchoreo/backstage-plugin-common';
 import type { ApiSchemaResponse } from '../types';
@@ -130,14 +131,18 @@ export class EndpointInfoService {
 
   /**
    * Adds a backend to an Endpoint, routing part of its traffic to a
-   * component's workload endpoint. When the Endpoint belongs to a component
-   * and the new backend is on another one, the API moves the Endpoint to its
-   * project.
+   * component's workload endpoint, on its main line or on one of its release
+   * lines. The API widens ownership to cover the new backend: an Endpoint a
+   * release line owns moves to its component when the backend is on another
+   * line, and one a component owns moves to its project when the backend is
+   * on another component.
    */
   async addEndpointBackend(
     request: EndpointRef & {
       component: string;
       workloadEndpoint: string;
+      /** The component's release line; undefined for its main line. */
+      releaseLine?: string;
       weight?: number;
     },
     token?: string,
@@ -157,17 +162,25 @@ export class EndpointInfoService {
           refs.some(
             ref =>
               ref.component?.name === request.component &&
-              ref.component?.endpoint === request.workloadEndpoint,
+              ref.component?.endpoint === request.workloadEndpoint &&
+              isSameReleaseLine(
+                ref.component?.releaseLine,
+                request.releaseLine,
+              ),
           )
         ) {
+          const line = request.releaseLine
+            ? ` on line ${request.releaseLine}`
+            : '';
           throw new InputError(
-            `Endpoint ${request.endpointName} already routes to ${request.component}/${request.workloadEndpoint}`,
+            `Endpoint ${request.endpointName} already routes to ${request.component}/${request.workloadEndpoint}${line}`,
           );
         }
         backendName = deriveEndpointBackendName(
           request.component,
           request.workloadEndpoint,
           refs.map(ref => ref.name),
+          request.releaseLine,
         );
         return [
           ...refs,
@@ -177,6 +190,9 @@ export class EndpointInfoService {
             component: {
               name: request.component,
               endpoint: request.workloadEndpoint,
+              ...(request.releaseLine && {
+                releaseLine: request.releaseLine,
+              }),
             },
             weight: request.weight ?? 1,
           },

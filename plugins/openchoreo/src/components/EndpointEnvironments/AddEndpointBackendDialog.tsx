@@ -20,13 +20,22 @@ import {
   isEndpointBackendWeight,
 } from '@openchoreo/backstage-plugin-common';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
-import { useProjectWorkloadEndpoints } from '../../scaffolder/EndpointBackendsField/useProjectWorkloadEndpoints';
+import {
+  useProjectWorkloadEndpoints,
+  type WorkloadEndpointOption,
+} from '../../scaffolder/EndpointBackendsField/useProjectWorkloadEndpoints';
 import { getErrorMessage } from '../../utils/errorUtils';
 import type { EndpointBackend } from '../EndpointOverview/EndpointBackendList';
 import type { EndpointBackendChange } from './useAwaitEndpointRelease';
 
-const optionKey = (component: string, endpoint: string) =>
-  `${component}/${endpoint}`;
+/** Identifies a workload endpoint of a component's main line or release line. */
+const optionKey = (component: string, endpoint: string, releaseLine?: string) =>
+  `${component}@${releaseLine ?? ''}/${endpoint}`;
+
+const optionLabel = (o: WorkloadEndpointOption) =>
+  o.releaseLine
+    ? `${o.component} @ ${o.releaseLine} / ${o.endpoint}`
+    : `${o.component} / ${o.endpoint}`;
 
 interface AddEndpointBackendDialogProps {
   open: boolean;
@@ -38,10 +47,11 @@ interface AddEndpointBackendDialogProps {
 }
 
 /**
- * Adds a backend to an Endpoint: any workload endpoint in its project, since
- * the Endpoint carries the visibility. When a component owns the Endpoint,
- * the dialog warns up front that a backend on another component moves the
- * Endpoint to its project, which the API does on save.
+ * Adds a backend to an Endpoint: any workload endpoint in its project, on a
+ * component's main line or on one of its release lines, since the Endpoint
+ * carries the visibility. When a component or one of its release lines owns
+ * the Endpoint, the dialog warns up front that a backend outside the owner
+ * widens ownership, which the API does on save.
  */
 export const AddEndpointBackendDialog = ({
   open,
@@ -55,6 +65,8 @@ export const AddEndpointBackendDialog = ({
   const project = annotations[CHOREO_ANNOTATIONS.PROJECT];
   const ownerComponent =
     annotations[CHOREO_ANNOTATIONS.ENDPOINT_OWNER_COMPONENT];
+  const ownerReleaseLine =
+    annotations[CHOREO_ANNOTATIONS.ENDPOINT_OWNER_RELEASE_LINE];
   const endpointName = entity.metadata.title ?? entity.metadata.name;
   const [selected, setSelected] = useState('');
   const [weight, setWeight] = useState('1');
@@ -76,16 +88,21 @@ export const AddEndpointBackendDialog = ({
   } = useProjectWorkloadEndpoints(
     open ? entity.metadata.namespace : undefined,
     project,
+    { includeReleaseLines: true },
   );
   const available = useMemo(() => {
     const taken = new Set(
-      backends.map(b => optionKey(b.component ?? '', b.endpoint ?? '')),
+      backends.map(b =>
+        optionKey(b.component ?? '', b.endpoint ?? '', b.releaseLine),
+      ),
     );
-    return options.filter(o => !taken.has(optionKey(o.component, o.endpoint)));
+    return options.filter(
+      o => !taken.has(optionKey(o.component, o.endpoint, o.releaseLine)),
+    );
   }, [options, backends]);
 
   const option = available.find(
-    o => optionKey(o.component, o.endpoint) === selected,
+    o => optionKey(o.component, o.endpoint, o.releaseLine) === selected,
   );
   const parsedWeight = Number(weight);
   const weightValid = weight !== '' && isEndpointBackendWeight(parsedWeight);
@@ -98,6 +115,7 @@ export const AddEndpointBackendDialog = ({
       const { backendName } = await client.addEndpointBackend(entity, {
         component: option.component,
         workloadEndpoint: option.endpoint,
+        ...(option.releaseLine && { releaseLine: option.releaseLine }),
         weight: parsedWeight,
       });
       onAdded({ kind: 'add', backendName });
@@ -131,10 +149,10 @@ export const AddEndpointBackendDialog = ({
     >
       {available.map(o => (
         <MenuItem
-          key={optionKey(o.component, o.endpoint)}
-          value={optionKey(o.component, o.endpoint)}
+          key={optionKey(o.component, o.endpoint, o.releaseLine)}
+          value={optionKey(o.component, o.endpoint, o.releaseLine)}
         >
-          {`${o.component} / ${o.endpoint}`}
+          {optionLabel(o)}
         </MenuItem>
       ))}
     </TextField>
@@ -164,14 +182,15 @@ export const AddEndpointBackendDialog = ({
       <DialogContent>
         <DialogContentText>
           Route part of {endpointName}'s traffic to another workload endpoint in
-          project {project}.
+          project {project}, on a component's main line or on one of its release
+          lines.
         </DialogContentText>
         {ownerComponent && (
           <Box mb={2}>
             <Alert severity="warning">
-              Component {ownerComponent} owns {endpointName} endpoint. Adding a
-              backend on another component moves it to project {project}, so
-              deleting {ownerComponent} no longer deletes it.
+              {ownerReleaseLine
+                ? `Release line ${ownerReleaseLine} of component ${ownerComponent} owns ${endpointName} endpoint. Adding a backend on another line of ${ownerComponent} moves it to the component, and one on another component moves it to project ${project}, so deleting ${ownerReleaseLine} no longer deletes it.`
+                : `Component ${ownerComponent} owns ${endpointName} endpoint. Adding a backend on another component moves it to project ${project}, so deleting ${ownerComponent} no longer deletes it.`}
             </Alert>
           </Box>
         )}

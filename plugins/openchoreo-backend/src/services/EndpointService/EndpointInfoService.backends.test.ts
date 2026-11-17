@@ -116,6 +116,55 @@ describe('EndpointInfoService backends', () => {
       expect(mockPUT).not.toHaveBeenCalled();
     });
 
+    it("routes to a component's release line", async () => {
+      mockGET.mockResolvedValue(
+        createOkResponse(endpointWith([backend('orders', 'http')])),
+      );
+
+      const result = await service.addEndpointBackend({
+        ...ref,
+        component: 'orders',
+        workloadEndpoint: 'http',
+        releaseLine: 'next',
+      });
+
+      // The main line's backend on the same endpoint is another backend.
+      expect(result.backendName).toBe('orders-next-http');
+      expect(sentBody().spec.backendRefs[1]).toEqual({
+        name: 'orders-next-http',
+        kind: 'Component',
+        component: { name: 'orders', endpoint: 'http', releaseLine: 'next' },
+        weight: 1,
+      });
+    });
+
+    it('refuses a release line the Endpoint already routes to', async () => {
+      mockGET.mockResolvedValue(
+        createOkResponse(
+          endpointWith([
+            {
+              ...backend('orders', 'http'),
+              component: {
+                name: 'orders',
+                endpoint: 'http',
+                releaseLine: 'next',
+              } as any,
+            },
+          ]),
+        ),
+      );
+
+      await expect(
+        service.addEndpointBackend({
+          ...ref,
+          component: 'orders',
+          workloadEndpoint: 'http',
+          releaseLine: 'next',
+        }),
+      ).rejects.toThrow('already routes to orders/http on line next');
+      expect(mockPUT).not.toHaveBeenCalled();
+    });
+
     it('refuses more than 16 backends', async () => {
       mockGET.mockResolvedValue(
         createOkResponse(

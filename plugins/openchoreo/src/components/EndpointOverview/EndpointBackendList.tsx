@@ -35,6 +35,8 @@ export interface EndpointBackend {
   kind?: string;
   component?: string;
   endpoint?: string;
+  /** The backend component's release line; absent for its main line. */
+  releaseLine?: string;
   weight?: number;
 }
 
@@ -85,6 +87,15 @@ export const EndpointBackendList = ({
                 />
               ) : (
                 backend.name
+              )}
+              {backend.releaseLine && (
+                <Typography
+                  variant="body2"
+                  color="textSecondary"
+                  component="span"
+                >
+                  {` @ ${backend.releaseLine}`}
+                </Typography>
               )}
               {backend.endpoint && (
                 <Typography
