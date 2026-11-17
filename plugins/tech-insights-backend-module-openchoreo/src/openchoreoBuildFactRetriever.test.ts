@@ -19,7 +19,6 @@ jest.mock('./collectOpenChoreoFacts', () => ({
   createServiceClient: jest.fn(),
 }));
 
-const PROFILE_PATH = '/api/v1/authz/profile';
 const RUNS_PATH = '/api/v1/namespaces/{namespaceName}/workflowruns';
 
 function component(name: string, annotations: Record<string, string>): Entity {
@@ -62,28 +61,14 @@ const failed = {
   },
 };
 
-const allRuns = {
-  'workflowrun:view': { allowed: [{ path: '*' }], denied: [] },
-};
-
-function fakeClient(options: {
-  capabilities?: unknown;
-  profile?: () => unknown;
-  runs?: (cursor?: string) => unknown;
-}) {
+function fakeClient(runs?: (cursor?: string) => unknown) {
   const GET = jest.fn(async (path: string, { params }: any) => {
-    switch (path) {
-      case PROFILE_PATH:
-        return options.profile
-          ? options.profile()
-          : ok({ capabilities: options.capabilities ?? {} });
-      case RUNS_PATH:
-        return options.runs
-          ? options.runs(params.query.cursor)
-          : ok({ items: [succeeded, failed] });
-      default:
-        throw new Error(`Unexpected ${path}`);
+    if (path !== RUNS_PATH) {
+      throw new Error(`Unexpected ${path}`);
     }
+    return runs
+      ? runs(params.query.cursor)
+      : ok({ items: [succeeded, failed] });
   });
   return { GET };
 }
@@ -108,21 +93,17 @@ async function run(entities: Entity[], client: { GET: jest.Mock }) {
   };
 }
 
-const runsCalls = (client: { GET: jest.Mock }) =>
-  client.GET.mock.calls.filter(([path]) => path === RUNS_PATH);
-
 describe('openchoreoBuildFactRetriever', () => {
-  it('reports build facts when every run can be read', async () => {
-    const client = fakeClient({ capabilities: allRuns });
-    const { byName } = await run([annotated('api')], client);
+  it("reports the component's build facts", async () => {
+    const { byName } = await run([annotated('api')], fakeClient());
     expect(byName.api).toEqual({
       openchoreoBuildLastSucceeded: true,
       openchoreoBuildSuccessRate: 0.5,
     });
   });
 
-  it("lists the component's runs on every release line, 100 at a time", async () => {
-    const client = fakeClient({ capabilities: allRuns });
+  it("lists the component's runs on every release line, 100 at a time, under the entity's deadline", async () => {
+    const client = fakeClient();
     await run([annotated('api')], client);
     expect(client.GET).toHaveBeenCalledWith(RUNS_PATH, {
       params: {
@@ -138,132 +119,63 @@ describe('openchoreoBuildFactRetriever', () => {
     });
   });
 
-  it("sends every request under the entity's deadline", async () => {
-    const client = fakeClient({ capabilities: allRuns });
-    await run([annotated('api')], client);
-    expect(client.GET).toHaveBeenCalled();
-    for (const [, options] of client.GET.mock.calls) {
-      expect(options.signal).toBeInstanceOf(AbortSignal);
-    }
-  });
-
-  it('reads the authz profile once per namespace', async () => {
-    const client = fakeClient({ capabilities: allRuns });
-    await run([annotated('api'), annotated('web')], client);
-    expect(
-      client.GET.mock.calls.filter(([path]) => path === PROFILE_PATH),
-    ).toHaveLength(1);
-  });
-
-  it('reports build facts against a control plane with authorization off', async () => {
-    const { byName } = await run(
-      [annotated('api')],
-      fakeClient({ capabilities: { '*': { allowed: [{ path: '*' }] } } }),
-    );
-    expect(byName.api).toHaveProperty('openchoreoBuildLastSucceeded', true);
-  });
-
-  it.each([
-    ['no workflowrun grant', {}],
-    [
-      'a grant on another project',
-      {
-        'workflowrun:view': { allowed: [{ path: 'ns/acme/project/billing' }] },
-      },
-    ],
-    [
-      'a grant limited by a CEL condition',
-      {
-        'workflowrun:view': {
-          allowed: [
-            {
-              path: '*',
-              constraints: { expressions: ['resource.releaseLine == ""'] },
-            },
-          ],
-        },
-      },
-    ],
-    [
-      'a denial on the project',
-      {
-        'workflowrun:view': {
-          allowed: [{ path: '*' }],
-          denied: [{ path: 'ns/acme/project/payments' }],
-        },
-      },
-    ],
-  ])('reports no build facts with %s', async (_label, capabilities) => {
-    const client = fakeClient({ capabilities });
-    const { byName } = await run([annotated('api')], client);
-    expect(byName.api).toEqual({});
-    expect(runsCalls(client)).toHaveLength(0);
-  });
-
   it('reports nothing for a component OpenChoreo does not manage', async () => {
-    const { byName } = await run(
-      [component('unmanaged', {})],
-      fakeClient({ capabilities: allRuns }),
-    );
+    const client = fakeClient();
+    const { byName } = await run([component('unmanaged', {})], client);
     expect(byName).not.toHaveProperty('unmanaged');
+    expect(client.GET).not.toHaveBeenCalled();
+  });
+
+  it('reports no build facts without a namespace or project annotation', async () => {
+    const client = fakeClient();
+    const { byName } = await run(
+      [component('orphan', { 'openchoreo.io/component': 'orphan' })],
+      client,
+    );
+    expect(byName.orphan).toEqual({});
+    expect(client.GET).not.toHaveBeenCalled();
   });
 
   it('reports no build facts when no finished build is retained', async () => {
     const { byName } = await run(
       [annotated('api')],
-      fakeClient({ capabilities: allRuns, runs: () => ok({ items: [] }) }),
+      fakeClient(() => ok({ items: [] })),
     );
     expect(byName.api).toEqual({});
   });
 
   it('follows the cursor across pages', async () => {
-    const client = fakeClient({
-      capabilities: allRuns,
-      runs: cursor =>
-        cursor
-          ? ok({ items: [failed] })
-          : ok({ items: [succeeded], pagination: { nextCursor: 'next' } }),
-    });
+    const client = fakeClient(cursor =>
+      cursor
+        ? ok({ items: [failed] })
+        : ok({ items: [succeeded], pagination: { nextCursor: 'next' } }),
+    );
     const { byName } = await run([annotated('api')], client);
     expect(byName.api).toEqual({
       openchoreoBuildLastSucceeded: true,
       openchoreoBuildSuccessRate: 0.5,
     });
-    expect(runsCalls(client)).toHaveLength(2);
+    expect(client.GET).toHaveBeenCalledTimes(2);
   });
 
   it('reports no build facts past the page cap', async () => {
-    const client = fakeClient({
-      capabilities: allRuns,
-      runs: () =>
-        ok({ items: [succeeded], pagination: { nextCursor: 'more' } }),
-    });
+    const client = fakeClient(() =>
+      ok({ items: [succeeded], pagination: { nextCursor: 'more' } }),
+    );
     const { byName, logger } = await run([annotated('api')], client);
     expect(byName.api).toEqual({});
-    expect(runsCalls(client)).toHaveLength(MAX_RUN_PAGES);
+    expect(client.GET).toHaveBeenCalledTimes(MAX_RUN_PAGES);
     expect(logger.warn).toHaveBeenCalledWith(
       expect.stringContaining('Leaving out build facts for api'),
     );
   });
 
-  it('keeps the previous facts when the runs or the profile cannot be read', async () => {
-    let profileCalls = 0;
-    const client = fakeClient({
-      profile: () => {
-        profileCalls += 1;
-        return profileCalls === 1 ? status(503) : ok({ capabilities: allRuns });
-      },
-      runs: () => status(500),
-    });
+  it('keeps the previous facts when the runs cannot be read', async () => {
     const { byName, logger } = await run(
-      [annotated('api'), annotated('web')],
-      client,
+      [annotated('api')],
+      fakeClient(() => status(500)),
     );
     expect(byName).not.toHaveProperty('api');
-    expect(byName).not.toHaveProperty('web');
-    expect(logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('authz profile'),
-    );
     expect(logger.warn).toHaveBeenCalledWith(
       expect.stringContaining('GET workflow runs returned HTTP 500'),
     );

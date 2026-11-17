@@ -6,11 +6,6 @@ import {
   createServiceClient,
   type OpenChoreoApiClient,
 } from './collectOpenChoreoFacts';
-import {
-  componentPath,
-  grantsUnconditionally,
-  type ActionCapability,
-} from './capabilities';
 import { buildFacts, type WorkflowRun } from './buildFacts';
 
 export const OPENCHOREO_BUILD_FACT_RETRIEVER_ID =
@@ -20,35 +15,6 @@ const PAGE_SIZE = 100;
 
 /** Components with more retained runs than this get no build facts. */
 export const MAX_RUN_PAGES = 5;
-
-/**
- * Authz profiles for one run, one per namespace. A failed load isn't kept,
- * so the next entity in the namespace loads it again.
- */
-function profileLoader(client: OpenChoreoApiClient) {
-  const loads = new Map<string, Promise<Record<string, ActionCapability>>>();
-  return (namespaceName: string, signal: AbortSignal) => {
-    let load = loads.get(namespaceName);
-    if (!load) {
-      load = client
-        .GET('/api/v1/authz/profile', {
-          params: { query: { namespace: namespaceName } },
-          signal,
-        })
-        .then(({ data, response }) => {
-          if (!data) {
-            throw new Error(
-              `GET authz profile for namespace ${namespaceName} returned HTTP ${response.status}`,
-            );
-          }
-          return (data.capabilities ?? {}) as Record<string, ActionCapability>;
-        });
-      loads.set(namespaceName, load);
-      load.catch(() => loads.delete(namespaceName));
-    }
-    return load;
-  };
-}
 
 /**
  * Every retained run of a component, on any release line. Undefined when
@@ -94,12 +60,12 @@ const schema: FactRetriever['schema'] = {
   openchoreoBuildLastSucceeded: {
     type: 'boolean',
     description:
-      'Whether the newest finished build succeeded. Left out when no finished build is retained, or when the portal service credentials cannot read every build of the component.',
+      'Whether the newest finished build succeeded. Left out when no finished build is retained.',
   },
   openchoreoBuildSuccessRate: {
     type: 'float',
     description:
-      'Share of the newest 20 finished builds that succeeded, from 0 to 1. Left out when no finished build is retained, or when the portal service credentials cannot read every build of the component.',
+      'Share of the newest 20 finished builds that succeeded, from 0 to 1. Left out when no finished build is retained.',
   },
 };
 
@@ -117,11 +83,8 @@ export function createOpenChoreoBuildFactRetriever(
     handler: context =>
       collectOpenChoreoFacts(
         context,
-        async () => {
-          const client = await createServiceClient(context, tokenService);
-          return { client, profileOf: profileLoader(client) };
-        },
-        async (entity, { client, profileOf }, signal) => {
+        () => createServiceClient(context, tokenService),
+        async (entity, client, signal) => {
           const annotations = entity.metadata.annotations ?? {};
           const namespaceName = annotations[CHOREO_ANNOTATIONS.NAMESPACE];
           const projectName = annotations[CHOREO_ANNOTATIONS.PROJECT];
@@ -131,20 +94,6 @@ export function createOpenChoreoBuildFactRetriever(
             return undefined;
           }
           if (!namespaceName || !projectName) {
-            return {};
-          }
-
-          // A run list the caller can only partly see comes back as 200 with
-          // the visible runs, so a component would look unbuilt. Facts are
-          // reported only when every run can be read.
-          const capabilities = await profileOf(namespaceName, signal);
-          if (
-            !grantsUnconditionally(
-              capabilities,
-              'workflowrun:view',
-              componentPath(namespaceName, projectName, componentName),
-            )
-          ) {
             return {};
           }
 

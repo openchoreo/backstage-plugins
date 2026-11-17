@@ -111,8 +111,8 @@ component's tier is decided by its other checks. When a deployment check shows n
 components that are deployed, grant the service credentials `releasebinding:view` on them and
 `environment:view` on their namespace without conditions, along with `component:view`.
 
-The build facts need `workflowrun:view` on the component's path. The run list has the same partial
-visibility, so they are reported only when that grant covers the component with no CEL condition
-and no denial, and are left out otherwise. A failed read of the authz profile or the run list skips
-the component for that run, so it keeps its previous build facts until they expire. A component
-with more than 500 retained runs gets no build facts.
+The build facts need `workflowrun:view` on the component's path, granted without conditions. The
+run list returns only the runs the credentials can see, so without the grant the facts are left
+out, and with a grant limited by a CEL condition they describe only the runs it lets through. A
+failed read of the run list skips the component for that run, so it keeps its previous build facts
+until they expire. A component with more than 500 retained runs gets no build facts.
