@@ -21,6 +21,7 @@ import {
 import type { CheckEvaluation } from './dryRun';
 import { createEntityAccessGate } from './entityAccess';
 import { createDynamicChecksRouter } from './router';
+import { seedOpenChoreoStarterChecks } from './starterChecks';
 import { CheckValidator } from './validation';
 
 const migrationsDir = resolvePackagePath(
@@ -35,6 +36,7 @@ export const techInsightsModuleDynamicChecks = createBackendModule({
     reg.registerInit({
       deps: {
         factCheckerFactory: techInsightsFactCheckerFactoryExtensionPoint,
+        config: coreServices.rootConfig,
         database: coreServices.database,
         logger: coreServices.logger,
         httpRouter: coreServices.httpRouter,
@@ -47,6 +49,7 @@ export const techInsightsModuleDynamicChecks = createBackendModule({
       },
       async init({
         factCheckerFactory,
+        config,
         database,
         logger,
         httpRouter,
@@ -73,6 +76,13 @@ export const techInsightsModuleDynamicChecks = createBackendModule({
             directory: migrationsDir,
             tableName: 'dynamic_checks_migrations',
           });
+          if (
+            config.getOptionalBoolean(
+              'techInsights.dynamicChecks.openchoreoStarterChecks',
+            )
+          ) {
+            await seedOpenChoreoStarterChecks(client);
+          }
         }
 
         const registry = new DynamicCheckRegistry(client);
