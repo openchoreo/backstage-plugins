@@ -67,10 +67,45 @@ export const parseHistoryLimit = (text: string): number | null => {
 };
 
 /** Where a binding that sets no limit of its own takes it from. */
-export const inheritedLimitText = (limit: BindingRevisionHistoryLimit) =>
-  limit.environmentLimit !== null
+export const inheritedLimitText = (limit: BindingRevisionHistoryLimit) => {
+  if (limit.environmentLimitUnreadable) {
+    return "the environment's limit, which could not be read";
+  }
+  return limit.environmentLimit !== null
     ? `the environment's limit of ${limit.environmentLimit}`
     : 'the platform default';
+};
+
+/**
+ * Warns what Reset will do, from the limit the binding inherits once its own
+ * is cleared. Reset saves at once, so this is shown before it is clicked.
+ * Returns null when Reset deletes nothing.
+ */
+export const resetWarning = (
+  limit: BindingRevisionHistoryLimit,
+  oldRevisionCount: number,
+  environmentName: string,
+): string | null => {
+  if (limit.environmentLimitUnreadable) {
+    return `Reset uses the environment's limit, which could not be read: it may delete old revisions, or with a limit of 0 stop ${environmentName} from being rolled back.`;
+  }
+  if (limit.environmentLimit === null) {
+    return oldRevisionCount > 0
+      ? `Reset uses the platform default: if it is below the ${oldRevisionCount} old ${
+          oldRevisionCount === 1 ? 'revision' : 'revisions'
+        } kept now, the oldest are deleted.`
+      : null;
+  }
+  if (limit.environmentLimit === 0) {
+    return `Reset uses the environment's limit of 0: no old revision is kept, so ${environmentName} cannot be rolled back.`;
+  }
+  const removed = Math.max(oldRevisionCount - limit.environmentLimit, 0);
+  return removed > 0
+    ? `Reset deletes up to ${removed} of the oldest ${
+        removed === 1 ? 'revision' : 'revisions'
+      }. They cannot be restored.`
+    : null;
+};
 
 /** The footer button's label: the limit in effect, as far as it is known. */
 export const historyLimitLabel = (
@@ -79,6 +114,9 @@ export const historyLimitLabel = (
   if (!limit) return 'History limit';
   if (limit.bindingLimit !== null) {
     return `History limit: ${limit.bindingLimit}`;
+  }
+  if (limit.environmentLimitUnreadable) {
+    return 'History limit: unknown';
   }
   if (limit.environmentLimit !== null) {
     return `History limit: ${limit.environmentLimit} (environment)`;
@@ -190,6 +228,10 @@ export const RevisionHistoryLimitControl = ({
   const invalid = text.trim() !== '' && parsed === null;
   const unchanged = limit !== null && parsed === limit.bindingLimit;
   const removed = parsed !== null ? Math.max(oldRevisionCount - parsed, 0) : 0;
+  const onReset =
+    limit && limit.bindingLimit !== null
+      ? resetWarning(limit, oldRevisionCount, environmentName)
+      : null;
 
   return (
     <>
@@ -257,11 +299,12 @@ export const RevisionHistoryLimitControl = ({
                 onChange={e => setText(e.target.value)}
                 disabled={saving}
                 error={invalid}
-                placeholder={
-                  limit.environmentLimit !== null
+                placeholder={(() => {
+                  if (limit.environmentLimitUnreadable) return 'Inherited';
+                  return limit.environmentLimit !== null
                     ? String(limit.environmentLimit)
-                    : 'Default'
-                }
+                    : 'Default';
+                })()}
                 inputProps={{
                   min: 0,
                   max: MAX_REVISION_HISTORY_LIMIT,
@@ -304,6 +347,15 @@ export const RevisionHistoryLimitControl = ({
                   Saving deletes up to {removed} of the oldest{' '}
                   {removed === 1 ? 'revision' : 'revisions'}. They cannot be
                   restored.
+                </Typography>
+              )}
+
+              {onReset && (
+                <Typography
+                  className={classes.warning}
+                  data-testid="history-limit-reset-warning"
+                >
+                  {onReset}
                 </Typography>
               )}
 

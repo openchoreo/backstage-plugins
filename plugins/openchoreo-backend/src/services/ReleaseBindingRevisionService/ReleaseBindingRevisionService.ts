@@ -19,7 +19,8 @@ const PAGE_LIMIT = 100;
 const MAX_PAGES = 20;
 
 /**
- * Follows the list cursor until it ends, or MAX_PAGES pages were read.
+ * Follows the list cursor until it ends. Fails rather than return a partial
+ * history when the cursor has not ended after MAX_PAGES pages.
  */
 async function readAllPages<T>(
   fetchPage: (cursor?: string) => Promise<{
@@ -33,9 +34,13 @@ async function readAllPages<T>(
     const data = await fetchPage(cursor);
     items.push(...data.items);
     cursor = data.pagination?.nextCursor;
-    if (!cursor) break;
+    if (!cursor) return items;
   }
-  return items;
+  throw new Error(
+    `Revision history has more than ${
+      MAX_PAGES * PAGE_LIMIT
+    } revisions; not showing a partial history`,
+  );
 }
 
 /**
@@ -428,11 +433,11 @@ export class ReleaseBindingRevisionService {
 
     return {
       bindingLimit: binding.spec?.revisionHistoryLimit ?? null,
-      environmentLimit: await this.environmentHistoryLimit(
+      ...(await this.environmentHistoryLimit(
         request.namespaceName,
         binding.spec?.environment,
         token,
-      ),
+      )),
     };
   }
 
@@ -504,11 +509,11 @@ export class ReleaseBindingRevisionService {
 
     return {
       bindingLimit: request.limit,
-      environmentLimit: await this.environmentHistoryLimit(
+      ...(await this.environmentHistoryLimit(
         request.namespaceName,
         binding.spec.environment,
         token,
-      ),
+      )),
     };
   }
 
@@ -544,11 +549,11 @@ export class ReleaseBindingRevisionService {
 
     return {
       bindingLimit: binding.spec?.revisionHistoryLimit ?? null,
-      environmentLimit: await this.environmentHistoryLimit(
+      ...(await this.environmentHistoryLimit(
         request.namespaceName,
         binding.spec?.environment,
         token,
-      ),
+      )),
     };
   }
 
@@ -622,25 +627,35 @@ export class ReleaseBindingRevisionService {
 
     return {
       bindingLimit: request.limit,
-      environmentLimit: await this.environmentHistoryLimit(
+      ...(await this.environmentHistoryLimit(
         request.namespaceName,
         binding.spec.environment,
         token,
-      ),
+      )),
     };
   }
 
   /**
-   * The Environment's spec.revisionHistoryLimit, or null when it sets none.
-   * It is only shown as the value a binding inherits, so an Environment the
-   * user may not read is reported as null rather than failing the request.
+   * The Environment's spec.revisionHistoryLimit, null when it sets none. It is
+   * only shown as the value a binding inherits, so an Environment that cannot
+   * be read does not fail the request: it is reported as unreadable instead,
+   * so the portal does not mistake it for one that sets no limit.
    */
   private async environmentHistoryLimit(
     namespaceName: string,
     environment: string | undefined,
     token?: string,
-  ): Promise<number | null> {
-    if (!environment) return null;
+  ): Promise<
+    Pick<
+      BindingRevisionHistoryLimit,
+      'environmentLimit' | 'environmentLimitUnreadable'
+    >
+  > {
+    const unreadable = {
+      environmentLimit: null,
+      environmentLimitUnreadable: true,
+    };
+    if (!environment) return unreadable;
     try {
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
@@ -651,13 +666,13 @@ export class ReleaseBindingRevisionService {
         '/api/v1/namespaces/{namespaceName}/environments/{envName}',
         { params: { path: { namespaceName, envName: environment } } },
       );
-      if (!response.ok) return null;
-      return data?.spec?.revisionHistoryLimit ?? null;
+      if (!response.ok) return unreadable;
+      return { environmentLimit: data?.spec?.revisionHistoryLimit ?? null };
     } catch (err) {
       this.logger.debug(
         `Could not read environment ${environment} for its revision history limit: ${err}`,
       );
-      return null;
+      return unreadable;
     }
   }
 }

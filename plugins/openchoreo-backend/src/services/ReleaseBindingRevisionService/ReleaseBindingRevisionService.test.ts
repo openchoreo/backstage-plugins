@@ -116,6 +116,22 @@ describe('ReleaseBindingRevisionService', () => {
       expect(mockGET.mock.calls[1][1].params.query.cursor).toBe('c1');
     });
 
+    it('fails rather than return a partial history when the cursor never ends', async () => {
+      for (let page = 0; page < 20; page++) {
+        mockGET.mockResolvedValueOnce(
+          createOkResponse({
+            items: [revision(1)],
+            pagination: { nextCursor: 'again' },
+          }),
+        );
+      }
+
+      await expect(createService().listRevisions(listRequest)).rejects.toThrow(
+        /not showing a partial history/,
+      );
+      expect(mockGET).toHaveBeenCalledTimes(20);
+    });
+
     it('maps 403 to NotAllowedError', async () => {
       mockGET.mockResolvedValueOnce(createErrorResponse(403, 'denied'));
 
@@ -435,13 +451,17 @@ describe('ReleaseBindingRevisionService', () => {
       ).resolves.toEqual({ bindingLimit: null, environmentLimit: 0 });
     });
 
-    it('reports null for an environment the user may not read', async () => {
+    it('reports an environment the user may not read as unreadable', async () => {
       mockGET
         .mockResolvedValueOnce(createOkResponse(binding(4)))
         .mockResolvedValueOnce(createErrorResponse(403));
       await expect(
         createService().getHistoryLimit(request, 'tok'),
-      ).resolves.toEqual({ bindingLimit: 4, environmentLimit: null });
+      ).resolves.toEqual({
+        bindingLimit: 4,
+        environmentLimit: null,
+        environmentLimitUnreadable: true,
+      });
     });
 
     it.each(kinds)(

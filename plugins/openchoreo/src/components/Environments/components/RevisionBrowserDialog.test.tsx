@@ -206,6 +206,23 @@ describe('RevisionBrowserDialog', () => {
     );
   });
 
+  it('never compares a revision with itself', async () => {
+    const user = userEvent.setup();
+    setup();
+
+    await user.click(
+      screen.getByRole('button', { name: 'Compare with another revision' }),
+    );
+    await screen.findByTestId('yaml-diff-viewer');
+    // r4, the active revision, is being compared with; highlight it.
+    await user.click(screen.getByTestId('browser-revision-4'));
+
+    expect(
+      await screen.findByText('Pick a revision to compare against.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('yaml-diff-viewer')).not.toBeInTheDocument();
+  });
+
   it('clicking a list row changes the revision shown', async () => {
     const user = userEvent.setup();
     setup();

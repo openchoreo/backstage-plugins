@@ -391,9 +391,14 @@ export interface BindingRevisionHistoryLimit {
   bindingLimit: number | null;
   /**
    * The Environment's spec.revisionHistoryLimit; null when unset or when the
-   * user may not read the Environment.
+   * Environment could not be read (see environmentLimitUnreadable).
    */
   environmentLimit: number | null;
+  /**
+   * True when the Environment could not be read, so the limit a binding without
+   * its own would inherit is unknown. Absent or false when it was read.
+   */
+  environmentLimitUnreadable?: boolean;
 }
 /** A pre-flight finding of a rollback that does not block it */
 export type RollbackWarning =

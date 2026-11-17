@@ -5,7 +5,9 @@ import type { BindingRevisionHistoryLimit } from '@openchoreo/backstage-plugin-c
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import {
   historyLimitLabel,
+  inheritedLimitText,
   parseHistoryLimit,
+  resetWarning,
   RevisionHistoryLimitControl,
   type RevisionHistoryLimitControlProps,
 } from './RevisionHistoryLimitControl';
@@ -88,6 +90,44 @@ describe('historyLimitLabel', () => {
     );
     expect(historyLimitLabel(limit(null))).toBe('History limit: default');
   });
+
+  it('does not call an unreadable environment limit the default', () => {
+    const unreadable = {
+      ...limit(null),
+      environmentLimitUnreadable: true,
+    };
+    expect(historyLimitLabel(unreadable)).toBe('History limit: unknown');
+    expect(inheritedLimitText(unreadable)).toBe(
+      "the environment's limit, which could not be read",
+    );
+    expect(inheritedLimitText(limit(null))).toBe('the platform default');
+    expect(historyLimitLabel({ ...unreadable, bindingLimit: 4 })).toBe(
+      'History limit: 4',
+    );
+  });
+});
+
+describe('resetWarning', () => {
+  it('warns from the limit the binding inherits once its own is cleared', () => {
+    expect(resetWarning(limit(10, 2), 5, 'Development')).toBe(
+      'Reset deletes up to 3 of the oldest revisions. They cannot be restored.',
+    );
+    expect(resetWarning(limit(10, 0), 5, 'Development')).toContain(
+      'Development cannot be rolled back',
+    );
+    expect(resetWarning(limit(2, 10), 5, 'Development')).toBeNull();
+    expect(resetWarning(limit(10), 5, 'Development')).toContain(
+      'Reset uses the platform default',
+    );
+    expect(resetWarning(limit(10), 0, 'Development')).toBeNull();
+    expect(
+      resetWarning(
+        { ...limit(10), environmentLimitUnreadable: true },
+        0,
+        'Development',
+      ),
+    ).toContain('could not be read');
+  });
 });
 
 describe('RevisionHistoryLimitControl', () => {
@@ -167,6 +207,22 @@ describe('RevisionHistoryLimitControl', () => {
     expect(
       within(popover).getByTestId('history-limit-warning'),
     ).toHaveTextContent('Development cannot be rolled back');
+  });
+
+  it('warns what Reset deletes before it is clicked, whatever is typed', async () => {
+    setup(limit(10, 2), { oldRevisionCount: 5 });
+    const user = userEvent.setup();
+    const popover = await openPopover(user);
+    await waitFor(() => expect(field(popover)).toHaveValue(10));
+
+    expect(
+      within(popover).getByTestId('history-limit-reset-warning'),
+    ).toHaveTextContent('Reset deletes up to 3 of the oldest revisions.');
+    await user.clear(field(popover));
+    await user.type(field(popover), '20');
+    expect(
+      within(popover).getByTestId('history-limit-reset-warning'),
+    ).toHaveTextContent('Reset deletes up to 3 of the oldest revisions.');
   });
 
   it('resets a binding limit so the inherited one applies', async () => {

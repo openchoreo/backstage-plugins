@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Box,
   Button,
@@ -106,8 +106,11 @@ type Preview =
 /**
  * Confirms a rollback. Opening it runs the rollback as a dry run and shows
  * the spec changes and every warning; only Confirm applies it. The server
- * repeats every check on apply, so a binding that changed after the preview
- * is refused rather than overwritten, and the preview is refreshed.
+ * repeats every check on apply and refuses a binding that changes while the
+ * rollback is being written, after which the preview is refreshed. Confirm
+ * sends only the target revision, though, so a binding changed between the
+ * preview and Confirm (by a new deploy, say) is not refused: the rollback is
+ * applied to it as it is then.
  */
 export const RollbackConfirmDialog = ({
   open,
@@ -156,12 +159,19 @@ export const RollbackConfirmDialog = ({
     [client, entity, kind, bindingName, targetNumber],
   );
 
+  // Identifies the latest preview request. Closing the dialog or changing
+  // its target bumps it, so a response to an earlier request is ignored.
+  const previewRequest = useRef(0);
+
   const runPreview = useCallback(async () => {
+    const request = ++previewRequest.current;
     setPreview({ state: 'loading' });
     try {
       const result = await rollback(true);
+      if (request !== previewRequest.current) return;
       setPreview({ state: 'ready', result });
     } catch (e) {
+      if (request !== previewRequest.current) return;
       setPreview({ state: 'error', message: describeRollbackError(e) });
       if (isAutoDeployBlocked(e)) setAutoDeployBlocked(true);
       if (isNotFound(e)) onTargetMissing?.();
@@ -172,11 +182,16 @@ export const RollbackConfirmDialog = ({
   }, [rollback]);
 
   useEffect(() => {
-    if (!open || !target) return;
+    if (!open || !target) {
+      // A preview still in flight belongs to a dialog that is now closed.
+      previewRequest.current++;
+      return;
+    }
     setApplyError(null);
     setApplying(false);
     setMessage('');
     setAutoDeployBlocked(false);
+    // A new preview makes any earlier one stale.
     runPreview();
   }, [open, target, runPreview]);
 

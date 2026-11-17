@@ -348,9 +348,16 @@ export const RevisionBrowserDialog = ({
   }, [open]);
 
   // Entering Compare for the first time compares with the active revision,
-  // unless the highlighted revision is the active one.
+  // unless the highlighted revision is the active one. Highlighting the
+  // revision being compared with clears it: a revision is never compared with
+  // itself.
   useEffect(() => {
-    if (mode !== 'compare' || compareTargetName) return;
+    if (mode !== 'compare') return;
+    if (compareTargetName && compareTargetName === highlightedName) {
+      setCompareTargetName(null);
+      return;
+    }
+    if (compareTargetName) return;
     if (active && active.metadata.name !== highlightedName) {
       setCompareTargetName(active.metadata.name);
     }
@@ -364,7 +371,9 @@ export const RevisionBrowserDialog = ({
   const highlighted =
     revisions.find(r => r.metadata.name === highlightedName) ?? null;
   const compareTarget =
-    revisions.find(r => r.metadata.name === compareTargetName) ?? null;
+    compareTargetName !== highlightedName
+      ? revisions.find(r => r.metadata.name === compareTargetName) ?? null
+      : null;
   const highlightedYaml = highlighted ? revisionYaml(highlighted) : '';
   const blocked = highlighted ? rollbackBlockedReason(highlighted) : null;
   const deleteBlocked =

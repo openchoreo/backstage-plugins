@@ -213,6 +213,92 @@ describe('useReleaseBindingRevisions', () => {
     expect(list).toHaveBeenCalledTimes(calls);
   });
 
+  it('gives up after the timeout even while the list keeps changing', async () => {
+    // Every read differs, so the data changes on each poll; the deadline is
+    // set when the wait starts and must not move with it.
+    let read = 0;
+    const list = jest.fn().mockImplementation(async () => [
+      {
+        ...makeRevision(1, 'Healthy', true),
+        spec: {
+          revision: 1,
+          cause: 'Deploy',
+          componentReleaseName: `api-v${++read}`,
+        },
+      },
+    ]);
+    const client = { listReleaseBindingRevisions: list } as any;
+    const { result } = renderHook(
+      () =>
+        useReleaseBindingRevisions(entity, 'development', 'api-development', {
+          pollIntervalMs: POLL_MS,
+          awaitTimeoutMs: POLL_MS * 3,
+        }),
+      { wrapper: createQueryWrapper([[openChoreoClientApiRef, client]]) },
+    );
+    await waitFor(() => expect(result.current.revisions).toHaveLength(1));
+
+    act(() => result.current.awaitRevision('api-development-r9'));
+    await waitIntervals(8);
+    const calls = list.mock.calls.length;
+    await waitIntervals(5);
+    expect(list).toHaveBeenCalledTimes(calls);
+  });
+
+  it('after a lower history limit, polls until the oldest revisions are gone', async () => {
+    const untrimmed = [
+      makeRevision(4, 'Healthy', true),
+      makeRevision(3, 'Healthy'),
+      makeRevision(2, 'Healthy'),
+      makeRevision(1, 'Healthy'),
+    ];
+    const trimmed = untrimmed.slice(0, 2);
+    // The controller trims a couple of reads after the limit is saved.
+    const list = jest
+      .fn()
+      .mockResolvedValueOnce(untrimmed)
+      .mockResolvedValueOnce(untrimmed)
+      .mockResolvedValueOnce(untrimmed)
+      .mockResolvedValue(trimmed);
+    const { result } = renderRevisions(list);
+    await waitFor(() => expect(result.current.revisions).toHaveLength(4));
+
+    act(() => result.current.awaitTrim(1));
+
+    await waitFor(() => expect(result.current.revisions).toHaveLength(2));
+    // Trimmed to the limit: polling stops.
+    const calls = list.mock.calls.length;
+    await waitIntervals(5);
+    expect(list).toHaveBeenCalledTimes(calls);
+  });
+
+  it('gives up waiting for a trim after its timeout', async () => {
+    // Revisions the controller always keeps can stay above the limit.
+    const list = jest
+      .fn()
+      .mockResolvedValue([
+        makeRevision(3, 'Healthy', true),
+        makeRevision(2, 'Healthy'),
+        makeRevision(1, 'Healthy'),
+      ]);
+    const client = { listReleaseBindingRevisions: list } as any;
+    const { result } = renderHook(
+      () =>
+        useReleaseBindingRevisions(entity, 'development', 'api-development', {
+          pollIntervalMs: POLL_MS,
+          awaitTrimTimeoutMs: POLL_MS * 3,
+        }),
+      { wrapper: createQueryWrapper([[openChoreoClientApiRef, client]]) },
+    );
+    await waitFor(() => expect(result.current.revisions).toHaveLength(3));
+
+    act(() => result.current.awaitTrim(0));
+    await waitIntervals(6);
+    const calls = list.mock.calls.length;
+    await waitIntervals(5);
+    expect(list).toHaveBeenCalledTimes(calls);
+  });
+
   describe('for a Resource binding', () => {
     const resourceRevision = (n: number, health: string, active = false) =>
       ({

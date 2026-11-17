@@ -27,6 +27,27 @@ export const REVISION_POLL_INTERVAL_MS = 5000;
  * controller records it on its next reconcile, normally within seconds.
  */
 export const AWAIT_REVISION_TIMEOUT_MS = 60_000;
+/**
+ * How long to keep polling for the controller to delete revisions above a
+ * lowered history limit. It trims on its next reconcile, normally within
+ * seconds; revisions it always keeps can stay above the limit, so the wait is
+ * bounded rather than open-ended.
+ */
+export const AWAIT_TRIM_TIMEOUT_MS = 30_000;
+
+/** Revisions that are not the active one: those a history limit counts. */
+const oldRevisionCount = (revisions: BindingRevision[] | undefined): number =>
+  revisions?.filter(r => r.status?.active !== true).length ?? 0;
+
+/**
+ * Whether the list still shows more old revisions than the limit keeps. With
+ * an unknown limit (null) it is never known to be trimmed, so the wait only
+ * ends at its timeout.
+ */
+const awaitingTrim = (
+  revisions: BindingRevision[] | undefined,
+  limit: number | null,
+): boolean => limit === null || oldRevisionCount(revisions) > limit;
 
 export interface UseReleaseBindingRevisionsOptions {
   /**
@@ -36,6 +57,7 @@ export interface UseReleaseBindingRevisionsOptions {
   kind?: BindingKind;
   pollIntervalMs?: number;
   awaitTimeoutMs?: number;
+  awaitTrimTimeoutMs?: number;
 }
 
 export interface UseReleaseBindingRevisionsResult {
@@ -51,6 +73,13 @@ export interface UseReleaseBindingRevisionsResult {
    * returns, so the new revision is not in the list straight away.
    */
   awaitRevision: (revisionName: string) => void;
+  /**
+   * Keep refreshing, for at most AWAIT_TRIM_TIMEOUT_MS, until the list shows
+   * no more old revisions than limit: the history limit now in effect, or null
+   * when it is not known. A lowered limit is trimmed by the controller after
+   * the API call returns.
+   */
+  awaitTrim: (limit: number | null) => void;
 }
 
 /**
@@ -68,10 +97,15 @@ export function useReleaseBindingRevisions(
     kind = 'component',
     pollIntervalMs = REVISION_POLL_INTERVAL_MS,
     awaitTimeoutMs = AWAIT_REVISION_TIMEOUT_MS,
+    awaitTrimTimeoutMs = AWAIT_TRIM_TIMEOUT_MS,
   }: UseReleaseBindingRevisionsOptions = {},
 ): UseReleaseBindingRevisionsResult {
   const client = useApi(openChoreoClientApiRef);
   const [awaiting, setAwaiting] = useState<string | null>(null);
+  // The history limit a trim is awaited for; undefined when none is.
+  const [trimLimit, setTrimLimit] = useState<number | null | undefined>(
+    undefined,
+  );
 
   const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
     [
@@ -101,31 +135,60 @@ export function useReleaseBindingRevisions(
       refetchInterval: query => {
         const revisions = query.state.data;
         const missing = awaiting !== null && !isRecorded(revisions, awaiting);
-        return missing || hasProgressing(revisions) ? pollIntervalMs : false;
+        const untrimmed =
+          trimLimit !== undefined && awaitingTrim(revisions, trimLimit);
+        return missing || untrimmed || hasProgressing(revisions)
+          ? pollIntervalMs
+          : false;
       },
     },
   );
 
-  // Stop waiting once the revision shows up, or after the timeout so a
-  // rollback the controller never records doesn't poll forever.
+  // Stop waiting once the revision shows up.
+  useEffect(() => {
+    if (awaiting !== null && isRecorded(data, awaiting)) setAwaiting(null);
+  }, [awaiting, data]);
+
+  // ...or after the timeout, so a rollback the controller never records
+  // doesn't poll forever. The deadline is set when the wait starts; list
+  // refreshes do not move it.
   useEffect(() => {
     if (awaiting === null) return undefined;
-    if (isRecorded(data, awaiting)) {
-      setAwaiting(null);
-      return undefined;
-    }
     const timer = setTimeout(() => setAwaiting(null), awaitTimeoutMs);
     return () => clearTimeout(timer);
-  }, [awaiting, data, awaitTimeoutMs]);
+  }, [awaiting, awaitTimeoutMs]);
 
-  // A different environment has its own history; drop a pending wait.
+  // Stop waiting for a trim once the list is within the limit...
+  useEffect(() => {
+    if (trimLimit !== undefined && !awaitingTrim(data, trimLimit)) {
+      setTrimLimit(undefined);
+    }
+  }, [trimLimit, data]);
+
+  // ...or after its timeout, measured from when the wait started.
+  useEffect(() => {
+    if (trimLimit === undefined) return undefined;
+    const timer = setTimeout(() => setTrimLimit(undefined), awaitTrimTimeoutMs);
+    return () => clearTimeout(timer);
+  }, [trimLimit, awaitTrimTimeoutMs]);
+
+  // A different environment has its own history; drop pending waits.
   useEffect(() => {
     setAwaiting(null);
+    setTrimLimit(undefined);
   }, [environment]);
 
   const awaitRevision = useCallback(
     (revisionName: string) => {
       setAwaiting(revisionName);
+      refetch();
+    },
+    [refetch],
+  );
+
+  const awaitTrim = useCallback(
+    (limit: number | null) => {
+      setTrimLimit(limit);
       refetch();
     },
     [refetch],
@@ -138,5 +201,6 @@ export function useReleaseBindingRevisions(
     error,
     refetch,
     awaitRevision,
+    awaitTrim,
   };
 }

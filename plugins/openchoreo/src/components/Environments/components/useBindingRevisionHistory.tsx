@@ -101,8 +101,17 @@ export const useBindingRevisionHistory = ({
   const { entity } = useEntity();
   const alertApi = useApi(alertApiRef);
 
-  const { revisions, loading, error, isRefetching, awaitRevision, refetch } =
-    useReleaseBindingRevisions(entity, envResourceName, bindingName, { kind });
+  const {
+    revisions,
+    loading,
+    error,
+    isRefetching,
+    awaitRevision,
+    awaitTrim,
+    refetch,
+  } = useReleaseBindingRevisions(entity, envResourceName, bindingName, {
+    kind,
+  });
 
   const active = revisions.find(isActive);
   const [selectedName, setSelectedName] = useState<string | null>(null);
@@ -169,8 +178,10 @@ export const useBindingRevisionHistory = ({
     refetch();
   };
 
-  // A lower limit makes the controller delete the oldest revisions; the list
-  // is refreshed now and keeps polling, so they drop out as they go.
+  // A lower limit makes the controller delete the oldest revisions after the
+  // API call returns, so the list keeps refreshing until they are gone or the
+  // wait times out. The limit in effect is unknown when it comes from the
+  // platform default or an Environment that could not be read.
   const handleLimitChanged = (limit: BindingRevisionHistoryLimit) => {
     alertApi.post({
       message:
@@ -184,7 +195,10 @@ export const useBindingRevisionHistory = ({
       severity: 'success',
       display: 'transient',
     });
-    refetch();
+    awaitTrim(
+      limit.bindingLimit ??
+        (limit.environmentLimitUnreadable ? null : limit.environmentLimit),
+    );
   };
 
   const openBrowser = (name?: string) => {
