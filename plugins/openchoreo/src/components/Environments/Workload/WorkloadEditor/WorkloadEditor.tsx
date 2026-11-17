@@ -36,7 +36,7 @@ import type { ComponentTrait } from '../../../../api/OpenChoreoClientApi';
 import type { TraitWithState } from '../../../Traits/types';
 import type { WorkloadChanges } from '../hooks/useWorkloadChanges';
 import type { ComponentEndpointsState } from '../hooks/useComponentEndpoints';
-import { endpointCards, newEndpointName } from '../componentEndpointDrafts';
+import { endpointCards } from '../componentEndpointDrafts';
 
 interface WorkloadEditorProps {
   componentTypeName?: string;
@@ -409,10 +409,9 @@ export function WorkloadEditor({
 
   const addEndpoint = (): string => {
     const inEndpointsForm = componentEndpoints?.mode === 'endpoints';
-    const endpointName = newEndpointName(
-      formData.endpoints || {},
-      inEndpointsForm ? componentEndpoints.allowedEndpoints : undefined,
-    );
+    const endpointName = `endpoint-${
+      Object.keys(formData.endpoints || {}).length + 1
+    }`;
     const updatedEndpoints = {
       ...formData.endpoints,
       // In the Endpoints form a row takes visibility beyond project only

@@ -1,6 +1,5 @@
 import {
   NO_ENDPOINT,
-  defaultEndpointType,
   endpointTypeKey,
   exposableVisibilities,
   parseEndpointTypeKey,
@@ -28,27 +27,6 @@ import {
  *   Endpoints.
  */
 export type EndpointFormMode = 'endpoints' | 'legacy' | 'none';
-
-/**
- * The name of a new workload endpoint. In the Endpoints form it's named
- * after the Endpoint type an HTTP endpoint starts with (e.g.
- * `unmanaged-http-1`); otherwise, or when no type serves HTTP, `endpoint-1`.
- * The number is the lowest one no workload endpoint has, including those
- * from before Endpoints that get no card.
- */
-export function newEndpointName(
-  existing: Record<string, unknown>,
-  allowedEndpoints?: AllowedEndpointTypeEntry[],
-): string {
-  const typeKey = allowedEndpoints
-    ? defaultEndpointType('HTTP', allowedEndpoints)
-    : NO_ENDPOINT;
-  const prefix =
-    typeKey === NO_ENDPOINT ? 'endpoint' : parseEndpointTypeKey(typeKey).name;
-  let index = 1;
-  while (`${prefix}-${index}` in existing) index++;
-  return `${prefix}-${index}`;
-}
 
 /**
  * The endpoints the Endpoints tab lists, as the form decides: in the

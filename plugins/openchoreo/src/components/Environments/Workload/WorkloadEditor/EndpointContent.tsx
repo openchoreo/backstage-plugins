@@ -189,7 +189,7 @@ export const EndpointContent: FC<EndpointContentProps> = ({
     [endpointsForm, updateBuffer, disabled],
   );
 
-  // A new card starts exposed through the Endpoint type it's named after.
+  // A new card starts exposed through HTTP's default Endpoint type.
   const setChoice = endpointsForm?.setChoice;
   const handleAddEndpoint = useCallback(() => {
     const name = onAddEndpoint();

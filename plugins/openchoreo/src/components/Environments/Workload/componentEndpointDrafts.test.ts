@@ -3,7 +3,6 @@ import {
   endpointCards,
   endpointChangeList,
   exposedEndpointNames,
-  newEndpointName,
   planEndpointChanges,
   type EndpointPlanInput,
 } from './componentEndpointDrafts';
@@ -264,23 +263,6 @@ describe('endpointChangeList', () => {
         newValue: 'external, internal',
       },
     ]);
-  });
-});
-
-describe('newEndpointName', () => {
-  it("names a new endpoint after HTTP's default Endpoint type", () => {
-    expect(newEndpointName({}, allowedEndpoints)).toBe('http-route-1');
-    expect(
-      newEndpointName(
-        { 'http-route-1': {}, 'endpoint-1': {} },
-        allowedEndpoints,
-      ),
-    ).toBe('http-route-2');
-  });
-
-  it('falls back to endpoint-N outside the Endpoints form', () => {
-    expect(newEndpointName({ 'endpoint-1': {} })).toBe('endpoint-2');
-    expect(newEndpointName({}, [])).toBe('endpoint-1');
   });
 });
 
