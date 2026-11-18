@@ -277,7 +277,7 @@ describe('EndpointContent', () => {
     ).toBeInTheDocument();
   });
 
-  it('says when there are no endpoints', () => {
+  it('shows only the Add button when there are no endpoints', () => {
     render(
       <EntityProvider entity={mockComponentEntity()}>
         <EndpointContent
@@ -290,7 +290,8 @@ describe('EndpointContent', () => {
         />
       </EntityProvider>,
     );
-    expect(screen.getByText('No endpoints.')).toBeInTheDocument();
+    expect(screen.queryByText(/No endpoints/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'add' })).toBeInTheDocument();
   });
 
   it('shows type and parameters read-only until the row is edited', () => {

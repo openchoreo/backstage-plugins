@@ -275,11 +275,6 @@ export const EndpointContent: FC<EndpointContentProps> = ({
             </Alert>
           </Box>
         )}
-      {Object.keys(endpointsForm ? cards : endpoints).length === 0 && (
-        <Typography variant="body2" color="textSecondary" gutterBottom>
-          No endpoints.
-        </Typography>
-      )}
       {endpointsForm ? (
         <EndpointList
           endpoints={cards}
