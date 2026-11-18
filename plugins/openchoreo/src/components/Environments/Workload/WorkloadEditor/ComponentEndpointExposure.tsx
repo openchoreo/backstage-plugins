@@ -1,30 +1,19 @@
 import { useEffect } from 'react';
-import {
-  Box,
-  MenuItem,
-  TextField,
-  Tooltip,
-  Typography,
-} from '@material-ui/core';
-import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
-import {
-  StatusBadge,
-  type StatusType,
-} from '@openchoreo/backstage-design-system';
+import { Box, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import {
   NO_ENDPOINT,
   defaultEndpointType,
   endpointProtocol,
-  endpointTypeKey,
-  endpointTypeOptions,
   exposableVisibilities,
-  protocolForEndpointType,
   type ComponentEndpointSummary,
   type ExposableEndpoint,
-  type WorkloadEndpoint,
 } from '@openchoreo/backstage-plugin-common';
-import { endpointProtocolChanges } from '@openchoreo/backstage-plugin-react';
+import {
+  PROJECT_ONLY_DESCRIPTION,
+  fallbackTypeDescription,
+  type EndpointTypeDetails,
+} from './EndpointTypePicker';
 import {
   EndpointTypeParameters,
   endpointTypeLabel,
@@ -48,27 +37,22 @@ const useStyles = makeStyles(theme => ({
     fontSize: '0.8125rem',
     color: theme.palette.text.secondary,
   },
-  typeRow: {
-    display: 'flex',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: theme.spacing(1.5),
+  typeLabel: {
+    fontSize: '0.75rem',
+    fontWeight: 500,
+    color: theme.palette.text.secondary,
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
   },
-  typeField: {
-    minWidth: 280,
+  typeTitle: {
+    fontSize: '0.95rem',
+    fontWeight: 600,
+    marginTop: theme.spacing(0.25),
   },
-  endpointName: {
+  typeDescription: {
     fontSize: '0.8125rem',
     color: theme.palette.text.secondary,
-  },
-  info: {
-    fontSize: 18,
-    color: theme.palette.text.secondary,
-  },
-  deleteNotice: {
-    fontSize: '0.8125rem',
-    color: theme.palette.warning.dark,
-    marginTop: theme.spacing(0.75),
+    marginTop: theme.spacing(0.25),
   },
   summary: {
     fontSize: '0.8125rem',
@@ -89,22 +73,10 @@ function readiness(original: ComponentEndpointSummary): string {
     : 'Not ready';
 }
 
-/** An existing Endpoint's Ready state, as a status badge. */
-function readinessStatus(original: ComponentEndpointSummary): StatusType {
-  if (!original.ready) return 'pending';
-  return original.ready.status === 'True' ? 'success' : 'error';
-}
-
-const LOCKED_TYPE_HELP =
-  "An Endpoint's type is fixed once created. Choose Project only to delete it.";
-
-/** What the "Exposed as" field shows for a card without an Endpoint type. */
-export const PROJECT_ONLY_LABEL = 'Project only (no Endpoint)';
-
 /**
- * The Endpoint type a card shows: the one chosen for it, or none (project
- * only) without a choice. It decides the protocols the card can take, and
- * whether it can take visibility beyond project.
+ * The Endpoint type a card shows: the one it was added with, or none
+ * (project only) without a choice. It decides the protocols the card can
+ * take, and whether it can take visibility beyond project.
  */
 export function cardEndpointType(
   endpoint: ExposableEndpoint,
@@ -126,137 +98,44 @@ function cardOriginal(
   return primaryOriginals(state.originals, state.renames).get(workloadEndpoint);
 }
 
-function originalTypeKey(original: ComponentEndpointSummary): string {
-  return endpointTypeKey({ kind: original.typeKind, name: original.typeName });
-}
-
-export interface ComponentEndpointTypeFieldProps {
+export interface ComponentEndpointTypeHeaderProps {
   /** The workload endpoint's name as the card is saved under. */
   workloadEndpoint: string;
   /** The workload endpoint's values, as currently edited. */
-  endpoint: WorkloadEndpoint;
+  endpoint: ExposableEndpoint;
   state: ComponentEndpointsState;
-  /** Changes a field of the card's workload endpoint. */
-  onEndpointChange: (field: keyof WorkloadEndpoint, value: unknown) => void;
-  disabled: boolean;
+  /** The catalog's title and description per EndpointType key. */
+  details: Record<string, EndpointTypeDetails>;
 }
 
 /**
- * The first field of a card being edited: how the endpoint is exposed,
- * either within the project only or through an Endpoint of an allowed type.
- * Picking a type limits the card's protocols to those the type serves. An
- * existing Endpoint's type is fixed; choosing "Project only" deletes the
- * Endpoint on save.
+ * The top of a card being edited: the Endpoint type it was added with, as a
+ * heading with the type's description. The type is picked when the
+ * endpoint is added and doesn't change in its form.
  */
-export const ComponentEndpointTypeField = ({
+export const ComponentEndpointTypeHeader = ({
   workloadEndpoint,
   endpoint,
   state,
-  onEndpointChange,
-  disabled,
-}: ComponentEndpointTypeFieldProps) => {
+  details,
+}: ComponentEndpointTypeHeaderProps) => {
   const classes = useStyles();
-  const original = cardOriginal(state, workloadEndpoint);
-  const lockedType = original ? originalTypeKey(original) : undefined;
-  const choice = state.choices[workloadEndpoint];
-  const value = cardEndpointType(endpoint, state, workloadEndpoint);
-  const options = endpointTypeOptions(state.allowedEndpoints);
-
-  const select = (typeKey: string) => {
-    if (typeKey === NO_ENDPOINT) {
-      state.restoreChoice(workloadEndpoint, undefined);
-      onEndpointChange(
-        'visibility',
-        (endpoint.visibility ?? []).filter(v => v === 'project'),
-      );
-      return;
-    }
-    // Back to the Endpoint the card has: its parameters and visibility.
-    const backToOriginal = !!original && typeKey === lockedType;
-    let parameters: Record<string, unknown> = {};
-    if (backToOriginal) parameters = original.parameters ?? {};
-    else if (choice?.type === typeKey) parameters = choice.parameters ?? {};
-    state.setChoice(workloadEndpoint, { type: typeKey, parameters });
-
-    const protocol = endpointProtocol(endpoint);
-    const next = protocolForEndpointType(
-      protocol,
-      typeKey,
-      state.allowedEndpoints,
-    );
-    if (next !== protocol) {
-      for (const [field, change] of endpointProtocolChanges(endpoint, next)) {
-        onEndpointChange(field, change);
-      }
-    }
-    if (backToOriginal && exposableVisibilities(endpoint).length === 0) {
-      onEndpointChange('visibility', [
-        ...new Set([...(endpoint.visibility ?? []), ...original.visibility]),
-      ]);
-    }
-  };
-
-  const deleted = !!original && value === NO_ENDPOINT;
-
+  const typeKey = cardEndpointType(endpoint, state, workloadEndpoint);
+  const projectOnly = typeKey === NO_ENDPOINT;
+  const info = projectOnly ? undefined : details[typeKey];
   return (
     <Box>
-      <Box className={classes.typeRow}>
-        <TextField
-          select
-          variant="outlined"
-          size="small"
-          label="Exposed as"
-          // Labels the select for assistive technology.
-          id={`exposed-as-${workloadEndpoint}`}
-          className={classes.typeField}
-          value={value}
-          disabled={disabled}
-          onChange={e => select(e.target.value)}
-        >
-          <MenuItem value={NO_ENDPOINT}>{PROJECT_ONLY_LABEL}</MenuItem>
-          {options.map(option => (
-            <MenuItem
-              key={option.key}
-              value={option.key}
-              disabled={!!lockedType && option.key !== lockedType}
-            >
-              {endpointTypeLabel(option.key, state.allowedEndpoints)}
-              {' · '}
-              {option.protocols.join(', ')}
-            </MenuItem>
-          ))}
-          {/* An Endpoint whose type is no longer allowed keeps showing it. */}
-          {lockedType && !options.some(o => o.key === lockedType) && (
-            <MenuItem value={lockedType}>
-              {endpointTypeLabel(lockedType, state.allowedEndpoints)}
-            </MenuItem>
-          )}
-        </TextField>
-        {original && !deleted && (
-          <>
-            <StatusBadge
-              status={readinessStatus(original)}
-              label={readiness(original)}
-            />
-            <Typography className={classes.endpointName}>
-              Endpoint {original.name}
-            </Typography>
-          </>
-        )}
-        {lockedType && (
-          <Tooltip title={LOCKED_TYPE_HELP}>
-            <InfoOutlinedIcon
-              className={classes.info}
-              aria-label={LOCKED_TYPE_HELP}
-            />
-          </Tooltip>
-        )}
-      </Box>
-      {deleted && original && (
-        <Typography className={classes.deleteNotice}>
-          Endpoint {original.name} is deleted on save.
-        </Typography>
-      )}
+      <Typography className={classes.typeLabel}>Endpoint type</Typography>
+      <Typography className={classes.typeTitle}>
+        {projectOnly
+          ? 'Project only'
+          : info?.title || endpointTypeLabel(typeKey, state.allowedEndpoints)}
+      </Typography>
+      <Typography className={classes.typeDescription}>
+        {projectOnly
+          ? PROJECT_ONLY_DESCRIPTION
+          : info?.description || fallbackTypeDescription(typeKey)}
+      </Typography>
     </Box>
   );
 };
@@ -271,6 +150,8 @@ export interface ComponentEndpointExposureProps {
   disabled: boolean;
   /** Whether the card is open for editing; its Endpoint is read-only otherwise. */
   editing: boolean;
+  /** The catalog's title and description per EndpointType key. */
+  details?: Record<string, EndpointTypeDetails>;
 }
 
 /** A read-only line of an Endpoint's parameters, e.g. `path: /orders`. */
@@ -295,6 +176,7 @@ export const ComponentEndpointExposure = ({
   schemas,
   disabled,
   editing,
+  details,
 }: ComponentEndpointExposureProps) => {
   const classes = useStyles();
   const original = cardOriginal(state, workloadEndpoint);
@@ -345,9 +227,9 @@ export const ComponentEndpointExposure = ({
   const parameters = parameterSummary(choice?.parameters ?? {});
   return (
     <Typography className={classes.summary}>
-      Exposed as{' '}
       <span className={classes.summaryType}>
-        {endpointTypeLabel(typeKey, state.allowedEndpoints)}
+        {details?.[typeKey]?.title ||
+          endpointTypeLabel(typeKey, state.allowedEndpoints)}
       </span>
       {original && ` · Endpoint ${original.name} · ${readiness(original)}`}
       {parameters && ` · ${parameters}`}

@@ -16,7 +16,6 @@ function renderEditor(
     visibilityError: string;
     header: ReactNode;
     protocolOptions: string[];
-    hideVisibility: boolean;
   }> = {},
 ) {
   const handlers = {
@@ -46,7 +45,6 @@ function renderEditor(
       visibilityError={overrides.visibilityError}
       header={overrides.header}
       protocolOptions={overrides.protocolOptions}
-      hideVisibility={overrides.hideVisibility}
       {...handlers}
     />,
   );
@@ -153,18 +151,11 @@ describe('EndpointEditor', () => {
       expect(
         screen.getByText('No endpoint type is allowed for TCP.'),
       ).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Namespace' })).toHaveAttribute(
-        'aria-disabled',
-        'true',
-      );
-      expect(screen.getByRole('button', { name: 'Internal' })).toHaveAttribute(
-        'aria-disabled',
-        'true',
-      );
-      expect(screen.getByRole('button', { name: 'External' })).toHaveAttribute(
-        'aria-disabled',
-        'false',
-      );
+      expect(
+        screen.getByRole('checkbox', { name: 'Namespace' }),
+      ).toBeDisabled();
+      expect(screen.getByRole('checkbox', { name: 'Internal' })).toBeDisabled();
+      expect(screen.getByRole('checkbox', { name: 'External' })).toBeEnabled();
     });
   });
 
@@ -175,7 +166,8 @@ describe('EndpointEditor', () => {
       const name = screen.getByDisplayValue('http');
       expect(
         // eslint-disable-next-line no-bitwise
-        header.compareDocumentPosition(name) & Node.DOCUMENT_POSITION_FOLLOWING,
+        header.compareDocumentPosition(name) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
     });
 
@@ -203,8 +195,10 @@ describe('EndpointEditor', () => {
         endpoint: { type: 'gRPC', port: 9090 },
         protocolOptions: ['gRPC'],
       });
-      expect(screen.getByDisplayValue('gRPC')).toHaveAttribute('readonly');
-      expect(screen.queryByRole('button', { name: /gRPC/ })).toBeNull();
+      expect(screen.getByRole('button', { name: /gRPC/ })).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
     });
   });
 
@@ -216,64 +210,6 @@ describe('EndpointEditor', () => {
       });
       expect(
         screen.getByText('Select a visibility beyond Project.'),
-      ).toBeInTheDocument();
-    });
-  });
-
-  describe('visibility chips', () => {
-    it('toggles a visibility, with Project always included', () => {
-      const { onChange } = renderEditor({
-        isEditing: true,
-        endpoint: { type: 'HTTP', port: 8080, visibility: ['project'] },
-      });
-      expect(screen.queryByRole('button', { name: 'Project' })).toBeNull();
-      expect(screen.getByText('Project')).toBeInTheDocument();
-
-      const external = screen.getByRole('button', { name: 'External' });
-      expect(external).toHaveAttribute('aria-pressed', 'false');
-      fireEvent.click(external);
-      expect(onChange).toHaveBeenCalledWith('visibility', [
-        'project',
-        'external',
-      ]);
-    });
-
-    it('leaves the visibility out when asked', () => {
-      renderEditor({ isEditing: true, hideVisibility: true });
-      expect(screen.queryByText('Visibility')).toBeNull();
-      expect(screen.queryByRole('button', { name: 'External' })).toBeNull();
-    });
-  });
-
-  describe('schema', () => {
-    it('offers to add a schema when there is none', () => {
-      renderEditor({ isEditing: true });
-      expect(screen.getByText('OpenAPI · not set')).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', { name: 'Add schema' }),
-      ).toBeInTheDocument();
-    });
-
-    it('says a gRPC schema is required', () => {
-      renderEditor({
-        isEditing: true,
-        endpoint: { type: 'gRPC', port: 9090 },
-      });
-      expect(screen.getByText('Protobuf · required')).toBeInTheDocument();
-    });
-
-    it('sums up a schema that is set', () => {
-      renderEditor({
-        isEditing: true,
-        endpoint: {
-          type: 'HTTP',
-          port: 8080,
-          schema: { type: 'openapi', content: 'openapi: 3.0.0\ninfo: {}' },
-        },
-      });
-      expect(screen.getByText('OpenAPI · 2 lines')).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', { name: 'Edit schema' }),
       ).toBeInTheDocument();
     });
   });

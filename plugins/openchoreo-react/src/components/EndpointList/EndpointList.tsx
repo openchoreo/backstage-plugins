@@ -62,11 +62,7 @@ export interface EndpointListProps {
 /** The editor settings a list can set per row. */
 export type RowEditorProps = Pick<
   EndpointEditorProps,
-  | 'header'
-  | 'protocolOptions'
-  | 'hideVisibility'
-  | 'visibilityDisabledReason'
-  | 'visibilityError'
+  'header' | 'protocolOptions' | 'visibilityDisabledReason' | 'visibilityError'
 >;
 
 /**

@@ -5,6 +5,7 @@ import { useEntity } from '@backstage/plugin-catalog-react';
 import {
   CHOREO_ANNOTATIONS,
   NO_ENDPOINT,
+  endpointTypeOptions,
   endpointTypeProtocols,
   protocolForEndpointType,
   exposableVisibilities,
@@ -23,10 +24,13 @@ import {
   chosenEndpointTypeKeys,
   useEndpointTypeSchemas,
 } from './EndpointExposure';
-import { EndpointTypePicker } from './EndpointTypePicker';
+import {
+  EndpointTypePicker,
+  useEndpointTypeDetails,
+} from './EndpointTypePicker';
 import {
   ComponentEndpointExposure,
-  ComponentEndpointTypeField,
+  ComponentEndpointTypeHeader,
   DetachedComponentEndpoints,
   cardEndpointType,
 } from './ComponentEndpointExposure';
@@ -144,6 +148,10 @@ export const EndpointContent: FC<EndpointContentProps> = ({
   );
   const choices = endpointsForm?.choices;
   const allowedEndpoints = endpointsForm?.allowedEndpoints;
+  const typeOptionKeys = useMemo(
+    () => endpointTypeOptions(allowedEndpoints ?? []).map(o => o.key),
+    [allowedEndpoints],
+  );
   const typeKeys = useMemo(
     () =>
       allowedEndpoints && choices
@@ -159,7 +167,13 @@ export const EndpointContent: FC<EndpointContentProps> = ({
   // In the Endpoints form a card starts with how it's exposed: its Endpoint
   // type decides the protocols it can take, and only a card with a type
   // takes visibility beyond project, which its Endpoint carries.
-  const updateBuffer = listEditBuffer.updateBuffer;
+  // The catalog's title and description of each allowed type, for the type
+  // picker and each card's heading.
+  const typeDetails = useEndpointTypeDetails(
+    typeOptionKeys,
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ?? '',
+    !!endpointsForm,
+  );
   const rowEditorProps = useCallback(
     (savedName: string, endpoint: WorkloadEndpoint, isEditing: boolean) => {
       if (!endpointsForm) return undefined;
@@ -170,25 +184,24 @@ export const EndpointContent: FC<EndpointContentProps> = ({
         : [];
       return {
         header: isEditing ? (
-          <ComponentEndpointTypeField
+          <ComponentEndpointTypeHeader
             workloadEndpoint={savedName}
             endpoint={endpoint}
             state={endpointsForm}
-            onEndpointChange={updateBuffer}
-            disabled={disabled}
+            details={typeDetails}
           />
         ) : undefined,
         protocolOptions: protocols.length > 0 ? protocols : undefined,
-        // A project-only card has no visibility to choose: picking an
-        // Endpoint type under "Exposed as" is what takes it further.
-        hideVisibility: !exposed,
+        visibilityDisabledReason: exposed
+          ? undefined
+          : 'A project-only endpoint stays within the project. To expose an endpoint beyond it, add one with an Endpoint type.',
         visibilityError:
           exposed && exposableVisibilities(endpoint).length === 0
-            ? 'Select a visibility beyond Project for the Endpoint, or choose Project only.'
+            ? 'Select a visibility beyond Project for the Endpoint.'
             : undefined,
       };
     },
-    [endpointsForm, updateBuffer, disabled],
+    [endpointsForm, typeDetails],
   );
 
   const setChoice = endpointsForm?.setChoice;
@@ -279,6 +292,7 @@ export const EndpointContent: FC<EndpointContentProps> = ({
               schemas={schemas}
               disabled={disabled}
               editing={isEditing}
+              details={typeDetails}
             />
           )}
         />
@@ -295,9 +309,7 @@ export const EndpointContent: FC<EndpointContentProps> = ({
         <EndpointTypePicker
           open={pickerOpen}
           allowedEndpoints={endpointsForm.allowedEndpoints}
-          namespace={
-            entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ?? ''
-          }
+          details={typeDetails}
           onSelect={handlePickType}
           onClose={() => setPickerOpen(false)}
         />

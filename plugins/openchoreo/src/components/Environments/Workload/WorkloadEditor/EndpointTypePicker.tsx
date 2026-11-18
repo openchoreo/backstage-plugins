@@ -104,9 +104,18 @@ const useStyles = makeStyles(theme => ({
 }));
 
 /** The title and description the catalog has for an Endpoint type. */
-interface TypeDetails {
+export interface EndpointTypeDetails {
   title?: string;
   description?: string;
+}
+
+/** What the Project only choice says it does. */
+export const PROJECT_ONLY_DESCRIPTION =
+  'Reachable by components in this project only. No Endpoint is created.';
+
+/** How an Endpoint type is described when the catalog has no description. */
+export function fallbackTypeDescription(typeKey: string): string {
+  return `Exposes the endpoint through ${parseEndpointTypeKey(typeKey).name}.`;
 }
 
 function entityRef(typeKey: string, namespace: string): string {
@@ -121,13 +130,15 @@ function entityRef(typeKey: string, namespace: string): string {
  * keyed by EndpointType key. Types the catalog doesn't have, or a catalog
  * that can't be read, leave the picker with the type's name only.
  */
-function useEndpointTypeDetails(
+export function useEndpointTypeDetails(
   keys: string[],
   namespace: string,
   enabled: boolean,
-): Record<string, TypeDetails> {
+): Record<string, EndpointTypeDetails> {
   const catalogApi = useApi(catalogApiRef);
-  const [details, setDetails] = useState<Record<string, TypeDetails>>({});
+  const [details, setDetails] = useState<Record<string, EndpointTypeDetails>>(
+    {},
+  );
   const joined = keys.join(',');
 
   useEffect(() => {
@@ -141,7 +152,7 @@ function useEndpointTypeDetails(
       })
       .then(({ items }) => {
         if (cancelled) return;
-        const next: Record<string, TypeDetails> = {};
+        const next: Record<string, EndpointTypeDetails> = {};
         items.forEach((entity, i) => {
           if (entity) {
             next[typeKeys[i]] = {
@@ -215,8 +226,8 @@ const TypeCard = ({
 export interface EndpointTypePickerProps {
   open: boolean;
   allowedEndpoints: AllowedEndpointTypeEntry[];
-  /** The OpenChoreo namespace, for reading namespaced EndpointTypes. */
-  namespace: string;
+  /** The catalog's title and description per EndpointType key. */
+  details: Record<string, EndpointTypeDetails>;
   /** Called with the picked EndpointType key, or NO_ENDPOINT for project only. */
   onSelect: (typeKey: string) => void;
   onClose: () => void;
@@ -232,7 +243,7 @@ export interface EndpointTypePickerProps {
 export const EndpointTypePicker = ({
   open,
   allowedEndpoints,
-  namespace,
+  details,
   onSelect,
   onClose,
 }: EndpointTypePickerProps) => {
@@ -240,11 +251,6 @@ export const EndpointTypePicker = ({
   const options = useMemo(
     () => endpointTypeOptions(allowedEndpoints),
     [allowedEndpoints],
-  );
-  const details = useEndpointTypeDetails(
-    options.map(o => o.key),
-    namespace,
-    open,
   );
 
   const typeCard = (option: EndpointTypeOption) => {
@@ -257,9 +263,7 @@ export const EndpointTypePicker = ({
         icon={protocolIcon(option.protocols)}
         name={title}
         subtitle={title === name ? undefined : name}
-        description={
-          info?.description || `Exposes the endpoint through ${name}.`
-        }
+        description={info?.description || fallbackTypeDescription(option.key)}
         chips={
           <>
             {option.protocols.map(p => (
@@ -315,7 +319,7 @@ export const EndpointTypePicker = ({
           icon={<LockOutlinedIcon />}
           muted
           name="Project only"
-          description="Reachable by components in this project only. No Endpoint is created."
+          description={PROJECT_ONLY_DESCRIPTION}
           chips={<Chip label="Any protocol" size="small" variant="outlined" />}
           onClick={() => onSelect(NO_ENDPOINT)}
         />

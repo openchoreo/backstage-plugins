@@ -23,23 +23,24 @@ shows. Before upgrading, platform engineers annotate every
   visibility on the workload (deprecated), served by the type's own templated
   routes. No Endpoints are created.
 - A type with `allowedEndpoints` gets the Endpoints form: one card per
-  endpoint, added with **Add Endpoint**. A card starts with how the endpoint
-  is exposed: **Project only**, or an Endpoint type from `allowedEndpoints`
-  (the default one preselected on a new card). The type decides the
-  protocols the card offers and the parameters it asks for, under its name,
-  protocol, port, visibility and schema; only a card with a type takes
-  visibility beyond project. Saving creates the Endpoint, which carries that
-  visibility, and drops it from the workload; a project-only card has no
-  Endpoint. Workload endpoints from before Endpoints, which carry visibility
-  beyond project but have no Endpoint, get no card and stay on the workload
-  as they are.
+  endpoint. **Add Endpoint** first shows a card for each Endpoint type in
+  `allowedEndpoints`, with its title, description and protocols from the
+  catalog, and one for an endpoint kept within the project. Picking one opens
+  the endpoint's form under that type's name and description, with its name,
+  protocol (limited to those the type serves), port, visibility, schema and
+  the type's parameters; only an endpoint with a type takes visibility beyond
+  project. Saving creates the Endpoint, which carries that visibility, and
+  drops it from the workload; a project-only endpoint has no Endpoint.
+  Workload endpoints from before Endpoints, which carry visibility beyond
+  project but have no Endpoint, get no card and stay on the workload as they
+  are.
 - A type with neither shows no form, and saving changes no Endpoints.
 
 A card with an Endpoint shows its name, Ready state, type and parameters. It can
 be edited or deleted, and changes are staged with the workload and saved after
-it. A renamed workload endpoint keeps its Endpoints; one that's removed or
-is switched to Project only has its Endpoints deleted on save. The
-endpoint editor's Type field is now Protocol.
+it. A renamed workload endpoint keeps its Endpoints; one that's removed has
+its Endpoints deleted on save. The endpoint editor's Type field is now
+Protocol.
 
 The component owns the Endpoints created here (`spec.owner.componentName`), so
 deleting the component deletes them. A release line's configure page manages

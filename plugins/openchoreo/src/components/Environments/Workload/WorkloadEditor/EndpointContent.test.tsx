@@ -31,9 +31,10 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
         ([name, endpoint]: [string, any]) => (
           <div key={name}>
             {props.renderDetails ? 'endpoints-form' : 'legacy-form'}
-            {props.rowEditorProps?.(name, endpoint, false)?.hideVisibility
-              ? `visibility hidden ${name}`
-              : ''}
+            {
+              props.rowEditorProps?.(name, endpoint, false)
+                ?.visibilityDisabledReason
+            }
             <span>
               protocols {name}:{' '}
               {props
@@ -73,6 +74,7 @@ jest.mock('./EndpointExposure', () => ({
 }));
 
 jest.mock('./EndpointTypePicker', () => ({
+  useEndpointTypeDetails: () => ({}),
   EndpointTypePicker: (props: any) =>
     props.open ? (
       <div data-testid="type-picker">
@@ -93,7 +95,7 @@ jest.mock('./ComponentEndpointExposure', () => ({
   ComponentEndpointExposure: (props: any) => (
     <span>{props.editing ? 'details-editable' : 'details-read-only'}</span>
   ),
-  ComponentEndpointTypeField: () => null,
+  ComponentEndpointTypeHeader: () => null,
   DetachedComponentEndpoints: () => null,
   cardEndpointType: (_endpoint: any, form: any, name: string) =>
     form.choices[name]?.type ?? 'none',
@@ -178,8 +180,9 @@ describe('EndpointContent', () => {
   it('keeps a card without an Endpoint type within the project', () => {
     renderContent(state());
 
-    expect(screen.getByText(/visibility hidden api/)).toBeInTheDocument();
-    expect(screen.getByText(/visibility hidden raw/)).toBeInTheDocument();
+    expect(
+      screen.getAllByText(/A project-only endpoint stays within the project/),
+    ).toHaveLength(2);
     expect(screen.getByText('protocols api: any')).toBeInTheDocument();
   });
 
