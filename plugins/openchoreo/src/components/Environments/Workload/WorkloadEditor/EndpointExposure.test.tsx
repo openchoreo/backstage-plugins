@@ -51,8 +51,8 @@ describe('EndpointTypeParameters', () => {
     expect(onChange).toHaveBeenLastCalledWith({ pathPrefix: '/v2' });
   });
 
-  it('shows nothing for a type without parameters', () => {
-    const { container } = render(
+  it('says when a type has no parameters', () => {
+    render(
       <EndpointTypeParameters
         typeKey={HTTP_ROUTE}
         parameters={{}}
@@ -60,7 +60,9 @@ describe('EndpointTypeParameters', () => {
         onChange={jest.fn()}
       />,
     );
-    expect(container).toBeEmptyDOMElement();
+    expect(
+      screen.getByText('This Endpoint type has no parameters.'),
+    ).toBeInTheDocument();
   });
 
   it("says the defaults are used when the schema can't be loaded", () => {

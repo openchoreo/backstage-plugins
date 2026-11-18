@@ -23,7 +23,13 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
     // need to switch tabs do so via the initialTab prop instead.
     return [initialTab ?? defaultTab, jest.fn()];
   },
-  YamlEditor: (_: any) => <div data-testid="yaml-editor" />,
+  YamlEditor: (props: any) => (
+    <textarea
+      data-testid="yaml-editor"
+      value={props.content}
+      onChange={e => props.onChange?.(e.target.value)}
+    />
+  ),
 }));
 
 // design-system: trivial stubs.
@@ -388,5 +394,128 @@ describe('WorkloadEditor', () => {
       expect(spec.dependencies?.endpoints).toEqual([endpointDep]);
       expect(spec.dependencies?.resources).toEqual([]);
     });
+  });
+});
+
+describe('YAML tabs for the Endpoints', () => {
+  const setChoice = jest.fn();
+  const componentEndpoints = {
+    loading: false,
+    loadError: null,
+    allowedEndpoints: [
+      {
+        protocols: ['HTTP'],
+        ref: { kind: 'ClusterEndpointType', name: 'http-route' },
+        default: true,
+      },
+    ],
+    originals: [
+      {
+        name: 'orders-api',
+        releaseLine: '',
+        workloadEndpoint: 'api',
+        typeKind: 'ClusterEndpointType' as const,
+        typeName: 'http-route',
+        visibility: ['external'],
+        parameters: {},
+        autoDeploy: true,
+      },
+    ],
+    draftedFromMain: 0,
+    choices: { api: { type: 'ClusterEndpointType/http-route' } },
+    renames: {},
+    mode: 'endpoints' as const,
+    deprecatedRows: {},
+    canUseEndpoints: true,
+    setChoice,
+    restoreChoice: jest.fn(),
+    renameWorkloadEndpoint: jest.fn(),
+    prepare: (e: any) => e,
+    apply: jest.fn(),
+  };
+
+  function renderWithEndpoints() {
+    mockUseWorkloadContext.mockReturnValue({
+      workloadResource: buildWorkload({
+        endpoints: {
+          api: { type: 'HTTP', port: 8080, visibility: ['external'] },
+        },
+      }),
+      setWorkloadResource: setWorkloadResourceSpy,
+      isDeploying: false,
+    });
+    render(
+      <MemoryRouter>
+        <EntityProvider entity={testEntity}>
+          <WorkloadEditor
+            initialTab="endpoints"
+            componentEndpoints={componentEndpoints}
+          />
+        </EntityProvider>
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByTestId('form-yaml-toggle'));
+  }
+
+  beforeEach(() => {
+    setChoice.mockClear();
+    setWorkloadResourceSpy.mockClear();
+  });
+
+  it('shows a Workload tab and one tab per Endpoint', () => {
+    renderWithEndpoints();
+
+    expect(screen.getByRole('tab', { name: 'Workload' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(
+      screen.getByRole('tab', { name: 'Endpoint: orders-api' }),
+    ).toBeInTheDocument();
+    expect(
+      (screen.getByTestId('yaml-editor') as HTMLTextAreaElement).value,
+    ).toContain('kind: Workload');
+  });
+
+  it("edits an Endpoint's visibility and parameters from its tab", () => {
+    renderWithEndpoints();
+    fireEvent.click(screen.getByRole('tab', { name: 'Endpoint: orders-api' }));
+
+    const editor = screen.getByTestId('yaml-editor') as HTMLTextAreaElement;
+    expect(editor.value).toContain('kind: Endpoint');
+    fireEvent.change(editor, {
+      target: {
+        value: editor.value
+          .replace('- external', '- internal')
+          .replace(
+            'backendRefs:',
+            'parameters:\n    pathPrefix: /v2\n  backendRefs:',
+          ),
+      },
+    });
+
+    expect(setChoice).toHaveBeenCalledWith('api', {
+      type: 'ClusterEndpointType/http-route',
+      parameters: { pathPrefix: '/v2' },
+    });
+    const saved = setWorkloadResourceSpy.mock.calls.at(-1)?.[0];
+    expect(saved.spec.endpoints.api.visibility).toEqual(['internal']);
+  });
+
+  it("refuses changes to an Endpoint's fixed fields", () => {
+    renderWithEndpoints();
+    fireEvent.click(screen.getByRole('tab', { name: 'Endpoint: orders-api' }));
+
+    const editor = screen.getByTestId('yaml-editor') as HTMLTextAreaElement;
+    fireEvent.change(editor, {
+      target: { value: editor.value.replace('orders-api', 'renamed') },
+    });
+
+    expect(
+      screen.getAllByText(
+        /Only spec.visibility and spec.parameters can be changed/,
+      ).length,
+    ).toBeGreaterThan(0);
+    expect(setChoice).not.toHaveBeenCalled();
   });
 });

@@ -22,6 +22,10 @@ import { openChoreoClientApiRef } from '../../../../api/OpenChoreoClientApi';
 import { generateUiSchemaWithTitles } from '../../../../scaffolder/utils/rjsfUtils';
 
 const useStyles = makeStyles(theme => ({
+  empty: {
+    fontSize: '0.8125rem',
+    color: theme.palette.text.secondary,
+  },
   parametersHeading: {
     fontSize: '0.8125rem',
     fontWeight: 500,
@@ -137,7 +141,13 @@ export const EndpointTypeParameters = ({
       </Alert>
     );
   }
-  if (!hasProperties(schema)) return null;
+  if (!hasProperties(schema)) {
+    return (
+      <Typography className={classes.empty}>
+        This Endpoint type has no parameters.
+      </Typography>
+    );
+  }
   return (
     <Box>
       <Typography className={classes.parametersHeading}>Parameters</Typography>

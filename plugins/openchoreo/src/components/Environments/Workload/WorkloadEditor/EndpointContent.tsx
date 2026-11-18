@@ -198,6 +198,8 @@ export const EndpointContent: FC<EndpointContentProps> = ({
           : 'This endpoint has no Endpoint type, so it stays within the project. To expose an endpoint beyond it, add one with an Endpoint type.',
         // The Endpoint carries every visibility, project included.
         projectVisibilitySelectable: exposed,
+        // The type's parameters sit beside the endpoint's own fields.
+        detailsBeside: exposed,
         visibilityError:
           exposed && endpointVisibilities(endpoint).length === 0
             ? 'Select at least one visibility.'

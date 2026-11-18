@@ -17,6 +17,7 @@ function renderEditor(
     header: ReactNode;
     protocolOptions: string[];
     projectVisibilitySelectable: boolean;
+    detailsBeside: boolean;
   }> = {},
 ) {
   const handlers = {
@@ -47,6 +48,7 @@ function renderEditor(
       header={overrides.header}
       protocolOptions={overrides.protocolOptions}
       projectVisibilitySelectable={overrides.projectVisibilitySelectable}
+      detailsBeside={overrides.detailsBeside}
       {...handlers}
     />,
   );
@@ -277,6 +279,33 @@ describe('EndpointEditor', () => {
         },
       });
       expect(screen.getByDisplayValue('OpenAPI · 2 lines')).toBeInTheDocument();
+    });
+  });
+
+  describe('details beside the fields', () => {
+    it('puts the details in a half of their own while editing', () => {
+      renderEditor({
+        isEditing: true,
+        details: <span>parameters here</span>,
+        detailsBeside: true,
+      });
+      const details = screen.getByText('parameters here');
+      const name = screen.getByLabelText('Name');
+      // The details aren't inside the fields' half.
+      const fieldsHalf = name.closest('[class*="splitMain"]');
+      expect(fieldsHalf).not.toBeNull();
+      expect(fieldsHalf).not.toContainElement(details);
+      expect(details.closest('[class*="splitSide"]')).not.toBeNull();
+    });
+
+    it('keeps the details under the fields otherwise', () => {
+      renderEditor({
+        isEditing: true,
+        details: <span>parameters here</span>,
+      });
+      expect(
+        screen.getByText('parameters here').closest('[class*="splitSide"]'),
+      ).toBeNull();
     });
   });
 });

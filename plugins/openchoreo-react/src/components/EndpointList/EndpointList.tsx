@@ -65,6 +65,7 @@ export type RowEditorProps = Pick<
   | 'header'
   | 'protocolOptions'
   | 'projectVisibilitySelectable'
+  | 'detailsBeside'
   | 'visibilityDisabledReason'
   | 'visibilityError'
 >;

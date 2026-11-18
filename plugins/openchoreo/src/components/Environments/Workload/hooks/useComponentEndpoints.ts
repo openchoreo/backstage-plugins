@@ -23,6 +23,8 @@ import {
 } from '../componentEndpointDrafts';
 
 export interface ComponentEndpointsState {
+  /** The release line whose Endpoints these are; undefined for the main line. */
+  releaseLine?: string;
   loading: boolean;
   loadError: string | null;
   allowedEndpoints: AllowedEndpointTypeEntry[];
@@ -341,8 +343,10 @@ export function useComponentEndpoints(
     ],
   );
 
+  const storedLine = toStoredReleaseLine(releaseLine);
   return useMemo(
     () => ({
+      releaseLine: storedLine,
       loading,
       loadError,
       allowedEndpoints,
@@ -360,6 +364,7 @@ export function useComponentEndpoints(
       apply,
     }),
     [
+      storedLine,
       loading,
       loadError,
       allowedEndpoints,

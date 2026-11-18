@@ -27,8 +27,9 @@ shows. Before upgrading, platform engineers annotate every
   `allowedEndpoints`, with its title, description and protocols from the
   catalog. Picking one opens the endpoint's form under that type's name and
   description, with its name, protocol (limited to those the type serves),
-  port, visibility, schema and the type's parameters, with name, protocol,
-  port and schema on one row. Project is a visibility like the others: the
+  port, visibility, schema and the type's parameters, in two halves split by
+  a line: the endpoint's own fields on the left and the type's parameters on
+  the right, which scroll within the left half's height. Project is a visibility like the others: the
   Endpoint carries every visibility chosen, project included, so an endpoint
   with only Project ticked gets an Endpoint with `project` visibility (this
   needs an openchoreo that accepts it). Saving creates the Endpoint and
@@ -37,6 +38,12 @@ shows. Before upgrading, platform engineers annotate every
   from before Endpoints, which carry visibility beyond project but have no
   Endpoint, get no card and stay on the workload as they are.
 - A type with neither shows no form, and saving changes no Endpoints.
+
+In YAML mode the configure page has a tab for the Workload and one for each
+of the component's Endpoints, existing or to be created, showing the Endpoint
+as saving will leave it. An Endpoint's tab edits its `spec.visibility` and
+`spec.parameters`, which go into the form's staged changes; its name, owner,
+type and backends are set by the form and can't be changed there.
 
 A card with an Endpoint shows its name, Ready state, type and parameters. It can
 be edited or deleted, and changes are staged with the workload and saved after
