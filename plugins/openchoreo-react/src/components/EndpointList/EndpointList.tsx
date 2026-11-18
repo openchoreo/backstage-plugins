@@ -31,6 +31,8 @@ export interface EndpointListProps {
    * exposed first. The caller then adds the row and starts editing it.
    */
   onAddRequest?: () => void;
+  /** Leaves the Add button out, e.g. while something else takes its place. */
+  hideAddButton?: boolean;
   /**
    * Extra content shown inside an endpoint's row (for example how it is
    * exposed). For the row being edited it receives the edited name and
@@ -80,6 +82,7 @@ export const EndpointList: FC<EndpointListProps> = ({
   renderDetails,
   rowEditorProps,
   onAddRequest,
+  hideAddButton,
 }) => {
   const classes = useStyles();
 
@@ -146,17 +149,19 @@ export const EndpointList: FC<EndpointListProps> = ({
           </Box>
         );
       })}
-      <Button
-        startIcon={<AddIcon />}
-        onClick={handleAddEndpoint}
-        variant="outlined"
-        size="small"
-        className={classes.addButton}
-        disabled={disabled || editBuffer.isAnyRowEditing}
-        color="primary"
-      >
-        Add Endpoint
-      </Button>
+      {!hideAddButton && (
+        <Button
+          startIcon={<AddIcon />}
+          onClick={handleAddEndpoint}
+          variant="outlined"
+          size="small"
+          className={classes.addButton}
+          disabled={disabled || editBuffer.isAnyRowEditing}
+          color="primary"
+        >
+          Add Endpoint
+        </Button>
+      )}
     </Box>
   );
 };

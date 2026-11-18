@@ -89,4 +89,39 @@ describe('EndpointTypePicker', () => {
     expect(await screen.findByText('unmanaged-http')).toBeInTheDocument();
     expect(screen.getByText('managed-http')).toBeInTheDocument();
   });
+
+  it('shows nothing while closed, and Cancel closes it', async () => {
+    const onClose = jest.fn();
+    const getEntitiesByRefs = jest.fn().mockResolvedValue({ items: [] });
+    const { rerender } = render(
+      <TestApiProvider apis={[[catalogApiRef, { getEntitiesByRefs } as any]]}>
+        <EndpointTypePicker
+          open={false}
+          allowedEndpoints={[unmanaged]}
+          namespace="acme"
+          onSelect={jest.fn()}
+          onClose={onClose}
+        />
+      </TestApiProvider>,
+    );
+    expect(screen.queryByRole('region')).toBeNull();
+    expect(getEntitiesByRefs).not.toHaveBeenCalled();
+
+    rerender(
+      <TestApiProvider apis={[[catalogApiRef, { getEntitiesByRefs } as any]]}>
+        <EndpointTypePicker
+          open
+          allowedEndpoints={[unmanaged]}
+          namespace="acme"
+          onSelect={jest.fn()}
+          onClose={onClose}
+        />
+      </TestApiProvider>,
+    );
+    expect(
+      await screen.findByRole('region', { name: 'Add an endpoint' }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(onClose).toHaveBeenCalled();
+  });
 });

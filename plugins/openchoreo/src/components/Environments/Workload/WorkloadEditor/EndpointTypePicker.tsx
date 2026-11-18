@@ -1,16 +1,6 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import {
-  Box,
-  ButtonBase,
-  Chip,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  Typography,
-} from '@material-ui/core';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Box, Button, ButtonBase, Chip, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
-import CloseIcon from '@material-ui/icons/Close';
 import LanguageIcon from '@material-ui/icons/Language';
 import SwapHorizIcon from '@material-ui/icons/SwapHoriz';
 import SettingsEthernetIcon from '@material-ui/icons/SettingsEthernet';
@@ -26,23 +16,32 @@ import {
 } from '@openchoreo/backstage-plugin-common';
 
 const useStyles = makeStyles(theme => ({
-  title: {
-    paddingRight: theme.spacing(6),
+  panel: {
+    marginTop: theme.spacing(1),
+    padding: theme.spacing(2),
+    border: `1px solid ${theme.palette.primary.main}`,
+    borderRadius: 6,
+    backgroundColor: theme.palette.background.default,
   },
-  close: {
-    position: 'absolute',
-    right: theme.spacing(1),
-    top: theme.spacing(1),
+  panelHeader: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: theme.spacing(2),
+    marginBottom: theme.spacing(2),
+  },
+  heading: {
+    fontWeight: 600,
+    fontSize: '0.95rem',
   },
   intro: {
     color: theme.palette.text.secondary,
-    marginBottom: theme.spacing(2),
+    marginTop: theme.spacing(0.5),
   },
   grid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
     gap: theme.spacing(2),
-    paddingBottom: theme.spacing(2),
   },
   card: {
     display: 'flex',
@@ -226,7 +225,8 @@ export interface EndpointTypePickerProps {
 /**
  * The first step of adding an endpoint: one card per Endpoint type the
  * ComponentType allows, with its title, description and protocols, and a
- * card for an endpoint kept within the project. Picking one opens the
+ * card for an endpoint kept within the project. Shown in the Endpoints tab,
+ * below its cards, in place of the Add button. Picking one opens the
  * endpoint's form with that type.
  */
 export const EndpointTypePicker = ({
@@ -278,43 +278,48 @@ export const EndpointTypePicker = ({
     );
   };
 
+  // Brings the panel into view when it opens below a long list.
+  const panelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (open) panelRef.current?.scrollIntoView?.({ block: 'nearest' });
+  }, [open]);
+
+  if (!open) return null;
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
+    <div
+      className={classes.panel}
+      role="region"
       aria-labelledby="endpoint-type-picker-title"
+      ref={panelRef}
     >
-      <DialogTitle id="endpoint-type-picker-title" className={classes.title}>
-        Add an endpoint
-        <IconButton
-          aria-label="Close"
-          className={classes.close}
-          onClick={onClose}
-        >
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
-      <DialogContent>
-        <Typography variant="body2" className={classes.intro}>
-          Choose how the endpoint is exposed. The Endpoint type decides the
-          protocols it supports and the settings it asks for next.
-        </Typography>
-        <Box className={classes.grid}>
-          {options.map(typeCard)}
-          <TypeCard
-            icon={<LockOutlinedIcon />}
-            muted
-            name="Project only"
-            description="Reachable by components in this project only. No Endpoint is created."
-            chips={
-              <Chip label="Any protocol" size="small" variant="outlined" />
-            }
-            onClick={() => onSelect(NO_ENDPOINT)}
-          />
+      <Box className={classes.panelHeader}>
+        <Box>
+          <Typography
+            id="endpoint-type-picker-title"
+            className={classes.heading}
+          >
+            Add an endpoint
+          </Typography>
+          <Typography variant="body2" className={classes.intro}>
+            Choose how the endpoint is exposed. The Endpoint type decides the
+            protocols it supports and the settings it asks for next.
+          </Typography>
         </Box>
-      </DialogContent>
-    </Dialog>
+        <Button size="small" onClick={onClose}>
+          Cancel
+        </Button>
+      </Box>
+      <Box className={classes.grid}>
+        {options.map(typeCard)}
+        <TypeCard
+          icon={<LockOutlinedIcon />}
+          muted
+          name="Project only"
+          description="Reachable by components in this project only. No Endpoint is created."
+          chips={<Chip label="Any protocol" size="small" variant="outlined" />}
+          onClick={() => onSelect(NO_ENDPOINT)}
+        />
+      </Box>
+    </div>
   );
 };

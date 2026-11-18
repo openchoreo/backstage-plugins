@@ -269,6 +269,7 @@ export const EndpointContent: FC<EndpointContentProps> = ({
           onRemoveEndpoint={onRemoveEndpoint}
           onAddEndpoint={onAddEndpoint}
           onAddRequest={() => setPickerOpen(true)}
+          hideAddButton={pickerOpen}
           rowEditorProps={rowEditorProps}
           renderDetails={(_name, endpoint, savedName, isEditing) => (
             <ComponentEndpointExposure
