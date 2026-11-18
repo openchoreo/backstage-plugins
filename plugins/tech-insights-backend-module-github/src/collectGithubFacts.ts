@@ -28,17 +28,6 @@ function compareRefs(a: string, b: string): number {
   return a < b ? -1 : 1;
 }
 
-/** Every fact in `schema` as null, with `resolvedFact` false. */
-export function unresolvedFacts(
-  schema: Record<string, unknown>,
-  resolvedFact: string,
-): TechInsightFact['facts'] {
-  return {
-    ...Object.fromEntries(Object.keys(schema).map(name => [name, null])),
-    [resolvedFact]: false,
-  };
-}
-
 export interface GithubFactCollectorInput {
   entity: Entity;
   repository: GithubRepository;
