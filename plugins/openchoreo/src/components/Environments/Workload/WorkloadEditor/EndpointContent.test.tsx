@@ -24,13 +24,14 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
         ([name, endpoint]: [string, any]) => (
           <div key={name}>
             {props.renderDetails ? 'endpoints-form' : 'legacy-form'}
-            {props.rowEditorProps?.(name, endpoint, false)
-              ?.visibilityDisabledReason}
+            {props.rowEditorProps?.(name, endpoint, false)?.hideVisibility
+              ? `visibility hidden ${name}`
+              : ''}
             <span>
               protocols {name}:{' '}
-              {props.rowEditorProps?.(name, endpoint, false)?.protocolOptions?.join(
-                ',',
-              ) ?? 'any'}
+              {props
+                .rowEditorProps?.(name, endpoint, false)
+                ?.protocolOptions?.join(',') ?? 'any'}
             </span>
             {props.renderDetails?.(name, endpoint, name, false)}
             <button
@@ -142,9 +143,8 @@ describe('EndpointContent', () => {
   it('keeps a card without an Endpoint type within the project', () => {
     renderContent(state());
 
-    expect(
-      screen.getAllByText(/Choose an Endpoint type under "Exposed as"/),
-    ).toHaveLength(2);
+    expect(screen.getByText(/visibility hidden api/)).toBeInTheDocument();
+    expect(screen.getByText(/visibility hidden raw/)).toBeInTheDocument();
     expect(screen.getByText('protocols api: any')).toBeInTheDocument();
   });
 

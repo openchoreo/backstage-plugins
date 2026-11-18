@@ -167,18 +167,18 @@ describe('ComponentEndpointTypeField', () => {
       ['project', 'external'],
     );
 
-    expect(screen.getByText('Endpoint orders-api · Ready')).toBeInTheDocument();
+    expect(screen.getByText('Ready')).toBeInTheDocument();
+    expect(screen.getByText('Endpoint orders-api')).toBeInTheDocument();
     expect(
-      screen.getByText(/An Endpoint's type is fixed once created/),
+      screen.getByLabelText(/An Endpoint's type is fixed once created/),
     ).toBeInTheDocument();
     fireEvent.mouseDown(screen.getByRole('button', { name: /Exposed as/ }));
     expect(
       await screen.findByRole('option', { name: /grpc-route/ }),
     ).toHaveAttribute('aria-disabled', 'true');
-    expect(screen.getByRole('option', { name: /Project only/ })).not.toHaveAttribute(
-      'aria-disabled',
-      'true',
-    );
+    expect(
+      screen.getByRole('option', { name: /Project only/ }),
+    ).not.toHaveAttribute('aria-disabled', 'true');
   });
 
   it('says an existing Endpoint is deleted once the card is project only', () => {

@@ -1,5 +1,16 @@
 import { useEffect } from 'react';
-import { Box, MenuItem, TextField, Typography } from '@material-ui/core';
+import {
+  Box,
+  MenuItem,
+  TextField,
+  Tooltip,
+  Typography,
+} from '@material-ui/core';
+import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
+import {
+  StatusBadge,
+  type StatusType,
+} from '@openchoreo/backstage-design-system';
 import { makeStyles } from '@material-ui/core/styles';
 import {
   NO_ENDPOINT,
@@ -37,12 +48,26 @@ const useStyles = makeStyles(theme => ({
     fontSize: '0.8125rem',
     color: theme.palette.text.secondary,
   },
+  typeRow: {
+    display: 'flex',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: theme.spacing(1.5),
+  },
   typeField: {
     minWidth: 280,
   },
-  status: {
+  endpointName: {
     fontSize: '0.8125rem',
     color: theme.palette.text.secondary,
+  },
+  info: {
+    fontSize: 18,
+    color: theme.palette.text.secondary,
+  },
+  deleteNotice: {
+    fontSize: '0.8125rem',
+    color: theme.palette.warning.dark,
     marginTop: theme.spacing(0.75),
   },
   summary: {
@@ -63,6 +88,15 @@ function readiness(original: ComponentEndpointSummary): string {
     ? `Not ready (${original.ready.reason})`
     : 'Not ready';
 }
+
+/** An existing Endpoint's Ready state, as a status badge. */
+function readinessStatus(original: ComponentEndpointSummary): StatusType {
+  if (!original.ready) return 'pending';
+  return original.ready.status === 'True' ? 'success' : 'error';
+}
+
+const LOCKED_TYPE_HELP =
+  "An Endpoint's type is fixed once created. Choose Project only to delete it.";
 
 /** What the "Exposed as" field shows for a card without an Endpoint type. */
 export const PROJECT_ONLY_LABEL = 'Project only (no Endpoint)';
@@ -162,52 +196,67 @@ export const ComponentEndpointTypeField = ({
     }
   };
 
-  let status: string | undefined;
-  if (original && value === NO_ENDPOINT) {
-    status = `Endpoint ${original.name} is deleted on save.`;
-  } else if (original) {
-    status = `Endpoint ${original.name} · ${readiness(original)}`;
-  }
+  const deleted = !!original && value === NO_ENDPOINT;
 
   return (
     <Box>
-      <TextField
-        select
-        variant="outlined"
-        size="small"
-        label="Exposed as"
-        // Labels the select for assistive technology.
-        id={`exposed-as-${workloadEndpoint}`}
-        className={classes.typeField}
-        value={value}
-        disabled={disabled}
-        helperText={
-          lockedType
-            ? "An Endpoint's type is fixed once created. Choose Project only to delete it."
-            : 'The Endpoint type decides the protocols and parameters below.'
-        }
-        onChange={e => select(e.target.value)}
-      >
-        <MenuItem value={NO_ENDPOINT}>{PROJECT_ONLY_LABEL}</MenuItem>
-        {options.map(option => (
-          <MenuItem
-            key={option.key}
-            value={option.key}
-            disabled={!!lockedType && option.key !== lockedType}
-          >
-            {endpointTypeLabel(option.key, state.allowedEndpoints)}
-            {' · '}
-            {option.protocols.join(', ')}
-          </MenuItem>
-        ))}
-        {/* An Endpoint whose type is no longer allowed keeps showing it. */}
-        {lockedType && !options.some(o => o.key === lockedType) && (
-          <MenuItem value={lockedType}>
-            {endpointTypeLabel(lockedType, state.allowedEndpoints)}
-          </MenuItem>
+      <Box className={classes.typeRow}>
+        <TextField
+          select
+          variant="outlined"
+          size="small"
+          label="Exposed as"
+          // Labels the select for assistive technology.
+          id={`exposed-as-${workloadEndpoint}`}
+          className={classes.typeField}
+          value={value}
+          disabled={disabled}
+          onChange={e => select(e.target.value)}
+        >
+          <MenuItem value={NO_ENDPOINT}>{PROJECT_ONLY_LABEL}</MenuItem>
+          {options.map(option => (
+            <MenuItem
+              key={option.key}
+              value={option.key}
+              disabled={!!lockedType && option.key !== lockedType}
+            >
+              {endpointTypeLabel(option.key, state.allowedEndpoints)}
+              {' · '}
+              {option.protocols.join(', ')}
+            </MenuItem>
+          ))}
+          {/* An Endpoint whose type is no longer allowed keeps showing it. */}
+          {lockedType && !options.some(o => o.key === lockedType) && (
+            <MenuItem value={lockedType}>
+              {endpointTypeLabel(lockedType, state.allowedEndpoints)}
+            </MenuItem>
+          )}
+        </TextField>
+        {original && !deleted && (
+          <>
+            <StatusBadge
+              status={readinessStatus(original)}
+              label={readiness(original)}
+            />
+            <Typography className={classes.endpointName}>
+              Endpoint {original.name}
+            </Typography>
+          </>
         )}
-      </TextField>
-      {status && <Typography className={classes.status}>{status}</Typography>}
+        {lockedType && (
+          <Tooltip title={LOCKED_TYPE_HELP}>
+            <InfoOutlinedIcon
+              className={classes.info}
+              aria-label={LOCKED_TYPE_HELP}
+            />
+          </Tooltip>
+        )}
+      </Box>
+      {deleted && original && (
+        <Typography className={classes.deleteNotice}>
+          Endpoint {original.name} is deleted on save.
+        </Typography>
+      )}
     </Box>
   );
 };

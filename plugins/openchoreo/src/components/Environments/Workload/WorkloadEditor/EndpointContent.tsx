@@ -177,9 +177,9 @@ export const EndpointContent: FC<EndpointContentProps> = ({
           />
         ) : undefined,
         protocolOptions: protocols.length > 0 ? protocols : undefined,
-        visibilityDisabledReason: exposed
-          ? undefined
-          : 'Choose an Endpoint type under "Exposed as" to make this endpoint visible beyond the project.',
+        // A project-only card has no visibility to choose: picking an
+        // Endpoint type under "Exposed as" is what takes it further.
+        hideVisibility: !exposed,
         visibilityError:
           exposed && exposableVisibilities(endpoint).length === 0
             ? 'Select a visibility beyond Project for the Endpoint, or choose Project only.'
