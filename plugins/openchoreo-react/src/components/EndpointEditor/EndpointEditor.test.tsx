@@ -16,6 +16,7 @@ function renderEditor(
     visibilityError: string;
     header: ReactNode;
     protocolOptions: string[];
+    projectVisibilitySelectable: boolean;
   }> = {},
 ) {
   const handlers = {
@@ -45,6 +46,7 @@ function renderEditor(
       visibilityError={overrides.visibilityError}
       header={overrides.header}
       protocolOptions={overrides.protocolOptions}
+      projectVisibilitySelectable={overrides.projectVisibilitySelectable}
       {...handlers}
     />,
   );
@@ -166,8 +168,7 @@ describe('EndpointEditor', () => {
       const name = screen.getByDisplayValue('http');
       expect(
         // eslint-disable-next-line no-bitwise
-        header.compareDocumentPosition(name) &
-          Node.DOCUMENT_POSITION_FOLLOWING,
+        header.compareDocumentPosition(name) & Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
     });
 
@@ -184,7 +185,7 @@ describe('EndpointEditor', () => {
         endpoint: { type: 'HTTP', port: 8080 },
         protocolOptions: ['HTTP', 'GraphQL'],
       });
-      fireEvent.mouseDown(screen.getByRole('button', { name: /HTTP/ }));
+      fireEvent.mouseDown(screen.getByRole('button', { name: /Protocol/ }));
       const options = await screen.findAllByRole('option');
       expect(options.map(o => o.textContent)).toEqual(['HTTP', 'GraphQL']);
     });
@@ -195,7 +196,7 @@ describe('EndpointEditor', () => {
         endpoint: { type: 'gRPC', port: 9090 },
         protocolOptions: ['gRPC'],
       });
-      expect(screen.getByRole('button', { name: /gRPC/ })).toHaveAttribute(
+      expect(screen.getByRole('button', { name: /Protocol/ })).toHaveAttribute(
         'aria-disabled',
         'true',
       );
@@ -211,6 +212,71 @@ describe('EndpointEditor', () => {
       expect(
         screen.getByText('Select a visibility beyond Project.'),
       ).toBeInTheDocument();
+    });
+  });
+
+  describe('project visibility', () => {
+    it('is fixed and always on by default', () => {
+      renderEditor({
+        isEditing: true,
+        endpoint: { type: 'HTTP', port: 8080, visibility: ['external'] },
+      });
+      const project = screen.getByRole('checkbox', { name: 'Project' });
+      expect(project).toBeChecked();
+      expect(project).toBeDisabled();
+    });
+
+    it('can be chosen like the others when selectable', () => {
+      const { onChange } = renderEditor({
+        isEditing: true,
+        endpoint: { type: 'HTTP', port: 8080, visibility: ['external'] },
+        projectVisibilitySelectable: true,
+      });
+      const project = screen.getByRole('checkbox', { name: 'Project' });
+      expect(project).not.toBeChecked();
+      expect(project).toBeEnabled();
+
+      fireEvent.click(project);
+      expect(onChange).toHaveBeenCalledWith('visibility', [
+        'external',
+        'project',
+      ]);
+    });
+
+    it('shows only the chosen visibilities in the summary when selectable', () => {
+      renderEditor({
+        endpoint: { type: 'HTTP', port: 8080, visibility: ['external'] },
+        projectVisibilitySelectable: true,
+      });
+      expect(screen.getByText(/HTTP : 8080/)).toHaveTextContent(/· External$/);
+    });
+  });
+
+  describe('schema field', () => {
+    it('says the schema is optional when there is none', () => {
+      renderEditor({ isEditing: true });
+      expect(screen.getByPlaceholderText('OpenAPI (optional)')).toHaveValue('');
+      expect(screen.getByLabelText('Edit schema')).toBeInTheDocument();
+    });
+
+    it('marks a missing gRPC schema as required', () => {
+      renderEditor({ isEditing: true, endpoint: { type: 'gRPC', port: 9090 } });
+      expect(
+        screen.getByPlaceholderText('Protobuf (required)'),
+      ).toBeInTheDocument();
+      expect(screen.getByText('Required')).toBeInTheDocument();
+    });
+
+    it('sums up a schema that is set', () => {
+      renderEditor({
+        isEditing: true,
+        endpoint: {
+          type: 'HTTP',
+          port: 8080,
+          schema: { type: 'openapi', content: 'openapi: 3.0.0\ninfo: {}' },
+        },
+      });
+      expect(screen.getByDisplayValue('OpenAPI · 2 lines')).toBeInTheDocument();
     });
   });
 });

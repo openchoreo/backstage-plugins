@@ -80,11 +80,20 @@ export function parseEndpointTypeKey(key: string): {
 }
 
 /**
- * The visibilities of a workload endpoint that an Endpoint can expose.
- * Project scope is implicit for every workload endpoint and never routed.
+ * A workload endpoint's visibilities beyond project: those it carried on the
+ * workload before Endpoints, when project scope was implicit. Telling them
+ * apart finds workload endpoints from before Endpoints.
  */
 export function exposableVisibilities(endpoint: ExposableEndpoint): string[] {
   return (endpoint.visibility ?? []).filter(v => v !== 'project');
+}
+
+/**
+ * The visibilities an Endpoint carries for a workload endpoint: every one
+ * chosen for it, project included, each once.
+ */
+export function endpointVisibilities(endpoint: ExposableEndpoint): string[] {
+  return [...new Set(endpoint.visibility ?? [])];
 }
 
 /**
@@ -209,14 +218,17 @@ export function resolveEndpointType(
 
 /**
  * The workload endpoints to save: those exposed through an Endpoint lose
- * their visibilities beyond project, which the Endpoint carries instead.
- * Every endpoint gets `protocol` set alongside the deprecated type.
+ * their visibilities beyond project, which the Endpoint carries instead, and
+ * keep the project scope the saved workload gives them (the row's own, for
+ * one not saved yet), since the Endpoint carries the visibility the page
+ * shows. Every endpoint gets `protocol` set alongside the deprecated type.
  */
 export function workloadEndpointsForSave<
   T extends { protocol?: string; type?: string; visibility?: string[] },
 >(
   endpoints: Record<string, T>,
   exposedThroughEndpoint: Iterable<string>,
+  saved: Record<string, { visibility?: string[] }> = {},
 ): Record<string, T> {
   const exposed = new Set(exposedThroughEndpoint);
   const result: Record<string, T> = {};
@@ -227,7 +239,9 @@ export function workloadEndpointsForSave<
       ...(protocol && { protocol, type: protocol }),
     };
     if (exposed.has(name)) {
-      const kept = (endpoint.visibility ?? []).filter(v => v === 'project');
+      const kept = ((saved[name] ?? endpoint).visibility ?? []).filter(
+        v => v === 'project',
+      );
       if (kept.length > 0) {
         next.visibility = kept;
       } else {

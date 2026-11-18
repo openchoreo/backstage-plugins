@@ -2,6 +2,7 @@ import {
   NO_ENDPOINT,
   defaultEndpointType,
   endpointProtocol,
+  endpointVisibilities,
   endpointTypeCandidates,
   endpointTypeOptions,
   endpointTypeProtocols,
@@ -127,6 +128,42 @@ describe('workloadEndpointsForSave', () => {
   });
 });
 
+describe('workloadEndpointsForSave with the saved workload', () => {
+  it("keeps an exposed row's saved project scope, whatever the row shows", () => {
+    expect(
+      workloadEndpointsForSave(
+        {
+          // The Endpoint dropped project; the workload keeps its own.
+          api: { type: 'HTTP', port: 80, visibility: ['external'] },
+          // Saved without visibility; the Endpoint now carries project.
+          rpc: { type: 'gRPC', port: 90, visibility: ['project'] },
+        },
+        ['api', 'rpc'],
+        { api: { visibility: ['project'] }, rpc: {} },
+      ),
+    ).toEqual({
+      api: {
+        type: 'HTTP',
+        protocol: 'HTTP',
+        port: 80,
+        visibility: ['project'],
+      },
+      rpc: { type: 'gRPC', protocol: 'gRPC', port: 90 },
+    });
+  });
+});
+
+describe('endpointVisibilities', () => {
+  it('keeps project with the other visibilities, each once', () => {
+    expect(
+      endpointVisibilities({
+        visibility: ['project', 'external', 'project'],
+      }),
+    ).toEqual(['project', 'external']);
+    expect(endpointVisibilities({})).toEqual([]);
+  });
+});
+
 describe('endpointTypeOptions', () => {
   it('lists each type once, default first, with every protocol it serves', () => {
     const grpcToo: AllowedEndpointTypeEntry = {
@@ -174,7 +211,11 @@ describe('protocolForEndpointType', () => {
 
   it("falls back to the type's first protocol", () => {
     expect(
-      protocolForEndpointType('HTTP', 'ClusterEndpointType/grpc-route', entries),
+      protocolForEndpointType(
+        'HTTP',
+        'ClusterEndpointType/grpc-route',
+        entries,
+      ),
     ).toBe('gRPC');
   });
 

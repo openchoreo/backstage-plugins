@@ -237,10 +237,9 @@ export function useComponentEndpoints(
           result[name] = endpoint;
           continue;
         }
-        const visibility = [
-          ...new Set([...(endpoint.visibility ?? []), ...visibilitySource]),
-        ];
-        result[name] = { ...endpoint, visibility };
+        // The Endpoint carries the row's visibility, project included, so the
+        // row shows exactly the Endpoint's.
+        result[name] = { ...endpoint, visibility: [...visibilitySource] };
       }
       setDeprecatedRows(deprecated);
       return result;

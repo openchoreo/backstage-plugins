@@ -1,8 +1,14 @@
-import { useEffect, useMemo, useState, type FC, type ReactNode } from 'react';
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useState,
+  type FC,
+  type ReactNode,
+} from 'react';
 import {
   TextField,
   IconButton,
-  Grid,
   Box,
   Typography,
   Button,
@@ -14,6 +20,7 @@ import {
   FormControlLabel,
   Checkbox,
   InputLabel,
+  InputAdornment,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -83,8 +90,26 @@ const useStyles = makeStyles((theme: Theme) => ({
     alignItems: 'center',
     padding: theme.spacing(0.5, 0),
   },
-  nameField: {
+  fieldRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'flex-start',
+    gap: theme.spacing(1.5),
     marginBottom: theme.spacing(1.5),
+  },
+  nameInput: {
+    flex: '1 1 200px',
+    minWidth: 160,
+  },
+  protocolInput: {
+    width: 140,
+  },
+  portInput: {
+    width: 110,
+  },
+  schemaInput: {
+    flex: '0 1 240px',
+    minWidth: 200,
   },
   visibilityFieldset: {
     border: `1px solid ${theme.palette.divider}`,
@@ -92,11 +117,6 @@ const useStyles = makeStyles((theme: Theme) => ({
     padding: theme.spacing(0.5, 1),
     margin: 0,
     marginBottom: theme.spacing(0.5),
-  },
-  schemaContentField: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: theme.spacing(0.5),
   },
   schemaEditor: {
     border: `1px solid ${theme.palette.divider}`,
@@ -310,6 +330,11 @@ export interface EndpointEditorProps {
   header?: ReactNode;
   /** The protocols the endpoint can take; every protocol when unset. */
   protocolOptions?: readonly string[];
+  /**
+   * Lets project visibility be chosen like the others instead of being fixed
+   * and always on.
+   */
+  projectVisibilitySelectable?: boolean;
 }
 
 /**
@@ -336,8 +361,10 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
   visibilityError,
   header,
   protocolOptions,
+  projectVisibilitySelectable,
 }) => {
   const classes = useStyles();
+  const fieldId = `endpoint-${useId().replace(/:/g, '')}`;
   const [schemaDialogOpen, setSchemaDialogOpen] = useState(false);
 
   const protocol = endpointProtocol(endpoint) || 'HTTP';
@@ -346,13 +373,6 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
   const schemaDisplayName = schemaType
     ? SCHEMA_TYPE_DISPLAY_NAMES[schemaType]
     : undefined;
-
-  let schemaHelperText = 'Optional';
-  if (isSchemaRequired) {
-    schemaHelperText = `Required - ${schemaDisplayName} schema`;
-  } else if (schemaDisplayName) {
-    schemaHelperText = `${schemaDisplayName} schema (optional)`;
-  }
 
   // Read-only display
   if (!isEditing) {
@@ -372,9 +392,10 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
             {protocol} : {endpoint.port}
             {(() => {
               const vis = endpoint.visibility ?? [];
-              const displayVis = vis.includes('project')
-                ? vis
-                : ['project', ...vis];
+              const displayVis =
+                vis.includes('project') || projectVisibilitySelectable
+                  ? vis
+                  : ['project', ...vis];
               return displayVis.length > 0 ? (
                 <>
                   {' '}
@@ -409,166 +430,170 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
     );
   }
 
-  // Edit mode
+  // Edit mode: name, protocol, port and schema on one row, each sized to
+  // what it holds, then visibility.
   const protocols: readonly string[] = protocolOptions ?? PROTOCOL_TYPES;
+  const schemaContent = endpoint.schema?.content?.trim() ?? '';
+  const schemaLines = schemaContent ? schemaContent.split('\n').length : 0;
+  const schemaMissing = isSchemaRequired && !schemaContent;
+  const schemaSummary = schemaContent
+    ? `${schemaDisplayName ?? 'Schema'} · ${schemaLines} ${
+        schemaLines === 1 ? 'line' : 'lines'
+      }`
+    : '';
+  const schemaPlaceholder = `${schemaDisplayName ?? 'Schema'} (${
+    isSchemaRequired ? 'required' : 'optional'
+  })`;
   return (
     <Box className={className || classes.containerEditing}>
       {header && <Box className={classes.header}>{header}</Box>}
-      <TextField
-        label="Endpoint Name"
-        value={endpointName || ''}
-        onChange={e => onNameChange(e.target.value)}
-        fullWidth
-        variant="outlined"
-        size="small"
-        disabled={disabled}
-        className={classes.nameField}
-      />
-      <Grid container spacing={1} alignItems="center">
-        <Grid item xs={6}>
-          <FormControl fullWidth variant="outlined" size="small">
-            <InputLabel>Protocol</InputLabel>
-            <Select
-              value={protocol}
-              onChange={e => {
-                for (const [field, value] of endpointProtocolChanges(
-                  endpoint,
-                  e.target.value as string,
-                )) {
-                  onChange(field, value);
-                }
-              }}
-              label="Protocol"
-              // One protocol leaves nothing to choose.
-              disabled={disabled || protocols.length <= 1}
-            >
-              {protocols.map(type => (
-                <MenuItem key={type} value={type}>
-                  {type}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-        <Grid item xs={6}>
-          <TextField
-            label="Port"
-            type="number"
-            value={endpoint.port || ''}
-            onChange={e => onChange('port', parseInt(e.target.value, 10) || 0)}
-            fullWidth
-            variant="outlined"
-            size="small"
-            disabled={disabled}
-          />
-        </Grid>
-        <Grid item xs={12}>
-          <FormControl
-            component="fieldset"
-            size="small"
-            fullWidth
-            disabled={disabled}
-            className={classes.visibilityFieldset}
-          >
-            <FormLabel
-              component="legend"
-              style={{ fontSize: '0.75rem', padding: '0 4px' }}
-            >
-              Visibility
-            </FormLabel>
-            <FormGroup row>
-              {VISIBILITY_OPTIONS.map(opt => {
-                const currentVisibility = endpoint.visibility ?? [];
-                const isChecked =
-                  opt.alwaysSelected ||
-                  (currentVisibility as string[]).includes(opt.value);
-                const blocked = !!visibilityDisabledReason && !isChecked;
-                return (
-                  <FormControlLabel
-                    key={opt.value}
-                    control={
-                      <Checkbox
-                        checked={isChecked}
-                        onChange={() => {
-                          if (opt.alwaysSelected || opt.disabled) return;
-                          const next = isChecked
-                            ? currentVisibility.filter(v => v !== opt.value)
-                            : [...currentVisibility, opt.value];
-                          onChange('visibility', next);
-                        }}
-                        size="small"
-                        color="primary"
-                      />
-                    }
-                    label={opt.label}
-                    disabled={disabled || opt.disabled || blocked}
-                  />
-                );
-              })}
-            </FormGroup>
-            {visibilityDisabledReason && (
-              <Typography variant="caption" color="textSecondary">
-                {visibilityDisabledReason}
-              </Typography>
-            )}
-            {visibilityError && (
-              <Typography variant="caption" color="error">
-                {visibilityError}
-              </Typography>
-            )}
-          </FormControl>
-        </Grid>
-        <Grid item xs={12}>
-          <Box className={classes.schemaContentField}>
-            <TextField
-              label="Schema Content"
-              value={
-                endpoint.schema?.content
-                  ? `${endpoint.schema.content.substring(0, 60)}${
-                      endpoint.schema.content.length > 60 ? '...' : ''
-                    }`
-                  : ''
+      <Box className={classes.fieldRow}>
+        <TextField
+          label="Name"
+          value={endpointName || ''}
+          onChange={e => onNameChange(e.target.value)}
+          variant="outlined"
+          size="small"
+          disabled={disabled}
+          className={classes.nameInput}
+        />
+        <FormControl
+          variant="outlined"
+          size="small"
+          className={classes.protocolInput}
+        >
+          <InputLabel id={`${fieldId}-protocol`}>Protocol</InputLabel>
+          <Select
+            labelId={`${fieldId}-protocol`}
+            value={protocol}
+            onChange={e => {
+              for (const [field, value] of endpointProtocolChanges(
+                endpoint,
+                e.target.value as string,
+              )) {
+                onChange(field, value);
               }
-              fullWidth
-              variant="outlined"
-              size="small"
-              disabled
-              placeholder={
-                schemaDisplayName
-                  ? `Paste your ${schemaDisplayName} schema`
-                  : 'Optional - click to add'
-              }
-              error={isSchemaRequired && !endpoint.schema?.content?.trim()}
-              helperText={schemaHelperText}
-              InputProps={{
-                readOnly: true,
-              }}
-            />
-            <IconButton
-              size="small"
-              onClick={() => setSchemaDialogOpen(true)}
-              disabled={disabled}
-              aria-label="Edit schema"
-            >
-              <EditIcon fontSize="small" />
-            </IconButton>
-          </Box>
-          <SchemaContentDialog
-            open={schemaDialogOpen}
-            content={endpoint.schema?.content || ''}
-            schemaType={endpoint.schema?.type}
-            required={isSchemaRequired}
-            onApply={content => {
-              onChange('schema', {
-                ...endpoint.schema,
-                content,
-              });
-              setSchemaDialogOpen(false);
             }}
-            onClose={() => setSchemaDialogOpen(false)}
-          />
-        </Grid>
-      </Grid>
+            label="Protocol"
+            // One protocol leaves nothing to choose.
+            disabled={disabled || protocols.length <= 1}
+          >
+            {protocols.map(type => (
+              <MenuItem key={type} value={type}>
+                {type}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <TextField
+          label="Port"
+          type="number"
+          value={endpoint.port || ''}
+          onChange={e => onChange('port', parseInt(e.target.value, 10) || 0)}
+          variant="outlined"
+          size="small"
+          disabled={disabled}
+          inputProps={{ min: 1, max: 65535 }}
+          className={classes.portInput}
+        />
+        <TextField
+          label="Schema"
+          value={schemaSummary}
+          placeholder={schemaPlaceholder}
+          variant="outlined"
+          size="small"
+          error={schemaMissing}
+          helperText={schemaMissing ? 'Required' : undefined}
+          className={classes.schemaInput}
+          InputLabelProps={{ shrink: true }}
+          InputProps={{
+            readOnly: true,
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton
+                  size="small"
+                  edge="end"
+                  onClick={() => setSchemaDialogOpen(true)}
+                  disabled={disabled}
+                  aria-label="Edit schema"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+        />
+      </Box>
+      <FormControl
+        component="fieldset"
+        size="small"
+        fullWidth
+        disabled={disabled}
+        className={classes.visibilityFieldset}
+      >
+        <FormLabel
+          component="legend"
+          style={{ fontSize: '0.75rem', padding: '0 4px' }}
+        >
+          Visibility
+        </FormLabel>
+        <FormGroup row>
+          {VISIBILITY_OPTIONS.map(opt => {
+            const currentVisibility = endpoint.visibility ?? [];
+            // Project is fixed and always on, unless the endpoint lets
+            // it be chosen like the others.
+            const fixed = !!opt.alwaysSelected && !projectVisibilitySelectable;
+            const isChecked =
+              fixed || (currentVisibility as string[]).includes(opt.value);
+            const blocked = !!visibilityDisabledReason && !isChecked;
+            return (
+              <FormControlLabel
+                key={opt.value}
+                control={
+                  <Checkbox
+                    checked={isChecked}
+                    onChange={() => {
+                      if (fixed) return;
+                      const next = isChecked
+                        ? currentVisibility.filter(v => v !== opt.value)
+                        : [...currentVisibility, opt.value];
+                      onChange('visibility', next);
+                    }}
+                    size="small"
+                    color="primary"
+                  />
+                }
+                label={opt.label}
+                disabled={disabled || fixed || blocked}
+              />
+            );
+          })}
+        </FormGroup>
+        {visibilityDisabledReason && (
+          <Typography variant="caption" color="textSecondary">
+            {visibilityDisabledReason}
+          </Typography>
+        )}
+        {visibilityError && (
+          <Typography variant="caption" color="error">
+            {visibilityError}
+          </Typography>
+        )}
+      </FormControl>
+      <SchemaContentDialog
+        open={schemaDialogOpen}
+        content={endpoint.schema?.content || ''}
+        schemaType={endpoint.schema?.type}
+        required={isSchemaRequired}
+        onApply={content => {
+          onChange('schema', {
+            ...endpoint.schema,
+            content,
+          });
+          setSchemaDialogOpen(false);
+        }}
+        onClose={() => setSchemaDialogOpen(false)}
+      />
       {details && <Box className={classes.details}>{details}</Box>}
       <EditRowActions
         isEditing

@@ -5,6 +5,7 @@ import {
   NO_ENDPOINT,
   defaultEndpointType,
   endpointProtocol,
+  endpointVisibilities,
   exposableVisibilities,
   type ComponentEndpointSummary,
   type ExposableEndpoint,
@@ -212,7 +213,8 @@ export const ComponentEndpointExposure = ({
     );
   }
 
-  const exposed = visibilities.length > 0 && typeKey !== NO_ENDPOINT;
+  const exposed =
+    endpointVisibilities(endpoint).length > 0 && typeKey !== NO_ENDPOINT;
   if (!exposed) {
     return original ? (
       <Typography className={classes.summary}>

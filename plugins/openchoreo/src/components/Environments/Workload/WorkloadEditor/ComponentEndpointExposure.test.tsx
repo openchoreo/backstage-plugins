@@ -176,10 +176,10 @@ describe('ComponentEndpointExposure', () => {
     ).toBeInTheDocument();
   });
 
-  it('says an existing Endpoint is deleted once its card is project-only', () => {
+  it('says an existing Endpoint is deleted once its card has no visibility', () => {
     renderCard(
       state({ originals: [original], choices: { api: { type: HTTP_ROUTE } } }),
-      { editing: false },
+      { editing: false, visibility: [] },
     );
 
     expect(

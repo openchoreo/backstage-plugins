@@ -1,7 +1,7 @@
 import {
   NO_ENDPOINT,
   endpointTypeKey,
-  exposableVisibilities,
+  endpointVisibilities,
   parseEndpointTypeKey,
   resolveEndpointType,
   type AllowedEndpointTypeEntry,
@@ -22,7 +22,7 @@ import {
  *   the workload endpoint editor, with visibility on the workload
  *   (deprecated), served by the type's own templated routes;
  * - `endpoints`, for a type with `allowedEndpoints`: one card per endpoint,
- *   whose visibility beyond project is carried by an Endpoint;
+ *   whose visibility, project included, is carried by an Endpoint;
  * - `none`, for a type with neither: no form, and saving changes no
  *   Endpoints.
  */
@@ -73,7 +73,7 @@ export function rowEndpointType(
  * The calls that save a component's Endpoints from its configure page. In
  * the Endpoints form each workload endpoint is exposed through at most one
  * Endpoint, of the type chosen in its row; the Endpoint carries the row's
- * visibilities beyond project. A changed type replaces the Endpoint, since
+ * visibilities, project included. A changed type replaces the Endpoint, since
  * its type is immutable. The legacy form deletes every Endpoint.
  */
 export type EndpointChange =
@@ -145,7 +145,7 @@ export function primaryOriginals(
 
 /**
  * The workload endpoints exposed through an Endpoint after saving, whose
- * visibility beyond project the workload no longer carries. None outside
+ * visibility the Endpoint carries rather than the workload. None outside
  * the Endpoints form.
  */
 export function exposedEndpointNames(input: EndpointPlanInput): string[] {
@@ -153,7 +153,7 @@ export function exposedEndpointNames(input: EndpointPlanInput): string[] {
   return Object.entries(input.endpoints)
     .filter(
       ([name, endpoint]) =>
-        exposableVisibilities(endpoint).length > 0 &&
+        endpointVisibilities(endpoint).length > 0 &&
         rowEndpointType(
           endpoint,
           input.allowedEndpoints,
@@ -190,7 +190,7 @@ export function planEndpointChanges(
   }
 
   for (const [name, endpoint] of Object.entries(input.endpoints)) {
-    const visibility = exposableVisibilities(endpoint);
+    const visibility = endpointVisibilities(endpoint);
     const typeKey = rowEndpointType(
       endpoint,
       input.allowedEndpoints,
@@ -245,7 +245,7 @@ export function planEndpointChanges(
 }
 
 const DELETE_REASONS = {
-  notExposed: 'Deleted (no visibility beyond project)',
+  notExposed: 'Deleted (no visibility)',
   workloadEndpointRemoved: 'Deleted (workload endpoint removed)',
   typeChanged: 'Replaced (endpoint type changed)',
 };

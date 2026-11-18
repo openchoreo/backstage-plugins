@@ -212,6 +212,7 @@ export {
   endpointTypeKey,
   parseEndpointTypeKey,
   exposableVisibilities,
+  endpointVisibilities,
   endpointTypeCandidates,
   endpointTypeOptions,
   endpointTypeProtocols,

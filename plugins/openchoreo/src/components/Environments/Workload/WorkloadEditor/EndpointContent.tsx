@@ -8,7 +8,7 @@ import {
   endpointTypeOptions,
   endpointTypeProtocols,
   protocolForEndpointType,
-  exposableVisibilities,
+  endpointVisibilities,
   type EndpointExposureChoice,
   WorkloadEndpoint,
 } from '@openchoreo/backstage-plugin-common';
@@ -107,8 +107,8 @@ export const EndpointContent: FC<EndpointContentProps> = ({
   } | null>(null);
   const formChoices = endpointsForm?.choices;
   const restoreChoice = endpointsForm?.restoreChoice;
-  // A card with an Endpoint type needs a visibility beyond project for its
-  // Endpoint to carry, so it can't be applied without one.
+  // A card with an Endpoint type needs a visibility, project included, for
+  // its Endpoint to carry, so it can't be applied without one.
   const editingName = editBuffer.editingRow?.endpointName;
   const missingVisibility =
     !!endpointsForm &&
@@ -116,7 +116,7 @@ export const EndpointContent: FC<EndpointContentProps> = ({
     !!editBuffer.editBuffer &&
     cardEndpointType(editBuffer.editBuffer, endpointsForm, editingName) !==
       NO_ENDPOINT &&
-    exposableVisibilities(editBuffer.editBuffer).length === 0;
+    endpointVisibilities(editBuffer.editBuffer).length === 0;
   const listEditBuffer = useMemo(
     () =>
       formChoices && restoreChoice
@@ -164,9 +164,6 @@ export const EndpointContent: FC<EndpointContentProps> = ({
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ?? '',
   );
 
-  // In the Endpoints form a card starts with how it's exposed: its Endpoint
-  // type decides the protocols it can take, and only a card with a type
-  // takes visibility beyond project, which its Endpoint carries.
   // The catalog's title and description of each allowed type, for the type
   // picker and each card's heading.
   const typeDetails = useEndpointTypeDetails(
@@ -174,6 +171,9 @@ export const EndpointContent: FC<EndpointContentProps> = ({
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ?? '',
     !!endpointsForm,
   );
+  // In the Endpoints form a card's Endpoint type decides the protocols it
+  // can take; only a card with a type takes visibility beyond project, and
+  // its Endpoint carries every visibility, project included.
   const rowEditorProps = useCallback(
     (savedName: string, endpoint: WorkloadEndpoint, isEditing: boolean) => {
       if (!endpointsForm) return undefined;
@@ -196,9 +196,11 @@ export const EndpointContent: FC<EndpointContentProps> = ({
         visibilityDisabledReason: exposed
           ? undefined
           : 'This endpoint has no Endpoint type, so it stays within the project. To expose an endpoint beyond it, add one with an Endpoint type.',
+        // The Endpoint carries every visibility, project included.
+        projectVisibilitySelectable: exposed,
         visibilityError:
-          exposed && exposableVisibilities(endpoint).length === 0
-            ? 'Select a visibility beyond Project for the Endpoint.'
+          exposed && endpointVisibilities(endpoint).length === 0
+            ? 'Select at least one visibility.'
             : undefined,
       };
     },

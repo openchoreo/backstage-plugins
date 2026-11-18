@@ -27,8 +27,12 @@ shows. Before upgrading, platform engineers annotate every
   `allowedEndpoints`, with its title, description and protocols from the
   catalog. Picking one opens the endpoint's form under that type's name and
   description, with its name, protocol (limited to those the type serves),
-  port, visibility, schema and the type's parameters. Saving creates the
-  Endpoint, which carries that visibility, and drops it from the workload.
+  port, visibility, schema and the type's parameters, with name, protocol,
+  port and schema on one row. Project is a visibility like the others: the
+  Endpoint carries every visibility chosen, project included, so an endpoint
+  with only Project ticked gets an Endpoint with `project` visibility (this
+  needs an openchoreo that accepts it). Saving creates the Endpoint and
+  drops the visibility from the workload.
   Workload endpoints without an Endpoint stay within the project, and those
   from before Endpoints, which carry visibility beyond project but have no
   Endpoint, get no card and stay on the workload as they are.

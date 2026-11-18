@@ -58,12 +58,14 @@ import {
 
 /**
  * The workload with the given rows' visibilities beyond project dropped
- * (their Endpoints carry them) and protocol set on every row. In the legacy
- * form no row is exposed through an Endpoint, so all visibility is kept.
+ * (their Endpoints carry them, and the rows keep the project scope of the
+ * saved workload) and protocol set on every row. In the legacy form no row
+ * is exposed through an Endpoint, so all visibility is kept.
  */
 function workloadForSave(
   resource: WorkloadResource | null,
   exposedThroughEndpoint: string[],
+  saved?: WorkloadResource | null,
 ): WorkloadResource | null {
   const endpoints = resource?.spec?.endpoints;
   if (!resource || !endpoints) return resource;
@@ -71,7 +73,11 @@ function workloadForSave(
     ...resource,
     spec: {
       ...resource.spec,
-      endpoints: workloadEndpointsForSave(endpoints, exposedThroughEndpoint),
+      endpoints: workloadEndpointsForSave(
+        endpoints,
+        exposedThroughEndpoint,
+        saved?.spec?.endpoints ?? {},
+      ),
     },
   } as WorkloadResource;
 }
@@ -625,13 +631,15 @@ export const WorkloadConfigPage = ({
     setIsProcessing(true);
     setSaveError(null);
     // The workload as saved: in the Endpoints form, rows exposed through an
-    // Endpoint keep only project visibility; in the legacy form every row
-    // keeps its visibility. It is compared with the server copy rather than
-    // the form, since switching forms changes the workload without changing
-    // what the form shows.
+    // Endpoint keep only the project scope the server copy gives them, since
+    // their Endpoint carries the visibility the form shows; in the legacy
+    // form every row keeps its visibility. It is compared with the server
+    // copy rather than the form, since switching forms changes the workload
+    // without changing what the form shows.
     const toSave = workloadForSave(
       workloadResource,
       exposedEndpointNames(endpointPlanInput),
+      serverResourceRef.current,
     );
     const workloadDirty =
       isNewWorkload ||

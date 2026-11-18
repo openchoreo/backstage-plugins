@@ -149,19 +149,22 @@ describe('planEndpointChanges', () => {
     expect(exposedEndpointNames(plan)).toEqual([]);
   });
 
-  it('creates an Endpoint for a row one was added for, moving its visibility', () => {
+  it('creates an Endpoint for each row one was added for, project visibility included', () => {
     const plan = input({
       endpoints: {
         api: { protocol: 'HTTP', visibility: ['external'] },
-        internalOnly: { protocol: 'HTTP', visibility: ['project'] },
+        projectOnly: { protocol: 'HTTP', visibility: ['project'] },
+        untyped: { protocol: 'HTTP', visibility: ['project'] },
       },
       choices: {
         api: { type: ROUTE },
-        internalOnly: { type: ROUTE },
+        projectOnly: { type: ROUTE },
       },
     });
-    expect(ops(planEndpointChanges(plan))).toEqual(['create api']);
-    expect(exposedEndpointNames(plan)).toEqual(['api']);
+    const changes = planEndpointChanges(plan);
+    expect(ops(changes)).toEqual(['create api', 'create projectOnly']);
+    expect(changes[1]).toMatchObject({ visibility: ['project'] });
+    expect(exposedEndpointNames(plan)).toEqual(['api', 'projectOnly']);
   });
 
   it('creates an Endpoint when a type is chosen for a workload endpoint', () => {
@@ -199,12 +202,12 @@ describe('planEndpointChanges', () => {
     ).toEqual(['delete orders-api', 'create api']);
   });
 
-  it('deletes an Endpoint left with no visibility beyond project', () => {
+  it('deletes an Endpoint left with no visibility', () => {
     expect(
       ops(
         planEndpointChanges(
           input({
-            endpoints: { api: { protocol: 'HTTP', visibility: ['project'] } },
+            endpoints: { api: { protocol: 'HTTP', visibility: [] } },
             choices: { api: { type: ROUTE } },
             originals: [original()],
           }),
