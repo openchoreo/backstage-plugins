@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { makeStyles } from '@material-ui/core/styles';
-import { Box, Typography } from '@material-ui/core';
+import { Box, Button, IconButton, Typography } from '@material-ui/core';
+import AddIcon from '@material-ui/icons/Add';
+import CloseIcon from '@material-ui/icons/Close';
 import { FormYamlToggle } from '@openchoreo/backstage-design-system';
 import YAML from 'yaml';
 import type {
@@ -25,6 +27,7 @@ import {
   filterSecretReferencesForEnvDataPlane,
   useUrlSyncedTab,
   YamlEditor,
+  endpointProtocolChanges,
 } from '@openchoreo/backstage-plugin-react';
 import {
   VerticalTabNav,
@@ -43,7 +46,15 @@ import {
   parseEndpointYaml,
 } from '../endpointYaml';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import {
+  CHOREO_ANNOTATIONS,
+  endpointTypeOptions,
+  protocolForEndpointType,
+} from '@openchoreo/backstage-plugin-common';
+import {
+  EndpointTypePicker,
+  useEndpointTypeDetails,
+} from './EndpointTypePicker';
 
 interface WorkloadEditorProps {
   componentTypeName?: string;
@@ -165,6 +176,20 @@ const useStyles = makeStyles(theme => ({
     flexDirection: 'column',
     padding: theme.spacing(2),
     minHeight: 400,
+  },
+  yamlAddEndpoint: {
+    alignSelf: 'center',
+    marginLeft: theme.spacing(1),
+    whiteSpace: 'nowrap',
+  },
+  yamlPicker: {
+    padding: theme.spacing(0, 2),
+    '&:empty': { display: 'none' },
+  },
+  innerTabRemove: {
+    marginLeft: theme.spacing(0.5),
+    padding: 2,
+    fontSize: 14,
   },
   yamlHint: {
     color: theme.palette.text.secondary,
@@ -622,8 +647,96 @@ export function WorkloadEditor({
     setYamlTab(id);
   };
 
+  // Adding an Endpoint in YAML mode: pick its type, then a new workload
+  // endpoint is added with it and its Endpoint tab opens. Its port and
+  // protocol are edited in the Workload tab.
+  const canAddEndpoint =
+    componentEndpoints?.mode === 'endpoints' && !hideEndpoints;
+  const [yamlPickerOpen, setYamlPickerOpen] = useState(false);
+  const allowedEndpoints = componentEndpoints?.allowedEndpoints;
+  const typeOptionKeys = useMemo(
+    () => endpointTypeOptions(allowedEndpoints ?? []).map(o => o.key),
+    [allowedEndpoints],
+  );
+  const typeDetails = useEndpointTypeDetails(
+    typeOptionKeys,
+    yamlContext.namespaceName,
+    isYamlMode && canAddEndpoint,
+  );
+  // The tab to open once a newly added Endpoint's tab exists.
+  const pendingEndpointTab = useRef<string | null>(null);
+
+  const yamlTabHasErrors = () => {
+    if (yamlTab === WORKLOAD_YAML_TAB && yamlError) {
+      setYamlError('Fix YAML errors before adding an Endpoint');
+      return true;
+    }
+    if (yamlTab !== WORKLOAD_YAML_TAB && endpointYamlError) {
+      setEndpointYamlError('Fix the Endpoint YAML errors before adding one');
+      return true;
+    }
+    return false;
+  };
+
+  const addEndpointFromYaml = (typeKey: string) => {
+    setYamlPickerOpen(false);
+    if (!componentEndpoints || !workloadResource) return;
+    const endpoints = workloadResource.spec?.endpoints ?? {};
+    let index = Object.keys(endpoints).length + 1;
+    while (`endpoint-${index}` in endpoints) index++;
+    const name = `endpoint-${index}`;
+    const protocol = protocolForEndpointType(
+      'HTTP',
+      typeKey,
+      componentEndpoints.allowedEndpoints,
+    );
+    const base: WorkloadEndpoint = {
+      type: 'HTTP',
+      port: 8080,
+      visibility: ['project'],
+    };
+    const endpoint = Object.fromEntries([
+      ...Object.entries(base),
+      ...endpointProtocolChanges(base, protocol),
+    ]) as WorkloadEndpoint;
+    setWorkloadResource({
+      ...workloadResource,
+      spec: {
+        ...workloadResource.spec,
+        endpoints: { ...endpoints, [name]: endpoint },
+      },
+    } as WorkloadResource);
+    componentEndpoints.setChoice(name, { type: typeKey });
+    pendingEndpointTab.current = name;
+    setYamlTab(`endpoint:${name}`);
+  };
+
+  // Removing an Endpoint in YAML mode removes its workload endpoint, as
+  // removing its card does; saving deletes the Endpoint.
+  const removeEndpointFromYaml = (name: string) => {
+    if (!componentEndpoints || !workloadResource?.spec?.endpoints) return;
+    const { [name]: _removed, ...rest } = workloadResource.spec.endpoints;
+    setWorkloadResource({
+      ...workloadResource,
+      spec: { ...workloadResource.spec, endpoints: rest },
+    } as WorkloadResource);
+    componentEndpoints.restoreChoice(name, undefined);
+    if (yamlTab === `endpoint:${name}`) setEndpointYamlError(undefined);
+  };
+
+  // A newly added Endpoint's tab opens on its YAML once it exists.
+  useEffect(() => {
+    const pending = pendingEndpointTab.current;
+    if (pending && activeEndpointTab?.workloadEndpoint === pending) {
+      pendingEndpointTab.current = null;
+      setEndpointYaml(endpointToYaml(activeEndpointTab.resource));
+      setEndpointYamlError(undefined);
+    }
+  }, [activeEndpointTab]);
+
   // Back to the Workload tab when the shown Endpoint's tab goes away.
   useEffect(() => {
+    if (pendingEndpointTab.current) return;
     if (yamlTab !== WORKLOAD_YAML_TAB && !activeEndpointTab) {
       setYamlTab(WORKLOAD_YAML_TAB);
       setYamlContent(resourceToYaml(workloadResource));
@@ -816,7 +929,13 @@ export function WorkloadEditor({
   // --- Render helpers ---
 
   const renderInnerTab = (
-    item: { id: string; label: string; count?: number },
+    item: {
+      id: string;
+      label: string;
+      count?: number;
+      /** Removes what the tab shows; adds a ✕ to the tab. */
+      onRemove?: () => void;
+    },
     currentTab: string,
     onSelect: (id: string) => void,
   ) => (
@@ -843,6 +962,21 @@ export function WorkloadEditor({
       {item.count !== undefined && (
         <span className={classes.innerTabCount}>{item.count}</span>
       )}
+      {item.onRemove && (
+        <IconButton
+          size="small"
+          className={classes.innerTabRemove}
+          aria-label={`Remove ${item.label}`}
+          disabled={isDeploying}
+          onClick={e => {
+            e.stopPropagation();
+            item.onRemove?.();
+          }}
+          onKeyDown={e => e.stopPropagation()}
+        >
+          <CloseIcon fontSize="inherit" />
+        </IconButton>
+      )}
     </Box>
   );
 
@@ -865,15 +999,30 @@ export function WorkloadEditor({
                   renderInnerTab(item, activeTab, setActiveTab),
                 )}
               {isYamlMode &&
-                endpointTabs.length > 0 &&
+                canAddEndpoint &&
                 [
                   { id: WORKLOAD_YAML_TAB, label: 'Workload' },
                   ...endpointTabs.map(t => ({
                     id: `endpoint:${t.workloadEndpoint}`,
                     label: `Endpoint: ${t.label}`,
+                    onRemove: () => removeEndpointFromYaml(t.workloadEndpoint),
                   })),
                 ].map(item => renderInnerTab(item, yamlTab, selectYamlTab))}
-              {isYamlMode && endpointTabs.length === 0 && (
+              {isYamlMode && canAddEndpoint && (
+                <Button
+                  size="small"
+                  color="primary"
+                  startIcon={<AddIcon />}
+                  className={classes.yamlAddEndpoint}
+                  disabled={isDeploying || yamlPickerOpen}
+                  onClick={() => {
+                    if (!yamlTabHasErrors()) setYamlPickerOpen(true);
+                  }}
+                >
+                  Add Endpoint
+                </Button>
+              )}
+              {isYamlMode && !canAddEndpoint && (
                 <Typography
                   variant="body2"
                   color="textSecondary"
@@ -943,6 +1092,17 @@ export function WorkloadEditor({
               /* YAML editor - full width inside the panel: the Workload or
                  one of the component's Endpoints */
               <>
+                {canAddEndpoint && componentEndpoints && (
+                  <Box className={classes.yamlPicker}>
+                    <EndpointTypePicker
+                      open={yamlPickerOpen}
+                      allowedEndpoints={componentEndpoints.allowedEndpoints}
+                      details={typeDetails}
+                      onSelect={addEndpointFromYaml}
+                      onClose={() => setYamlPickerOpen(false)}
+                    />
+                  </Box>
+                )}
                 {activeEndpointTab ? (
                   <Box className={classes.yamlEditorContainer}>
                     <Typography className={classes.yamlHint}>

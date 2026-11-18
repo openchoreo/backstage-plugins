@@ -23,6 +23,10 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
     // need to switch tabs do so via the initialTab prop instead.
     return [initialTab ?? defaultTab, jest.fn()];
   },
+  endpointProtocolChanges: (_endpoint: any, protocol: string) => [
+    ['protocol', protocol],
+    ['type', protocol],
+  ],
   YamlEditor: (props: any) => (
     <textarea
       data-testid="yaml-editor"
@@ -136,6 +140,19 @@ jest.mock('./DependencyContent', () => ({
       </button>
     </div>
   ),
+}));
+
+jest.mock('./EndpointTypePicker', () => ({
+  useEndpointTypeDetails: () => ({}),
+  EndpointTypePicker: (props: any) =>
+    props.open ? (
+      <button
+        type="button"
+        onClick={() => props.onSelect('ClusterEndpointType/http-route')}
+      >
+        pick http-route
+      </button>
+    ) : null,
 }));
 
 jest.mock('./TraitsContent', () => ({
@@ -500,6 +517,36 @@ describe('YAML tabs for the Endpoints', () => {
     });
     const saved = setWorkloadResourceSpy.mock.calls.at(-1)?.[0];
     expect(saved.spec.endpoints.api.visibility).toEqual(['internal']);
+  });
+
+  it('adds an Endpoint of the picked type and opens its tab', () => {
+    renderWithEndpoints();
+    fireEvent.click(screen.getByRole('button', { name: /Add Endpoint/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'pick http-route' }));
+
+    const saved = setWorkloadResourceSpy.mock.calls.at(-1)?.[0];
+    expect(saved.spec.endpoints['endpoint-2']).toEqual({
+      type: 'HTTP',
+      protocol: 'HTTP',
+      port: 8080,
+      visibility: ['project'],
+    });
+    expect(setChoice).toHaveBeenCalledWith('endpoint-2', {
+      type: 'ClusterEndpointType/http-route',
+    });
+  });
+
+  it('removes an Endpoint with its workload endpoint', () => {
+    const restoreChoice = componentEndpoints.restoreChoice as jest.Mock;
+    restoreChoice.mockClear();
+    renderWithEndpoints();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Remove Endpoint: orders-api' }),
+    );
+
+    const saved = setWorkloadResourceSpy.mock.calls.at(-1)?.[0];
+    expect(saved.spec.endpoints).toEqual({});
+    expect(restoreChoice).toHaveBeenCalledWith('api', undefined);
   });
 
   it("refuses changes to an Endpoint's fixed fields", () => {

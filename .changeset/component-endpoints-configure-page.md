@@ -43,7 +43,10 @@ In YAML mode the configure page has a tab for the Workload and one for each
 of the component's Endpoints, existing or to be created, showing the Endpoint
 as saving will leave it. An Endpoint's tab edits its `spec.visibility` and
 `spec.parameters`, which go into the form's staged changes; its name, owner,
-type and backends are set by the form and can't be changed there.
+type and backends are set by the form and can't be changed there. **Add
+Endpoint** in YAML mode picks an Endpoint type and adds a workload endpoint
+with it, opening its Endpoint tab; a tab's ✕ removes the Endpoint with its
+workload endpoint.
 
 A card with an Endpoint shows its name, Ready state, type and parameters. It can
 be edited or deleted, and changes are staged with the workload and saved after
