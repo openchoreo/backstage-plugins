@@ -3,6 +3,7 @@ import type { ComponentEndpointsState } from './hooks/useComponentEndpoints';
 import {
   endpointToYaml,
   endpointYamlTabs,
+  newEndpointTemplate,
   parseEndpointYaml,
 } from './endpointYaml';
 
@@ -177,6 +178,88 @@ describe('parseEndpointYaml', () => {
   it('reports invalid YAML', () => {
     expect(parseEndpointYaml('spec: [', tab.resource)).toEqual({
       error: expect.stringMatching(/^Invalid YAML/),
+    });
+  });
+});
+
+describe('new Endpoints in YAML', () => {
+  const allowedEndpoints = state().allowedEndpoints;
+  const template = newEndpointTemplate(state(), context, undefined);
+  const yaml = endpointToYaml(template);
+  const rules = {
+    isNew: true,
+    allowedEndpoints,
+    freeWorkloadEndpoints: ['web'],
+    componentName: 'orders',
+  };
+
+  it('starts from the default type, project visibility and a placeholder backend', () => {
+    expect(template).toMatchObject({
+      kind: 'Endpoint',
+      spec: {
+        owner: { projectName: 'shop', componentName: 'orders' },
+        type: { kind: 'ClusterEndpointType', name: 'http-route' },
+        visibility: ['project'],
+        backendRefs: [
+          { component: { name: 'orders', endpoint: '<workload-endpoint>' } },
+        ],
+        parameters: {},
+      },
+    });
+  });
+
+  it('reads the type and the workload endpoint it routes to', () => {
+    expect(
+      parseEndpointYaml(
+        yaml.replace('<workload-endpoint>', 'web'),
+        template,
+        rules,
+      ),
+    ).toEqual({
+      visibility: ['project'],
+      parameters: {},
+      typeKey: ROUTE,
+      workloadEndpoint: 'web',
+    });
+  });
+
+  it('refuses a type the component type does not allow', () => {
+    expect(
+      parseEndpointYaml(
+        yaml
+          .replace('<workload-endpoint>', 'web')
+          .replace('name: http-route', 'name: other'),
+        template,
+        rules,
+      ),
+    ).toEqual({ error: expect.stringMatching(/spec.type must be one of/) });
+  });
+
+  it('refuses a workload endpoint the Workload lacks or another Endpoint uses', () => {
+    expect(
+      parseEndpointYaml(
+        yaml.replace('<workload-endpoint>', 'api'),
+        template,
+        rules,
+      ),
+    ).toEqual({
+      error: expect.stringMatching(
+        /Workload endpoint api isn't in the Workload tab/,
+      ),
+    });
+  });
+
+  it('keeps the owner fixed', () => {
+    expect(
+      parseEndpointYaml(
+        yaml
+          .replace('<workload-endpoint>', 'web')
+          .replace('projectName: shop', 'projectName: other'),
+        template,
+        rules,
+      ),
+    ).toEqual({
+      error: expect.stringMatching(/name and owner are set on save/),
     });
   });
 });

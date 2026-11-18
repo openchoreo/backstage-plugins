@@ -27,7 +27,6 @@ import {
   filterSecretReferencesForEnvDataPlane,
   useUrlSyncedTab,
   YamlEditor,
-  endpointProtocolChanges,
 } from '@openchoreo/backstage-plugin-react';
 import {
   VerticalTabNav,
@@ -43,18 +42,22 @@ import { endpointCards } from '../componentEndpointDrafts';
 import {
   endpointToYaml,
   endpointYamlTabs,
+  newEndpointTemplate,
   parseEndpointYaml,
+  type EndpointYamlEdit,
 } from '../endpointYaml';
+
+/** A new Endpoint being written in the YAML editor, not yet staged. */
+interface EndpointDraft {
+  id: string;
+  text: string;
+  /** The template it started from, for telling the fixed fields apart. */
+  shown: Record<string, unknown>;
+  /** Why it can't be staged yet. */
+  error?: string;
+}
 import { useEntity } from '@backstage/plugin-catalog-react';
-import {
-  CHOREO_ANNOTATIONS,
-  endpointTypeOptions,
-  protocolForEndpointType,
-} from '@openchoreo/backstage-plugin-common';
-import {
-  EndpointTypePicker,
-  useEndpointTypeDetails,
-} from './EndpointTypePicker';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 
 interface WorkloadEditorProps {
   componentTypeName?: string;
@@ -182,9 +185,13 @@ const useStyles = makeStyles(theme => ({
     marginLeft: theme.spacing(1),
     whiteSpace: 'nowrap',
   },
-  yamlPicker: {
-    padding: theme.spacing(0, 2),
-    '&:empty': { display: 'none' },
+  yamlNotice: {
+    margin: theme.spacing(2, 2, 0),
+  },
+  yamlPending: {
+    color: theme.palette.warning.dark,
+    fontSize: '0.75rem',
+    marginBottom: theme.spacing(1),
   },
   innerTabRemove: {
     marginLeft: theme.spacing(0.5),
@@ -325,6 +332,10 @@ export function WorkloadEditor({
   const activeEndpointTab = endpointTabs.find(
     t => `endpoint:${t.workloadEndpoint}` === yamlTab,
   );
+  const [drafts, setDrafts] = useState<EndpointDraft[]>([]);
+  const draftCount = useRef(0);
+  const activeDraft = drafts.find(d => `draft:${d.id}` === yamlTab);
+  const [yamlNotice, setYamlNotice] = useState<string | undefined>();
 
   // Track last active sub-tab per section for smooth outer tab switching
   const lastWorkloadTabRef = useRef('container');
@@ -586,6 +597,10 @@ export function WorkloadEditor({
           setYamlWarning(undefined);
         }
         setIsYamlMode(true);
+      } else if (newMode === 'form' && isYamlMode && drafts.length > 0) {
+        setYamlNotice(
+          'Finish or remove the new Endpoints before switching to Form view.',
+        );
       } else if (newMode === 'form' && isYamlMode && activeEndpointTab) {
         // An Endpoint tab's edits are already in the form's state.
         if (endpointYamlError) {
@@ -616,26 +631,171 @@ export function WorkloadEditor({
       hideEndpoints,
       activeEndpointTab,
       endpointYamlError,
+      drafts.length,
     ],
   );
 
-  // Switching YAML tabs: each tab opens on the resource as it is now, so
-  // edits made in another tab show. A tab with errors can't be left.
-  const selectYamlTab = (id: string) => {
-    if (id === yamlTab) return;
-    if (yamlTab === WORKLOAD_YAML_TAB && yamlError) {
-      setYamlError('Fix YAML errors before switching tabs');
-      return;
+  // New Endpoints written in YAML mode: each starts as a draft tab with an
+  // Endpoint template, and joins the form's staged changes (as its workload
+  // endpoint's Endpoint tab) once it names a workload endpoint of the
+  // Workload tab that has no Endpoint. Saving waits while drafts remain.
+  const canAddEndpoint =
+    componentEndpoints?.mode === 'endpoints' && !hideEndpoints;
+  // The tab to open on its regenerated YAML once it exists.
+  const pendingEndpointTab = useRef<string | null>(null);
+
+  useEffect(() => {
+    setEditingSection('endpointYaml', drafts.length > 0);
+  }, [drafts.length, setEditingSection]);
+  useEffect(
+    () => () => setEditingSection('endpointYaml', false),
+    [setEditingSection],
+  );
+
+  // Workload endpoints a new Endpoint may route to: those without one.
+  const freeWorkloadEndpoints = useMemo(
+    () =>
+      Object.keys(workloadResource?.spec?.endpoints ?? {}).filter(
+        name => !endpointTabs.some(t => t.workloadEndpoint === name),
+      ),
+    [workloadResource, endpointTabs],
+  );
+
+  /**
+   * Stages an Endpoint read from YAML on its workload endpoint: its type and
+   * parameters as the endpoint's choice, its visibility on the endpoint.
+   * Moving it from another workload endpoint leaves that one project-only.
+   */
+  const stageEndpoint = (
+    edit: EndpointYamlEdit,
+    typeKey: string,
+    workloadEndpoint: string,
+    from?: string,
+  ) => {
+    if (!componentEndpoints || !workloadResource) return;
+    const endpoints = { ...workloadResource.spec?.endpoints };
+    if (from && from !== workloadEndpoint && endpoints[from]) {
+      endpoints[from] = { ...endpoints[from], visibility: ['project'] };
+      componentEndpoints.restoreChoice(from, undefined);
     }
-    if (yamlTab !== WORKLOAD_YAML_TAB && endpointYamlError) {
-      setEndpointYamlError(
-        'Fix the Endpoint YAML errors before switching tabs',
+    const current = endpoints[workloadEndpoint];
+    if (
+      current &&
+      JSON.stringify(current.visibility ?? []) !==
+        JSON.stringify(edit.visibility)
+    ) {
+      endpoints[workloadEndpoint] = {
+        ...current,
+        visibility: edit.visibility as WorkloadEndpoint['visibility'],
+      };
+    }
+    setWorkloadResource({
+      ...workloadResource,
+      spec: { ...workloadResource.spec, endpoints },
+    } as WorkloadResource);
+    componentEndpoints.setChoice(workloadEndpoint, {
+      type: typeKey,
+      parameters: edit.parameters,
+    });
+  };
+
+  /** Stages a draft once its YAML is complete; reports why it isn't. */
+  const tryStageDraft = (draft: EndpointDraft, text: string) => {
+    const edit = parseEndpointYaml(text, draft.shown, {
+      isNew: true,
+      allowedEndpoints: componentEndpoints?.allowedEndpoints,
+      freeWorkloadEndpoints,
+      componentName: yamlContext.componentName,
+    });
+    if ('error' in edit) {
+      setDrafts(prev =>
+        prev.map(d =>
+          d.id === draft.id ? { ...d, text, error: edit.error } : d,
+        ),
       );
       return;
     }
+    const name = edit.workloadEndpoint!;
+    stageEndpoint(edit, edit.typeKey!, name);
+    setDrafts(prev => prev.filter(d => d.id !== draft.id));
+    pendingEndpointTab.current = name;
+    setYamlTab(`endpoint:${name}`);
+  };
+
+  const yamlTabHasErrors = () => {
+    if (yamlTab === WORKLOAD_YAML_TAB && yamlError) {
+      setYamlError('Fix YAML errors before leaving this tab');
+      return true;
+    }
+    if (activeEndpointTab && endpointYamlError) {
+      setEndpointYamlError(
+        'Fix the Endpoint YAML errors before leaving this tab',
+      );
+      return true;
+    }
+    return false;
+  };
+
+  const addEndpointDraft = () => {
+    if (yamlTabHasErrors()) return;
+    if (!componentEndpoints) return;
+    draftCount.current += 1;
+    const shown = newEndpointTemplate(
+      componentEndpoints,
+      yamlContext,
+      undefined,
+    );
+    const draft: EndpointDraft = {
+      id: String(draftCount.current),
+      text: endpointToYaml(shown),
+      shown,
+    };
+    setDrafts(prev => [...prev, draft]);
+    setYamlNotice(undefined);
+    setYamlTab(`draft:${draft.id}`);
+  };
+
+  // Removing an Endpoint's tab deletes the Endpoint on save; its workload
+  // endpoint stays, within the project, to be removed in the Workload tab.
+  const removeEndpointTab = (name: string) => {
+    if (!componentEndpoints || !workloadResource?.spec?.endpoints?.[name]) {
+      return;
+    }
+    const endpoints = workloadResource.spec.endpoints;
+    setWorkloadResource({
+      ...workloadResource,
+      spec: {
+        ...workloadResource.spec,
+        endpoints: {
+          ...endpoints,
+          [name]: { ...endpoints[name], visibility: ['project'] },
+        },
+      },
+    } as WorkloadResource);
+    componentEndpoints.restoreChoice(name, undefined);
+    if (yamlTab === `endpoint:${name}`) setEndpointYamlError(undefined);
+  };
+
+  const removeDraft = (id: string) =>
+    setDrafts(prev => prev.filter(d => d.id !== id));
+
+  // Switching YAML tabs: each tab opens on the resource as it is now, so
+  // edits made in another tab show. A Workload or Endpoint tab with errors
+  // can't be left; a draft can, to add its workload endpoint.
+
+  const selectYamlTab = (id: string) => {
+    if (id === yamlTab || yamlTabHasErrors()) return;
+    setYamlNotice(undefined);
     if (id === WORKLOAD_YAML_TAB) {
       setYamlContent(resourceToYaml(workloadResource));
       setYamlError(undefined);
+    } else if (id.startsWith('draft:')) {
+      const draft = drafts.find(d => `draft:${d.id}` === id);
+      if (!draft) return;
+      setYamlTab(id);
+      // The Workload tab may now have the workload endpoint it names.
+      tryStageDraft(draft, draft.text);
+      return;
     } else {
       const tab = endpointTabs.find(
         t => `endpoint:${t.workloadEndpoint}` === id,
@@ -647,84 +807,7 @@ export function WorkloadEditor({
     setYamlTab(id);
   };
 
-  // Adding an Endpoint in YAML mode: pick its type, then a new workload
-  // endpoint is added with it and its Endpoint tab opens. Its port and
-  // protocol are edited in the Workload tab.
-  const canAddEndpoint =
-    componentEndpoints?.mode === 'endpoints' && !hideEndpoints;
-  const [yamlPickerOpen, setYamlPickerOpen] = useState(false);
-  const allowedEndpoints = componentEndpoints?.allowedEndpoints;
-  const typeOptionKeys = useMemo(
-    () => endpointTypeOptions(allowedEndpoints ?? []).map(o => o.key),
-    [allowedEndpoints],
-  );
-  const typeDetails = useEndpointTypeDetails(
-    typeOptionKeys,
-    yamlContext.namespaceName,
-    isYamlMode && canAddEndpoint,
-  );
-  // The tab to open once a newly added Endpoint's tab exists.
-  const pendingEndpointTab = useRef<string | null>(null);
-
-  const yamlTabHasErrors = () => {
-    if (yamlTab === WORKLOAD_YAML_TAB && yamlError) {
-      setYamlError('Fix YAML errors before adding an Endpoint');
-      return true;
-    }
-    if (yamlTab !== WORKLOAD_YAML_TAB && endpointYamlError) {
-      setEndpointYamlError('Fix the Endpoint YAML errors before adding one');
-      return true;
-    }
-    return false;
-  };
-
-  const addEndpointFromYaml = (typeKey: string) => {
-    setYamlPickerOpen(false);
-    if (!componentEndpoints || !workloadResource) return;
-    const endpoints = workloadResource.spec?.endpoints ?? {};
-    let index = Object.keys(endpoints).length + 1;
-    while (`endpoint-${index}` in endpoints) index++;
-    const name = `endpoint-${index}`;
-    const protocol = protocolForEndpointType(
-      'HTTP',
-      typeKey,
-      componentEndpoints.allowedEndpoints,
-    );
-    const base: WorkloadEndpoint = {
-      type: 'HTTP',
-      port: 8080,
-      visibility: ['project'],
-    };
-    const endpoint = Object.fromEntries([
-      ...Object.entries(base),
-      ...endpointProtocolChanges(base, protocol),
-    ]) as WorkloadEndpoint;
-    setWorkloadResource({
-      ...workloadResource,
-      spec: {
-        ...workloadResource.spec,
-        endpoints: { ...endpoints, [name]: endpoint },
-      },
-    } as WorkloadResource);
-    componentEndpoints.setChoice(name, { type: typeKey });
-    pendingEndpointTab.current = name;
-    setYamlTab(`endpoint:${name}`);
-  };
-
-  // Removing an Endpoint in YAML mode removes its workload endpoint, as
-  // removing its card does; saving deletes the Endpoint.
-  const removeEndpointFromYaml = (name: string) => {
-    if (!componentEndpoints || !workloadResource?.spec?.endpoints) return;
-    const { [name]: _removed, ...rest } = workloadResource.spec.endpoints;
-    setWorkloadResource({
-      ...workloadResource,
-      spec: { ...workloadResource.spec, endpoints: rest },
-    } as WorkloadResource);
-    componentEndpoints.restoreChoice(name, undefined);
-    if (yamlTab === `endpoint:${name}`) setEndpointYamlError(undefined);
-  };
-
-  // A newly added Endpoint's tab opens on its YAML once it exists.
+  // A staged or moved Endpoint's tab opens on its YAML once it exists.
   useEffect(() => {
     const pending = pendingEndpointTab.current;
     if (pending && activeEndpointTab?.workloadEndpoint === pending) {
@@ -734,50 +817,46 @@ export function WorkloadEditor({
     }
   }, [activeEndpointTab]);
 
-  // Back to the Workload tab when the shown Endpoint's tab goes away.
+  // Back to the Workload tab when the shown tab goes away.
   useEffect(() => {
-    if (pendingEndpointTab.current) return;
-    if (yamlTab !== WORKLOAD_YAML_TAB && !activeEndpointTab) {
+    if (pendingEndpointTab.current || yamlTab === WORKLOAD_YAML_TAB) return;
+    if (!activeEndpointTab && !activeDraft) {
       setYamlTab(WORKLOAD_YAML_TAB);
       setYamlContent(resourceToYaml(workloadResource));
     }
-  }, [yamlTab, activeEndpointTab, workloadResource]);
+  }, [yamlTab, activeEndpointTab, activeDraft, workloadResource]);
 
   const handleEndpointYamlChange = (content: string) => {
     setEndpointYaml(content);
     if (!activeEndpointTab || !componentEndpoints) return;
-    const edit = parseEndpointYaml(content, activeEndpointTab.resource);
+    const tab = activeEndpointTab;
+    const edit = parseEndpointYaml(content, tab.resource, {
+      isNew: tab.isNew,
+      allowedEndpoints: componentEndpoints.allowedEndpoints,
+      freeWorkloadEndpoints: [...freeWorkloadEndpoints, tab.workloadEndpoint],
+      componentName: yamlContext.componentName,
+    });
     if ('error' in edit) {
       setEndpointYamlError(edit.error);
       return;
     }
     setEndpointYamlError(undefined);
-    const name = activeEndpointTab.workloadEndpoint;
-    componentEndpoints.setChoice(name, {
-      type: activeEndpointTab.typeKey,
-      parameters: edit.parameters,
-    });
-    const current = workloadResource?.spec?.endpoints?.[name];
-    if (
-      workloadResource &&
-      current &&
-      JSON.stringify(current.visibility ?? []) !==
-        JSON.stringify(edit.visibility)
-    ) {
-      setWorkloadResource({
-        ...workloadResource,
-        spec: {
-          ...workloadResource.spec,
-          endpoints: {
-            ...workloadResource.spec?.endpoints,
-            [name]: {
-              ...current,
-              visibility: edit.visibility as WorkloadEndpoint['visibility'],
-            },
-          },
-        },
-      } as WorkloadResource);
+    const name = edit.workloadEndpoint ?? tab.workloadEndpoint;
+    stageEndpoint(
+      edit,
+      edit.typeKey ?? tab.typeKey,
+      name,
+      tab.workloadEndpoint,
+    );
+    // Moved to another workload endpoint: its tab follows, renamed.
+    if (name !== tab.workloadEndpoint) {
+      pendingEndpointTab.current = name;
+      setYamlTab(`endpoint:${name}`);
     }
+  };
+
+  const handleDraftChange = (content: string) => {
+    if (activeDraft) tryStageDraft(activeDraft, content);
   };
 
   const handleYamlChange = useCallback(
@@ -1005,7 +1084,15 @@ export function WorkloadEditor({
                   ...endpointTabs.map(t => ({
                     id: `endpoint:${t.workloadEndpoint}`,
                     label: `Endpoint: ${t.label}`,
-                    onRemove: () => removeEndpointFromYaml(t.workloadEndpoint),
+                    onRemove: () => removeEndpointTab(t.workloadEndpoint),
+                  })),
+                  ...drafts.map((d, i) => ({
+                    id: `draft:${d.id}`,
+                    label:
+                      drafts.length > 1
+                        ? `New Endpoint ${i + 1}`
+                        : 'New Endpoint',
+                    onRemove: () => removeDraft(d.id),
                   })),
                 ].map(item => renderInnerTab(item, yamlTab, selectYamlTab))}
               {isYamlMode && canAddEndpoint && (
@@ -1014,10 +1101,8 @@ export function WorkloadEditor({
                   color="primary"
                   startIcon={<AddIcon />}
                   className={classes.yamlAddEndpoint}
-                  disabled={isDeploying || yamlPickerOpen}
-                  onClick={() => {
-                    if (!yamlTabHasErrors()) setYamlPickerOpen(true);
-                  }}
+                  disabled={isDeploying}
+                  onClick={addEndpointDraft}
                 >
                   Add Endpoint
                 </Button>
@@ -1092,22 +1177,43 @@ export function WorkloadEditor({
               /* YAML editor - full width inside the panel: the Workload or
                  one of the component's Endpoints */
               <>
-                {canAddEndpoint && componentEndpoints && (
-                  <Box className={classes.yamlPicker}>
-                    <EndpointTypePicker
-                      open={yamlPickerOpen}
-                      allowedEndpoints={componentEndpoints.allowedEndpoints}
-                      details={typeDetails}
-                      onSelect={addEndpointFromYaml}
-                      onClose={() => setYamlPickerOpen(false)}
+                {yamlNotice && (
+                  <Alert severity="warning" className={classes.yamlNotice}>
+                    {yamlNotice}
+                  </Alert>
+                )}
+                {activeDraft && (
+                  <Box className={classes.yamlEditorContainer}>
+                    <Typography className={classes.yamlHint}>
+                      Write the new Endpoint, and add the workload endpoint it
+                      routes to (spec.backendRefs[0].component.endpoint) under
+                      spec.endpoints in the Workload tab.{' '}
+                      {freeWorkloadEndpoints.length > 0
+                        ? `Workload endpoints without an Endpoint: ${freeWorkloadEndpoints.join(
+                            ', ',
+                          )}.`
+                        : 'Every workload endpoint has an Endpoint.'}{' '}
+                      The name is set on save.
+                    </Typography>
+                    {activeDraft.error && (
+                      <Typography className={classes.yamlPending}>
+                        {activeDraft.error}
+                      </Typography>
+                    )}
+                    <YamlEditor
+                      content={activeDraft.text}
+                      onChange={handleDraftChange}
+                      readOnly={isDeploying}
                     />
                   </Box>
                 )}
-                {activeEndpointTab ? (
+                {!activeDraft && activeEndpointTab && (
                   <Box className={classes.yamlEditorContainer}>
                     <Typography className={classes.yamlHint}>
-                      Only spec.visibility and spec.parameters can be changed
-                      here. They are saved with the workload.
+                      {activeEndpointTab.isNew
+                        ? 'spec.type, spec.visibility, spec.parameters and the workload endpoint in spec.backendRefs can be changed here. The name is set on save.'
+                        : 'Only spec.visibility and spec.parameters can be changed here.'}{' '}
+                      Changes are saved with the workload.
                     </Typography>
                     {endpointYamlError && (
                       <Typography className={classes.yamlError}>
@@ -1121,7 +1227,8 @@ export function WorkloadEditor({
                       readOnly={isDeploying}
                     />
                   </Box>
-                ) : (
+                )}
+                {!activeDraft && !activeEndpointTab && (
                   <Box className={classes.yamlEditorContainer}>
                     {yamlError && (
                       <Typography className={classes.yamlError}>

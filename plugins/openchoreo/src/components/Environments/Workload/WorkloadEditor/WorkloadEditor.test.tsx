@@ -9,6 +9,7 @@ import { WorkloadEditor } from './WorkloadEditor';
 
 // useWorkloadContext: controllable workload state + spy on setWorkloadResource.
 const setWorkloadResourceSpy = jest.fn();
+const setEditingSectionSpy = jest.fn();
 const mockUseWorkloadContext = jest.fn();
 jest.mock('../WorkloadContext', () => ({
   useWorkloadContext: () => mockUseWorkloadContext(),
@@ -23,10 +24,6 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
     // need to switch tabs do so via the initialTab prop instead.
     return [initialTab ?? defaultTab, jest.fn()];
   },
-  endpointProtocolChanges: (_endpoint: any, protocol: string) => [
-    ['protocol', protocol],
-    ['type', protocol],
-  ],
   YamlEditor: (props: any) => (
     <textarea
       data-testid="yaml-editor"
@@ -142,19 +139,6 @@ jest.mock('./DependencyContent', () => ({
   ),
 }));
 
-jest.mock('./EndpointTypePicker', () => ({
-  useEndpointTypeDetails: () => ({}),
-  EndpointTypePicker: (props: any) =>
-    props.open ? (
-      <button
-        type="button"
-        onClick={() => props.onSelect('ClusterEndpointType/http-route')}
-      >
-        pick http-route
-      </button>
-    ) : null,
-}));
-
 jest.mock('./TraitsContent', () => ({
   TraitsContent: () => <div data-testid="traits-content" />,
 }));
@@ -180,6 +164,7 @@ function renderEditor(workloadResource: WorkloadResource | null) {
   mockUseWorkloadContext.mockReturnValue({
     workloadResource,
     setWorkloadResource: setWorkloadResourceSpy,
+    setEditingSection: setEditingSectionSpy,
     isDeploying: false,
   });
   return render(
@@ -451,14 +436,15 @@ describe('YAML tabs for the Endpoints', () => {
     apply: jest.fn(),
   };
 
-  function renderWithEndpoints() {
+  function renderWithEndpoints(
+    endpoints: Record<string, unknown> = {
+      api: { type: 'HTTP', port: 8080, visibility: ['external'] },
+    },
+  ) {
     mockUseWorkloadContext.mockReturnValue({
-      workloadResource: buildWorkload({
-        endpoints: {
-          api: { type: 'HTTP', port: 8080, visibility: ['external'] },
-        },
-      }),
+      workloadResource: buildWorkload({ endpoints }),
       setWorkloadResource: setWorkloadResourceSpy,
+      setEditingSection: setEditingSectionSpy,
       isDeploying: false,
     });
     render(
@@ -477,6 +463,7 @@ describe('YAML tabs for the Endpoints', () => {
   beforeEach(() => {
     setChoice.mockClear();
     setWorkloadResourceSpy.mockClear();
+    setEditingSectionSpy.mockClear();
   });
 
   it('shows a Workload tab and one tab per Endpoint', () => {
@@ -519,24 +506,61 @@ describe('YAML tabs for the Endpoints', () => {
     expect(saved.spec.endpoints.api.visibility).toEqual(['internal']);
   });
 
-  it('adds an Endpoint of the picked type and opens its tab', () => {
+  it('opens a new Endpoint as a YAML template and holds Save until it is complete', () => {
     renderWithEndpoints();
     fireEvent.click(screen.getByRole('button', { name: /Add Endpoint/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'pick http-route' }));
 
-    const saved = setWorkloadResourceSpy.mock.calls.at(-1)?.[0];
-    expect(saved.spec.endpoints['endpoint-2']).toEqual({
-      type: 'HTTP',
-      protocol: 'HTTP',
-      port: 8080,
-      visibility: ['project'],
-    });
-    expect(setChoice).toHaveBeenCalledWith('endpoint-2', {
-      type: 'ClusterEndpointType/http-route',
-    });
+    expect(screen.getByRole('tab', { name: /New Endpoint/ })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    const editor = screen.getByTestId('yaml-editor') as HTMLTextAreaElement;
+    expect(editor.value).toContain('kind: Endpoint');
+    expect(editor.value).toContain('endpoint: <workload-endpoint>');
+    expect(setEditingSectionSpy).toHaveBeenCalledWith('endpointYaml', true);
   });
 
-  it('removes an Endpoint with its workload endpoint', () => {
+  it('says what a new Endpoint still needs', () => {
+    renderWithEndpoints();
+    fireEvent.click(screen.getByRole('button', { name: /Add Endpoint/ }));
+    const editor = screen.getByTestId('yaml-editor') as HTMLTextAreaElement;
+    fireEvent.change(editor, {
+      target: {
+        value: editor.value.replace('<workload-endpoint>', 'missing'),
+      },
+    });
+
+    expect(
+      screen.getByText(/Workload endpoint missing isn't in the Workload tab/),
+    ).toBeInTheDocument();
+    expect(setChoice).not.toHaveBeenCalled();
+  });
+
+  it('stages a new Endpoint once it names a free workload endpoint', () => {
+    renderWithEndpoints({
+      api: { type: 'HTTP', port: 8080, visibility: ['external'] },
+      web: { type: 'HTTP', port: 9090, visibility: ['project'] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Add Endpoint/ }));
+    const editor = screen.getByTestId('yaml-editor') as HTMLTextAreaElement;
+    expect(screen.getByText(/without an Endpoint: web/)).toBeInTheDocument();
+    fireEvent.change(editor, {
+      target: {
+        value: editor.value
+          .replace('<workload-endpoint>', 'web')
+          .replace('- project', '- external'),
+      },
+    });
+
+    expect(setChoice).toHaveBeenCalledWith('web', {
+      type: 'ClusterEndpointType/http-route',
+      parameters: {},
+    });
+    const saved = setWorkloadResourceSpy.mock.calls.at(-1)?.[0];
+    expect(saved.spec.endpoints.web.visibility).toEqual(['external']);
+  });
+
+  it("removes only the Endpoint with its tab's ✕", () => {
     const restoreChoice = componentEndpoints.restoreChoice as jest.Mock;
     restoreChoice.mockClear();
     renderWithEndpoints();
@@ -545,7 +569,11 @@ describe('YAML tabs for the Endpoints', () => {
     );
 
     const saved = setWorkloadResourceSpy.mock.calls.at(-1)?.[0];
-    expect(saved.spec.endpoints).toEqual({});
+    expect(saved.spec.endpoints.api).toEqual({
+      type: 'HTTP',
+      port: 8080,
+      visibility: ['project'],
+    });
     expect(restoreChoice).toHaveBeenCalledWith('api', undefined);
   });
 

@@ -4,8 +4,10 @@ import {
   buildComponentEndpoint,
   componentEndpointName,
   endpointTypeKey,
+  endpointTypeOptions,
   endpointVisibilities,
   parseEndpointTypeKey,
+  type AllowedEndpointTypeEntry,
   type ExposableEndpoint,
 } from '@openchoreo/backstage-plugin-common';
 import {
@@ -27,11 +29,13 @@ export interface EndpointYamlTab {
   label: string;
   /** The EndpointType key the Endpoint has. */
   typeKey: string;
+  /**
+   * Whether the Endpoint is created on save. Its type and the workload
+   * endpoint it routes to can still change; an existing one's can't.
+   */
+  isNew: boolean;
   resource: Record<string, unknown>;
 }
-
-/** The only fields of an Endpoint's YAML that can be changed. */
-export const EDITABLE_ENDPOINT_FIELDS = ['spec.visibility', 'spec.parameters'];
 
 const VISIBILITIES = new Set(['project', 'namespace', 'internal', 'external']);
 
@@ -101,6 +105,7 @@ export function endpointYamlTabs(
       workloadEndpoint: name,
       label: original ? original.name : `${name} (new)`,
       typeKey,
+      isNew: !original,
       resource: {
         apiVersion: 'openchoreo.dev/v1alpha1',
         kind: 'Endpoint',
@@ -121,38 +126,82 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-/** The resource without its editable fields, keys sorted, for comparing. */
-function fixedPart(resource: Record<string, unknown>): string {
+function sortedJson(value: unknown): string {
+  const sorted = (v: unknown): unknown => {
+    if (Array.isArray(v)) return v.map(sorted);
+    if (isPlainObject(v)) {
+      return Object.fromEntries(
+        Object.keys(v)
+          .sort()
+          .map(k => [k, sorted(v[k])]),
+      );
+    }
+    return v;
+  };
+  return JSON.stringify(sorted(value));
+}
+
+/**
+ * The resource without the fields that can be edited, for comparing. A new
+ * Endpoint can also change its type and backend (and so its name, which
+ * follows the workload endpoint); an existing one only its visibility and
+ * parameters.
+ */
+function fixedPart(resource: Record<string, unknown>, isNew: boolean): string {
   const spec = isPlainObject(resource.spec) ? { ...resource.spec } : {};
   delete spec.visibility;
   delete spec.parameters;
-  const sorted = (value: unknown): unknown => {
-    if (Array.isArray(value)) return value.map(sorted);
-    if (isPlainObject(value)) {
-      return Object.fromEntries(
-        Object.keys(value)
-          .sort()
-          .map(k => [k, sorted(value[k])]),
-      );
-    }
-    return value;
-  };
-  return JSON.stringify(sorted({ ...resource, spec }));
+  const fixed: Record<string, unknown> = { ...resource, spec };
+  if (isNew) {
+    delete spec.type;
+    delete spec.backendRefs;
+    const metadata = isPlainObject(resource.metadata)
+      ? { ...resource.metadata }
+      : {};
+    delete metadata.name;
+    fixed.metadata = metadata;
+  }
+  return sortedJson(fixed);
 }
 
-export type EndpointYamlEdit =
-  | { error: string }
-  | { visibility: string[]; parameters: Record<string, unknown> };
+export interface EndpointYamlEdit {
+  visibility: string[];
+  parameters: Record<string, unknown>;
+  /** A new Endpoint's EndpointType key; an existing one's doesn't change. */
+  typeKey?: string;
+  /** The workload endpoint a new Endpoint routes to. */
+  workloadEndpoint?: string;
+}
+
+export interface EndpointYamlRules {
+  /** Whether the Endpoint is created on save (see {@link EndpointYamlTab}). */
+  isNew: boolean;
+  allowedEndpoints?: AllowedEndpointTypeEntry[];
+  /**
+   * The workload endpoints a new Endpoint may route to: those in the
+   * Workload without an Endpoint, and its own.
+   */
+  freeWorkloadEndpoints?: string[];
+  componentName?: string;
+}
+
+const FIXED_FIELDS_ERROR =
+  'Only spec.visibility and spec.parameters can be changed here. The name, owner, type and backends are set when the Endpoint is created.';
+const NEW_FIXED_FIELDS_ERROR =
+  'Only spec.type, spec.visibility, spec.parameters and the workload endpoint in spec.backendRefs can be set here. The name and owner are set on save.';
 
 /**
- * Reads an edited Endpoint's YAML against the resource it was shown as.
- * Only `spec.visibility` and `spec.parameters` can change; the name, owner,
- * type, backends and the rest are fixed by the form.
+ * Reads an edited Endpoint's YAML against the resource it was shown as. An
+ * existing Endpoint can change its visibility and parameters. A new one can
+ * also set its type, from those the ComponentType allows, and the workload
+ * endpoint it routes to, which the Workload tab must have and no other
+ * Endpoint may use.
  */
 export function parseEndpointYaml(
   text: string,
   shown: Record<string, unknown>,
-): EndpointYamlEdit {
+  rules: EndpointYamlRules = { isNew: false },
+): EndpointYamlEdit | { error: string } {
   let parsed: unknown;
   try {
     parsed = YAML.parse(text);
@@ -162,11 +211,8 @@ export function parseEndpointYaml(
   if (!isPlainObject(parsed)) {
     return { error: 'The Endpoint must be a YAML object.' };
   }
-  if (fixedPart(parsed) !== fixedPart(shown)) {
-    return {
-      error:
-        'Only spec.visibility and spec.parameters can be changed here. The name, owner, type and backends are set by the form.',
-    };
+  if (fixedPart(parsed, rules.isNew) !== fixedPart(shown, rules.isNew)) {
+    return { error: rules.isNew ? NEW_FIXED_FIELDS_ERROR : FIXED_FIELDS_ERROR };
   }
   const spec = isPlainObject(parsed.spec) ? parsed.spec : {};
   const visibility = spec.visibility;
@@ -184,5 +230,92 @@ export function parseEndpointYaml(
   if (!isPlainObject(parameters)) {
     return { error: 'spec.parameters must be an object.' };
   }
-  return { visibility: [...new Set(visibility as string[])], parameters };
+  const edit: EndpointYamlEdit = {
+    visibility: [...new Set(visibility as string[])],
+    parameters,
+  };
+  if (!rules.isNew) return edit;
+
+  const type = spec.type;
+  const typeKey =
+    isPlainObject(type) && typeof type.name === 'string'
+      ? endpointTypeKey({
+          kind: typeof type.kind === 'string' ? type.kind : undefined,
+          name: type.name,
+        })
+      : undefined;
+  const allowed = endpointTypeOptions(rules.allowedEndpoints ?? []);
+  if (!typeKey || !allowed.some(o => o.key === typeKey)) {
+    return {
+      error: `spec.type must be one of the Endpoint types the component type allows: ${allowed
+        .map(
+          o =>
+            `${parseEndpointTypeKey(o.key).kind}/${
+              parseEndpointTypeKey(o.key).name
+            }`,
+        )
+        .join(', ')}.`,
+    };
+  }
+  const refs = spec.backendRefs;
+  const ref = Array.isArray(refs) && refs.length === 1 ? refs[0] : undefined;
+  const component = isPlainObject(ref) ? ref.component : undefined;
+  if (
+    !isPlainObject(component) ||
+    component.name !== rules.componentName ||
+    typeof component.endpoint !== 'string' ||
+    !component.endpoint
+  ) {
+    return {
+      error: `spec.backendRefs must have one backend on component ${rules.componentName}, naming its workload endpoint in component.endpoint.`,
+    };
+  }
+  if (!(rules.freeWorkloadEndpoints ?? []).includes(component.endpoint)) {
+    return {
+      error: `Workload endpoint ${component.endpoint} isn't in the Workload tab, or another Endpoint already routes to it. Add it under spec.endpoints in the Workload tab.`,
+    };
+  }
+  return { ...edit, typeKey, workloadEndpoint: component.endpoint };
+}
+
+/**
+ * The YAML a new Endpoint starts from in the YAML editor: the default
+ * Endpoint type, project visibility, and a backend on the given workload
+ * endpoint (a placeholder when none is free yet).
+ */
+export function newEndpointTemplate(
+  state: ComponentEndpointsState,
+  context: EndpointYamlContext,
+  workloadEndpoint: string | undefined,
+): Record<string, unknown> {
+  const [first] = endpointTypeOptions(state.allowedEndpoints);
+  const { kind, name: typeName } = parseEndpointTypeKey(
+    first?.key ?? 'ClusterEndpointType/<endpoint-type>',
+  );
+  const endpoint = workloadEndpoint ?? '<workload-endpoint>';
+  const built = buildComponentEndpoint({
+    name: componentEndpointName(
+      context.componentName,
+      endpoint,
+      undefined,
+      state.releaseLine,
+    ),
+    componentName: context.componentName,
+    projectName: context.projectName,
+    releaseLine: state.releaseLine,
+    workloadEndpoint: endpoint,
+    typeKind: kind,
+    typeName,
+    visibility: ['project'],
+    parameters: {},
+    autoDeploy: true,
+  });
+  const spec: Record<string, unknown> = { ...built.spec, parameters: {} };
+  delete spec.autoDeploy;
+  return {
+    apiVersion: 'openchoreo.dev/v1alpha1',
+    kind: 'Endpoint',
+    metadata: { name: built.metadata.name, namespace: context.namespaceName },
+    spec,
+  };
 }
