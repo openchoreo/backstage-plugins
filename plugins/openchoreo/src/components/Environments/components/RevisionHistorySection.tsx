@@ -212,9 +212,10 @@ export const RevisionInfoRow = () => {
 
 /**
  * Opens the Revision Browser to pick a revision to roll back to, starting on
- * the revision active before the current one. The browser's own Roll back
- * button runs the dry-run confirmation; this one is disabled while there is
- * nothing to roll back to or the user may not roll back.
+ * the revision deployed now, so the user sees what is running before choosing
+ * where to go. The browser's own Roll back button runs the dry-run
+ * confirmation; this one is disabled while there is nothing to roll back to or
+ * the user may not roll back.
  */
 export const RollbackAction = () => {
   const history = useContext(RevisionHistoryContext);
@@ -241,7 +242,7 @@ export const RollbackAction = () => {
           size="small"
           startIcon={<HistoryIcon fontSize="small" />}
           disabled={!!disabledReason}
-          onClick={() => history.openBrowser(candidate?.metadata.name)}
+          onClick={() => history.openBrowser(active?.metadata.name)}
           style={{ textTransform: 'none' }}
         >
           Roll back

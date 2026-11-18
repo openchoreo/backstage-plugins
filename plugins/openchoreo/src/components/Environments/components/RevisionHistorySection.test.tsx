@@ -307,7 +307,7 @@ describe('RevisionHistorySection', () => {
     ).toBeDisabled();
   });
 
-  it('opens the browser on the revision active before the current one', async () => {
+  it('opens the browser on the revision deployed now, not the undo target', async () => {
     const user = userEvent.setup();
     setup({
       listReleaseBindingRevisions: jest
@@ -320,22 +320,10 @@ describe('RevisionHistorySection', () => {
     });
 
     await openBrowser(user);
-    expect(screen.getByTestId('browser-revision-2')).toHaveClass(
+    expect(screen.getByTestId('browser-revision-4')).toHaveClass(
       'Mui-selected',
     );
-    expect(
-      screen.getByRole('button', { name: 'Roll back to r2' }),
-    ).toBeEnabled();
-  });
-
-  it('without an undo target, opens the browser on the newest inactive revision', async () => {
-    const user = userEvent.setup();
-    setup({
-      listReleaseBindingRevisions: jest.fn().mockResolvedValue(history()),
-    });
-
-    await openBrowser(user);
-    expect(screen.getByTestId('browser-revision-3')).toHaveClass(
+    expect(screen.getByTestId('browser-revision-2')).not.toHaveClass(
       'Mui-selected',
     );
   });
