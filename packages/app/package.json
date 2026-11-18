@@ -20,9 +20,9 @@
   },
   "dependencies": {
     "@backstage-community/plugin-tech-insights-maturity": "^0.9.2",
-    "@backstage/cli": "^0.36.2",
-    "@backstage/frontend-defaults": "^0.5.2",
-    "@backstage/ui": "^0.15.0",
+    "@backstage/cli": "^0.36.8",
+    "@backstage/frontend-defaults": "^0.5.8",
+    "@backstage/ui": "^0.20.0",
     "@openchoreo/backstage-design-system": "workspace:^",
     "@openchoreo/backstage-plugin-openchoreo-portal-assistant": "workspace:^",
     "@openchoreo/backstage-plugin-tech-insights-scorecards": "workspace:^",

@@ -55,6 +55,12 @@ import githubActionsPluginAlpha from '@backstage-community/plugin-github-actions
 import gitlabPluginAlpha from '@immobiliarelabs/backstage-plugin-gitlab/alpha';
 import homePluginAlpha from '@backstage/plugin-home/alpha';
 
+// Third-party plugins built against frontend-plugin-api releases that predate
+// the `pluginId` property, which 1.57 types as required. The app still reads
+// their legacy `id` at runtime, so only the type is stale. Drop the cast once
+// each ships a build against frontend-plugin-api 1.x.
+const legacyIdPlugin = (plugin: unknown) => plugin as FrontendFeature;
+
 /**
  * Every feature the OpenChoreo Portal is composed of, in registration order.
  *
@@ -92,9 +98,9 @@ export const portalFeatures: (FrontendFeature | FrontendFeatureLoader)[] = [
   kubernetesPluginAlpha,
   techdocsPluginAlpha,
   searchPluginAlpha,
-  jenkinsPluginAlpha,
-  githubActionsPluginAlpha,
-  gitlabPluginAlpha,
+  legacyIdPlugin(jenkinsPluginAlpha),
+  legacyIdPlugin(githubActionsPluginAlpha),
+  legacyIdPlugin(gitlabPluginAlpha),
   userSettingsPluginAlpha,
   techDocsReportIssueAddonModule,
   // Constraint 2 — see above.

@@ -49,12 +49,12 @@
     "postpack": "backstage-cli package postpack"
   },
   "dependencies": {
-    "@backstage/catalog-model": "^1.9.0",
-    "@backstage/core-components": "^0.18.10",
-    "@backstage/core-plugin-api": "^1.12.6",
-    "@backstage/frontend-plugin-api": "^0.17.0",
-    "@backstage/plugin-catalog-react": "^3.0.0",
-    "@backstage/theme": "^0.7.3",
+    "@backstage/catalog-model": "^1.10.3",
+    "@backstage/core-components": "^0.18.16",
+    "@backstage/core-plugin-api": "^1.13.0",
+    "@backstage/frontend-plugin-api": "^1.0.0",
+    "@backstage/plugin-catalog-react": "^4.0.0",
+    "@backstage/theme": "^0.7.4",
     "@material-ui/core": "4.12.4",
     "@material-ui/icons": "4.11.3",
     "@material-ui/lab": "4.0.0-alpha.61",
@@ -75,10 +75,10 @@
     "react-router-dom": "^6.0.0"
   },
   "devDependencies": {
-    "@backstage/cli": "^0.36.2",
-    "@backstage/core-app-api": "^1.20.1",
-    "@backstage/dev-utils": "^1.1.23",
-    "@backstage/test-utils": "^1.7.18",
+    "@backstage/cli": "^0.36.8",
+    "@backstage/core-app-api": "^1.20.7",
+    "@backstage/dev-utils": "^1.2.0",
+    "@backstage/test-utils": "^1.8.0",
     "@openchoreo/test-utils": "workspace:^",
     "@testing-library/jest-dom": "6.9.1",
     "@testing-library/react": "14.3.1",

@@ -9,7 +9,7 @@ plus a small skeleton diff.
 
 ## Requirements
 
-- Node.js 20 or 22 and Yarn (`corepack enable`; the scaffold pins its own
+- Node.js 24 or 26 and Yarn (`corepack enable`; the scaffold pins its own
   Yarn release under `.yarn/releases`).
 - `git` on the `PATH` (optional) — the CLI initializes a repository with an
   initial commit of the untouched template, which later serves as the
