@@ -1,4 +1,4 @@
-import { renderHook, waitFor, act } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import { createQueryClientWrapper } from '@openchoreo/test-utils';
 import { useOpenChoreoCache } from './useOpenChoreoCache';
 
@@ -113,38 +113,42 @@ describe('useOpenChoreoCache', () => {
   });
 
   it('invalidate marks a cached prefix stale and refetches it', async () => {
-    const fetcher = jest
-      .fn()
-      .mockResolvedValueOnce('first')
-      .mockResolvedValueOnce('second');
-    const { result } = renderHook(() => useOpenChoreoCache(), {
-      wrapper: createQueryClientWrapper(),
-    });
-
-    await act(async () => {
-      await result.current.fetchQuery(['scope', 'a'], fetcher, {
-        staleTime: 60_000,
+    // Fake timers for the same reason as the staleTime test above: with
+    // gcTime: 0 the unobserved entry would otherwise be evicted before it is
+    // read back. Plain expects, since waitFor would advance the GC timer.
+    jest.useFakeTimers();
+    try {
+      const fetcher = jest
+        .fn()
+        .mockResolvedValueOnce('first')
+        .mockResolvedValueOnce('second');
+      const { result } = renderHook(() => useOpenChoreoCache(), {
+        wrapper: createQueryClientWrapper(),
       });
-    });
-    await waitFor(() =>
-      expect(result.current.getData(['scope', 'a'])).toBe('first'),
-    );
 
-    act(() => {
-      // Prefix match: ['scope'] covers ['scope', 'a'].
-      result.current.invalidate(['scope']);
-    });
-
-    // Invalidation refetches active/observed queries; fetchQuery re-runs the
-    // fetcher and the cache converges on the new value.
-    await act(async () => {
-      await result.current.fetchQuery(['scope', 'a'], fetcher, {
-        staleTime: 60_000,
+      await act(async () => {
+        await result.current.fetchQuery(['scope', 'a'], fetcher, {
+          staleTime: 60_000,
+        });
       });
-    });
-    await waitFor(() =>
-      expect(result.current.getData(['scope', 'a'])).toBe('second'),
-    );
-    expect(fetcher).toHaveBeenCalledTimes(2);
+      expect(result.current.getData(['scope', 'a'])).toBe('first');
+
+      act(() => {
+        // Prefix match: ['scope'] covers ['scope', 'a'].
+        result.current.invalidate(['scope']);
+      });
+
+      // The entry is now stale, so fetchQuery re-runs the fetcher despite
+      // staleTime and the cache holds the new value.
+      await act(async () => {
+        await result.current.fetchQuery(['scope', 'a'], fetcher, {
+          staleTime: 60_000,
+        });
+      });
+      expect(result.current.getData(['scope', 'a'])).toBe('second');
+      expect(fetcher).toHaveBeenCalledTimes(2);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });
