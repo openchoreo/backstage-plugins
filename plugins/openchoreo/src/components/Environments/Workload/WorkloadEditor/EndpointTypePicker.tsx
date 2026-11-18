@@ -4,11 +4,9 @@ import { makeStyles } from '@material-ui/core/styles';
 import LanguageIcon from '@material-ui/icons/Language';
 import SwapHorizIcon from '@material-ui/icons/SwapHoriz';
 import SettingsEthernetIcon from '@material-ui/icons/SettingsEthernet';
-import LockOutlinedIcon from '@material-ui/icons/LockOutlined';
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import {
-  NO_ENDPOINT,
   endpointTypeOptions,
   parseEndpointTypeKey,
   type AllowedEndpointTypeEntry,
@@ -108,10 +106,6 @@ export interface EndpointTypeDetails {
   title?: string;
   description?: string;
 }
-
-/** What the Project only choice says it does. */
-export const PROJECT_ONLY_DESCRIPTION =
-  'Reachable by components in this project only. No Endpoint is created.';
 
 /** How an Endpoint type is described when the catalog has no description. */
 export function fallbackTypeDescription(typeKey: string): string {
@@ -228,15 +222,14 @@ export interface EndpointTypePickerProps {
   allowedEndpoints: AllowedEndpointTypeEntry[];
   /** The catalog's title and description per EndpointType key. */
   details: Record<string, EndpointTypeDetails>;
-  /** Called with the picked EndpointType key, or NO_ENDPOINT for project only. */
+  /** Called with the picked EndpointType key. */
   onSelect: (typeKey: string) => void;
   onClose: () => void;
 }
 
 /**
  * The first step of adding an endpoint: one card per Endpoint type the
- * ComponentType allows, with its title, description and protocols, and a
- * card for an endpoint kept within the project. Shown in the Endpoints tab,
+ * ComponentType allows, with its title, description and protocols. Shown in the Endpoints tab,
  * below its cards, in place of the Add button. Picking one opens the
  * endpoint's form with that type.
  */
@@ -305,25 +298,15 @@ export const EndpointTypePicker = ({
             Add an endpoint
           </Typography>
           <Typography variant="body2" className={classes.intro}>
-            Choose how the endpoint is exposed. The Endpoint type decides the
-            protocols it supports and the settings it asks for next.
+            Choose how the component is exposed. The Endpoint type decides what
+            protocols it supports and how the endpoint is managed and governed.
           </Typography>
         </Box>
         <Button size="small" onClick={onClose}>
           Cancel
         </Button>
       </Box>
-      <Box className={classes.grid}>
-        {options.map(typeCard)}
-        <TypeCard
-          icon={<LockOutlinedIcon />}
-          muted
-          name="Project only"
-          description={PROJECT_ONLY_DESCRIPTION}
-          chips={<Chip label="Any protocol" size="small" variant="outlined" />}
-          onClick={() => onSelect(NO_ENDPOINT)}
-        />
-      </Box>
+      <Box className={classes.grid}>{options.map(typeCard)}</Box>
     </div>
   );
 };

@@ -183,18 +183,19 @@ export const EndpointContent: FC<EndpointContentProps> = ({
         ? endpointTypeProtocols(typeKey, endpointsForm.allowedEndpoints)
         : [];
       return {
-        header: isEditing ? (
-          <ComponentEndpointTypeHeader
-            workloadEndpoint={savedName}
-            endpoint={endpoint}
-            state={endpointsForm}
-            details={typeDetails}
-          />
-        ) : undefined,
+        header:
+          isEditing && exposed ? (
+            <ComponentEndpointTypeHeader
+              workloadEndpoint={savedName}
+              endpoint={endpoint}
+              state={endpointsForm}
+              details={typeDetails}
+            />
+          ) : undefined,
         protocolOptions: protocols.length > 0 ? protocols : undefined,
         visibilityDisabledReason: exposed
           ? undefined
-          : 'A project-only endpoint stays within the project. To expose an endpoint beyond it, add one with an Endpoint type.',
+          : 'This endpoint has no Endpoint type, so it stays within the project. To expose an endpoint beyond it, add one with an Endpoint type.',
         visibilityError:
           exposed && exposableVisibilities(endpoint).length === 0
             ? 'Select a visibility beyond Project for the Endpoint.'
@@ -216,11 +217,12 @@ export const EndpointContent: FC<EndpointContentProps> = ({
       setPickerOpen(false);
       if (!allowedEndpoints || !setChoice) return;
       const name = onAddEndpoint();
-      const exposed = typeKey !== NO_ENDPOINT;
-      if (exposed) setChoice(name, { type: typeKey });
-      const protocol = exposed
-        ? protocolForEndpointType('HTTP', typeKey, allowedEndpoints)
-        : 'HTTP';
+      setChoice(name, { type: typeKey });
+      const protocol = protocolForEndpointType(
+        'HTTP',
+        typeKey,
+        allowedEndpoints,
+      );
       const base: WorkloadEndpoint = {
         type: 'HTTP',
         port: 8080,

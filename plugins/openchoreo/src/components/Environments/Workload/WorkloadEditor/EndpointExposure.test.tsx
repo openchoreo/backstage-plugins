@@ -84,7 +84,10 @@ describe('endpointTypeLabel', () => {
       'http-route',
     );
     expect(
-      endpointTypeLabel('ClusterEndpointType/managed-api', [httpRoute, managed]),
+      endpointTypeLabel('ClusterEndpointType/managed-api', [
+        httpRoute,
+        managed,
+      ]),
     ).toBe('managed-api (managed)');
   });
 

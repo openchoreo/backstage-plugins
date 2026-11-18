@@ -68,14 +68,20 @@ describe('EndpointTypePicker', () => {
     expect(screen.getByText('managed')).toBeInTheDocument();
   });
 
-  it('reports the picked type, or project only', () => {
+  it('reports the picked type', () => {
     const { onSelect } = renderPicker();
 
     fireEvent.click(screen.getByRole('button', { name: /^managed-http/ }));
     expect(onSelect).toHaveBeenCalledWith(MANAGED);
+  });
 
-    fireEvent.click(screen.getByRole('button', { name: /Project only/ }));
-    expect(onSelect).toHaveBeenCalledWith('none');
+  it('offers only the allowed Endpoint types', () => {
+    renderPicker();
+
+    expect(
+      screen.getAllByRole('button').filter(b => b.textContent !== 'Cancel'),
+    ).toHaveLength(2);
+    expect(screen.queryByText(/Project only/)).toBeNull();
   });
 
   it('shows nothing while closed, and Cancel closes it', () => {

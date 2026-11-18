@@ -114,11 +114,10 @@ describe('ComponentEndpointTypeHeader', () => {
     ).toBeInTheDocument();
   });
 
-  it('describes a card without an Endpoint type as project only', () => {
+  it('shows no heading for a card without an Endpoint type', () => {
     renderHeader(state());
 
-    expect(screen.getByText('Project only')).toBeInTheDocument();
-    expect(screen.getByText(/No Endpoint is created/)).toBeInTheDocument();
+    expect(screen.queryByText('Endpoint type')).toBeNull();
   });
 });
 

@@ -84,9 +84,6 @@ jest.mock('./EndpointTypePicker', () => ({
         >
           pick grpc-route
         </button>
-        <button type="button" onClick={() => props.onSelect('none')}>
-          pick project only
-        </button>
       </div>
     ) : null,
 }));
@@ -181,7 +178,9 @@ describe('EndpointContent', () => {
     renderContent(state());
 
     expect(
-      screen.getAllByText(/A project-only endpoint stays within the project/),
+      screen.getAllByText(
+        /has no Endpoint type, so it stays within the project/,
+      ),
     ).toHaveLength(2);
     expect(screen.getByText('protocols api: any')).toBeInTheDocument();
   });
@@ -218,21 +217,6 @@ describe('EndpointContent', () => {
       port: 8080,
       visibility: ['project'],
     });
-  });
-
-  it('opens a project-only card without an Endpoint type', () => {
-    const setChoice = jest.fn();
-    mockStartNew.mockClear();
-    renderContent(state({ setChoice }));
-
-    fireEvent.click(screen.getByRole('button', { name: 'add' }));
-    fireEvent.click(screen.getByRole('button', { name: 'pick project only' }));
-
-    expect(setChoice).not.toHaveBeenCalled();
-    expect(mockStartNew).toHaveBeenCalledWith(
-      'new',
-      expect.objectContaining({ protocol: 'HTTP', visibility: ['project'] }),
-    );
   });
 
   it('adds a row straight away in the legacy form', () => {

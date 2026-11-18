@@ -10,7 +10,6 @@ import {
   type ExposableEndpoint,
 } from '@openchoreo/backstage-plugin-common';
 import {
-  PROJECT_ONLY_DESCRIPTION,
   fallbackTypeDescription,
   type EndpointTypeDetails,
 } from './EndpointTypePicker';
@@ -121,20 +120,17 @@ export const ComponentEndpointTypeHeader = ({
 }: ComponentEndpointTypeHeaderProps) => {
   const classes = useStyles();
   const typeKey = cardEndpointType(endpoint, state, workloadEndpoint);
-  const projectOnly = typeKey === NO_ENDPOINT;
-  const info = projectOnly ? undefined : details[typeKey];
+  // A workload endpoint without an Endpoint type has no heading.
+  if (typeKey === NO_ENDPOINT) return null;
+  const info = details[typeKey];
   return (
     <Box>
       <Typography className={classes.typeLabel}>Endpoint type</Typography>
       <Typography className={classes.typeTitle}>
-        {projectOnly
-          ? 'Project only'
-          : info?.title || endpointTypeLabel(typeKey, state.allowedEndpoints)}
+        {info?.title || endpointTypeLabel(typeKey, state.allowedEndpoints)}
       </Typography>
       <Typography className={classes.typeDescription}>
-        {projectOnly
-          ? PROJECT_ONLY_DESCRIPTION
-          : info?.description || fallbackTypeDescription(typeKey)}
+        {info?.description || fallbackTypeDescription(typeKey)}
       </Typography>
     </Box>
   );

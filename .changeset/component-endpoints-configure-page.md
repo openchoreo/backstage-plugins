@@ -25,15 +25,13 @@ shows. Before upgrading, platform engineers annotate every
 - A type with `allowedEndpoints` gets the Endpoints form: one card per
   endpoint. **Add Endpoint** first shows a card for each Endpoint type in
   `allowedEndpoints`, with its title, description and protocols from the
-  catalog, and one for an endpoint kept within the project. Picking one opens
-  the endpoint's form under that type's name and description, with its name,
-  protocol (limited to those the type serves), port, visibility, schema and
-  the type's parameters; only an endpoint with a type takes visibility beyond
-  project. Saving creates the Endpoint, which carries that visibility, and
-  drops it from the workload; a project-only endpoint has no Endpoint.
-  Workload endpoints from before Endpoints, which carry visibility beyond
-  project but have no Endpoint, get no card and stay on the workload as they
-  are.
+  catalog. Picking one opens the endpoint's form under that type's name and
+  description, with its name, protocol (limited to those the type serves),
+  port, visibility, schema and the type's parameters. Saving creates the
+  Endpoint, which carries that visibility, and drops it from the workload.
+  Workload endpoints without an Endpoint stay within the project, and those
+  from before Endpoints, which carry visibility beyond project but have no
+  Endpoint, get no card and stay on the workload as they are.
 - A type with neither shows no form, and saving changes no Endpoints.
 
 A card with an Endpoint shows its name, Ready state, type and parameters. It can
