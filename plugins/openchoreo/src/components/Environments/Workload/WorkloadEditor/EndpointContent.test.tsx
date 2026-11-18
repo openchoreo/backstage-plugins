@@ -5,6 +5,8 @@ import type { ExposableEndpoint } from '@openchoreo/backstage-plugin-common';
 import type { ComponentEndpointsState } from '../hooks/useComponentEndpoints';
 import { EndpointContent } from './EndpointContent';
 
+const mockStartNew = jest.fn();
+
 jest.mock('../WorkloadContext', () => ({
   useWorkloadContext: () => ({ setEditingSection: jest.fn() }),
 }));
@@ -12,8 +14,13 @@ jest.mock('../WorkloadContext', () => ({
 // The list stub shows which form is rendered: the Endpoints form passes
 // row details and per-row editor settings, the legacy form neither.
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
+  endpointProtocolChanges: (_endpoint: any, protocol: string) => [
+    ['protocol', protocol],
+    ['type', protocol],
+  ],
   useEndpointEditBuffer: () => ({
     isAnyRowEditing: false,
+    startNew: mockStartNew,
     startEdit: jest.fn(),
     applyEdit: jest.fn(),
     cancelEdit: jest.fn(),
@@ -46,7 +53,14 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
           </div>
         ),
       )}
-      <button type="button" onClick={() => props.onAddEndpoint()}>
+      <button
+        type="button"
+        onClick={() =>
+          props.onAddRequest
+            ? props.onAddRequest()
+            : props.editBuffer.startNew(props.onAddEndpoint())
+        }
+      >
         add
       </button>
     </div>
@@ -56,6 +70,23 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
 jest.mock('./EndpointExposure', () => ({
   chosenEndpointTypeKeys: () => [],
   useEndpointTypeSchemas: () => ({}),
+}));
+
+jest.mock('./EndpointTypePicker', () => ({
+  EndpointTypePicker: (props: any) =>
+    props.open ? (
+      <div data-testid="type-picker">
+        <button
+          type="button"
+          onClick={() => props.onSelect('ClusterEndpointType/grpc-route')}
+        >
+          pick grpc-route
+        </button>
+        <button type="button" onClick={() => props.onSelect('none')}>
+          pick project only
+        </button>
+      </div>
+    ) : null,
 }));
 
 jest.mock('./ComponentEndpointExposure', () => ({
@@ -72,6 +103,10 @@ const httpRoute = {
   protocols: ['HTTP'],
   ref: { kind: 'ClusterEndpointType', name: 'http-route' },
   default: true,
+};
+const grpcRoute = {
+  protocols: ['gRPC'],
+  ref: { kind: 'ClusterEndpointType', name: 'grpc-route' },
 };
 
 function state(
@@ -159,14 +194,51 @@ describe('EndpointContent', () => {
     expect(screen.getByText('protocols raw: any')).toBeInTheDocument();
   });
 
-  it('starts a new card on the default Endpoint type', () => {
+  it('asks for the Endpoint type first, then opens the card with it', () => {
     const setChoice = jest.fn();
+    mockStartNew.mockClear();
+    renderContent(
+      state({ setChoice, allowedEndpoints: [httpRoute, grpcRoute] }),
+    );
+
+    expect(screen.queryByTestId('type-picker')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'add' }));
+    fireEvent.click(screen.getByRole('button', { name: 'pick grpc-route' }));
+
+    expect(screen.queryByTestId('type-picker')).toBeNull();
+    expect(setChoice).toHaveBeenCalledWith('new', {
+      type: 'ClusterEndpointType/grpc-route',
+    });
+    expect(mockStartNew).toHaveBeenCalledWith('new', {
+      type: 'gRPC',
+      protocol: 'gRPC',
+      port: 8080,
+      visibility: ['project'],
+    });
+  });
+
+  it('opens a project-only card without an Endpoint type', () => {
+    const setChoice = jest.fn();
+    mockStartNew.mockClear();
     renderContent(state({ setChoice }));
 
     fireEvent.click(screen.getByRole('button', { name: 'add' }));
-    expect(setChoice).toHaveBeenCalledWith('new', {
-      type: 'ClusterEndpointType/http-route',
-    });
+    fireEvent.click(screen.getByRole('button', { name: 'pick project only' }));
+
+    expect(setChoice).not.toHaveBeenCalled();
+    expect(mockStartNew).toHaveBeenCalledWith(
+      'new',
+      expect.objectContaining({ protocol: 'HTTP', visibility: ['project'] }),
+    );
+  });
+
+  it('adds a row straight away in the legacy form', () => {
+    mockStartNew.mockClear();
+    renderContent(state({ mode: 'legacy' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'add' }));
+    expect(screen.queryByTestId('type-picker')).toBeNull();
+    expect(mockStartNew).toHaveBeenCalledWith('new');
   });
 
   it('shows the legacy form for a ComponentType kept on legacy endpoints', () => {

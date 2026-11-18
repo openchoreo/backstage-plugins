@@ -27,6 +27,11 @@ export interface EndpointListProps {
   /** Callback to add new endpoint (returns the new endpoint name) */
   onAddEndpoint: () => string;
   /**
+   * Replaces what the Add button does, e.g. to ask how the endpoint is
+   * exposed first. The caller then adds the row and starts editing it.
+   */
+  onAddRequest?: () => void;
+  /**
    * Extra content shown inside an endpoint's row (for example how it is
    * exposed). For the row being edited it receives the edited name and
    * values, so it follows the form as the developer types, and as
@@ -74,10 +79,15 @@ export const EndpointList: FC<EndpointListProps> = ({
   onAddEndpoint,
   renderDetails,
   rowEditorProps,
+  onAddRequest,
 }) => {
   const classes = useStyles();
 
   const handleAddEndpoint = () => {
+    if (onAddRequest) {
+      onAddRequest();
+      return;
+    }
     const newEndpointName = onAddEndpoint();
     editBuffer.startNew(newEndpointName);
   };

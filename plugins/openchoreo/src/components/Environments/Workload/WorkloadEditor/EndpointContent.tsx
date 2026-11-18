@@ -1,18 +1,19 @@
-import { FC, useCallback, useEffect, useMemo, useRef } from 'react';
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Typography } from '@material-ui/core';
 import { Alert } from '@material-ui/lab';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import {
   CHOREO_ANNOTATIONS,
   NO_ENDPOINT,
-  defaultEndpointType,
   endpointTypeProtocols,
+  protocolForEndpointType,
   exposableVisibilities,
   type EndpointExposureChoice,
   WorkloadEndpoint,
 } from '@openchoreo/backstage-plugin-common';
 import {
   EndpointList,
+  endpointProtocolChanges,
   useEndpointEditBuffer,
 } from '@openchoreo/backstage-plugin-react';
 import { useWorkloadContext } from '../WorkloadContext';
@@ -22,6 +23,7 @@ import {
   chosenEndpointTypeKeys,
   useEndpointTypeSchemas,
 } from './EndpointExposure';
+import { EndpointTypePicker } from './EndpointTypePicker';
 import {
   ComponentEndpointExposure,
   ComponentEndpointTypeField,
@@ -189,16 +191,36 @@ export const EndpointContent: FC<EndpointContentProps> = ({
     [endpointsForm, updateBuffer, disabled],
   );
 
-  // A new card starts exposed through HTTP's default Endpoint type.
   const setChoice = endpointsForm?.setChoice;
-  const handleAddEndpoint = useCallback(() => {
-    const name = onAddEndpoint();
-    if (allowedEndpoints && setChoice) {
-      const type = defaultEndpointType('HTTP', allowedEndpoints);
-      if (type !== NO_ENDPOINT) setChoice(name, { type });
-    }
-    return name;
-  }, [onAddEndpoint, allowedEndpoints, setChoice]);
+
+  // Adding an endpoint in the Endpoints form takes two steps: pick how it's
+  // exposed, then fill in its card, which opens with that type and one of
+  // the type's protocols.
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const startNew = listEditBuffer.startNew;
+  const handlePickType = useCallback(
+    (typeKey: string) => {
+      setPickerOpen(false);
+      if (!allowedEndpoints || !setChoice) return;
+      const name = onAddEndpoint();
+      const exposed = typeKey !== NO_ENDPOINT;
+      if (exposed) setChoice(name, { type: typeKey });
+      const protocol = exposed
+        ? protocolForEndpointType('HTTP', typeKey, allowedEndpoints)
+        : 'HTTP';
+      const base: WorkloadEndpoint = {
+        type: 'HTTP',
+        port: 8080,
+        visibility: ['project'],
+      };
+      const initial = Object.fromEntries([
+        ...Object.entries(base),
+        ...endpointProtocolChanges(base, protocol),
+      ]) as WorkloadEndpoint;
+      startNew(name, initial);
+    },
+    [allowedEndpoints, setChoice, onAddEndpoint, startNew],
+  );
 
   const deprecatedRows = endpointsForm?.deprecatedRows;
   const cards = useMemo(
@@ -245,7 +267,8 @@ export const EndpointContent: FC<EndpointContentProps> = ({
           disabled={disabled}
           editBuffer={listEditBuffer}
           onRemoveEndpoint={onRemoveEndpoint}
-          onAddEndpoint={handleAddEndpoint}
+          onAddEndpoint={onAddEndpoint}
+          onAddRequest={() => setPickerOpen(true)}
           rowEditorProps={rowEditorProps}
           renderDetails={(_name, endpoint, savedName, isEditing) => (
             <ComponentEndpointExposure
@@ -265,6 +288,17 @@ export const EndpointContent: FC<EndpointContentProps> = ({
           editBuffer={editBuffer}
           onRemoveEndpoint={onRemoveEndpoint}
           onAddEndpoint={onAddEndpoint}
+        />
+      )}
+      {endpointsForm && (
+        <EndpointTypePicker
+          open={pickerOpen}
+          allowedEndpoints={endpointsForm.allowedEndpoints}
+          namespace={
+            entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ?? ''
+          }
+          onSelect={handlePickType}
+          onClose={() => setPickerOpen(false)}
         />
       )}
       {componentEndpoints && (
