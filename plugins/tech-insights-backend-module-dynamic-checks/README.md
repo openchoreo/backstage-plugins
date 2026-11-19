@@ -27,27 +27,3 @@ migration ledger (`dynamic_checks_openchoreo_starter_migrations`). Turning the o
 still adds them. Nothing is seeded when `backend.database.migrations.skip` is set. Never edit,
 rename or delete a seed file once it has shipped. Databases that already ran it won't pick up the
 edit, and knex refuses to migrate when its ledger names a file that's gone.
-
-## Inherited checks
-
-With `techInsights.dynamicChecks.inheritChecks`, the entities of a kind also run every check that
-matches their parent entity. The OpenChoreo portal turns it on so a release line runs its
-component's checks.
-
-```yaml
-techInsights:
-  dynamicChecks:
-    inheritChecks:
-      - kind: ReleaseLine
-        parentField: spec.component
-```
-
-`parentField` is the dot path to the field holding the parent's entity ref. A ref without a
-namespace resolves in the entity's own namespace.
-
-A check's filter is matched against the parent, with the entity's own kind and name added as second
-values. A filter on `kind: Component`, or on a component's type, annotations or name, therefore
-covers its release lines, and a filter on `kind: ReleaseLine` still works. The check reads the
-entity's own facts, so a release line passes or fails on what was collected for the line, and a
-check whose facts aren't collected for it gives no result there. When the parent can't be read, the
-entity runs only the checks that match it directly. Dry runs match filters the same way.

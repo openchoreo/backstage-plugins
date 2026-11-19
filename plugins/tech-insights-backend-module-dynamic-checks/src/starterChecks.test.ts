@@ -80,7 +80,7 @@ describe('seedOpenChoreoStarterChecks', () => {
     expect(await registry.get(SAMPLE_ID)).toMatchObject({
       type: 'json-rules-engine',
       factIds: ['openchoreoDeploymentFactRetriever'],
-      filter: { kind: 'Component' },
+      filter: { kind: ['Component', 'ReleaseLine'] },
       metadata: { rank: 2, category: 'Security' },
     });
   });
@@ -95,6 +95,23 @@ describe('seedOpenChoreoStarterChecks', () => {
 
     const problems = await validator.problemsOfEach(await registry.listAll());
     expect(problems.flat()).toEqual([]);
+  });
+
+  it('runs every check on components on their release lines too', async () => {
+    const { knex, registry } = await createDatabase();
+    await seedOpenChoreoStarterChecks(knex);
+
+    const kinds = (check: { filter?: unknown }) =>
+      [(check.filter as { kind?: string | string[] }).kind ?? []].flat();
+    const onComponents = (await registry.listAll()).filter(check =>
+      kinds(check).includes('Component'),
+    );
+    expect(onComponents).not.toHaveLength(0);
+    expect(
+      onComponents
+        .filter(check => !kinds(check).includes('ReleaseLine'))
+        .map(check => check.id),
+    ).toEqual([]);
   });
 
   it('seeds once, so edits, unpublishing and deletion stick', async () => {

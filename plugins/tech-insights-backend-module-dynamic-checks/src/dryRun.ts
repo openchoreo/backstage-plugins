@@ -59,7 +59,7 @@ const DRAFT_CHECK_ID = 'dry-run';
  * array values as any-of, an array of filters ORed). Used only to explain an
  * empty result; jsonfc itself decides what runs.
  */
-export function valueAt(entity: Entity, path: string): unknown {
+function valueAt(entity: Entity, path: string): unknown {
   return path
     .split('.')
     .reduce<unknown>(
@@ -125,13 +125,12 @@ function describeFilterMismatch(
 async function explainEmptyResult(
   check: DraftCheck,
   entity: Entity,
-  filterEntity: Entity,
   entityRef: string,
   evaluation: CheckEvaluation,
   facts: Awaited<ReturnType<TechInsightsStore['getLatestFactsByIds']>>,
 ): Promise<DryRunReason[]> {
   const filterMismatch = check.filter
-    ? describeFilterMismatch(filterEntity, check.filter)
+    ? describeFilterMismatch(entity, check.filter)
     : undefined;
   if (filterMismatch) {
     return [
@@ -203,13 +202,10 @@ async function explainEmptyResult(
 export async function dryRunCheck(options: {
   check: DraftCheck;
   entity: Entity;
-  /** What the check's filter is matched against, when not the entity itself. */
-  filterEntity?: Entity;
   entityRef: string;
   evaluation: CheckEvaluation;
 }): Promise<DryRunResponse> {
   const { check, entity, entityRef, evaluation } = options;
-  const filterEntity = options.filterEntity ?? entity;
   const facts = await evaluation.store.getLatestFactsByIds(
     check.factIds,
     entityRef,
@@ -262,13 +258,6 @@ export async function dryRunCheck(options: {
   }
   return respond(
     'not-applicable',
-    await explainEmptyResult(
-      check,
-      entity,
-      filterEntity,
-      entityRef,
-      evaluation,
-      facts,
-    ),
+    await explainEmptyResult(check, entity, entityRef, evaluation, facts),
   );
 }
