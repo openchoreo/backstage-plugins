@@ -683,20 +683,29 @@ export const NotificationChannelFormWithYamlExtension = ({
             </Grid>
 
             <Grid item xs={12} sm={6}>
-              <Box display="flex" alignItems="center">
-                <Typography variant="body2" style={{ marginRight: 16 }}>
-                  Environment Default
+              <Box
+                display="flex"
+                flexDirection="column"
+                justifyContent="center"
+                height="100%"
+              >
+                <Box display="flex" alignItems="center">
+                  <Typography variant="body2" style={{ marginRight: 16 }}>
+                    Environment Default
+                  </Typography>
+                  <Switch
+                    checked={data.isEnvDefault}
+                    onChange={e =>
+                      updateField('isEnvDefault', e.target.checked)
+                    }
+                    color="primary"
+                  />
+                </Box>
+                <Typography variant="caption" color="textSecondary">
+                  If several channels of this environment are marked as default,
+                  the most recently created one is used.
                 </Typography>
-                <Switch
-                  checked={data.isEnvDefault}
-                  onChange={e => updateField('isEnvDefault', e.target.checked)}
-                  color="primary"
-                />
               </Box>
-              <Typography variant="caption" color="textSecondary">
-                If several channels of this environment are marked as default,
-                the most recently created one is used.
-              </Typography>
             </Grid>
 
             <Grid item xs={12} sm={6}>

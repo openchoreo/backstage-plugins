@@ -6,6 +6,7 @@ import { Link } from '@backstage/core-components';
 import { Card } from '@openchoreo/backstage-design-system';
 import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
+import { countEnvDefaultChannels } from './countEnvDefaultChannels';
 import { useNotificationChannelOverviewStyles } from './styles';
 
 interface SecretKeyRef {
@@ -84,18 +85,8 @@ export const NotificationChannelConfigCard = () => {
   // Several channels of an environment can be marked as default; the card only reports that.
   const { data: markedCount } = useOpenChoreoQuery<number>(
     ['notification-channel-env-defaults', namespace, spec?.environment],
-    async () => {
-      const { items } = await catalogApi.getEntities({
-        filter: {
-          kind: 'ObservabilityAlertsNotificationChannel',
-          'metadata.namespace': namespace,
-          'spec.environment': spec?.environment ?? '',
-        },
-        fields: ['spec.isEnvDefault'],
-      });
-      return items.filter(channel => channel.spec?.isEnvDefault === true)
-        .length;
-    },
+    () =>
+      countEnvDefaultChannels(catalogApi, namespace, spec?.environment ?? ''),
     { enabled: Boolean(spec?.isEnvDefault && spec.environment) },
   );
 
