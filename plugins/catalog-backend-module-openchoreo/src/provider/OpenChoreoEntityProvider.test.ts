@@ -969,6 +969,69 @@ describe('OpenChoreoEntityProvider', () => {
     });
   });
 
+  describe('release lines', () => {
+    it("gives a line its component's repository and its own branch", async () => {
+      setupPathBasedMocks({
+        '/api/v1/namespaces/{namespaceName}/projects': okData({
+          items: [k8sProject],
+        }),
+        '/api/v1/namespaces/{namespaceName}/components': okData({
+          items: [
+            {
+              ...k8sServiceComponent,
+              spec: {
+                ...k8sServiceComponent.spec,
+                workflow: {
+                  kind: 'ClusterWorkflow',
+                  name: 'dockerfile-builder',
+                  parameters: {
+                    repository: {
+                      url: 'https://github.com/org/repo',
+                      revision: { branch: 'main' },
+                      appPath: '/api',
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        }),
+        '/api/v1/namespaces/{namespaceName}/components/{componentName}/releaselines':
+          okData({
+            items: [
+              {
+                metadata: k8sMeta('next'),
+                spec: {
+                  owner: {
+                    projectName: 'my-project',
+                    componentName: 'api-service',
+                  },
+                  workflow: {
+                    parameters: {
+                      repository: { revision: { branch: 'release-next' } },
+                    },
+                  },
+                },
+              },
+            ],
+          }),
+        '/api/v1/namespaces': okData({ items: [k8sNamespace] }),
+      });
+
+      const entities = await runProvider();
+
+      const lines = findEntities(entities, 'ReleaseLine');
+      expect(lines).toHaveLength(1);
+      expect(lines[0].metadata.annotations).toEqual(
+        expect.objectContaining({
+          'backstage.io/source-location':
+            'url:https://github.com/org/repo/tree/release-next/api/',
+          'openchoreo.io/branch': 'release-next',
+        }),
+      );
+    });
+  });
+
   describe('namespace-level error isolation', () => {
     it('processes other namespaces when one fails for environments', async () => {
       const nsOk = {

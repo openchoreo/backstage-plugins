@@ -1103,6 +1103,7 @@ export async function createRouter({
     namespaceName: string,
     componentName: string,
     releaseLine: ReleaseLineResource,
+    userToken?: string,
   ) => {
     try {
       const credentials = await auth.getOwnServiceCredentials();
@@ -1111,6 +1112,19 @@ export async function createRouter({
         { credentials },
       );
       const spec = releaseLine.spec;
+      // The catalog entity keeps only the component's resolved source
+      // location, so the workflow parameters a line overrides come from the API.
+      const componentWorkflow = await componentInfoService
+        .fetchComponentDetails(
+          namespaceName,
+          spec?.owner.projectName ?? '',
+          componentName,
+          userToken,
+        )
+        .then(
+          details => details.componentWorkflow,
+          () => undefined,
+        );
       await immediateCatalog.insertEntity(
         translateReleaseLineToEntity(
           {
@@ -1136,6 +1150,7 @@ export async function createRouter({
             defaultOwner:
               (component?.spec?.owner as string | undefined) ?? defaultOwner,
           },
+          componentWorkflow,
         ),
       );
     } catch (err) {
@@ -1212,7 +1227,12 @@ export async function createRouter({
       releaseLine,
       userToken,
     );
-    await insertReleaseLineEntity(namespaceName, componentName, created);
+    await insertReleaseLineEntity(
+      namespaceName,
+      componentName,
+      created,
+      userToken,
+    );
     await markComponentReleaseLines(namespaceName, componentName, true);
     res.status(201).json({ success: true, data: created });
   });
@@ -1256,7 +1276,12 @@ export async function createRouter({
       releaseLine,
       userToken,
     );
-    await insertReleaseLineEntity(namespaceName, componentName, updated);
+    await insertReleaseLineEntity(
+      namespaceName,
+      componentName,
+      updated,
+      userToken,
+    );
     res.json({ success: true, data: updated });
   });
 

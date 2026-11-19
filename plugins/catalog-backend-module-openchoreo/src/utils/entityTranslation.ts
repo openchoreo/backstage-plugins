@@ -5,6 +5,7 @@ import {
   CHOREO_LABELS,
   getRepositoryInfo,
   getRepositoryUrl,
+  mergeOverrides,
   ComponentTypeUtils,
   type ComponentResponse,
 } from '@openchoreo/backstage-plugin-common';
@@ -225,6 +226,27 @@ export interface ComponentEntityTranslationConfig {
 }
 
 /**
+ * The source location and branch annotations for the repository a
+ * component's workflow builds from, or none when it has no repository.
+ */
+function repositoryAnnotations(
+  component: ModelsComponent,
+): Record<string, string> {
+  const repoInfo = getRepositoryInfo(component);
+  const sourceUrl = getRepositoryUrl(component);
+  return {
+    // Backstage resolves paths relative to a folder location only
+    // when it ends with `/`.
+    ...(sourceUrl && {
+      'backstage.io/source-location': `url:${sourceUrl}/`,
+    }),
+    ...(repoInfo.branch && {
+      [CHOREO_ANNOTATIONS.BRANCH]: repoInfo.branch,
+    }),
+  };
+}
+
+/**
  * Translates an OpenChoreo ModelsComponent to a Backstage Component entity.
  * This is a shared utility used by both the scheduled sync (OpenChoreoEntityProvider)
  * and immediate insertion (scaffolder action) to ensure consistency.
@@ -285,20 +307,7 @@ export function translateComponentToEntity(
         ...(component.deletionTimestamp && {
           [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: component.deletionTimestamp,
         }),
-        ...(() => {
-          const repoInfo = getRepositoryInfo(component);
-          const sourceUrl = getRepositoryUrl(component);
-          return {
-            // Backstage resolves paths relative to a folder location only
-            // when it ends with `/`.
-            ...(sourceUrl && {
-              'backstage.io/source-location': `url:${sourceUrl}/`,
-            }),
-            ...(repoInfo.branch && {
-              [CHOREO_ANNOTATIONS.BRANCH]: repoInfo.branch,
-            }),
-          };
-        })(),
+        ...repositoryAnnotations(component),
       },
       labels: {
         [CHOREO_LABELS.MANAGED]: 'true',
@@ -895,6 +904,12 @@ export function translateReleaseLineToEntity(
   },
   namespaceName: string,
   config: ReleaseLineEntityTranslationConfig,
+  /**
+   * The component's workflow. The line builds from its parameters with the
+   * line's workflow parameters merged over them, so without it the line gets
+   * no source location or branch.
+   */
+  componentWorkflow?: { parameters?: Record<string, unknown> },
 ): ReleaseLineEntityV1alpha1 {
   const hasKeys = (value?: object) => !!value && Object.keys(value).length > 0;
 
@@ -917,6 +932,15 @@ export function translateReleaseLineToEntity(
         [CHOREO_ANNOTATIONS.PROJECT]: releaseLine.projectName,
         [CHOREO_ANNOTATIONS.COMPONENT]: releaseLine.componentName,
         [CHOREO_ANNOTATIONS.RELEASE_LINE]: releaseLine.name,
+        ...(componentWorkflow &&
+          repositoryAnnotations({
+            componentWorkflow: {
+              parameters: mergeOverrides(
+                componentWorkflow.parameters,
+                releaseLine.workflow?.parameters,
+              ),
+            },
+          } as ModelsComponent)),
         ...(releaseLine.createdAt && {
           [CHOREO_ANNOTATIONS.CREATED_AT]: releaseLine.createdAt,
         }),
@@ -2128,12 +2152,15 @@ export function translateNewResourceToEntity(
 
 /**
  * Translates a new-API ReleaseLine into a Backstage ReleaseLine entity.
+ * The line's source location and branch come from its component's workflow,
+ * so a line translated without its component has neither.
  */
 export function translateNewReleaseLineToEntity(
   releaseLine: NewReleaseLine,
   namespaceName: string,
   owner: string,
   ctx: NewApiTranslatorContext,
+  component?: NewComponent,
 ): ReleaseLineEntityV1alpha1 {
   const spec = releaseLine.spec;
   return translateReleaseLineToEntity(
@@ -2153,6 +2180,7 @@ export function translateNewReleaseLineToEntity(
     },
     namespaceName,
     { locationKey: ctx.providerName, defaultOwner: owner },
+    component?.spec?.workflow,
   );
 }
 

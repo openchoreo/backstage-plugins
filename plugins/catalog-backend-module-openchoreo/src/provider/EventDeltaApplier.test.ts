@@ -1217,6 +1217,97 @@ describe('EventDeltaApplier release lines', () => {
     expect(added[0].spec.component).toBe('component:test-ns/hello');
   });
 
+  const ok = (data: unknown) => ({ data, response: { ok: true, status: 200 } });
+  const helloComponent = {
+    metadata: { name: 'hello', namespace: 'test-ns' },
+    spec: {
+      owner: { projectName: 'proj' },
+      workflow: {
+        kind: 'ClusterWorkflow',
+        name: 'dockerfile-builder',
+        parameters: {
+          repository: {
+            url: 'https://github.com/org/repo',
+            revision: { branch: 'main' },
+          },
+        },
+      },
+    },
+  };
+  const nextLine = {
+    metadata: { name: 'next', namespace: 'test-ns' },
+    spec: {
+      owner: { projectName: 'proj', componentName: 'hello' },
+      workflow: {
+        parameters: { repository: { revision: { branch: 'release-next' } } },
+      },
+    },
+  };
+  const nextLineAnnotations = expect.objectContaining({
+    'backstage.io/source-location':
+      'url:https://github.com/org/repo/tree/release-next/',
+    'openchoreo.io/branch': 'release-next',
+  });
+
+  it("gives a refreshed line its component's repository and its own branch", async () => {
+    const catalogService = {
+      getEntityByRef: jest.fn().mockResolvedValue({
+        kind: 'ReleaseLine',
+        metadata: {
+          name: 'next',
+          namespace: 'test-ns',
+          annotations: { 'openchoreo.io/component': 'hello' },
+        },
+      }),
+    };
+    mockGET.mockImplementation((path: string) => {
+      if (path.endsWith('/releaselines/{releaseLineName}')) {
+        return Promise.resolve(ok(nextLine));
+      }
+      if (path.endsWith('/components/{componentName}')) {
+        return Promise.resolve(ok(helloComponent));
+      }
+      return Promise.resolve(notFound());
+    });
+
+    await newApplierWithCatalog(catalogService).handleEvent(
+      'ReleaseLine',
+      'next',
+      'test-ns',
+      'updated',
+    );
+
+    const added = applyMutation.mock.calls[0][0].added.map(
+      (a: any) => a.entity,
+    );
+    expect(added[0].metadata.annotations).toEqual(nextLineAnnotations);
+  });
+
+  it("re-emits a component's lines with their branches when it changes", async () => {
+    mockGET.mockImplementation((path: string) => {
+      if (path.endsWith('/releaselines')) {
+        return Promise.resolve(ok({ items: [nextLine] }));
+      }
+      if (path.endsWith('/components/{componentName}')) {
+        return Promise.resolve(ok(helloComponent));
+      }
+      return Promise.resolve(notFound());
+    });
+
+    await newApplierWithCatalog({}).handleEvent(
+      'Component',
+      'hello',
+      'test-ns',
+      'updated',
+    );
+
+    const added = applyMutation.mock.calls[0][0].added.map(
+      (a: any) => a.entity,
+    );
+    const line = added.find((e: any) => e.kind === 'ReleaseLine');
+    expect(line.metadata.annotations).toEqual(nextLineAnnotations);
+  });
+
   it("refreshes a deleted line's component, whose lines it marks", async () => {
     const catalogService = {
       getEntityByRef: jest.fn().mockResolvedValue({

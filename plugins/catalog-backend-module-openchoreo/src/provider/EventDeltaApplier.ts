@@ -947,6 +947,7 @@ export class EventDeltaApplier {
         ns,
         resolvedOwner,
         this.translatorContext,
+        component,
       ),
     );
 
@@ -1030,6 +1031,7 @@ export class EventDeltaApplier {
             ns,
             owner,
             this.translatorContext,
+            component,
           ),
         ]);
         if (!known) {
