@@ -1,5 +1,6 @@
 import {
   isSecretLikeKey,
+  lineBindings,
   parseImage,
   plainTextSecretEnvCount,
   releaseBindingFacts,
@@ -95,6 +96,30 @@ describe('workloadFacts', () => {
       openchoreoExternalEndpointCount: 1,
       openchoreoPlainTextSecretEnvCount: 2,
     });
+  });
+});
+
+describe('lineBindings', () => {
+  const main = { spec: { environment: 'development' } };
+  const unnamed = {
+    spec: { owner: { releaseLine: '' }, environment: 'staging' },
+  };
+  const next = {
+    spec: { owner: { releaseLine: 'next' }, environment: 'production' },
+  };
+  const canary = {
+    spec: { owner: { releaseLine: 'canary' }, environment: 'production' },
+  };
+
+  it("keeps the main line's bindings when no line is named", () => {
+    expect(lineBindings([main, unnamed, next, canary])).toEqual([
+      main,
+      unnamed,
+    ]);
+  });
+
+  it("keeps only the named line's bindings", () => {
+    expect(lineBindings([main, next, canary], 'next')).toEqual([next]);
   });
 });
 
@@ -201,28 +226,6 @@ describe('releaseBindingFacts', () => {
       openchoreoReadyInAllEnvironments: false,
       openchoreoRunsLatestRelease: true,
     });
-  });
-
-  it('lists an environment bound by several release lines once', () => {
-    expect(
-      releaseBindingFacts({
-        bindings: [
-          {
-            spec: { environment: 'development', releaseName: 'r2' },
-            status: ready,
-          },
-          {
-            spec: { environment: 'development', releaseName: 'next-r1' },
-            status: ready,
-          },
-          {
-            spec: { environment: 'production', releaseName: 'r2' },
-            status: ready,
-          },
-        ],
-        productionEnvironments: new Set(['production']),
-      }).openchoreoDeployedEnvironments,
-    ).toEqual(['development', 'production']);
   });
 
   it('leaves out the latest-release fact without a recorded latest release', () => {

@@ -4,6 +4,7 @@ import type { OpenChoreoTokenService } from '@openchoreo/openchoreo-auth';
 import {
   collectOpenChoreoFacts,
   createServiceClient,
+  isReleaseLine,
   type OpenChoreoApiClient,
 } from './collectOpenChoreoFacts';
 import { buildFacts, type WorkflowRun } from './buildFacts';
@@ -17,7 +18,9 @@ const PAGE_SIZE = 100;
 export const MAX_RUN_PAGES = 5;
 
 /**
- * Every retained run of a component, on any release line. Undefined when
+ * Every retained run of `releaseLine`, or of the component's main line when
+ * it's undefined. OpenChoreo labels a run with its line only when one is
+ * named, so main-line runs are the ones without the label. Undefined when
  * there are more than `MAX_RUN_PAGES` pages of them.
  */
 async function listRuns(
@@ -25,8 +28,12 @@ async function listRuns(
   namespaceName: string,
   projectName: string,
   componentName: string,
+  releaseLine: string | undefined,
   signal: AbortSignal,
 ): Promise<WorkflowRun[] | undefined> {
+  const line = releaseLine
+    ? `openchoreo.dev/release-line=${releaseLine}`
+    : '!openchoreo.dev/release-line';
   const runs: WorkflowRun[] = [];
   let cursor: string | undefined;
   for (let page = 0; page < MAX_RUN_PAGES; page++) {
@@ -36,7 +43,7 @@ async function listRuns(
         params: {
           path: { namespaceName },
           query: {
-            labelSelector: `openchoreo.dev/project=${projectName},openchoreo.dev/component=${componentName}`,
+            labelSelector: `openchoreo.dev/project=${projectName},openchoreo.dev/component=${componentName},${line}`,
             limit: PAGE_SIZE,
             cursor,
           },
@@ -74,11 +81,11 @@ export function createOpenChoreoBuildFactRetriever(
 ): FactRetriever {
   return {
     id: OPENCHOREO_BUILD_FACT_RETRIEVER_ID,
-    version: '0.1.0',
+    version: '0.2.0',
     title: 'OpenChoreo Build',
     description:
-      "How an OpenChoreo component's builds went, read from its workflow runs on every release line.",
-    entityFilter: [{ kind: 'component' }],
+      "How the builds of an OpenChoreo component's main line or of a release line went, read from the line's workflow runs.",
+    entityFilter: [{ kind: 'component' }, { kind: 'releaseline' }],
     schema,
     handler: context =>
       collectOpenChoreoFacts(
@@ -89,8 +96,12 @@ export function createOpenChoreoBuildFactRetriever(
           const namespaceName = annotations[CHOREO_ANNOTATIONS.NAMESPACE];
           const projectName = annotations[CHOREO_ANNOTATIONS.PROJECT];
           const componentName = annotations[CHOREO_ANNOTATIONS.COMPONENT];
-          // Not an OpenChoreo component, so not this retriever's to judge.
-          if (!componentName) {
+          const releaseLine = isReleaseLine(entity)
+            ? annotations[CHOREO_ANNOTATIONS.RELEASE_LINE]
+            : undefined;
+          // Not an OpenChoreo component or release line, so not this
+          // retriever's to judge.
+          if (!componentName || (isReleaseLine(entity) && !releaseLine)) {
             return undefined;
           }
           if (!namespaceName || !projectName) {
@@ -102,11 +113,14 @@ export function createOpenChoreoBuildFactRetriever(
             namespaceName,
             projectName,
             componentName,
+            releaseLine,
             signal,
           );
           if (!runs) {
             context.logger.warn(
-              `Leaving out build facts for ${componentName}: more than ${
+              `Leaving out build facts for ${
+                releaseLine ? `${componentName}:${releaseLine}` : componentName
+              }: more than ${
                 MAX_RUN_PAGES * PAGE_SIZE
               } workflow runs are retained`,
             );

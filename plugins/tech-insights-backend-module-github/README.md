@@ -1,8 +1,9 @@
 # @openchoreo/backstage-plugin-tech-insights-backend-module-github
 
 A Tech Insights fact retriever, `githubRepositoryFactRetriever`, that reads the GitHub repository
-behind each Component and the protection of the branch it builds from, through the GitHub REST
-API.
+behind each Component and ReleaseLine and the protection of the branch it builds from, through the
+GitHub REST API. A release line gets its own facts, so a line that builds from another branch is
+judged on that branch's protection.
 
 It reports whether the repository is archived, its visibility, the days since the last push,
 whether the branch has a `CODEOWNERS` file and a `SECURITY.md`, and how the branch is protected:
@@ -47,8 +48,8 @@ techInsights:
 
 Credentials come from `integrations.github`: a GitHub App installation for the repository owner
 when one is configured, else the host's token. Without credentials GitHub allows 60 requests an
-hour, which covers only a few repositories. Components that share a repository share its requests
-within a run, and a request that takes longer than 30 seconds skips that component.
+hour, which covers only a few repositories. Components and release lines that share a repository
+share its requests within a run, and a request that takes longer than 30 seconds skips that entity.
 
 When a run hits the rate limit, it stops and the next run starts at the entity where it stopped.
 That position is kept in the plugin cache, so with the default in-memory store it's per replica
@@ -59,8 +60,9 @@ and lost on restart, and the next run then starts from the first entity.
 The repository comes from the first entity annotation that resolves to a host under
 `integrations.github`, by default `backstage.io/source-location`, then `github.com/project-slug`.
 The branch comes from the first `branchAnnotations` entry present, by default
-`openchoreo.io/branch`, where OpenChoreo records a component's build branch. Without one it's the
-ref in the repository URL, else the repository's default branch. A branch name can contain `/`, so
+`openchoreo.io/branch`, where OpenChoreo records the build branch of a component or a release line.
+Without one it's the ref in the repository URL, else the repository's default branch. A branch
+name can contain `/`, so
 for a URL like `…/tree/feature/login/svc/` the retriever tries `feature`, then `feature/login`, and
 so on, and uses the first that exists. To read the branch from the URL only:
 

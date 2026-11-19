@@ -6,8 +6,8 @@ portal's service credentials (`openchoreo.auth`).
 | Retriever                              | Entities                                | Facts                                                                                                                                                           |
 | -------------------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `openchoreoComponentTypeFactRetriever` | `ClusterComponentType`, `ComponentType` | Workload type, allowed and embedded traits, allowed workflows, validation rules, whether templates set limits, run as non-root or allow privileged containers   |
-| `openchoreoDeploymentFactRetriever`    | `Component`                             | Image registry and whether it's pinned, external endpoints, secret-like plain env values, environments deployed to, production, ready and latest-release status |
-| `openchoreoBuildFactRetriever`         | `Component`                             | Whether the last finished build succeeded, and the share of the last 20 that did                                                                                |
+| `openchoreoDeploymentFactRetriever`    | `Component`, `ReleaseLine`              | Image registry and whether it's pinned, external endpoints, secret-like plain env values, environments deployed to, production, ready and latest-release status |
+| `openchoreoBuildFactRetriever`         | `Component`, `ReleaseLine`              | Whether the last finished build succeeded, and the share of the last 20 that did                                                                                |
 
 The component type and deployment retrievers report a `…Resolved` fact. When the entity has no matching OpenChoreo resource it
 is false and every other fact is null, so checks fail the entity instead of skipping it. jsonfc
@@ -19,6 +19,12 @@ an `openchoreo.io/component` annotation. Other Components get no facts, so these
 result for them. A component that hasn't been built yet has no Workload, so its image, endpoint and
 secret facts are left out, but its deployment facts are still reported.
 
+A Component's deployment and build facts describe its main line. They come from the Workload the
+component names, the release bindings and workflow runs that belong to no release line, and the
+component's latest release. Each ReleaseLine entity gets the same facts for its own line, read from
+the line's Workload, its bindings, the runs labelled with its name and its latest release. A line
+that runs in production therefore doesn't make its component count as deployed to production.
+
 An image counts as pinned when it names a digest, or a tag other than one that conventionally
 moves (`latest`, `main`, `master`, `dev`, `develop`, `edge`, `nightly`, `stable`, `staging`). The
 secret count looks at the parts of each env var name between underscores, so `DB_PASS` counts and
@@ -27,11 +33,12 @@ per-environment overrides of its active release bindings, each name once. An env
 deployed to once its binding's release has synced to the data plane (`ReleaseSynced`), so a binding
 whose release is missing or failed to render doesn't count. `openchoreoRunsLatestRelease` says
 whether every binding points at the latest release, and readiness is left to
-`openchoreoReadyInAllEnvironments`. OpenChoreo records a component's latest release only when
-`autoDeploy` is on, so `openchoreoRunsLatestRelease` is left out for components deployed by hand.
+`openchoreoReadyInAllEnvironments`. OpenChoreo records the latest release of a component or a
+release line only when `autoDeploy` is on for it, so `openchoreoRunsLatestRelease` is left out for
+lines deployed by hand.
 
-The build facts read a component's workflow runs on every release line. A run counts once it has
-finished, and one that failed validation before its workflow ran counts as failed.
+A run counts toward the build facts once it has finished, and one that failed validation before its
+workflow ran counts as failed.
 `openchoreoBuildSuccessRate` covers the newest 20 finished runs. OpenChoreo deletes a run a while
 after it finishes (`ttlAfterCompletion`, one day in the sample workflows), so both facts are left
 out when no finished run is retained, as they are for components built outside OpenChoreo and for
@@ -92,7 +99,8 @@ The deployment facts (environments, production, ready, latest release) need thre
 - `releasebinding:view` on the component's `ns/<ns>/project/<project>/component/<name>` path
 - `environment:view` on the component's `ns/<ns>` path, since OpenChoreo authorizes every
   environment in a namespace against that path
-- `component:view` on the component, to read its latest release
+- `component:view` on the component to read its latest release, and `releaseline:view` to read a
+  release line's latest release
 
 The API returns a list the caller can only partly see as 200 with the visible items. A hidden
 binding would look like no deployment, and a hidden production environment would look like no
@@ -103,7 +111,8 @@ authorization turned off grants everything.
 
 Without those grants the retriever reports the Workload facts alone and leaves the deployment
 facts out rather than setting them to null. It does the same, and logs a warning, when it can't
-read the component, its release bindings, or the namespace's authz profile and environments. This
+read the component or release line, its release bindings, or the namespace's authz profile and
+environments. This
 is unlike an
 unresolved component. jsonfc skips a check when a fact it uses is missing, so a check on
 deployment facts has no result for that component. It neither passes nor fails, and the

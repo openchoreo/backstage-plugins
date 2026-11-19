@@ -7,6 +7,7 @@ export interface EnvVar {
 
 /** The subset of a Workload spec read here. */
 export interface WorkloadSpec {
+  owner?: { releaseLine?: string };
   container?: {
     image?: string;
     env?: EnvVar[];
@@ -17,6 +18,7 @@ export interface WorkloadSpec {
 /** The subset of a ReleaseBinding read here. */
 export interface ReleaseBinding {
   spec?: {
+    owner?: { releaseLine?: string };
     environment: string;
     releaseName?: string;
     state?: string;
@@ -150,6 +152,19 @@ export function workloadFacts(workload: WorkloadSpec) {
   };
 }
 
+/**
+ * The bindings of `releaseLine`, or of the main line when it's undefined.
+ * OpenChoreo leaves a main-line binding's `owner.releaseLine` unset.
+ */
+export function lineBindings(
+  bindings: ReleaseBinding[],
+  releaseLine?: string,
+): ReleaseBinding[] {
+  return bindings.filter(
+    binding => (binding.spec?.owner?.releaseLine || undefined) === releaseLine,
+  );
+}
+
 /** Release bindings that deploy, rather than undeploy, their release. */
 export function activeBindings(bindings: ReleaseBinding[]): ReleaseBinding[] {
   return bindings.filter(
@@ -166,13 +181,13 @@ function hasCondition(binding: ReleaseBinding, type: string): boolean {
 }
 
 /**
- * Facts read from a component's release bindings. An environment counts as
+ * Facts read from the release bindings of one line. An environment counts as
  * deployed to once its active binding's release has been synced to the data
  * plane (`ReleaseSynced`); a binding whose release is missing, can't be
- * rendered or has nowhere to go deploys nothing. A component with no active
+ * rendered or has nowhere to go deploys nothing. A line with no active
  * binding is not ready in every environment and does not run its latest
  * release. Whether it runs its latest release is left out when OpenChoreo
- * hasn't recorded one, which it does only for components that deploy
+ * hasn't recorded one, which it does only for lines that deploy
  * automatically.
  */
 export function releaseBindingFacts(input: {
@@ -181,7 +196,6 @@ export function releaseBindingFacts(input: {
   latestRelease?: string;
 }) {
   const active = activeBindings(input.bindings);
-  // Release lines can each bind the same environment.
   const environments = [
     ...new Set(
       active

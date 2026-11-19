@@ -5,6 +5,7 @@ import { fetchAllPages } from '@openchoreo/openchoreo-client-node';
 import {
   collectOpenChoreoFacts,
   createServiceClient,
+  isReleaseLine,
   unresolvedFacts,
   type OpenChoreoApiClient,
 } from './collectOpenChoreoFacts';
@@ -16,6 +17,7 @@ import {
 } from './capabilities';
 import {
   activeBindings,
+  lineBindings,
   plainTextSecretEnvCount,
   releaseBindingFacts,
   workloadFacts,
@@ -112,6 +114,39 @@ function namespaceLoader(client: OpenChoreoApiClient) {
   };
 }
 
+/**
+ * The Workload of a release line. The API lists a component's Workloads on
+ * every line, so the line's is the one it owns. Undefined when the line has
+ * no Workload yet.
+ */
+async function lineWorkload(
+  client: OpenChoreoApiClient,
+  namespaceName: string,
+  componentName: string,
+  releaseLine: string,
+  signal: AbortSignal,
+): Promise<WorkloadSpec | undefined> {
+  const workloads = await fetchAllPages(cursor =>
+    client
+      .GET('/api/v1/namespaces/{namespaceName}/workloads', {
+        params: {
+          path: { namespaceName },
+          query: { component: componentName, cursor },
+        },
+        signal,
+      })
+      .then(({ data, response }) => {
+        if (!data) {
+          throw new Error(`GET workloads returned HTTP ${response.status}`);
+        }
+        return data;
+      }),
+  );
+  return workloads
+    .map(workload => (workload.spec ?? {}) as WorkloadSpec)
+    .find(spec => spec.owner?.releaseLine === releaseLine);
+}
+
 const schema: FactRetriever['schema'] = {
   openchoreoComponentResolved: {
     type: 'boolean',
@@ -155,7 +190,7 @@ const schema: FactRetriever['schema'] = {
   openchoreoRunsLatestRelease: {
     type: 'boolean',
     description:
-      "Whether every environment is bound to the component's latest release. Readiness is reported separately by openchoreoReadyInAllEnvironments. Left out when OpenChoreo records no latest release, which it does only for components with autoDeploy on.",
+      "Whether every environment is bound to the line's latest release, the main line's for a component. Readiness is reported separately by openchoreoReadyInAllEnvironments. Left out when OpenChoreo records no latest release, which it does only with autoDeploy on.",
   },
 };
 
@@ -166,11 +201,11 @@ export function createOpenChoreoDeploymentFactRetriever(
 ): FactRetriever {
   return {
     id: OPENCHOREO_DEPLOYMENT_FACT_RETRIEVER_ID,
-    version: '0.1.0',
+    version: '0.2.0',
     title: 'OpenChoreo Deployment',
     description:
-      "What an OpenChoreo component runs and where it's deployed, read from its Workload and release bindings.",
-    entityFilter: [{ kind: 'component' }],
+      "What an OpenChoreo component's main line or a release line runs and where it's deployed, read from the line's Workload and release bindings.",
+    entityFilter: [{ kind: 'component' }, { kind: 'releaseline' }],
     schema,
     handler: context =>
       collectOpenChoreoFacts(
@@ -185,41 +220,59 @@ export function createOpenChoreoDeploymentFactRetriever(
           const projectName = annotations[CHOREO_ANNOTATIONS.PROJECT];
           const componentName = annotations[CHOREO_ANNOTATIONS.COMPONENT];
           const workloadName = annotations[CHOREO_ANNOTATIONS.WORKLOAD];
-          // Not an OpenChoreo component, so not this retriever's to judge.
-          if (!componentName) {
+          const releaseLine = isReleaseLine(entity)
+            ? annotations[CHOREO_ANNOTATIONS.RELEASE_LINE]
+            : undefined;
+          // Not an OpenChoreo component or release line, so not this
+          // retriever's to judge.
+          if (!componentName || (isReleaseLine(entity) && !releaseLine)) {
             return undefined;
           }
           if (!namespaceName) {
             return UNRESOLVED_FACTS;
           }
+          const subject = releaseLine
+            ? `${componentName}:${releaseLine}`
+            : componentName;
 
           const facts: Record<string, string | number | boolean | string[]> = {
             openchoreoComponentResolved: true,
           };
-          // A component that has never been built has no Workload yet. It
-          // still resolves, so its deployment facts show it deployed nowhere.
-          let workloadEnv: EnvVar[] | undefined;
-          if (workloadName) {
-            const workload = await client.GET(
+          // A line that has never been built has no Workload yet. It still
+          // resolves, so its deployment facts show it deployed nowhere.
+          let workload: WorkloadSpec | undefined;
+          if (releaseLine) {
+            workload = await lineWorkload(
+              client,
+              namespaceName,
+              componentName,
+              releaseLine,
+              signal,
+            );
+          } else if (workloadName) {
+            const workloadResponse = await client.GET(
               '/api/v1/namespaces/{namespaceName}/workloads/{workloadName}',
               { params: { path: { namespaceName, workloadName } }, signal },
             );
-            if (workload.response.status === 404) {
+            if (workloadResponse.response.status === 404) {
               return UNRESOLVED_FACTS;
             }
-            if (!workload.data) {
+            if (!workloadResponse.data) {
               throw new Error(
-                `GET workload ${workloadName} returned HTTP ${workload.response.status}`,
+                `GET workload ${workloadName} returned HTTP ${workloadResponse.response.status}`,
               );
             }
-            const spec = (workload.data.spec ?? {}) as WorkloadSpec;
-            workloadEnv = spec.container?.env ?? [];
-            Object.assign(facts, workloadFacts(spec));
+            workload = (workloadResponse.data.spec ?? {}) as WorkloadSpec;
+          }
+          let workloadEnv: EnvVar[] | undefined;
+          if (workload) {
+            workloadEnv = workload.container?.env ?? [];
+            Object.assign(facts, workloadFacts(workload));
           }
 
           const withoutDeployment = (reason: string) => {
             context.logger.warn(
-              `Leaving out deployment facts for ${componentName}: ${reason}`,
+              `Leaving out deployment facts for ${subject}: ${reason}`,
             );
             return facts;
           };
@@ -247,18 +300,35 @@ export function createOpenChoreoDeploymentFactRetriever(
             return facts;
           }
 
-          const component = await client.GET(
-            '/api/v1/namespaces/{namespaceName}/components/{componentName}',
-            { params: { path: { namespaceName, componentName } }, signal },
-          );
-          if (!component.data) {
+          // The component's latest release is its main line's.
+          const line = releaseLine
+            ? await client.GET(
+                '/api/v1/namespaces/{namespaceName}/components/{componentName}/releaselines/{releaseLineName}',
+                {
+                  params: {
+                    path: {
+                      namespaceName,
+                      componentName,
+                      releaseLineName: releaseLine,
+                    },
+                  },
+                  signal,
+                },
+              )
+            : await client.GET(
+                '/api/v1/namespaces/{namespaceName}/components/{componentName}',
+                { params: { path: { namespaceName, componentName } }, signal },
+              );
+          if (!line.data) {
             return withoutDeployment(
-              `GET component returned HTTP ${component.response.status}`,
+              `GET ${
+                releaseLine ? 'release line' : 'component'
+              } returned HTTP ${line.response.status}`,
             );
           }
           let bindings: ReleaseBinding[];
           try {
-            bindings = (await fetchAllPages(cursor =>
+            const all = (await fetchAllPages(cursor =>
               client
                 .GET('/api/v1/namespaces/{namespaceName}/releasebindings', {
                   params: {
@@ -276,6 +346,7 @@ export function createOpenChoreoDeploymentFactRetriever(
                   return data;
                 }),
             )) as ReleaseBinding[];
+            bindings = lineBindings(all, releaseLine);
           } catch (error) {
             return withoutDeployment((error as Error).message);
           }
@@ -296,7 +367,7 @@ export function createOpenChoreoDeploymentFactRetriever(
             ...releaseBindingFacts({
               bindings,
               productionEnvironments,
-              latestRelease: component.data.status?.latestRelease?.name,
+              latestRelease: line.data.status?.latestRelease?.name,
             }),
           };
         },

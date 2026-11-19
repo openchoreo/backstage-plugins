@@ -38,10 +38,27 @@ const status = (code: number) => ({
   response: { status: code },
 });
 
+const releaseLineEntity = (componentName: string, line: string): Entity => ({
+  apiVersion: 'backstage.io/v1alpha1',
+  kind: 'ReleaseLine',
+  metadata: {
+    name: line,
+    namespace: 'acme',
+    annotations: {
+      'openchoreo.io/namespace': 'acme',
+      'openchoreo.io/project': 'payments',
+      'openchoreo.io/component': componentName,
+      'openchoreo.io/release-line': line,
+    },
+  },
+});
+
 function fakeClient(options: {
   capabilities?: unknown;
   profile?: () => unknown;
   component?: () => unknown;
+  releaseLine?: () => unknown;
+  workloads?: () => unknown;
   bindings?: () => unknown;
 }) {
   const GET = jest.fn(async (path: string, { params }: any) => {
@@ -60,10 +77,16 @@ function fakeClient(options: {
         return params.path.workloadName === 'gone-workload'
           ? status(404)
           : ok({ spec: { container: { image: 'ghcr.io/acme/api:1.2.0' } } });
+      case '/api/v1/namespaces/{namespaceName}/workloads':
+        return options.workloads ? options.workloads() : ok({ items: [] });
       case '/api/v1/namespaces/{namespaceName}/components/{componentName}':
         return options.component
           ? options.component()
           : ok({ status: { latestRelease: { name: 'r2' } } });
+      case '/api/v1/namespaces/{namespaceName}/components/{componentName}/releaselines/{releaseLineName}':
+        return options.releaseLine
+          ? options.releaseLine()
+          : ok({ status: { latestRelease: { name: 'next-r5' } } });
       case '/api/v1/namespaces/{namespaceName}/releasebindings':
         if (options.bindings) {
           return options.bindings();
@@ -386,4 +409,167 @@ describe('openchoreoDeploymentFactRetriever', () => {
       );
     },
   );
+
+  describe('release lines', () => {
+    const synced = {
+      conditions: [
+        { type: 'ReleaseSynced', status: 'True' },
+        { type: 'Ready', status: 'True' },
+      ],
+    };
+    const bindings = () =>
+      ok({
+        items: [
+          {
+            spec: { environment: 'development', releaseName: 'r2' },
+            status: synced,
+          },
+          {
+            spec: {
+              owner: { releaseLine: 'next' },
+              environment: 'production',
+              releaseName: 'next-r5',
+              workloadOverrides: {
+                container: { env: [{ key: 'DB_PASSWORD', value: 'plain' }] },
+              },
+            },
+            status: synced,
+          },
+          {
+            spec: {
+              owner: { releaseLine: 'canary' },
+              environment: 'staging',
+              releaseName: 'canary-r1',
+            },
+            status: synced,
+          },
+        ],
+      });
+    const workloads = () =>
+      ok({
+        items: [
+          {
+            spec: {
+              owner: { componentName: 'api' },
+              container: { image: 'ghcr.io/acme/api:1.2.0' },
+            },
+          },
+          {
+            spec: {
+              owner: { componentName: 'api', releaseLine: 'next' },
+              container: {
+                image: 'ghcr.io/acme/api:latest',
+                env: [{ key: 'API_TOKEN', value: 'plain' }],
+              },
+            },
+          },
+        ],
+      });
+
+    it("reports a component's main line only", async () => {
+      const { byName } = await run(
+        [annotated('api')],
+        fakeClient({ capabilities: allBindings, bindings }),
+      );
+      expect(byName.api).toMatchObject({
+        openchoreoImagePinned: true,
+        openchoreoPlainTextSecretEnvCount: 0,
+        openchoreoDeployedEnvironments: ['development'],
+        openchoreoDeployedToProduction: false,
+        openchoreoRunsLatestRelease: true,
+      });
+    });
+
+    it('reports a release line from its own Workload, bindings and latest release', async () => {
+      const client = fakeClient({
+        capabilities: allBindings,
+        bindings,
+        workloads,
+      });
+      const { byName } = await run([releaseLineEntity('api', 'next')], client);
+      expect(byName.next).toEqual({
+        openchoreoComponentResolved: true,
+        openchoreoImageRegistry: 'ghcr.io',
+        openchoreoImagePinned: false,
+        openchoreoExternalEndpointCount: 0,
+        openchoreoPlainTextSecretEnvCount: 2,
+        openchoreoDeployedEnvironments: ['production'],
+        openchoreoDeployedToProduction: true,
+        openchoreoReadyInAllEnvironments: true,
+        openchoreoRunsLatestRelease: true,
+      });
+      expect(client.GET).toHaveBeenCalledWith(
+        '/api/v1/namespaces/{namespaceName}/workloads',
+        {
+          params: {
+            path: { namespaceName: 'acme' },
+            query: { component: 'api', cursor: undefined },
+          },
+          signal: expect.any(AbortSignal),
+        },
+      );
+      expect(client.GET).toHaveBeenCalledWith(
+        '/api/v1/namespaces/{namespaceName}/components/{componentName}/releaselines/{releaseLineName}',
+        {
+          params: {
+            path: {
+              namespaceName: 'acme',
+              componentName: 'api',
+              releaseLineName: 'next',
+            },
+          },
+          signal: expect.any(AbortSignal),
+        },
+      );
+      expect(client.GET).not.toHaveBeenCalledWith(
+        '/api/v1/namespaces/{namespaceName}/workloads/{workloadName}',
+        expect.anything(),
+      );
+    });
+
+    it('reports deployment facts for a release line that has no Workload yet', async () => {
+      const { byName } = await run(
+        [releaseLineEntity('api', 'canary')],
+        fakeClient({
+          capabilities: allBindings,
+          bindings,
+          workloads,
+          releaseLine: () => ok({}),
+        }),
+      );
+      expect(byName.canary).toMatchObject({
+        openchoreoComponentResolved: true,
+        openchoreoDeployedEnvironments: ['staging'],
+      });
+      expect(byName.canary).not.toHaveProperty('openchoreoImagePinned');
+      expect(byName.canary).not.toHaveProperty('openchoreoRunsLatestRelease');
+    });
+
+    it('keeps Workload facts when the release line cannot be read', async () => {
+      const { byName, logger } = await run(
+        [releaseLineEntity('api', 'next')],
+        fakeClient({
+          capabilities: allBindings,
+          workloads,
+          releaseLine: () => status(404),
+        }),
+      );
+      expect(byName.next).toHaveProperty('openchoreoImagePinned', false);
+      expect(byName.next).not.toHaveProperty('openchoreoDeployedToProduction');
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'Leaving out deployment facts for api:next: GET release line returned HTTP 404',
+        ),
+      );
+    });
+
+    it('reports nothing for a ReleaseLine that names no line', async () => {
+      const line = releaseLineEntity('api', 'next');
+      delete line.metadata.annotations!['openchoreo.io/release-line'];
+      const client = fakeClient({ capabilities: allBindings });
+      const { byName } = await run([line], client);
+      expect(byName).not.toHaveProperty('next');
+      expect(client.GET).not.toHaveBeenCalled();
+    });
+  });
 });
