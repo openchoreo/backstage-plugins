@@ -238,7 +238,7 @@ function KindRow({ summary }: { summary: ScoredKindSummary }) {
  * pass rate, how many reached each tier, and expands to the entities and
  * checks behind them. An entity with variants, such as a component with
  * release lines, is counted by its own tier and checks, and its row expands
- * to the variants.
+ * to all its variants, the main one first.
  */
 export function KindScores({ summaries }: { summaries: ScoredKindSummary[] }) {
   return (

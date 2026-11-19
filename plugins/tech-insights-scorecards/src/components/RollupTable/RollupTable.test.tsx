@@ -53,7 +53,7 @@ describe('RollupTable', () => {
     );
   });
 
-  it('marks a component with release lines as main and expands it to them', async () => {
+  it('counts the release lines of a component and expands to all of them, main first', async () => {
     await renderWithApis(
       <RollupTable
         nodes={[withLines('component:default/web')!]}
@@ -63,25 +63,32 @@ describe('RollupTable', () => {
       { config: { techInsights: { scorecards: { variants } } } },
     );
 
-    expect(screen.getByText('main')).toBeInTheDocument();
+    expect(screen.getByText('3 release lines')).toBeInTheDocument();
     expect(
-      screen.queryByRole('link', { name: 'next' }),
+      screen.queryByRole('link', { name: 'main' }),
     ).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Expand' }));
+    const rows = screen.getAllByRole('row').map(row => row.textContent);
+    expect(rows[2]).toMatch(/^main\(web's score\)/);
+    expect(rows[2]).toContain('1/1 (100%)');
+    expect(rows[3]).toMatch(/^next/);
+    expect(rows[4]).toMatch(/^canary/);
+    // Main carries the component's score, so it links to the component.
+    expect(screen.getByRole('link', { name: 'main' })).toHaveAttribute(
+      'href',
+      '/catalog/default/component/web/scorecards',
+    );
     // Named without the component's prefix, and linked to its own tab.
     expect(screen.getByRole('link', { name: 'next' })).toHaveAttribute(
       'href',
       '/catalog/default/releaseline/next/scorecards',
     );
     expect(screen.queryByText('web:next')).not.toBeInTheDocument();
-    // A line no check covers waits behind the toggle.
-    expect(
-      screen.queryByRole('link', { name: 'canary' }),
-    ).not.toBeInTheDocument();
-    await userEvent.click(
-      screen.getByRole('button', { name: /Show entities not scored/ }),
-    );
+    // A line no check covers is listed too, so the rows match the count.
     expect(screen.getByRole('link', { name: 'canary' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /not scored/ }),
+    ).not.toBeInTheDocument();
   });
 });
