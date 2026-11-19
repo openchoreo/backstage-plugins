@@ -269,16 +269,18 @@ export async function createRouter({
       namespaceName: namespaceName as string,
       releaseLine: requestReleaseLine(req),
     };
-    const environments = await environmentInfoService.deleteReleaseBinding(
-      { ...owner, environment: environment as string },
-      userToken,
-    );
-    // The component is gone from the environment, so its Endpoints are too.
+    // The line's own Endpoints go first, like a garbage collection, so their
+    // routes are gone before the workload they point at. One that can't be
+    // removed is reported; the component's deployment is removed regardless.
     const endpoints = await followEndpoints(() =>
       componentEndpointFollowService.remove(
         { ...owner, environment: environment as string },
         userToken,
       ),
+    );
+    const environments = await environmentInfoService.deleteReleaseBinding(
+      { ...owner, environment: environment as string },
+      userToken,
     );
     res.json({ environments, endpoints });
   });
@@ -318,34 +320,49 @@ export async function createRouter({
       namespaceName: namespaceName as string,
       releaseLine: requestReleaseLine(req),
     };
-    const environments = await environmentInfoService.updateComponentBinding(
-      {
-        ...owner,
-        bindingName: bindingName as string,
-        releaseState: releaseState as 'Active' | 'Suspend' | 'Undeploy',
-      },
-      userToken,
-    );
-    // Undeploying takes the component's Endpoints out of the environment;
-    // redeploying brings them back on their latest release.
-    const endpoints = await followEndpoints(async () => {
-      const environment =
-        await componentEndpointFollowService.bindingEnvironment(
-          owner.namespaceName,
-          bindingName as string,
+    const updateComponent = () =>
+      environmentInfoService.updateComponentBinding(
+        {
+          ...owner,
+          bindingName: bindingName as string,
+          releaseState: releaseState as 'Active' | 'Suspend' | 'Undeploy',
+        },
+        userToken,
+      );
+    const environmentOfBinding = () =>
+      componentEndpointFollowService.bindingEnvironment(
+        owner.namespaceName,
+        bindingName as string,
+        userToken,
+      );
+
+    if (releaseState === 'Active') {
+      // Redeploying brings the line's own Endpoints back on their latest
+      // release, after the component.
+      const environments = await updateComponent();
+      const endpoints = await followEndpoints(async () => {
+        const environment = await environmentOfBinding();
+        if (!environment) return emptyEndpointFollowResult();
+        return componentEndpointFollowService.follow(
+          { ...owner, environment, action: 'redeploy' },
           userToken,
         );
+      });
+      res.json({ environments, endpoints });
+      return;
+    }
+
+    // Undeploying takes the line's own Endpoints out of the environment
+    // first, like a garbage collection, then the component.
+    const endpoints = await followEndpoints(async () => {
+      const environment = await environmentOfBinding();
       if (!environment) return emptyEndpointFollowResult();
-      return releaseState === 'Active'
-        ? componentEndpointFollowService.follow(
-            { ...owner, environment, action: 'redeploy' },
-            userToken,
-          )
-        : componentEndpointFollowService.remove(
-            { ...owner, environment },
-            userToken,
-          );
+      return componentEndpointFollowService.remove(
+        { ...owner, environment },
+        userToken,
+      );
     });
+    const environments = await updateComponent();
     res.json({ environments, endpoints });
   });
 

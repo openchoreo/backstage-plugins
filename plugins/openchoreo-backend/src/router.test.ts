@@ -1040,6 +1040,14 @@ describe('createRouter', () => {
       );
       expect(response.body.endpoints.removed).toEqual(['orders-api']);
       expect(response.body.environments).toEqual([]);
+      // The Endpoints go before the component, like a garbage collection.
+      expect(
+        services.componentEndpointFollowService.remove.mock
+          .invocationCallOrder[0],
+      ).toBeLessThan(
+        services.environmentInfoService.updateComponentBinding.mock
+          .invocationCallOrder[0],
+      );
     });
 
     it('brings them back on a redeploy', async () => {
@@ -1086,6 +1094,34 @@ describe('createRouter', () => {
         'mock-user-token',
       );
       expect(response.body).toEqual({ environments: [], endpoints: followed });
+      expect(
+        services.componentEndpointFollowService.remove.mock
+          .invocationCallOrder[0],
+      ).toBeLessThan(
+        services.environmentInfoService.deleteReleaseBinding.mock
+          .invocationCallOrder[0],
+      );
+    });
+
+    it("still removes the deployment when the Endpoints can't be removed", async () => {
+      services.componentEndpointFollowService.remove.mockRejectedValue(
+        new Error('forbidden'),
+      );
+      services.environmentInfoService.deleteReleaseBinding.mockResolvedValue(
+        [],
+      );
+
+      const response = await request(app)
+        .delete('/delete-release-binding')
+        .send({ ...owner, environment: 'staging' });
+
+      expect(response.status).toBe(200);
+      expect(
+        services.environmentInfoService.deleteReleaseBinding,
+      ).toHaveBeenCalled();
+      expect(response.body.endpoints.failed).toEqual([
+        { endpoint: '', reason: 'forbidden' },
+      ]);
     });
   });
 
