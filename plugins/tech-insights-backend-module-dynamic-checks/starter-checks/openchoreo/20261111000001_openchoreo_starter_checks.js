@@ -66,49 +66,6 @@ const checks = [
     rule: rule('openchoreoImagePinned', 'equal', true),
   },
   {
-    id: 'openchoreo-starter-ready-everywhere',
-    name: 'Ready in every environment it is deployed to',
-    description:
-      'The component is deployed, and its release is ready in every environment it is bound to.',
-    factIds: [DEPLOYMENT],
-    filter: COMPONENT,
-    metadata: {
-      rank: SILVER,
-      category: 'Reliability',
-      solution:
-        'Deploy the component, and fix the environments where its release is not ready.',
-    },
-    rule: rule('openchoreoReadyInAllEnvironments', 'equal', true),
-  },
-  {
-    id: 'openchoreo-starter-runs-latest-release',
-    name: 'Runs its latest release everywhere',
-    description:
-      'Every environment runs the latest release. Applies to components with autoDeploy on.',
-    factIds: [DEPLOYMENT],
-    filter: COMPONENT,
-    metadata: {
-      rank: SILVER,
-      category: 'Reliability',
-      solution: 'Promote the latest release to the environments behind it.',
-    },
-    rule: rule('openchoreoRunsLatestRelease', 'equal', true),
-  },
-  {
-    id: 'openchoreo-starter-in-production',
-    name: 'Deployed to production',
-    description:
-      'The component is deployed to an environment marked as production.',
-    factIds: [DEPLOYMENT],
-    filter: COMPONENT,
-    metadata: {
-      rank: GOLD,
-      category: 'Reliability',
-      solution: 'Promote the component to a production environment.',
-    },
-    rule: rule('openchoreoDeployedToProduction', 'equal', true),
-  },
-  {
     id: 'openchoreo-starter-ct-resource-limits',
     name: 'Templates set resource limits',
     description:
@@ -157,29 +114,23 @@ const checks = [
     id: 'openchoreo-starter-gh-branch-protected',
     name: 'Build branch is protected',
     description:
-      'The branch the component builds from has classic branch protection or a protecting ruleset.',
-    factIds: [GITHUB],
-    filter: COMPONENT,
-    metadata: {
-      rank: SILVER,
-      category: 'Security',
-      solution: 'Add a branch protection rule or a ruleset for the branch.',
-    },
-    rule: rule('githubBranchProtected', 'equal', true),
-  },
-  {
-    id: 'openchoreo-starter-gh-no-force-push',
-    name: 'Force pushes are blocked',
-    description: 'Force pushes to the build branch are not allowed.',
+      'The branch the component builds from has classic branch protection or a protecting ruleset, and force pushes to it are blocked.',
     factIds: [GITHUB],
     filter: COMPONENT,
     metadata: {
       rank: SILVER,
       category: 'Security',
       solution:
-        'Turn off force pushes in the branch protection rule, or add a ruleset that blocks them.',
+        'Add a branch protection rule or a ruleset for the branch, with force pushes left blocked.',
     },
-    rule: rule('githubAllowsForcePushes', 'equal', false),
+    rule: {
+      conditions: {
+        all: [
+          { fact: 'githubBranchProtected', operator: 'equal', value: true },
+          { fact: 'githubAllowsForcePushes', operator: 'equal', value: false },
+        ],
+      },
+    },
   },
   {
     id: 'openchoreo-starter-gh-codeowners',
@@ -189,7 +140,7 @@ const checks = [
     factIds: [GITHUB],
     filter: COMPONENT,
     metadata: {
-      rank: SILVER,
+      rank: BRONZE,
       category: 'Security',
       solution:
         'Add a CODEOWNERS file to .github/, the repository root or docs/.',
@@ -205,7 +156,7 @@ const checks = [
     filter: COMPONENT,
     metadata: {
       rank: SILVER,
-      category: 'Security',
+      category: 'Documentation',
       solution:
         "Add a SECURITY.md to the repository, or a default one to the owner's .github repository.",
     },

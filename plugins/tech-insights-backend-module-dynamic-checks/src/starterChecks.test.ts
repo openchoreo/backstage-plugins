@@ -72,7 +72,7 @@ describe('seedOpenChoreoStarterChecks', () => {
     await seedOpenChoreoStarterChecks(knex);
 
     const checks = await registry.listAll();
-    expect(checks).toHaveLength(13);
+    expect(checks).toHaveLength(9);
     expect(checks.every(check => check.status === 'published')).toBe(true);
     expect(
       checks.every(check => check.id.startsWith('openchoreo-starter-')),
@@ -103,19 +103,19 @@ describe('seedOpenChoreoStarterChecks', () => {
 
     const pinned = await registry.get(SAMPLE_ID);
     await registry.update(SAMPLE_ID, { ...pinned, name: 'Edited' });
-    await registry.unpublish('openchoreo-starter-in-production');
+    await registry.unpublish('openchoreo-starter-no-plaintext-secrets');
     await registry.delete('openchoreo-starter-gh-codeowners');
 
     await seedOpenChoreoStarterChecks(knex);
 
     expect((await registry.get(SAMPLE_ID)).name).toBe('Edited');
-    expect(await registry.getStatus('openchoreo-starter-in-production')).toBe(
-      'draft',
-    );
+    expect(
+      await registry.getStatus('openchoreo-starter-no-plaintext-secrets'),
+    ).toBe('draft');
     await expect(
       registry.get('openchoreo-starter-gh-codeowners'),
     ).rejects.toThrow(/not registered/);
-    expect(await registry.listAll()).toHaveLength(12);
+    expect(await registry.listAll()).toHaveLength(8);
   });
 
   it('keeps a check someone already created with a starter id', async () => {
@@ -139,6 +139,6 @@ describe('seedOpenChoreoStarterChecks', () => {
 
     expect((await registry.get(SAMPLE_ID)).name).toBe('Their own check');
     expect(await registry.getStatus(SAMPLE_ID)).toBe('draft');
-    expect(await registry.listAll()).toHaveLength(13);
+    expect(await registry.listAll()).toHaveLength(9);
   });
 });
