@@ -362,6 +362,33 @@ describe('CheckForm', () => {
     ).toBeInTheDocument();
   });
 
+  describe('with release lines scored apart from their component', () => {
+    const options = {
+      config: {
+        techInsights: {
+          scorecards: {
+            variants: { kind: 'ReleaseLine', parentKind: 'Component' },
+          },
+        },
+      },
+    };
+    const note =
+      /Release lines are scored apart from their component and run this check only when Release line is picked too/;
+
+    it('says a check on components skips release lines it does not name', async () => {
+      await renderForm(draft, options);
+      expect(screen.getByText(note)).toBeInTheDocument();
+    });
+
+    it('says nothing once the check names release lines', async () => {
+      await renderForm(
+        check({ filter: { kind: ['Component', 'ReleaseLine'] } }),
+        options,
+      );
+      expect(screen.queryByText(note)).not.toBeInTheDocument();
+    });
+  });
+
   it('saves a check whose stored category is not text', async () => {
     const { api } = await renderForm(
       check({ metadata: { rank: 1, category: 7 } }),

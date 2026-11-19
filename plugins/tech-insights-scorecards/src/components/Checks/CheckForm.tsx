@@ -35,11 +35,7 @@ import {
   withArticle,
 } from '../../utils/kinds';
 import { CHECK_TIERS } from '../../utils/tierPalette';
-import {
-  isKind,
-  useVariantConfig,
-  withVariantKind,
-} from '../../utils/variants';
+import { isKind, useVariantConfig } from '../../utils/variants';
 import { useCoveredKindsText } from '../FactCollectorsPanel/CollectorInfoButton';
 import { FORMAT_SHORTCUT, SUGGEST_SHORTCUT } from '../JsonEditor/JsonEditor';
 import { FilterEditor } from '../JsonEditor/FilterEditor';
@@ -413,12 +409,16 @@ export function CheckForm(props: CheckFormProps) {
   const coveredKinds = useCoveredKindsText();
   const narrowingKinds = rawFilter ? kindsOfRawFilter(filterJson) : kinds;
   const variantsNote =
-    variants && kinds.some(kind => isKind(kind, variants.parentKind))
-      ? ` A check on ${inSentence(
-          pluralOf(kindLabel(variants.parentKind)),
-        )} also runs on their ${inSentence(
-          pluralOf(kindLabel(variants.kind)),
-        )}.`
+    variants &&
+    kinds.some(kind => isKind(kind, variants.parentKind)) &&
+    !kinds.some(kind => isKind(kind, variants.kind))
+      ? ` ${pluralOf(
+          kindLabel(variants.kind),
+        )} are scored apart from their ${inSentence(
+          kindLabel(variants.parentKind),
+        )} and run this check only when ${kindLabel(
+          variants.kind,
+        )} is picked too.`
       : '';
   const covers = (schema: FactSchema) =>
     filterCoversKinds(schema.entityFilter, narrowingKinds);
@@ -649,7 +649,7 @@ export function CheckForm(props: CheckFormProps) {
         </Grid>
         <Grid item xs={12}>
           <DryRunEntityField
-            kinds={withVariantKind(narrowingKinds, variants)}
+            kinds={narrowingKinds}
             value={entityRef}
             onChange={next => {
               setEntityRef(next);

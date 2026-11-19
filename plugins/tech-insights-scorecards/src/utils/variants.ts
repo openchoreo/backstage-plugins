@@ -20,8 +20,8 @@ export function isKind(kind: string, other: string): boolean {
 }
 
 /**
- * `kinds` plus the variant kind when they include its parent kind, since a
- * check on the parent also runs on its variants.
+ * `kinds` plus the variant kind when they include its parent kind, so a
+ * parent's variants are listed with it whether or not a check names them.
  */
 export function withVariantKind(
   kinds: string[],

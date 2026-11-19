@@ -150,10 +150,6 @@ export function EntityScorecardContent() {
     emptyDescription = `Published checks that match this ${label}, or the ${entityLabel.plural} in it, appear here once their facts have been collected.`;
   } else if (hasVariants) {
     checksTitle = `Checks on the ${mainVariant}`;
-  } else if (variants && parentRef) {
-    emptyDescription = `Published checks that match its ${inSentence(
-      kindLabel(variants.parentKind),
-    )} also run on this ${label}. They appear here once its facts have been collected.`;
   }
 
   return (
