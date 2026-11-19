@@ -6,7 +6,6 @@ import type { FactRetriever } from '@backstage-community/plugin-tech-insights-no
 import { DateTime } from 'luxon';
 import {
   collectGithubFacts,
-  unresolvedFacts,
   type CollectionCursor,
 } from './collectGithubFacts';
 import {
@@ -118,7 +117,7 @@ const schema: FactRetriever['schema'] = {
   githubRepositoryResolved: {
     type: 'boolean',
     description:
-      'Whether the component names a GitHub repository and branch the portal can read. When false, every other fact is null.',
+      'Whether the component names a GitHub repository and branch the portal can read. When false, every other fact is left out.',
   },
   githubIsArchived: {
     type: 'boolean',
@@ -179,7 +178,9 @@ const schema: FactRetriever['schema'] = {
   },
 };
 
-const UNRESOLVED_FACTS = unresolvedFacts(schema, 'githubRepositoryResolved');
+// Only the resolved flag: jsonfc skips a check when a fact it reads is absent,
+// but evaluates it, and so fails it, when the fact is present as null.
+const UNRESOLVED_FACTS = { githubRepositoryResolved: false };
 
 /**
  * A repository or branch the portal can't read: missing, or refused with a

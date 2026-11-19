@@ -14,8 +14,9 @@ A `SECURITY.md` in the owner's public `.github` repository counts too, since Git
 every repository without its own. `CODEOWNERS` has no such default.
 
 `githubRepositoryResolved` is false when the component names no GitHub repository and branch the
-portal can read, and every other fact is then null, so checks fail the component instead of
-skipping it. A component whose source isn't on GitHub resolves the same way. OpenChoreo writes a
+portal can read, and every other fact is then left out, so jsonfc skips checks on them instead of
+failing the component. A check that should fail such a component reads `githubRepositoryResolved`.
+A component whose source isn't on GitHub resolves the same way. OpenChoreo writes a
 folder path into `backstage.io/source-location` only for hosts named `github` or `gitlab`, so a
 GitHub Enterprise host such as `ghe.example.com` gets the bare repository URL. The branch still
 comes from `openchoreo.io/branch`.
