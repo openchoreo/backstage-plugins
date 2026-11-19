@@ -1,3 +1,5 @@
+import type { EndpointFollowResult } from '@openchoreo/backstage-plugin-common';
+import { endpointFollowMessage } from './endpointFollowMessage';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
 
@@ -125,13 +127,20 @@ export const Environments = ({
   // The release binding was already created/updated by updateReleaseBinding
   // in EnvironmentOverridesPage — just show success and refresh
   const handlePendingActionComplete = useCallback(
-    async (pendingAction: PendingAction) => {
+    async (pendingAction: PendingAction, endpoints?: EndpointFollowResult) => {
       try {
         const actionLabel =
           pendingAction.type === 'deploy' ? 'deployed' : 'promoted';
-        notification.showSuccess(
-          `Successfully ${actionLabel} to ${pendingAction.targetEnvironment}`,
-        );
+        const message = `Successfully ${actionLabel} to ${pendingAction.targetEnvironment}.`;
+        // The component's Endpoints follow it; name any that didn't.
+        const followed = endpointFollowMessage(endpoints, actionLabel);
+        if (followed?.failed) {
+          notification.showError(`${message} ${followed.text}`);
+        } else {
+          notification.showSuccess(
+            followed ? `${message} ${followed.text}` : message,
+          );
+        }
         refetch();
         navigateToList();
       } catch (err: any) {

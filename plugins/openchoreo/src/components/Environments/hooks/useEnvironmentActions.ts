@@ -4,6 +4,7 @@ import { useApi } from '@backstage/core-plugin-api';
 import { useReleaseLine } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { ItemActionTracker } from '../types';
+import { endpointFollowMessage } from '../endpointFollowMessage';
 
 interface UseNotificationHook {
   showSuccess: (message: string) => void;
@@ -36,6 +37,22 @@ export function useEnvironmentActions(
     };
   }, []);
 
+  // The component's Endpoints follow it in and out of an environment; the
+  // message names them, as an error when any didn't follow.
+  const notify = useCallback(
+    (message: string, endpoints: any, verb: string) => {
+      const followed = endpointFollowMessage(endpoints, verb);
+      if (followed?.failed) {
+        notification.showError(`${message} ${followed.text}`);
+      } else {
+        notification.showSuccess(
+          followed ? `${message} ${followed.text}` : message,
+        );
+      }
+    },
+    [notification],
+  );
+
   const handleRefreshEnvironment = useCallback(
     (envName: string) =>
       refreshTracker.withTracking(envName, async () => {
@@ -49,7 +66,7 @@ export function useEnvironmentActions(
 
   const handleUndeploy = useCallback(
     async (bindingName: string) => {
-      await client.updateComponentBinding(
+      const result = await client.updateComponentBinding(
         entity,
         bindingName,
         'Undeploy',
@@ -58,14 +75,18 @@ export function useEnvironmentActions(
       // Small delay to allow the server to reconcile the state change
       await new Promise(resolve => setTimeout(resolve, 1000));
       await refetch();
-      notification.showSuccess(`Component undeployed successfully`);
+      notify(
+        'Component undeployed successfully.',
+        result?.endpoints,
+        'undeployed',
+      );
     },
-    [entity, client, refetch, notification, releaseLine],
+    [entity, client, refetch, notify, releaseLine],
   );
 
   const handleRedeploy = useCallback(
     async (bindingName: string) => {
-      await client.updateComponentBinding(
+      const result = await client.updateComponentBinding(
         entity,
         bindingName,
         'Active',
@@ -74,9 +95,13 @@ export function useEnvironmentActions(
       // Small delay to allow the server to reconcile the state change
       await new Promise(resolve => setTimeout(resolve, 1000));
       await refetch();
-      notification.showSuccess(`Component redeployed successfully`);
+      notify(
+        'Component redeployed successfully.',
+        result?.endpoints,
+        'redeployed',
+      );
     },
-    [entity, client, refetch, notification, releaseLine],
+    [entity, client, refetch, notify, releaseLine],
   );
 
   // Rollout restart is declarative on the platform side: we stamp
@@ -112,7 +137,11 @@ export function useEnvironmentActions(
   // hanging forever.
   const handleRemoveDeployment = useCallback(
     async (_bindingName: string, envName: string) => {
-      await client.deleteReleaseBinding(entity, envName, releaseLine);
+      const removal = await client.deleteReleaseBinding(
+        entity,
+        envName,
+        releaseLine,
+      );
 
       const POLL_INTERVAL_MS = 1500;
       const POLL_TIMEOUT_MS = 15_000;
@@ -143,15 +172,15 @@ export function useEnvironmentActions(
 
       if (!mountedRef.current) return;
       await refetch();
-      if (confirmed) {
-        notification.showSuccess(`Deployment removed from ${envName}`);
-      } else {
-        notification.showSuccess(
-          `Removal of ${envName} accepted — UI may take a moment to catch up`,
-        );
-      }
+      notify(
+        confirmed
+          ? `Deployment removed from ${envName}.`
+          : `Removal of ${envName} accepted — UI may take a moment to catch up.`,
+        removal?.endpoints,
+        'removed',
+      );
     },
-    [entity, client, refetch, notification, releaseLine],
+    [entity, client, refetch, notify, releaseLine],
   );
 
   return {

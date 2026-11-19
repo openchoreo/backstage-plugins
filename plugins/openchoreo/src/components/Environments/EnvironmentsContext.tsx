@@ -1,3 +1,4 @@
+import type { EndpointFollowResult } from '@openchoreo/backstage-plugin-common';
 import { createContext, useContext, ReactNode } from 'react';
 import type { Environment } from './hooks/useEnvironmentData';
 import type { ComponentError } from './hooks/useAutoDeploy';
@@ -53,7 +54,10 @@ interface EnvironmentsContextValue {
   /** Whether workload editor is supported for this component */
   isWorkloadEditorSupported: boolean;
   /** Handler for completing a pending action (deploy/promote) */
-  onPendingActionComplete: (action: PendingAction) => Promise<void>;
+  onPendingActionComplete: (
+    action: PendingAction,
+    endpoints?: EndpointFollowResult,
+  ) => Promise<void>;
   /** Whether the user has permission to view environments */
   canViewEnvironments: boolean;
   /** Whether the environment read permission check is still loading */

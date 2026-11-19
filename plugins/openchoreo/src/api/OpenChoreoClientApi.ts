@@ -1030,6 +1030,12 @@ export interface OpenChoreoClientApi {
   ): Promise<ComponentReleasesResponse>;
 
   /** Create or update a release binding for deploy/promote actions */
+  /**
+   * Deploys or promotes a component's release to an environment, creating or
+   * updating its binding there. The Endpoints the component's line owns
+   * follow it: from `sourceEnvironment` on a promotion. The result carries
+   * how they followed under `endpoints` (an EndpointFollowResult).
+   */
   updateReleaseBinding(
     entity: Entity,
     environment: string,
@@ -1038,6 +1044,7 @@ export interface OpenChoreoClientApi {
     traitEnvironmentConfigs?: unknown,
     workloadOverrides?: any,
     releaseLine?: string,
+    sourceEnvironment?: string,
   ): Promise<any>;
 
   /** Patch release binding overrides */

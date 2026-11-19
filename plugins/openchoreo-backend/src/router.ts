@@ -8,6 +8,7 @@ import {
 import express from 'express';
 import Router from 'express-promise-router';
 import { EnvironmentInfoService } from './services/EnvironmentService/EnvironmentInfoService';
+import { ComponentEndpointFollowService } from './services/EnvironmentService/ComponentEndpointFollowService';
 import { BuildInfoService } from './services/BuildService/BuildInfoService';
 import {
   CellDiagramService,
@@ -54,6 +55,8 @@ import {
   reservedReleaseLineNameError,
   toStoredReleaseLine,
   type ReleaseLineResource,
+  emptyEndpointFollowResult,
+  type EndpointFollowResult,
 } from '@openchoreo/backstage-plugin-common';
 import {
   translateReleaseLineToEntity,
@@ -129,6 +132,7 @@ export async function createRouter({
   clusterResourceTypeInfoService,
   resourceReleaseInfoService,
   endpointInfoService,
+  componentEndpointFollowService,
   projectReleaseInfoService,
   secretReferencesInfoService,
   secretsService,
@@ -162,6 +166,7 @@ export async function createRouter({
   clusterResourceTypeInfoService: ClusterResourceTypeInfoService;
   resourceReleaseInfoService: ResourceReleaseInfoService;
   endpointInfoService: EndpointInfoService;
+  componentEndpointFollowService: ComponentEndpointFollowService;
   projectReleaseInfoService: ProjectReleaseInfoService;
   secretReferencesInfoService: SecretReferencesService;
   secretsService: SecretsService;
@@ -182,6 +187,31 @@ export async function createRouter({
   wirelogsStreamTimeoutMs: number;
   logger: LoggerService;
 }): Promise<express.Router> {
+  /**
+   * Runs the step that takes a component's Endpoints with it. The component's
+   * own change has already been made, so a failure here is reported with the
+   * result rather than failing the request.
+   */
+  const followEndpoints = async (
+    step: () => Promise<EndpointFollowResult>,
+  ): Promise<EndpointFollowResult> => {
+    try {
+      return await step();
+    } catch (error) {
+      logger.warn(
+        `The component's Endpoints couldn't follow it: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      const result = emptyEndpointFollowResult();
+      result.failed.push({
+        endpoint: '',
+        reason: error instanceof Error ? error.message : String(error),
+      });
+      return result;
+    }
+  };
+
   const router = Router();
   router.use(express.json());
 
@@ -233,18 +263,24 @@ export async function createRouter({
 
     const userToken = getUserTokenFromRequest(req);
 
-    res.json(
-      await environmentInfoService.deleteReleaseBinding(
-        {
-          componentName: componentName as string,
-          projectName: projectName as string,
-          namespaceName: namespaceName as string,
-          releaseLine: requestReleaseLine(req),
-          environment: environment as string,
-        },
+    const owner = {
+      componentName: componentName as string,
+      projectName: projectName as string,
+      namespaceName: namespaceName as string,
+      releaseLine: requestReleaseLine(req),
+    };
+    const environments = await environmentInfoService.deleteReleaseBinding(
+      { ...owner, environment: environment as string },
+      userToken,
+    );
+    // The component is gone from the environment, so its Endpoints are too.
+    const endpoints = await followEndpoints(() =>
+      componentEndpointFollowService.remove(
+        { ...owner, environment: environment as string },
         userToken,
       ),
     );
+    res.json({ environments, endpoints });
   });
 
   router.patch('/update-binding', requireAuth, async (req, res) => {
@@ -276,19 +312,41 @@ export async function createRouter({
 
     const userToken = getUserTokenFromRequest(req);
 
-    res.json(
-      await environmentInfoService.updateComponentBinding(
-        {
-          componentName: componentName as string,
-          projectName: projectName as string,
-          namespaceName: namespaceName as string,
-          releaseLine: requestReleaseLine(req),
-          bindingName: bindingName as string,
-          releaseState: releaseState as 'Active' | 'Suspend' | 'Undeploy',
-        },
-        userToken,
-      ),
+    const owner = {
+      componentName: componentName as string,
+      projectName: projectName as string,
+      namespaceName: namespaceName as string,
+      releaseLine: requestReleaseLine(req),
+    };
+    const environments = await environmentInfoService.updateComponentBinding(
+      {
+        ...owner,
+        bindingName: bindingName as string,
+        releaseState: releaseState as 'Active' | 'Suspend' | 'Undeploy',
+      },
+      userToken,
     );
+    // Undeploying takes the component's Endpoints out of the environment;
+    // redeploying brings them back on their latest release.
+    const endpoints = await followEndpoints(async () => {
+      const environment =
+        await componentEndpointFollowService.bindingEnvironment(
+          owner.namespaceName,
+          bindingName as string,
+          userToken,
+        );
+      if (!environment) return emptyEndpointFollowResult();
+      return releaseState === 'Active'
+        ? componentEndpointFollowService.follow(
+            { ...owner, environment, action: 'redeploy' },
+            userToken,
+          )
+        : componentEndpointFollowService.remove(
+            { ...owner, environment },
+            userToken,
+          );
+    });
+    res.json({ environments, endpoints });
   });
 
   router.post('/rollout-restart-binding', requireAuth, async (req, res) => {
@@ -1929,6 +1987,7 @@ export async function createRouter({
       traitEnvironmentConfigs,
       workloadOverrides,
       releaseName,
+      sourceEnvironment,
     } = req.body;
 
     if (
@@ -1942,25 +2001,47 @@ export async function createRouter({
         'componentName, projectName, namespaceName, environment and releaseName are required in request body',
       );
     }
+    if (
+      sourceEnvironment !== undefined &&
+      typeof sourceEnvironment !== 'string'
+    ) {
+      throw new InputError('sourceEnvironment must be a string');
+    }
 
     const userToken = getUserTokenFromRequest(req);
+    const owner = {
+      componentName: componentName as string,
+      projectName: projectName as string,
+      namespaceName: namespaceName as string,
+      releaseLine: requestReleaseLine(req),
+    };
 
-    res.json(
-      await environmentInfoService.updateReleaseBinding(
+    const binding = await environmentInfoService.updateReleaseBinding(
+      {
+        ...owner,
+        environment: environment as string,
+        componentTypeEnvironmentConfigs,
+        traitEnvironmentConfigs,
+        workloadOverrides,
+        releaseName: releaseName as string,
+      },
+      userToken,
+    );
+    // The component's Endpoints follow it: a promotion (from
+    // sourceEnvironment) moves the release each has there, and a deploy
+    // binds each one's latest release.
+    const endpoints = await followEndpoints(() =>
+      componentEndpointFollowService.follow(
         {
-          componentName: componentName as string,
-          projectName: projectName as string,
-          namespaceName: namespaceName as string,
-          releaseLine: requestReleaseLine(req),
+          ...owner,
           environment: environment as string,
-          componentTypeEnvironmentConfigs,
-          traitEnvironmentConfigs,
-          workloadOverrides,
-          releaseName: releaseName as string,
+          action: sourceEnvironment ? 'promote' : 'deploy',
+          sourceEnvironment,
         },
         userToken,
       ),
     );
+    res.json({ ...binding, endpoints });
   });
 
   router.patch('/patch-release-binding', requireAuth, async (req, res) => {

@@ -241,6 +241,14 @@ export {
   type ComponentEndpointSummary,
   type ReleaseLineEndpointTarget,
 } from './utils/componentEndpoint';
+export {
+  planEndpointFollow,
+  emptyEndpointFollowResult,
+  type EndpointFollowAction,
+  type EndpointFollowResult,
+  type EndpointFollowStep,
+  type FollowingEndpoint,
+} from './utils/endpointFollow';
 
 // Feature flags types
 export type { OpenChoreoFeatures, FeatureName } from './types/features';

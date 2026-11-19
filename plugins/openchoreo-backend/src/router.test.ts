@@ -1,3 +1,4 @@
+import { ConflictError } from '@backstage/errors';
 import { mockErrorHandler } from '@backstage/backend-test-utils';
 import express from 'express';
 import request from 'supertest';
@@ -19,6 +20,7 @@ function createMockServices() {
     environmentInfoService: {
       fetchDeploymentInfo: jest.fn(),
       deleteReleaseBinding: jest.fn(),
+      updateReleaseBinding: jest.fn(),
       updateComponentBinding: jest.fn(),
       rolloutRestartReleaseBinding: jest.fn(),
       createComponentRelease: jest.fn(),
@@ -102,6 +104,11 @@ function createMockServices() {
       createComponentEndpoint: jest.fn(),
       updateComponentEndpoint: jest.fn(),
       deleteComponentEndpoint: jest.fn(),
+    },
+    componentEndpointFollowService: {
+      follow: jest.fn(),
+      remove: jest.fn(),
+      bindingEnvironment: jest.fn(),
     },
     projectReleaseInfoService: {
       fetchProjectRelease: jest.fn(),
@@ -901,6 +908,184 @@ describe('createRouter', () => {
           ),
         }),
       });
+    });
+  });
+
+  describe("a component's Endpoints follow it", () => {
+    const followed = {
+      bound: [{ endpoint: 'orders-api', releaseName: 'orders-api-r1' }],
+      removed: [],
+      skipped: [],
+      failed: [],
+    };
+    const owner = {
+      componentName: 'orders',
+      projectName: 'shop',
+      namespaceName: 'acme',
+    };
+
+    it('moves them from the source environment on a promote', async () => {
+      services.environmentInfoService.updateReleaseBinding.mockResolvedValue({
+        metadata: { name: 'orders-staging' },
+      });
+      services.componentEndpointFollowService.follow.mockResolvedValue(
+        followed,
+      );
+
+      const response = await request(app)
+        .put('/update-release-binding')
+        .send({
+          ...owner,
+          environment: 'staging',
+          releaseName: 'orders-r3',
+          sourceEnvironment: 'dev',
+        });
+
+      expect(response.status).toBe(200);
+      expect(
+        services.componentEndpointFollowService.follow,
+      ).toHaveBeenCalledWith(
+        {
+          ...owner,
+          releaseLine: undefined,
+          environment: 'staging',
+          action: 'promote',
+          sourceEnvironment: 'dev',
+        },
+        'mock-user-token',
+      );
+      expect(response.body).toEqual({
+        metadata: { name: 'orders-staging' },
+        endpoints: followed,
+      });
+    });
+
+    it('deploys them without a source environment', async () => {
+      services.environmentInfoService.updateReleaseBinding.mockResolvedValue(
+        {},
+      );
+      services.componentEndpointFollowService.follow.mockResolvedValue(
+        followed,
+      );
+
+      await request(app)
+        .put('/update-release-binding')
+        .send({ ...owner, environment: 'dev', releaseName: 'orders-r3' });
+
+      expect(
+        services.componentEndpointFollowService.follow.mock.calls[0][0],
+      ).toMatchObject({ environment: 'dev', action: 'deploy' });
+    });
+
+    it("reports, without failing the deploy, when they can't be read", async () => {
+      services.environmentInfoService.updateReleaseBinding.mockResolvedValue(
+        {},
+      );
+      services.componentEndpointFollowService.follow.mockRejectedValue(
+        new Error('forbidden'),
+      );
+
+      const response = await request(app)
+        .put('/update-release-binding')
+        .send({ ...owner, environment: 'dev', releaseName: 'orders-r3' });
+
+      expect(response.status).toBe(200);
+      expect(response.body.endpoints.failed).toEqual([
+        { endpoint: '', reason: 'forbidden' },
+      ]);
+    });
+
+    it('leaves them alone when the component deploy fails', async () => {
+      services.environmentInfoService.updateReleaseBinding.mockRejectedValue(
+        new ConflictError('taken'),
+      );
+
+      const response = await request(app)
+        .put('/update-release-binding')
+        .send({ ...owner, environment: 'dev', releaseName: 'orders-r3' });
+
+      expect(response.status).toBe(409);
+      expect(
+        services.componentEndpointFollowService.follow,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('removes them where the component is undeployed', async () => {
+      services.environmentInfoService.updateComponentBinding.mockResolvedValue(
+        [],
+      );
+      services.componentEndpointFollowService.bindingEnvironment.mockResolvedValue(
+        'staging',
+      );
+      services.componentEndpointFollowService.remove.mockResolvedValue({
+        ...followed,
+        bound: [],
+        removed: ['orders-api'],
+      });
+
+      const response = await request(app)
+        .patch('/update-binding')
+        .send({
+          ...owner,
+          bindingName: 'orders-staging',
+          releaseState: 'Undeploy',
+        });
+
+      expect(response.status).toBe(200);
+      expect(
+        services.componentEndpointFollowService.remove,
+      ).toHaveBeenCalledWith(
+        { ...owner, releaseLine: undefined, environment: 'staging' },
+        'mock-user-token',
+      );
+      expect(response.body.endpoints.removed).toEqual(['orders-api']);
+      expect(response.body.environments).toEqual([]);
+    });
+
+    it('brings them back on a redeploy', async () => {
+      services.environmentInfoService.updateComponentBinding.mockResolvedValue(
+        [],
+      );
+      services.componentEndpointFollowService.bindingEnvironment.mockResolvedValue(
+        'staging',
+      );
+      services.componentEndpointFollowService.follow.mockResolvedValue(
+        followed,
+      );
+
+      await request(app)
+        .patch('/update-binding')
+        .send({
+          ...owner,
+          bindingName: 'orders-staging',
+          releaseState: 'Active',
+        });
+
+      expect(
+        services.componentEndpointFollowService.follow.mock.calls[0][0],
+      ).toMatchObject({ environment: 'staging', action: 'redeploy' });
+    });
+
+    it('removes them when the deployment is removed', async () => {
+      services.environmentInfoService.deleteReleaseBinding.mockResolvedValue(
+        [],
+      );
+      services.componentEndpointFollowService.remove.mockResolvedValue(
+        followed,
+      );
+
+      const response = await request(app)
+        .delete('/delete-release-binding')
+        .send({ ...owner, environment: 'staging' });
+
+      expect(response.status).toBe(200);
+      expect(
+        services.componentEndpointFollowService.remove,
+      ).toHaveBeenCalledWith(
+        { ...owner, releaseLine: undefined, environment: 'staging' },
+        'mock-user-token',
+      );
+      expect(response.body).toEqual({ environments: [], endpoints: followed });
     });
   });
 

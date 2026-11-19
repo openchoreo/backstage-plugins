@@ -960,6 +960,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     traitEnvironmentConfigs?: unknown,
     workloadOverrides?: any,
     releaseLine?: string,
+    sourceEnvironment?: string,
   ): Promise<any> {
     const { component, project, namespace } = extractEntityMetadata(entity);
 
@@ -969,6 +970,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       componentName: component,
       environment,
       releaseName,
+      ...(sourceEnvironment && { sourceEnvironment }),
     };
     Object.assign(body, releaseLineField(releaseLine));
 
