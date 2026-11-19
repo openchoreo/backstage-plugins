@@ -1,6 +1,10 @@
 import { useRouteRef } from '@backstage/core-plugin-api';
 import { entityRouteRef } from '@backstage/plugin-catalog-react';
-import { getCompoundEntityRef, type Entity } from '@backstage/catalog-model';
+import {
+  getCompoundEntityRef,
+  parseEntityRef,
+  type Entity,
+} from '@backstage/catalog-model';
 import { DEFAULT_ENTITY_TAB_PATH } from '../routes';
 
 /**
@@ -11,12 +15,15 @@ import { DEFAULT_ENTITY_TAB_PATH } from '../routes';
  * tab, and there would be nothing on it anyway.
  */
 export function useEntityTabLink(): (
-  entity: Entity,
+  entity: Entity | string,
   options?: { toTab?: boolean },
 ) => string {
   const entityRoute = useRouteRef(entityRouteRef);
   return (entity, { toTab = true } = {}) => {
-    const ref = getCompoundEntityRef(entity);
+    const ref =
+      typeof entity === 'string'
+        ? parseEntityRef(entity)
+        : getCompoundEntityRef(entity);
     const page = entityRoute({
       kind: ref.kind.toLocaleLowerCase('en-US'),
       namespace: ref.namespace,

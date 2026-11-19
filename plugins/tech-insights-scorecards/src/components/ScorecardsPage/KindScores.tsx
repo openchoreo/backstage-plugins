@@ -213,7 +213,10 @@ function KindRow({ summary }: { summary: ScoredKindSummary }) {
               <RollupTable
                 nodes={rows}
                 showKind={false}
-                expandable={isRollupKind(summary.kind)}
+                expandable={
+                  isRollupKind(summary.kind) ||
+                  summary.nodes.some(node => node.variants.length > 0)
+                }
                 showTierProgress
               />
             </Box>
@@ -233,7 +236,9 @@ function KindRow({ summary }: { summary: ScoredKindSummary }) {
  * Scores per kind, so that kinds as different as a platform's templates and
  * its services are never added into one number. Each row has the kind's
  * pass rate, how many reached each tier, and expands to the entities and
- * checks behind them.
+ * checks behind them. An entity with variants, such as a component with
+ * release lines, is counted by its own tier and checks, and its row expands
+ * to the variants.
  */
 export function KindScores({ summaries }: { summaries: ScoredKindSummary[] }) {
   return (

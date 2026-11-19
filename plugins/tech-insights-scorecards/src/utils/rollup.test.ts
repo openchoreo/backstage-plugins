@@ -10,7 +10,10 @@ import {
   createRollup,
   isRollupKind,
   normalizeRef,
+  variantParentRefOf,
+  variantRefsOf,
 } from './rollup';
+import { withVariantKind, type VariantConfig } from './variants';
 import { entity, result } from '../__testUtils__/fixtures';
 
 const domain = entity('Domain', 'default', [
@@ -121,6 +124,100 @@ describe('createRollup', () => {
     const odd = entity('Constructor', 'odd', ['component:default/api']);
     expect(isRollupKind('Constructor')).toBe(false);
     expect(childRefsOf(odd)).toEqual([]);
+  });
+});
+
+describe('variants', () => {
+  const variants: VariantConfig = {
+    kind: 'ReleaseLine',
+    parentKind: 'Component',
+    mainLabel: 'main',
+  };
+  const web = entity('Component', 'web', [
+    'releaseline:default/next',
+    'releaseline:default/canary',
+    'component:default/web-ui',
+  ]);
+  const next = entity(
+    'ReleaseLine',
+    'next',
+    ['component:default/web'],
+    'partOf',
+  );
+  const canary = entity('ReleaseLine', 'canary');
+  const webUi = entity('Component', 'web-ui');
+  const shop = entity('System', 'shop', ['component:default/web']);
+  const team = entity(
+    'Group',
+    'team',
+    ['component:default/web', 'releaseline:default/next'],
+    'ownerOf',
+  );
+  const all = new Map(
+    [web, next, canary, webUi, shop, team].map(e => [normalizeRef(e), e]),
+  );
+  const own = new Map([
+    ['component:default/web', [result('desc', Rank.Silver, true)]],
+    ['releaseline:default/next', [result('desc', Rank.Silver, false)]],
+    ['releaseline:default/canary', [result('desc', Rank.Silver, true)]],
+  ]);
+  const rollup = createRollup(all, own, variants);
+
+  it('takes only hasPart targets of the variant kind, from the parent kind', () => {
+    expect(variantRefsOf(web, variants)).toEqual([
+      'releaseline:default/next',
+      'releaseline:default/canary',
+    ]);
+    expect(variantRefsOf(shop, variants)).toEqual([]);
+    expect(variantRefsOf(web)).toEqual([]);
+  });
+
+  it('keeps a parent’s tier and checks its own', () => {
+    const node = rollup('component:default/web')!;
+    expect(node).toMatchObject({
+      rank: Rank.Silver,
+      progress: { passedChecks: 1, totalChecks: 1 },
+      descendantCount: 0,
+      children: [],
+    });
+    expect(node.checks).toHaveLength(1);
+    // Scored first, lowest tier first.
+    expect(node.variants.map(v => v.ref)).toEqual([
+      'releaseline:default/next',
+      'releaseline:default/canary',
+    ]);
+    // Its failing Silver check holds it at Bronze.
+    expect(node.variants[0].rank).toBe(Rank.Bronze);
+  });
+
+  it('leaves variants out of a System', () => {
+    const node = rollup('system:default/shop')!;
+    expect(node.rank).toBe(Rank.Silver);
+    expect(node.descendantCount).toBe(1);
+  });
+
+  it('lists a variant a Group owns only under its parent', () => {
+    expect(childRefsOf(team, variants)).toEqual(['component:default/web']);
+    const node = rollup('group:default/team')!;
+    expect(node.children.map(c => c.ref)).toEqual(['component:default/web']);
+    expect(node.rank).toBe(Rank.Silver);
+    expect(node.descendantCount).toBe(1);
+  });
+
+  it('finds a variant’s parent through partOf', () => {
+    expect(variantParentRefOf(next, variants)).toBe('component:default/web');
+    expect(variantParentRefOf(web, variants)).toBeUndefined();
+    expect(variantParentRefOf(next)).toBeUndefined();
+  });
+
+  it('adds the variant kind to kinds that include its parent kind', () => {
+    expect(withVariantKind(['component', 'API'], variants)).toEqual([
+      'component',
+      'API',
+      'ReleaseLine',
+    ]);
+    expect(withVariantKind(['API'], variants)).toEqual(['API']);
+    expect(withVariantKind(['Component'], undefined)).toEqual(['Component']);
   });
 });
 

@@ -12,6 +12,7 @@ import {
   ROLLUP_RELATIONS,
   type RollupNode,
 } from '../utils/rollup';
+import { isKind, useVariantConfig, withVariantKind } from '../utils/variants';
 
 /**
  * Fetched even when no check applies to them, so that a parent's tier is
@@ -33,6 +34,9 @@ export interface CatalogScores {
  * kind filter. Those kinds are evaluated even when `kinds` leaves them out,
  * so a listed System combines its Components the same way as on its tab.
  * Entities are evaluated through the tech-insights bulk `POST /checks/run`.
+ * A variant kind (see `techInsights.scorecards.variants`) is fetched with
+ * its parent kind and listed under its parents, never as a kind of its own,
+ * even when a check or `kinds` names it.
  * `refreshKey` re-runs the evaluation after checks or facts change; nothing
  * is evaluated until `enabled` is true.
  */
@@ -43,11 +47,14 @@ export function useScoreResults(
 ) {
   const catalogApi = useApi(catalogApiRef);
   const maturityApi = useApi(maturityApiRef);
+  const variants = useVariantConfig();
   const kindsKey = kinds?.join(',') ?? '';
 
   return useAsync(async (): Promise<CatalogScores | undefined> => {
     if (!enabled) return undefined;
 
+    const notVariant = (kind: string) =>
+      !variants || !isKind(kind, variants.kind);
     const [checks, { facets }] = await Promise.all([
       maturityApi.getAllChecks(),
       catalogApi.getEntityFacets({ facets: ['kind'] }),
@@ -59,8 +66,11 @@ export function useScoreResults(
         kind =>
           wanted === 'all' || wanted.includes(kind.toLocaleLowerCase('en-US')),
       )
+      .filter(notVariant)
       .sort();
-    const scoredKinds = kindsKey ? kindsKey.split(',') : checkedKinds;
+    const scoredKinds = (kindsKey ? kindsKey.split(',') : checkedKinds).filter(
+      notVariant,
+    );
     if (scoredKinds.length === 0) {
       return { kinds: [], entities: [] };
     }
@@ -68,8 +78,11 @@ export function useScoreResults(
     const scored = new Set(scoredKinds.map(k => k.toLocaleLowerCase('en-US')));
     const { items } = await catalogApi.getEntities({
       filter: {
-        kind: Array.from(
-          new Set([...scoredKinds, ...checkedKinds, ...ROLLUP_KINDS]),
+        kind: withVariantKind(
+          Array.from(
+            new Set([...scoredKinds, ...checkedKinds, ...ROLLUP_KINDS]),
+          ),
+          variants,
         ),
       },
       fields: ENTITY_FIELDS,
@@ -78,7 +91,7 @@ export function useScoreResults(
       items.map(entity => [normalizeRef(entity), entity]),
     );
     const results = await evaluateEntities(maturityApi, items);
-    const rollup = createRollup(entities, results);
+    const rollup = createRollup(entities, results, variants);
 
     const isScoredKind = (entity: Entity) =>
       scored.has(entity.kind.toLocaleLowerCase('en-US'));
@@ -91,5 +104,5 @@ export function useScoreResults(
       kinds: Array.from(new Set(scoredNodes.map(n => n.entity.kind))).sort(),
       entities: scoredNodes,
     };
-  }, [catalogApi, maturityApi, kindsKey, refreshKey, enabled]);
+  }, [catalogApi, maturityApi, variants, kindsKey, refreshKey, enabled]);
 }

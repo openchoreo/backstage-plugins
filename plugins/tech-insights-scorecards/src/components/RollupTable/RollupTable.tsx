@@ -1,5 +1,6 @@
 import { Fragment, useState, type MouseEvent } from 'react';
 import Box from '@material-ui/core/Box';
+import Chip from '@material-ui/core/Chip';
 import IconButton from '@material-ui/core/IconButton';
 import MuiLink from '@material-ui/core/Link';
 import Table from '@material-ui/core/Table';
@@ -7,15 +8,17 @@ import TableBody from '@material-ui/core/TableBody';
 import TableCell from '@material-ui/core/TableCell';
 import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
+import Tooltip from '@material-ui/core/Tooltip';
 import Typography from '@material-ui/core/Typography';
 import { makeStyles } from '@material-ui/core/styles';
 import ChevronRightIcon from '@material-ui/icons/ChevronRight';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { Link } from '@backstage/core-components';
 import { EntityDisplayName } from '@backstage/plugin-catalog-react';
-import { useEntityLabel, useKindLabel } from '../../utils/kinds';
+import { inSentence, useEntityLabel, useKindLabel } from '../../utils/kinds';
 import type { RollupNode } from '../../utils/rollup';
 import { progressOf } from '../../utils/scoring';
+import { isKind, useVariantConfig } from '../../utils/variants';
 import { useEntityTabLink } from '../../hooks';
 import { NotScoredChip, TierChip } from '../TierChip';
 import { TierLadder } from '../TierLadder';
@@ -27,7 +30,29 @@ const useStyles = makeStyles({
 const stopPropagation = (event: MouseEvent) => event.stopPropagation();
 
 function hasUnscored(nodes: RollupNode[]): boolean {
-  return nodes.some(node => !node.scored || hasUnscored(node.children));
+  return nodes.some(
+    node =>
+      !node.scored || hasUnscored(node.children) || hasUnscored(node.variants),
+  );
+}
+
+/**
+ * Marks a parent whose tier and checks cover only itself, beside its
+ * variants: "main", next to a component that has release lines.
+ */
+export function MainChip() {
+  const variants = useVariantConfig();
+  const kindLabel = useKindLabel();
+  if (!variants) return null;
+  return (
+    <Tooltip
+      title={`Tier and checks cover the ${variants.mainLabel} ${inSentence(
+        kindLabel(variants.kind),
+      )} only.`}
+    >
+      <Chip label={variants.mainLabel} size="small" variant="outlined" />
+    </Tooltip>
+  );
 }
 
 export interface RollupTableProps {
@@ -49,6 +74,9 @@ export interface RollupTableProps {
  * Entities with their tier and checks passing, each expanding to the
  * entities that belong to it when clicked. A row's tier and checks combine everything
  * beneath it; its own checks are shown under them when it has both.
+ * A row with variants, such as a component with release lines, also expands
+ * to them, after its children. Its tier stays its own, so it carries the
+ * main chip, and each variant row is named without its parent's prefix.
  * Entities no check covers are hidden until asked for, unless `unscored`
  * is `show`.
  */
@@ -63,6 +91,7 @@ export function RollupTable({
   const kindLabel = useKindLabel();
   const entityLabel = useEntityLabel();
   const tabLink = useEntityTabLink();
+  const variantConfig = useVariantConfig();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [revealed, setRevealed] = useState(false);
   const showUnscored = unscored === 'show' || revealed;
@@ -85,9 +114,12 @@ export function RollupTable({
     return visible(list).map(node => {
       const path = `${parentPath}/${node.ref}`;
       const children = expandable ? visible(node.children) : [];
+      const variants = expandable ? visible(node.variants) : [];
       const isOpen = expanded.has(path);
       const own = progressOf(node.ownChecks);
-      const canOpen = children.length > 0;
+      const canOpen = children.length > 0 || variants.length > 0;
+      const isVariant =
+        !!variantConfig && isKind(node.entity.kind, variantConfig.kind);
       return (
         <Fragment key={path}>
           <TableRow
@@ -116,8 +148,17 @@ export function RollupTable({
                   to={tabLink(node.entity, { toTab: node.scored })}
                   onClick={stopPropagation}
                 >
-                  <EntityDisplayName entityRef={node.entity} />
+                  {isVariant ? (
+                    node.entity.metadata.name
+                  ) : (
+                    <EntityDisplayName entityRef={node.entity} />
+                  )}
                 </Link>
+                {node.variants.length > 0 && (
+                  <Box ml={1}>
+                    <MainChip />
+                  </Box>
+                )}
               </Box>
             </TableCell>
             {showKind && <TableCell>{kindLabel(node.entity.kind)}</TableCell>}
@@ -150,6 +191,7 @@ export function RollupTable({
             )}
           </TableRow>
           {isOpen && renderRows(node.children, depth + 1, path)}
+          {isOpen && renderRows(node.variants, depth + 1, path)}
         </Fragment>
       );
     });

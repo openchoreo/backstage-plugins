@@ -57,6 +57,12 @@ const routes = [
   route('deploy', '/environments', 'deploy', isKind('component')),
   route('docs', '/docs'),
   route('project-deploy', '/deploy', 'deploy', isKind('system')),
+  route(
+    'entity-content:tech-insights-scorecards',
+    '/scorecards',
+    'scorecards',
+    isKind('component', 'releaseline'),
+  ),
 ];
 
 const ids = (selected: OpenChoreoRoute[]) => selected.map(r => r.id);
@@ -82,10 +88,24 @@ describe('selectEntityRoutes', () => {
       'build',
       'deploy',
       'docs',
+      'entity-content:tech-insights-scorecards',
     ]);
     // Component tabs were matched against the component; the page must not
     // re-filter them against the release line.
     expect(selected.find(r => r.id === 'build')?.if).toBeUndefined();
+  });
+
+  it('keeps the Scorecards tab for the release line itself, in its place', () => {
+    const scorecards = routes.find(
+      r => r.id === 'entity-content:tech-insights-scorecards',
+    )!;
+    const selected = selectEntityRoutes(routes, releaseLine, component(true));
+
+    // Unchanged, so the page matches its filter against the release line and
+    // the tab scores the line rather than its component.
+    expect(
+      selected.find(r => r.id === 'entity-content:tech-insights-scorecards'),
+    ).toBe(scorecards);
   });
 
   it('shows only the release line tabs until its component loads', () => {
@@ -93,6 +113,7 @@ describe('selectEntityRoutes', () => {
       'overview',
       'definition',
       'release-line-definition',
+      'entity-content:tech-insights-scorecards',
     ]);
   });
 });

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { renderHook, waitFor } from '@testing-library/react';
-import { TestApiProvider } from '@backstage/test-utils';
+import { mockApis, TestApiProvider } from '@backstage/test-utils';
+import { configApiRef } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { stringifyEntityRef, type Entity } from '@backstage/catalog-model';
 import { maturityApiRef } from '@backstage-community/plugin-tech-insights-maturity';
@@ -14,15 +15,35 @@ import { useEntityScorecard } from './useEntityScorecard';
 const domain = entity('Domain', 'default', ['system:default/payments']);
 const system = entity('System', 'payments', ['component:default/api']);
 const api = entity('Component', 'api');
-const catalog = new Map([system, api].map(e => [stringifyEntityRef(e), e]));
+const web = entity('Component', 'web', [
+  'releaseline:default/next',
+  'component:default/web-ui',
+]);
+const next = entity('ReleaseLine', 'next');
+const shop = entity('System', 'shop', ['component:default/web']);
+const catalog = new Map(
+  [system, api, web, next, shop].map(e => [stringifyEntityRef(e), e]),
+);
 
 const own: Record<string, MaturityCheckResult[]> = {
   'domain:default/default': [],
   'system:default/payments': [result('tagged', Rank.Silver, true)],
   'component:default/api': [result('desc', Rank.Bronze, false)],
+  'component:default/web': [result('desc', Rank.Bronze, true)],
+  'releaseline:default/next': [result('desc', Rank.Bronze, false)],
 };
 
-function setup() {
+const variantsConfig = {
+  techInsights: {
+    scorecards: {
+      variants: { kind: 'ReleaseLine', parentKind: 'Component' },
+    },
+  },
+};
+
+function setup(
+  config: typeof variantsConfig | Record<string, never> = variantsConfig,
+) {
   const catalogApi = {
     getEntitiesByRefs: jest.fn(
       async ({ entityRefs }: { entityRefs: string[] }) => ({
@@ -43,6 +64,7 @@ function setup() {
       apis={[
         [catalogApiRef, catalogApi],
         [maturityApiRef, maturityApi],
+        [configApiRef, mockApis.config({ data: config })],
       ]}
     >
       {children}
@@ -86,5 +108,57 @@ describe('useEntityScorecard', () => {
     expect(categories).toEqual([
       expect.objectContaining({ category: 'Security', totalChecks: 2 }),
     ]);
+  });
+
+  it('scores a component’s release lines apart from it, in the same request', async () => {
+    const { catalogApi, maturityApi, wrapper } = setup();
+    const { result: hook } = renderHook(() => useEntityScorecard(web), {
+      wrapper,
+    });
+    await waitFor(() => expect(hook.current.value).toBeDefined());
+    // The subcomponent is also a hasPart target, but not a release line.
+    expect(catalogApi.getEntitiesByRefs).toHaveBeenCalledTimes(1);
+    expect(catalogApi.getEntitiesByRefs).toHaveBeenCalledWith(
+      expect.objectContaining({ entityRefs: ['releaseline:default/next'] }),
+    );
+    expect(maturityApi.getBulkMaturityCheckResults).toHaveBeenCalledTimes(1);
+
+    const { root, categories } = hook.current.value!;
+    expect(root).toMatchObject({
+      rank: Rank.Bronze,
+      progress: { passedChecks: 1, totalChecks: 1 },
+      descendantCount: 0,
+      children: [],
+    });
+    expect(root.variants.map(v => v.ref)).toEqual(['releaseline:default/next']);
+    expect(root.variants[0].rank).toBe(Rank.Stone);
+    expect(categories).toEqual([
+      expect.objectContaining({ totalChecks: 1, passedChecks: 1 }),
+    ]);
+  });
+
+  it('fetches the release lines of the components in a System', async () => {
+    const { wrapper } = setup();
+    const { result: hook } = renderHook(() => useEntityScorecard(shop), {
+      wrapper,
+    });
+    await waitFor(() => expect(hook.current.value).toBeDefined());
+
+    const { root } = hook.current.value!;
+    expect(root.rank).toBe(Rank.Bronze);
+    expect(root.descendantCount).toBe(1);
+    expect(root.children[0].variants.map(v => v.ref)).toEqual([
+      'releaseline:default/next',
+    ]);
+  });
+
+  it('leaves release lines alone without the variants config', async () => {
+    const { catalogApi, wrapper } = setup({});
+    const { result: hook } = renderHook(() => useEntityScorecard(web), {
+      wrapper,
+    });
+    await waitFor(() => expect(hook.current.value).toBeDefined());
+    expect(catalogApi.getEntitiesByRefs).not.toHaveBeenCalled();
+    expect(hook.current.value!.root.variants).toEqual([]);
   });
 });

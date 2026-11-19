@@ -172,6 +172,7 @@ app:
                 - Group
                 - ClusterComponentType
                 - ComponentType
+                - ReleaseLine
 
 organization:
   name: OpenChoreo
@@ -592,3 +593,9 @@ techInsights:
       plural: resources
     # Suggested in the check editor, which also accepts new ones.
     categories: [Security, Reliability, Documentation]
+    # A component's tier covers its main line only. Its release lines are
+    # scored on their own and listed under it.
+    variants:
+      kind: ReleaseLine
+      parentKind: Component
+      mainLabel: main
