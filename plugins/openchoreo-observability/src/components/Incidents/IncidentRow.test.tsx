@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Table, TableBody } from '@material-ui/core';
+import { MemoryRouter } from 'react-router-dom';
 import { IncidentRow } from './IncidentRow';
 import { IncidentSummary } from '../../types';
 
@@ -35,11 +36,13 @@ function renderRow(
 
   return {
     ...render(
-      <Table>
-        <TableBody>
-          <IncidentRow {...defaultProps} {...overrides} />
-        </TableBody>
-      </Table>,
+      <MemoryRouter>
+        <Table>
+          <TableBody>
+            <IncidentRow {...defaultProps} {...overrides} />
+          </TableBody>
+        </Table>
+      </MemoryRouter>,
     ),
     props: { ...defaultProps, ...overrides },
   };
@@ -116,6 +119,65 @@ describe('IncidentRow', () => {
     expect(screen.getByText('api-service')).toBeInTheDocument();
   });
 
+  it('links the component name to the component page', () => {
+    renderRow({ catalogNamespace: 'my-ns' });
+
+    expect(screen.getByText('api-service').closest('a')).toHaveAttribute(
+      'href',
+      '/catalog/my-ns/component/api-service',
+    );
+  });
+
+  it('does not expand the row when the component link is clicked', async () => {
+    const user = userEvent.setup();
+    renderRow();
+
+    await user.click(screen.getByText('api-service'));
+
+    expect(screen.queryByText('Incident details')).not.toBeInTheDocument();
+  });
+
+  it('does not render a component link when the component is missing', () => {
+    renderRow({ incident: { ...sampleIncident, componentName: undefined } });
+
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+
+  it('shows Acknowledge in the actions column when RCA is disabled', async () => {
+    const user = userEvent.setup();
+    const onAcknowledge = jest.fn();
+    renderRow({
+      incident: { ...sampleIncident, incidentTriggerAiRca: false },
+      onAcknowledge,
+    });
+
+    await user.click(screen.getByText('Acknowledge'));
+
+    expect(onAcknowledge).toHaveBeenCalledWith(
+      expect.objectContaining({ incidentId: sampleIncident.incidentId }),
+    );
+    expect(screen.queryByText('Incident details')).not.toBeInTheDocument();
+  });
+
+  it('shows Resolve in the actions column for acknowledged incidents', () => {
+    renderRow({
+      incident: {
+        ...sampleIncident,
+        status: 'acknowledged',
+        incidentTriggerAiRca: false,
+      },
+    });
+
+    expect(screen.getByText('Resolve')).toBeInTheDocument();
+  });
+
+  it('shows no status action for resolved incidents', () => {
+    renderRow({ incident: { ...sampleIncident, status: 'resolved' } });
+
+    expect(screen.queryByText('Acknowledge')).not.toBeInTheDocument();
+    expect(screen.queryByText('Resolve')).not.toBeInTheDocument();
+  });
+
   it('shows View RCA button when incidentTriggerAiRca is true', () => {
     renderRow();
 
@@ -161,7 +223,7 @@ describe('IncidentRow', () => {
 
     await user.click(screen.getByText('High CPU usage on api-service'));
 
-    expect(screen.getByText('Acknowledge')).toBeInTheDocument();
+    expect(screen.getAllByText('Acknowledge')).toHaveLength(2);
   });
 
   it('shows Resolve button for acknowledged incidents when expanded', async () => {
@@ -172,7 +234,7 @@ describe('IncidentRow', () => {
 
     await user.click(screen.getByText('High CPU usage on api-service'));
 
-    expect(screen.getByText('Resolve')).toBeInTheDocument();
+    expect(screen.getAllByText('Resolve')).toHaveLength(2);
   });
 
   it('falls back to dash for missing fields', () => {

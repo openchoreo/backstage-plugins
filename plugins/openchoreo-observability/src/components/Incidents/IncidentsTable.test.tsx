@@ -1,3 +1,4 @@
+import { MemoryRouter } from 'react-router-dom';
 import { render, screen } from '@testing-library/react';
 import { IncidentsTable } from './IncidentsTable';
 import { IncidentSummary } from '../../types';
@@ -32,7 +33,11 @@ function renderTable(
     projectName: 'my-project',
   };
 
-  return render(<IncidentsTable {...defaultProps} {...overrides} />);
+  return render(
+    <MemoryRouter>
+      <IncidentsTable {...defaultProps} {...overrides} />
+    </MemoryRouter>,
+  );
 }
 
 // ---- Tests ----
