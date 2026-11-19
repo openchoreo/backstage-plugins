@@ -3,5 +3,5 @@
 ---
 
 Add OpenChoreo starter checks behind `techInsights.dynamicChecks.openchoreoStarterChecks`. When
-it's on, 13 published checks on deployment, component type and GitHub facts are added once per
+it's on, 9 published checks on deployment, component type and GitHub facts are added once per
 database, and edits, unpublishing and deletion made afterwards are kept.
