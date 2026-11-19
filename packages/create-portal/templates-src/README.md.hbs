@@ -11,8 +11,9 @@ forking the OpenChoreo monorepo.
 
 ## Prerequisites
 
-- Node.js 24 or 26, and Yarn (via `corepack enable`; the repo pins its own
-  Yarn under `.yarn/releases`).
+- Node.js 24.15+ or 26.13+, and Yarn (via `corepack enable`; the repo pins its
+  own Yarn under `.yarn/releases`). Node 26 doesn't bundle Corepack: run
+  `npm install -g corepack` first.
 - `@openchoreo/*` packages resolve from `{{{registry}}}` (see `.yarnrc.yml`).
   If you point that at a private registry, set an `npmAuthToken` for the
   `openchoreo` scope in your user-level `~/.yarnrc.yml` — don't commit

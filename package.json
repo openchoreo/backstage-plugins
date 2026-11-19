@@ -7,7 +7,7 @@
     "url": "https://github.com/openchoreo/backstage-plugins.git"
   },
   "engines": {
-    "node": "24 || 26"
+    "node": "^24.15.0 || ^26.13.0"
   },
   "scripts": {
     "start": "NODE_OPTIONS=--no-node-snapshot backstage-cli repo start",
