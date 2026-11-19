@@ -733,6 +733,7 @@ export const EnvironmentDetailPanel = ({
         open={invokeUrlsOpen}
         onClose={() => setInvokeUrlsOpen(false)}
         endpoints={environment.endpoints}
+        namespaceName={entity.metadata.namespace}
       />
 
       <ReleaseManifestDialog

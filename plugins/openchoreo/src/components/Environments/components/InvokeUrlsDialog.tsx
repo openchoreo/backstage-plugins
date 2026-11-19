@@ -20,6 +20,7 @@ import type {
   EndpointInfo,
   EndpointURLSecurity,
 } from '../hooks/useEnvironmentData';
+import { EntityRefLink } from '@backstage/plugin-catalog-react';
 import {
   buildServiceUrl,
   buildUrl,
@@ -151,12 +152,21 @@ interface InvokeUrlsDialogProps {
   open: boolean;
   onClose: () => void;
   endpoints: EndpointInfo[];
+  /** Catalog namespace of the component, which its Endpoints share. */
+  namespaceName?: string;
 }
 
+/**
+ * Lists every URL of a component's workload endpoints in one environment.
+ * A workload endpoint exposed through one of the component's Endpoints shows
+ * the Endpoint's URLs, with the security each enforces and a link to the
+ * Endpoint; any other shows the URLs from the component's ReleaseBinding.
+ */
 export const InvokeUrlsDialog = ({
   open,
   onClose,
   endpoints,
+  namespaceName = 'default',
 }: InvokeUrlsDialogProps) => {
   return (
     <Dialog
@@ -188,6 +198,23 @@ export const InvokeUrlsDialog = ({
                     ({endpoint.type})
                   </Typography>
                 )}
+                {endpoint.endpointName && (
+                  <Typography
+                    variant="caption"
+                    color="textSecondary"
+                    style={{ marginLeft: 'auto' }}
+                  >
+                    via Endpoint{' '}
+                    <EntityRefLink
+                      entityRef={{
+                        kind: 'endpoint',
+                        namespace: namespaceName,
+                        name: endpoint.endpointName,
+                      }}
+                      onClick={onClose}
+                    />
+                  </Typography>
+                )}
               </Box>
               <Divider style={{ marginBottom: 12 }} />
 
@@ -198,6 +225,7 @@ export const InvokeUrlsDialog = ({
                       key={`ext-${protocol}`}
                       url={buildUrl(details)}
                       label="External"
+                      security={details.security}
                     />
                   ),
                 )}
@@ -209,15 +237,36 @@ export const InvokeUrlsDialog = ({
                       key={`int-${protocol}`}
                       url={buildUrl(details)}
                       label="Internal"
+                      security={details.security}
                     />
                   ),
                 )}
 
-              {endpoint.serviceURL && (
+              {endpoint.namespaceURLs &&
+                Object.entries(endpoint.namespaceURLs).map(
+                  ([protocol, details]) => (
+                    <URLRow
+                      key={`ns-${protocol}`}
+                      url={buildUrl(details)}
+                      label="Namespace"
+                      security={details.security}
+                    />
+                  ),
+                )}
+
+              {endpoint.projectURL ? (
                 <URLRow
-                  url={buildServiceUrl(endpoint.serviceURL)}
+                  url={buildUrl(endpoint.projectURL)}
                   label="Project"
+                  security={endpoint.projectURL.security}
                 />
+              ) : (
+                endpoint.serviceURL && (
+                  <URLRow
+                    url={buildServiceUrl(endpoint.serviceURL)}
+                    label="Project"
+                  />
+                )
               )}
             </Box>
           ))

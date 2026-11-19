@@ -26,35 +26,50 @@ export function buildServiceUrl(details: EndpointURLDetails): string {
 }
 
 export interface PrimaryEndpointUrl {
-  label: 'External' | 'Internal' | 'Project';
+  label: 'External' | 'Internal' | 'Namespace' | 'Project';
   url: string;
 }
 
 /**
+ * The project-visibility URL of an endpoint: the one its Endpoint resolved,
+ * which may carry a path, or else the in-cluster service URL.
+ */
+export function projectUrlOf(endpoint: EndpointInfo): string | null {
+  if (endpoint.projectURL) return buildUrl(endpoint.projectURL);
+  if (endpoint.serviceURL) return buildServiceUrl(endpoint.serviceURL);
+  return null;
+}
+
+/**
  * Pick a single representative URL across all endpoints. Falls back
- * external → internal → service (project) → null. Used by the
+ * external → internal → namespace → project → null. Used by the
  * Endpoints section in the env detail panel for an at-a-glance preview;
  * the full list lives in InvokeUrlsDialog.
  */
 export function derivePrimaryUrl(
   endpoints: EndpointInfo[],
 ): PrimaryEndpointUrl | null {
-  for (const ep of endpoints) {
-    const externals = Object.values(ep.externalURLs ?? {});
-    if (externals.length > 0) {
-      return { label: 'External', url: buildUrl(externals[0]) };
+  const scoped: Array<
+    [
+      PrimaryEndpointUrl['label'],
+      'externalURLs' | 'internalURLs' | 'namespaceURLs',
+    ]
+  > = [
+    ['External', 'externalURLs'],
+    ['Internal', 'internalURLs'],
+    ['Namespace', 'namespaceURLs'],
+  ];
+  for (const [label, key] of scoped) {
+    for (const ep of endpoints) {
+      const urls = Object.values(ep[key] ?? {});
+      if (urls.length > 0) {
+        return { label, url: buildUrl(urls[0]) };
+      }
     }
   }
   for (const ep of endpoints) {
-    const internals = Object.values(ep.internalURLs ?? {});
-    if (internals.length > 0) {
-      return { label: 'Internal', url: buildUrl(internals[0]) };
-    }
-  }
-  for (const ep of endpoints) {
-    if (ep.serviceURL) {
-      return { label: 'Project', url: buildServiceUrl(ep.serviceURL) };
-    }
+    const url = projectUrlOf(ep);
+    if (url) return { label: 'Project', url };
   }
   return null;
 }
