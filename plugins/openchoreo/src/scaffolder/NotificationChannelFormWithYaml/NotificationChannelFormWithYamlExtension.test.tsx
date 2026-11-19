@@ -447,6 +447,15 @@ describe('NotificationChannelFormWithYamlExtension — isEnvDefault', () => {
 
     await waitFor(() => expect(latestFormData!.isEnvDefault).toBe(true));
   });
+
+  it('explains which channel is used when several are marked as default', async () => {
+    render(<Harness />);
+    await waitFor(() => expect(latestFormData).toBeDefined());
+
+    expect(
+      screen.getByText(/the most recently created one is used/),
+    ).toBeInTheDocument();
+  });
 });
 
 describe('NotificationChannelFormWithYamlExtension — type switching', () => {

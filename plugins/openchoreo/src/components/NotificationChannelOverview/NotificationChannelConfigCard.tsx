@@ -1,11 +1,12 @@
 import { Box, Typography } from '@material-ui/core';
 import { Alert } from '@material-ui/lab';
 import { useApi } from '@backstage/core-plugin-api';
-import { useEntity } from '@backstage/plugin-catalog-react';
+import { catalogApiRef, useEntity } from '@backstage/plugin-catalog-react';
 import { Link } from '@backstage/core-components';
 import { Card } from '@openchoreo/backstage-design-system';
 import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
+import { countEnvDefaultChannels } from './countEnvDefaultChannels';
 import { useNotificationChannelOverviewStyles } from './styles';
 
 interface SecretKeyRef {
@@ -60,6 +61,7 @@ export const NotificationChannelConfigCard = () => {
   const classes = useNotificationChannelOverviewStyles();
   const { entity } = useEntity();
   const client = useApi(openChoreoClientApiRef);
+  const catalogApi = useApi(catalogApiRef);
   const spec = entity.spec as unknown as NotificationChannelSpec | undefined;
   const namespace = entity.metadata.namespace || 'default';
   const name = entity.metadata.name;
@@ -80,9 +82,19 @@ export const NotificationChannelConfigCard = () => {
     },
   );
 
+  // Several channels of an environment can be marked as default; the card only reports that.
+  const { data: markedCount } = useOpenChoreoQuery<number>(
+    ['notification-channel-env-defaults', namespace, spec?.environment],
+    () =>
+      countEnvDefaultChannels(catalogApi, namespace, spec?.environment ?? ''),
+    { enabled: Boolean(spec?.isEnvDefault && spec.environment) },
+  );
+
   if (!spec) {
     return null;
   }
+
+  const severalMarked = spec.isEnvDefault === true && (markedCount ?? 0) > 1;
 
   const ready = conditions?.find(c => c.type === 'Ready');
   const secretsReady = conditions?.find(c => c.type === 'SecretsReady');
@@ -107,6 +119,15 @@ export const NotificationChannelConfigCard = () => {
           )}
         </Box>
       </Box>
+
+      {severalMarked && (
+        <Box mb={2}>
+          <Alert severity="info">
+            Multiple channels in this environment are marked as default. The
+            most recently created channel is used as the default.
+          </Alert>
+        </Box>
+      )}
 
       {ready && ready.status !== 'True' && (
         <Box mb={2}>
