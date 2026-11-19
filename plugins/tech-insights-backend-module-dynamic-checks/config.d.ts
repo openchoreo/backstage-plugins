@@ -8,6 +8,15 @@ export interface Config {
        * OpenChoreo and GitHub fact retrievers. Defaults to false.
        */
       openchoreoStarterChecks?: boolean;
+      /**
+       * Kinds whose entities also run every check that matches their parent
+       * entity, against their own facts. `parentField` is the dot path to the
+       * field holding the parent's entity ref, such as `spec.component`.
+       */
+      inheritChecks?: Array<{
+        kind: string;
+        parentField: string;
+      }>;
     };
   };
 }

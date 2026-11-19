@@ -20,6 +20,11 @@ import {
 } from './EvaluableCheckRegistry';
 import type { CheckEvaluation } from './dryRun';
 import { createEntityAccessGate } from './entityAccess';
+import {
+  createFilterViewOf,
+  readInheritedChecks,
+  withFilterViews,
+} from './filterView';
 import { createDynamicChecksRouter } from './router';
 import { seedOpenChoreoStarterChecks } from './starterChecks';
 import { CheckValidator } from './validation';
@@ -86,6 +91,12 @@ export const techInsightsModuleDynamicChecks = createBackendModule({
         }
 
         const registry = new DynamicCheckRegistry(client);
+        const filterViewOf = createFilterViewOf({
+          catalog,
+          inheritedChecks: readInheritedChecks(config),
+          logger,
+        });
+        const checkCatalog = withFilterViews(catalog, filterViewOf);
 
         // Published checks and dry runs are both evaluated by jsonfc's own
         // checker, so a dry run can't disagree with the published result.
@@ -101,7 +112,7 @@ export const techInsightsModuleDynamicChecks = createBackendModule({
                 checks: [],
                 logger,
                 checkRegistry,
-                catalog,
+                catalog: checkCatalog,
                 auth,
               }).construct(store);
             const validator = new CheckValidator(store);
@@ -125,6 +136,7 @@ export const techInsightsModuleDynamicChecks = createBackendModule({
             logger,
             registry,
             catalog,
+            filterViewOf,
             httpAuth,
             permissions,
             scheduler,

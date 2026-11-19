@@ -26,11 +26,13 @@ import {
 } from '@openchoreo/backstage-plugin-tech-insights-dynamic-checks-common';
 import { DynamicCheckRegistry } from './DynamicCheckRegistry';
 import { dryRunCheck, type CheckEvaluation } from './dryRun';
+import type { FilterViewOf } from './filterView';
 
 interface RouterOptions {
   logger: LoggerService;
   registry: DynamicCheckRegistry;
   catalog: CatalogService;
+  filterViewOf: FilterViewOf;
   httpAuth: HttpAuthService;
   permissions: PermissionsService;
   scheduler: SchedulerService;
@@ -108,6 +110,7 @@ export async function createDynamicChecksRouter(
     logger,
     registry,
     catalog,
+    filterViewOf,
     httpAuth,
     permissions,
     scheduler,
@@ -244,8 +247,9 @@ export async function createDynamicChecksRouter(
     basicValidate(check);
 
     const evaluation = requireEvaluation();
+    const credentials = await httpAuth.credentials(req);
     const catalogEntity = await catalog.getEntityByRef(entityRef, {
-      credentials: await httpAuth.credentials(req),
+      credentials,
     });
     if (!catalogEntity) {
       throw new NotFoundError(`No entity ${entityRef} in the catalog.`);
@@ -255,6 +259,7 @@ export async function createDynamicChecksRouter(
       await dryRunCheck({
         check,
         entity: catalogEntity,
+        filterEntity: await filterViewOf(catalogEntity, { credentials }),
         entityRef,
         evaluation,
       }),

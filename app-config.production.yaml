@@ -208,6 +208,11 @@ techInsights:
     # Adds OpenChoreo's starter checks, published, once per database. Edits,
     # unpublishing and deletion made afterwards are kept.
     openchoreoStarterChecks: true
+    # A release line runs every check that matches its component, against the
+    # line's own facts.
+    inheritChecks:
+      - kind: ReleaseLine
+        parentField: spec.component
 
 auth:
   providers:

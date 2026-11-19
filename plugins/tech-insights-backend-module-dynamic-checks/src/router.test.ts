@@ -53,6 +53,7 @@ function setup(options: {
     logger: mockServices.logger.mock(),
     registry,
     catalog: {} as CatalogService,
+    filterViewOf: async entity => entity,
     httpAuth: mockServices.httpAuth(),
     permissions: mockServices.permissions({ result: options.result }),
     scheduler,
