@@ -53,6 +53,13 @@ export const DEFAULT_CODE_SCANNING_TOOLS: CodeScanningTool[] = [
 const SCANNER_ID = /^[a-z][a-zA-Z0-9]*$/;
 
 /**
+ * Scanner ids that would give the fact names of other GitHub security
+ * retrievers (`githubDependabotOpenCriticalAlertCount`), so they stay free
+ * rather than being renamed later.
+ */
+const RESERVED_SCANNER_IDS = ['dependabot', 'secretScanning'];
+
+/**
  * Reads the configured scanners. Config that would produce unusable fact
  * names, or two scanners reading the same alerts, fails the backend's startup
  * rather than surfacing later as checks that never pass.
@@ -88,6 +95,11 @@ export function readCodeScanningOptions(config: Config): CodeScanningOptions {
     if (!SCANNER_ID.test(id)) {
       throw new Error(
         `Scanner id '${id}' must start with a lowercase letter and contain only letters and digits, because it is part of fact names`,
+      );
+    }
+    if (RESERVED_SCANNER_IDS.includes(id)) {
+      throw new Error(
+        `Scanner id '${id}' is reserved for the GitHub ${id} facts, so it can't name a code scanning tool`,
       );
     }
     if (ids.has(id)) {

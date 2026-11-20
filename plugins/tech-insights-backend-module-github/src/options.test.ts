@@ -52,6 +52,15 @@ describe('readCodeScanningOptions', () => {
     },
   );
 
+  it.each(['dependabot', 'secretScanning'])(
+    'rejects id %s, which is kept for its own facts',
+    id => {
+      expect(() => read({ schemaVersion: 1, tools: [tool(id)] })).toThrow(
+        `Scanner id '${id}' is reserved`,
+      );
+    },
+  );
+
   it('rejects a repeated id', () => {
     expect(() =>
       read({

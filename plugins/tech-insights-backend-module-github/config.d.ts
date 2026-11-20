@@ -40,6 +40,7 @@ export interface Config {
            * Names the scanner's facts, e.g. `codeql` gives
            * `githubCodeqlOpenAlertCount`, and is its value in the
            * `githubCodeScanners` fact. Changing it renames the facts.
+           * `dependabot` and `secretScanning` are reserved.
            */
           id: string;
           /** The full tool name, as GitHub's code scanning page shows it. */

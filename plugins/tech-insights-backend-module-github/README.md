@@ -129,6 +129,7 @@ techInsights:
 ```
 
 `id` names the facts (`semgrep` gives `githubSemgrepOpenAlertCount`) and must start with a
-lowercase letter and contain only letters and digits. `toolName` is the tool's name as GitHub's code
+lowercase letter and contain only letters and digits. `dependabot` and `secretScanning` are reserved
+for the facts of GitHub's other security features. `toolName` is the tool's name as GitHub's code
 scanning page shows it, and `label` is used in fact descriptions. The backend fails to start on an
-invalid `id`, or on an `id` or `toolName` listed twice.
+invalid or reserved `id`, or on an `id` or `toolName` listed twice.
