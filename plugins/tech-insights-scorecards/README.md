@@ -101,6 +101,22 @@ techInsights:
     categories: [Security, Reliability, Documentation]
 ```
 
+A kind can be scored apart from the entity it belongs to, as OpenChoreo does with a component's
+release lines. A parent's variants are its `hasPart` targets of `kind`. The parent's tier covers
+only itself, and it's listed first among its variants as `mainLabel` (default "main"), each variant
+with its own tier. Variants never count towards their parent or anything above it, and have no row
+of their own in the breakdown. A check runs on a variant only when its filter names the variant's
+kind, so add that kind to the tab's `filter` too:
+
+```yaml
+techInsights:
+  scorecards:
+    variants:
+      kind: ReleaseLine
+      parentKind: Component
+      mainLabel: main
+```
+
 ## Turn it off
 
 A host that installs the plugin but switches Scorecards at deploy time sets
