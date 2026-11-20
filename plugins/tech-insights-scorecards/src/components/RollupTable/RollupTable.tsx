@@ -29,7 +29,15 @@ import { useEntityTabLink } from '../../hooks';
 import { NotScoredChip, TierChip } from '../TierChip';
 import { TierLadder } from '../TierLadder';
 
+// Fixed widths, so that expanding a row doesn't make the browser share the
+// columns out again around the rows it reveals. Name takes what's left.
 const useStyles = makeStyles({
+  table: { tableLayout: 'fixed' },
+  name: { overflowWrap: 'anywhere' },
+  kindColumn: { width: '15%' },
+  tierColumn: { width: 140 },
+  checksColumn: { width: 150 },
+  ladderColumn: { width: '36%' },
   expandableRow: { cursor: 'pointer' },
 });
 
@@ -99,7 +107,8 @@ export interface RollupTableProps {
  * A row with variants, such as a component with release lines, counts them
  * under its name, the main one included, and expands to all of them after
  * its children: the main one first, carrying the row's own score and tab,
- * then the others, each named without its parent's prefix. Entities no
+ * then the others, each named without its parent's prefix. While it's
+ * expanded, a row with no children leaves its score to the main one. Entities no
  * check covers are hidden until asked for, unless `unscored` is `show`.
  * Variants are always listed, so the rows match the count.
  */
@@ -133,8 +142,18 @@ export function RollupTable({
     });
   }
 
-  function scoreCells(node: RollupNode, kind: string) {
+  function scoreCells(node: RollupNode, kind: string, blank = false) {
     const own = progressOf(node.ownChecks);
+    if (blank) {
+      return (
+        <>
+          {showKind && <TableCell>{kindLabel(kind)}</TableCell>}
+          <TableCell />
+          <TableCell />
+          {showTierProgress && <TableCell />}
+        </>
+      );
+    }
     return (
       <>
         {showKind && <TableCell>{kindLabel(kind)}</TableCell>}
@@ -176,19 +195,23 @@ export function RollupTable({
   ) {
     if (!variantConfig) return null;
     const main = mainVariantOf(parent);
-    const parentName =
-      parent.entity.metadata.title ?? parent.entity.metadata.name;
     return (
       <TableRow key={`${parentPath}#main`} hover>
-        <TableCell>
+        <TableCell className={classes.name}>
           <Box display="flex" alignItems="center" pl={depth * 3}>
             <Box width={30} flexShrink={0} />
-            <Link to={tabLink(parent.entity, { toTab: main.scored })}>
-              {variantConfig.mainLabel}
-            </Link>
-            <Box ml={1}>
-              <Typography variant="caption" color="textSecondary">
-                {`(${parentName}'s score)`}
+            <Box>
+              <Link to={tabLink(parent.entity, { toTab: main.scored })}>
+                {variantConfig.mainLabel}
+              </Link>
+              <Typography
+                variant="caption"
+                color="textSecondary"
+                display="block"
+              >
+                {`Sets the ${inSentence(
+                  kindLabel(variantConfig.parentKind),
+                )}'s tier`}
               </Typography>
             </Box>
           </Box>
@@ -211,6 +234,8 @@ export function RollupTable({
         variantConfig && node.variants.length > 0
           ? kindLabel(variantConfig.kind)
           : undefined;
+      const scoreOnMainRow =
+        isOpen && variants.length > 0 && node.descendantCount === 0;
       return (
         <Fragment key={path}>
           <TableRow
@@ -218,7 +243,7 @@ export function RollupTable({
             className={canOpen ? classes.expandableRow : undefined}
             onClick={canOpen ? () => toggle(path) : undefined}
           >
-            <TableCell>
+            <TableCell className={classes.name}>
               <Box display="flex" alignItems="center" pl={depth * 3}>
                 {canOpen ? (
                   <IconButton
@@ -262,7 +287,7 @@ export function RollupTable({
                 </Box>
               </Box>
             </TableCell>
-            {scoreCells(node, node.entity.kind)}
+            {scoreCells(node, node.entity.kind, scoreOnMainRow)}
           </TableRow>
           {isOpen && renderRows(children, depth + 1, path)}
           {isOpen &&
@@ -276,14 +301,22 @@ export function RollupTable({
 
   return (
     <>
-      <Table size="small">
+      <Table size="small" className={classes.table}>
         <TableHead>
           <TableRow>
             <TableCell>Name</TableCell>
-            {showKind && <TableCell>Kind</TableCell>}
-            <TableCell>Current Tier</TableCell>
-            <TableCell>Checks Passing</TableCell>
-            {showTierProgress && <TableCell>Passing by Tier</TableCell>}
+            {showKind && (
+              <TableCell className={classes.kindColumn}>Kind</TableCell>
+            )}
+            <TableCell className={classes.tierColumn}>Current Tier</TableCell>
+            <TableCell className={classes.checksColumn}>
+              Checks Passing
+            </TableCell>
+            {showTierProgress && (
+              <TableCell className={classes.ladderColumn}>
+                Passing by Tier
+              </TableCell>
+            )}
           </TableRow>
         </TableHead>
         <TableBody>{renderRows(visible(nodes), 0, '')}</TableBody>

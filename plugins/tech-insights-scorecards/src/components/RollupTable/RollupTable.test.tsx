@@ -67,10 +67,13 @@ describe('RollupTable', () => {
     expect(
       screen.queryByRole('link', { name: 'main' }),
     ).not.toBeInTheDocument();
+    expect(screen.getAllByRole('row')[1].textContent).toContain('1/1 (100%)');
 
     await userEvent.click(screen.getByRole('button', { name: 'Expand' }));
     const rows = screen.getAllByRole('row').map(row => row.textContent);
-    expect(rows[2]).toMatch(/^main\(web's score\)/);
+    // The component's score moves down to its main line.
+    expect(rows[1]).toBe('web3 release lines');
+    expect(rows[2]).toMatch(/^mainSets the component's tier/);
     expect(rows[2]).toContain('1/1 (100%)');
     expect(rows[3]).toMatch(/^next/);
     expect(rows[4]).toMatch(/^canary/);
