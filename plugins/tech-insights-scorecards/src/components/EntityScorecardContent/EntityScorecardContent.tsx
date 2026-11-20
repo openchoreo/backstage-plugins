@@ -296,6 +296,7 @@ export function EntityScorecardContent() {
               nodes={root.variants}
               showKind={false}
               expandable={false}
+              unscored="show"
               showTierProgress
             />
           </InfoCard>

@@ -72,10 +72,19 @@ describe('EntityScorecardContent', () => {
   });
 
   describe('with release lines', () => {
-    const web = entity('Component', 'web', ['releaseline:default/next']);
+    const web = entity('Component', 'web', [
+      'releaseline:default/next',
+      'releaseline:default/canary',
+    ]);
     const next = entity(
       'ReleaseLine',
       'next',
+      ['component:default/web'],
+      'partOf',
+    );
+    const canary = entity(
+      'ReleaseLine',
+      'canary',
       ['component:default/web'],
       'partOf',
     );
@@ -86,7 +95,7 @@ describe('EntityScorecardContent', () => {
 
     async function renderFor(current: Entity) {
       const catalogApi = {
-        getEntitiesByRefs: jest.fn(async () => ({ items: [next] })),
+        getEntitiesByRefs: jest.fn(async () => ({ items: [next, canary] })),
       };
       const maturityApi = {
         getBulkMaturityCheckResults: jest.fn(async (entities: Entity[]) =>
@@ -144,6 +153,17 @@ describe('EntityScorecardContent', () => {
         'href',
         '/catalog/default/releaseline/next/scorecards',
       );
+    });
+
+    it('lists a release line no check covers among the lines', async () => {
+      await renderFor(web);
+
+      expect(
+        await screen.findByRole('link', { name: 'canary' }),
+      ).toHaveAttribute('href', '/catalog/default/releaseline/canary');
+      expect(
+        screen.queryByRole('button', { name: /not scored/ }),
+      ).not.toBeInTheDocument();
     });
 
     it('scores a release line on its own and links to its component', async () => {
