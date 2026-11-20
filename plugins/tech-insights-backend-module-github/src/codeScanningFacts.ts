@@ -78,7 +78,7 @@ export async function hasCodeScanningAnalysis(
  *
  * `toolName` is matched against the SARIF `tool.driver.name` of each upload,
  * and the listing has no `category` filter, so alerts from every upload of
- * the tool (e.g. every image in a scan matrix) arrive together.
+ * the tool arrive together.
  */
 export async function listOpenCodeScanningAlerts(
   api: GithubApi,

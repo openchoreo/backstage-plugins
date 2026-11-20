@@ -78,17 +78,17 @@ both describe the code the component builds from. A scan counts only when the sc
 branch, so a component that builds from a branch the scan workflow doesn't cover reports the
 scanner as not run.
 
-Each scanner adds seven facts, named after its `id`. For `trivy`:
+Each scanner adds seven facts, named after its `id`. For `codeql`:
 
-| Fact                                                                   | Type    | Meaning                                              |
-| ---------------------------------------------------------------------- | ------- | ---------------------------------------------------- |
-| `githubTrivyScanEnabled`                                               | boolean | Whether Trivy uploaded an analysis for the branch    |
-| `githubTrivyOpenCriticalAlertCount` ... `githubTrivyOpenLowAlertCount` | integer | Open alerts with each security severity              |
-| `githubTrivyOpenAlertCount`                                            | integer | All open alerts, with or without a security severity |
-| `githubTrivyHasOpenCriticalAlerts`                                     | boolean | Whether there is at least one open critical alert    |
+| Fact                                                                     | Type    | Meaning                                              |
+| ------------------------------------------------------------------------ | ------- | ---------------------------------------------------- |
+| `githubCodeqlScanEnabled`                                                | boolean | Whether CodeQL uploaded an analysis for the branch   |
+| `githubCodeqlOpenCriticalAlertCount` ... `githubCodeqlOpenLowAlertCount` | integer | Open alerts with each security severity              |
+| `githubCodeqlOpenAlertCount`                                             | integer | All open alerts, with or without a security severity |
+| `githubCodeqlHasOpenCriticalAlerts`                                      | boolean | Whether there is at least one open critical alert    |
 
 `githubCodeScanners` lists the ids of the scanners that ran. It's a list, so rules test it with
-`contains` or `doesNotContain`, for example `githubCodeScanners contains trivy`.
+`contains` or `doesNotContain`, for example `githubCodeScanners contains codeql`.
 
 A scanner that never ran on the branch reports `ScanEnabled` false and null counts, while one that
 ran and found nothing reports real zeros, so checks fail a component that isn't scanned instead of
@@ -113,8 +113,9 @@ permission for a GitHub App or a fine-grained token, or the `security_events` sc
 token (`public_repo` covers public repositories only). GitHub refuses code scanning requests without
 credentials even for a public repository, answering HTTP 401, so every component is then skipped.
 
-Scanners default to CodeQL and Trivy. To change them, list every scanner and set `schemaVersion` to
-2 or more (1 is the schema of the defaults, so the backend fails to start on 1):
+Only CodeQL is read by default. To add scanners, list every scanner, CodeQL included, and set
+`schemaVersion` to 2 or more (1 is the schema of the default, so the backend fails to start on 1).
+Trivy scanning the repository and Semgrep are examples of what can be added:
 
 ```yaml
 techInsights:
@@ -128,6 +129,10 @@ techInsights:
         - { id: trivy, toolName: Trivy, label: Trivy }
         - { id: semgrep, toolName: Semgrep OSS, label: Semgrep }
 ```
+
+Trivy also scans container images, and those uploads are named `Trivy` too, so only add it if the
+repository's workflows upload no image scans: otherwise their alerts are counted as findings in the
+code.
 
 `id` names the facts (`semgrep` gives `githubSemgrepOpenAlertCount`) and must start with a
 lowercase letter and contain only letters and digits. `dependabot` and `secretScanning` are reserved

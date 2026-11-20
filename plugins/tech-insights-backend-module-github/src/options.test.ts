@@ -12,11 +12,14 @@ const read = (codeScanning?: object) =>
 const tool = (id: string, toolName = id) => ({ id, toolName, label: id });
 
 describe('readCodeScanningOptions', () => {
-  it('defaults to CodeQL and Trivy at version 1', () => {
+  it('defaults to CodeQL alone at version 1', () => {
     expect(read()).toEqual({
       schemaVersion: 1,
       tools: DEFAULT_CODE_SCANNING_TOOLS,
     });
+    expect(DEFAULT_CODE_SCANNING_TOOLS).toEqual([
+      { id: 'codeql', toolName: 'CodeQL', label: 'CodeQL' },
+    ]);
   });
 
   it('reads configured scanners', () => {

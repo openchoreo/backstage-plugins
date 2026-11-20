@@ -10,6 +10,10 @@ import { createGithubCodeScanningFactRetriever } from './githubCodeScanningFactR
 import { codeScanningFacts } from './codeScanningFacts';
 import { DEFAULT_CODE_SCANNING_TOOLS } from './options';
 
+// Not a default, but most tests here need a second scanner next to CodeQL.
+const TRIVY = { id: 'trivy', toolName: 'Trivy', label: 'Trivy' };
+const TOOLS = [...DEFAULT_CODE_SCANNING_TOOLS, TRIVY];
+
 const mockGetEntities = jest.fn();
 jest.mock('@backstage/catalog-client', () => ({
   CatalogClient: jest.fn().mockImplementation(() => ({
@@ -128,7 +132,7 @@ describe('createGithubCodeScanningFactRetriever', () => {
       cache: mockServices.cache.mock(),
       options: {
         schemaVersion: 1,
-        tools: DEFAULT_CODE_SCANNING_TOOLS,
+        tools: TOOLS,
         ...options,
       },
     });
@@ -423,7 +427,7 @@ describe('createGithubCodeScanningFactRetriever', () => {
       mockGetRepo.mockRejectedValue(new GithubRateLimitError(429));
       const results = await createGithubCodeScanningFactRetriever({
         cache,
-        options: { schemaVersion: 1, tools: DEFAULT_CODE_SCANNING_TOOLS },
+        options: { schemaVersion: 1, tools: TOOLS },
       }).handler(context());
       expect(results).toEqual([]);
       expect(cache.set).toHaveBeenCalledWith(
@@ -456,7 +460,7 @@ describe('createGithubCodeScanningFactRetriever', () => {
 
     it('supports another scanner through configuration alone', async () => {
       githubWithUploads({ 'Semgrep OSS': alerts('high', 2) });
-      const options = { tools: [...DEFAULT_CODE_SCANNING_TOOLS, semgrep] };
+      const options = { tools: [...TOOLS, semgrep] };
 
       expect(
         retriever(options).schema.githubSemgrepOpenHighAlertCount,

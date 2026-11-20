@@ -21,7 +21,7 @@ export interface Config {
       /**
        * The scanners githubCodeScanningFactRetriever collects, for any tool
        * whose SARIF results are uploaded to GitHub Code Scanning. Defaults to
-       * CodeQL and Trivy.
+       * CodeQL alone.
        */
       codeScanning?: {
         /**

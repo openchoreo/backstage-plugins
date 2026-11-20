@@ -47,7 +47,6 @@ export interface CodeScanningOptions {
 
 export const DEFAULT_CODE_SCANNING_TOOLS: CodeScanningTool[] = [
   { id: 'codeql', toolName: 'CodeQL', label: 'CodeQL' },
-  { id: 'trivy', toolName: 'Trivy', label: 'Trivy' },
 ];
 
 const SCANNER_ID = /^[a-z][a-zA-Z0-9]*$/;
