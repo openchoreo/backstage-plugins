@@ -77,6 +77,57 @@ describe('githubRepositoryFactRetriever', () => {
     mockGetRepo.mockReset();
   });
 
+  it('reports a release line under its own kind, on the branch it builds from', async () => {
+    mockGetEntities.mockResolvedValue({
+      items: [
+        {
+          apiVersion: 'backstage.io/v1alpha1',
+          kind: 'ReleaseLine',
+          metadata: {
+            name: 'next',
+            namespace: 'default',
+            annotations: {
+              'backstage.io/source-location':
+                'url:https://github.com/org/repo/tree/release-lines-next/svc/',
+              'openchoreo.io/branch': 'release-lines-next',
+            },
+          },
+        },
+      ],
+    });
+    mockGetRepo.mockImplementation(async (_repository, path = '') => {
+      if (path === '') {
+        return { status: 200, body: { default_branch: 'main' } };
+      }
+      if (path === '/branches/release-lines-next') {
+        return { status: 200, body: { protected: false } };
+      }
+      if (path === '/rules/branches/release-lines-next?per_page=100') {
+        return { status: 200, body: [] };
+      }
+      return { status: 404, body: { message: 'Not Found' } };
+    });
+
+    const retriever = createGithubRepositoryFactRetriever({
+      cache: mockServices.cache.mock(),
+    });
+    expect(retriever.entityFilter).toEqual([
+      { kind: 'component' },
+      { kind: 'releaseline' },
+    ]);
+    const [result] = await retriever.handler(context());
+    expect(result.entity).toEqual({
+      namespace: 'default',
+      kind: 'ReleaseLine',
+      name: 'next',
+    });
+    expect(result.facts).toMatchObject({
+      githubRepositoryResolved: true,
+      githubBranch: 'release-lines-next',
+      githubBranchProtected: false,
+    });
+  });
+
   it('reports ruleset protection on a branch without classic protection', async () => {
     respondWith({ status: 404, body: { message: 'Branch not protected' } });
 

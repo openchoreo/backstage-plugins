@@ -102,7 +102,7 @@ describe('openchoreoBuildFactRetriever', () => {
     });
   });
 
-  it("lists the component's runs on every release line, 100 at a time, under the entity's deadline", async () => {
+  it("lists the component's main-line runs, 100 at a time, under the entity's deadline", async () => {
     const client = fakeClient();
     await run([annotated('api')], client);
     expect(client.GET).toHaveBeenCalledWith(RUNS_PATH, {
@@ -110,13 +110,55 @@ describe('openchoreoBuildFactRetriever', () => {
         path: { namespaceName: 'acme' },
         query: {
           labelSelector:
-            'openchoreo.dev/project=payments,openchoreo.dev/component=api',
+            'openchoreo.dev/project=payments,openchoreo.dev/component=api,!openchoreo.dev/release-line',
           limit: 100,
           cursor: undefined,
         },
       },
       signal: expect.any(AbortSignal),
     });
+  });
+
+  it("reports a release line's facts from its own runs", async () => {
+    const line: Entity = {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'ReleaseLine',
+      metadata: {
+        name: 'experimental',
+        namespace: 'acme',
+        annotations: {
+          'openchoreo.io/namespace': 'acme',
+          'openchoreo.io/project': 'payments',
+          'openchoreo.io/component': 'api',
+          'openchoreo.io/release-line': 'experimental',
+        },
+      },
+    };
+    const client = fakeClient(() => ok({ items: [failed] }));
+    const { byName } = await run([line], client);
+    expect(byName.experimental).toEqual({
+      openchoreoBuildLastSucceeded: false,
+      openchoreoBuildSuccessRate: 0,
+    });
+    expect(client.GET.mock.calls[0][1].params.query.labelSelector).toBe(
+      'openchoreo.dev/project=payments,openchoreo.dev/component=api,openchoreo.dev/release-line=experimental',
+    );
+  });
+
+  it('reports nothing for a ReleaseLine that names no line', async () => {
+    const client = fakeClient();
+    const { byName } = await run(
+      [
+        {
+          ...annotated('api'),
+          kind: 'ReleaseLine',
+          metadata: { ...annotated('api').metadata, name: 'orphan-line' },
+        },
+      ],
+      client,
+    );
+    expect(byName).not.toHaveProperty('orphan-line');
+    expect(client.GET).not.toHaveBeenCalled();
   });
 
   it('reports nothing for a component OpenChoreo does not manage', async () => {

@@ -267,11 +267,11 @@ export function createGithubRepositoryFactRetriever({
 }): FactRetriever {
   return {
     id: GITHUB_REPOSITORY_FACT_RETRIEVER_ID,
-    version: '0.1.0',
+    version: '0.2.0',
     title: 'GitHub Repository',
     description:
-      'State of the GitHub repository backing a component and protection of the branch it builds from, read from the GitHub REST API.',
-    entityFilter: [{ kind: 'component' }],
+      'State of the GitHub repository backing a component or release line and protection of the branch it builds from, read from the GitHub REST API.',
+    entityFilter: [{ kind: 'component' }, { kind: 'releaseline' }],
     schema,
     handler: context =>
       collectGithubFacts(

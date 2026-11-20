@@ -41,6 +41,14 @@ export function unresolvedFacts(
   };
 }
 
+/**
+ * Whether the entity is a ReleaseLine, whose facts describe that line. A
+ * Component's facts describe its main line.
+ */
+export function isReleaseLine(entity: Entity): boolean {
+  return entity.kind.toLocaleLowerCase('en-US') === 'releaseline';
+}
+
 /** How long `collect` gets for one entity, every request included. */
 export const ENTITY_DEADLINE_MS = 30_000;
 
