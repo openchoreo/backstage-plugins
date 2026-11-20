@@ -3,6 +3,7 @@ import type { Entity } from '@backstage/catalog-model';
 import { mockServices } from '@backstage/backend-test-utils';
 import type { FactRetrieverContext } from '@backstage-community/plugin-tech-insights-node';
 import {
+  cacheCursor,
   collectGithubFacts,
   unresolvedFacts,
   type CollectionCursor,
@@ -51,6 +52,57 @@ function memoryCursor(initial?: string) {
 
 const names = (facts: { entity: { name: string } }[]) =>
   facts.map(f => f.entity.name);
+
+describe('cacheCursor', () => {
+  const setup = () => {
+    const cache = mockServices.cache.mock();
+    const logger = mockServices.logger.mock();
+    return {
+      cache,
+      logger,
+      cursor: cacheCursor(cache, logger, 'retriever:key'),
+    };
+  };
+
+  it('reads and stores the entity under the given key', async () => {
+    const { cache, cursor } = setup();
+    cache.get.mockResolvedValue('component:default/a');
+    await expect(cursor.get()).resolves.toBe('component:default/a');
+    expect(cache.get).toHaveBeenCalledWith('retriever:key');
+
+    await cursor.set('component:default/b');
+    expect(cache.set).toHaveBeenCalledWith(
+      'retriever:key',
+      'component:default/b',
+      { ttl: { days: 30 } },
+    );
+  });
+
+  it('forgets the entity when the run finished', async () => {
+    const { cache, cursor } = setup();
+    await cursor.set(undefined);
+    expect(cache.delete).toHaveBeenCalledWith('retriever:key');
+    expect(cache.set).not.toHaveBeenCalled();
+  });
+
+  it('starts from the first entity when the cache cannot be read', async () => {
+    const { cache, logger, cursor } = setup();
+    cache.get.mockRejectedValue(new Error('cache down'));
+    await expect(cursor.get()).resolves.toBeUndefined();
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('cache down'),
+    );
+  });
+
+  it('carries on when the cache cannot be written', async () => {
+    const { cache, logger, cursor } = setup();
+    cache.set.mockRejectedValue(new Error('cache down'));
+    await expect(cursor.set('component:default/a')).resolves.toBeUndefined();
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('cache down'),
+    );
+  });
+});
 
 describe('collectGithubFacts', () => {
   beforeEach(() => mockGetEntities.mockReset());

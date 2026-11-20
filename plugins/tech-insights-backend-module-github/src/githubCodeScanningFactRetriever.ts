@@ -1,12 +1,6 @@
-import type {
-  CacheService,
-  LoggerService,
-} from '@backstage/backend-plugin-api';
+import type { CacheService } from '@backstage/backend-plugin-api';
 import type { FactRetriever } from '@backstage-community/plugin-tech-insights-node';
-import {
-  collectGithubFacts,
-  type CollectionCursor,
-} from './collectGithubFacts';
+import { cacheCursor, collectGithubFacts } from './collectGithubFacts';
 import {
   CODE_SCANNERS_FACT,
   CODE_SCANNING_RESOLVED_FACT,
@@ -18,51 +12,13 @@ import {
   hasCodeScanningAnalysis,
   listOpenCodeScanningAlerts,
 } from './codeScanningFacts';
-import { findBranch, isUnreadable } from './githubRepositoryFactRetriever';
 import type { CodeScanningOptions } from './options';
-import { branchCandidates } from './repository';
+import { resolveBranch } from './repository';
 
 export const GITHUB_CODE_SCANNING_FACT_RETRIEVER_ID =
   'githubCodeScanningFactRetriever';
 
 const CURSOR_KEY = `${GITHUB_CODE_SCANNING_FACT_RETRIEVER_ID}:cursor`;
-
-/**
- * Keeps where a rate-limited run stopped in the plugin's cache. A cache that
- * can't be reached only means the next run starts from the first entity.
- */
-function cacheCursor(
-  cache: CacheService,
-  logger: LoggerService,
-): CollectionCursor {
-  return {
-    async get() {
-      try {
-        return await cache.get<string>(CURSOR_KEY);
-      } catch (error) {
-        logger.warn(
-          `Couldn't read where the last run stopped, starting from the first entity: ${
-            (error as Error).message
-          }`,
-        );
-        return undefined;
-      }
-    },
-    async set(entityRef) {
-      try {
-        if (entityRef) {
-          await cache.set(CURSOR_KEY, entityRef, { ttl: { days: 30 } });
-        } else {
-          await cache.delete(CURSOR_KEY);
-        }
-      } catch (error) {
-        logger.warn(
-          `Couldn't record where this run stopped: ${(error as Error).message}`,
-        );
-      }
-    },
-  };
-}
 
 /**
  * One retriever for every configured scanner, with facts named per scanner
@@ -123,39 +79,18 @@ export function createGithubCodeScanningFactRetriever({
       collectGithubFacts(
         context,
         async ({ entity, repository, api, options }) => {
-          const slug = `${repository.owner}/${repository.name}`;
-          const repo = await api.getRepo(repository);
-          if (isUnreadable(repo.status)) {
-            return unresolvedFacts;
-          }
-          if (repo.status !== 200) {
-            throw new Error(
-              `GET repository ${slug} returned HTTP ${repo.status}`,
-            );
-          }
-          const defaultBranch = repo.body?.default_branch;
-          if (typeof defaultBranch !== 'string' || defaultBranch === '') {
-            throw new Error(
-              `GET repository ${slug} returned no default branch`,
-            );
-          }
-
           // The branch githubRepositoryFactRetriever evaluates, found the same
           // way, so both retrievers describe the same code.
-          const candidates = branchCandidates(
+          const resolved = await resolveBranch(
+            api,
             entity,
             repository,
             options.branchAnnotations,
           );
-          const found = await findBranch(
-            api,
-            repository,
-            candidates.length > 0 ? candidates : [defaultBranch],
-          );
-          if (!found) {
+          if (!resolved) {
             return unresolvedFacts;
           }
-          const branch = found.name;
+          const branch = resolved.branch.name;
 
           const scanners: string[] = [];
           const facts: Record<string, boolean | number | null> = {};
@@ -181,7 +116,7 @@ export function createGithubCodeScanningFactRetriever({
           } catch (error) {
             if (error instanceof CodeScanningUnreadableError) {
               context.logger.debug(
-                `Code scanning for ${slug}@${branch} unreadable: ${error.message}; code scanning may be off, or the token needs Code scanning alerts: read`,
+                `Code scanning for ${repository.owner}/${repository.name}@${branch} unreadable: ${error.message}; code scanning may be off, or the token needs Code scanning alerts: read`,
               );
               return unresolvedFacts;
             }
@@ -195,7 +130,7 @@ export function createGithubCodeScanningFactRetriever({
         },
         {
           unresolvedFacts,
-          cursor: cacheCursor(cache, context.logger),
+          cursor: cacheCursor(cache, context.logger, CURSOR_KEY),
         },
       ),
   };

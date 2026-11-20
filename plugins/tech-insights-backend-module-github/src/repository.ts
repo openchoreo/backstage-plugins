@@ -1,5 +1,6 @@
 import type { Entity } from '@backstage/catalog-model';
 import type { ScmIntegrationRegistry } from '@backstage/integration';
+import { encodeBranch, type GithubApi } from './githubApi';
 
 const DEFAULT_GITHUB_HOST = 'github.com';
 
@@ -148,4 +149,86 @@ export function branchCandidates(
   }
   const path = repository.urlRefPath ?? [];
   return path.map((_, index) => path.slice(0, index + 1).join('/'));
+}
+
+/**
+ * A repository or branch the portal can't read: missing, or refused with a
+ * 403. `getRepo` throws for a rate-limited 403 before it gets here, so that
+ * one still stops the run instead.
+ */
+function isUnreadable(status: number): boolean {
+  return status === 404 || status === 403;
+}
+
+/**
+ * The first of `candidates` that is a branch of the repository, with its
+ * `GET .../branches/{branch}` body. Undefined when none is, or when one is
+ * refused.
+ */
+async function findBranch(
+  api: GithubApi,
+  repository: GithubRepository,
+  candidates: string[],
+): Promise<{ name: string; body: any } | undefined> {
+  for (const name of candidates) {
+    const { status, body } = await api.getRepo(
+      repository,
+      `/branches/${encodeBranch(name)}`,
+    );
+    if (status === 200) {
+      return { name, body };
+    }
+    if (status === 403) {
+      return undefined;
+    }
+    if (status !== 404) {
+      throw new Error(
+        `GET branch '${name}' of ${repository.owner}/${repository.name} returned HTTP ${status}`,
+      );
+    }
+  }
+  return undefined;
+}
+
+/**
+ * The repository and the branch a component builds from, as the GitHub
+ * retrievers read them. Every retriever goes through here, so they all
+ * describe the same code: the branch comes from `branchCandidates`, else the
+ * repository's default branch.
+ *
+ * Undefined when the repository or branch can't be read (missing, or refused
+ * with a 403), which retrievers report as unresolved facts. Throws for any
+ * other failure, including a repository that names no default branch, which
+ * skips the entity.
+ *
+ * `repo` is the `GET /repos/{owner}/{repo}` body and `branch` the name and
+ * `GET .../branches/{branch}` body of the branch found.
+ */
+export async function resolveBranch(
+  api: GithubApi,
+  entity: Entity,
+  repository: GithubRepository,
+  branchAnnotations: string[],
+): Promise<{ repo: any; branch: { name: string; body: any } } | undefined> {
+  const slug = `${repository.owner}/${repository.name}`;
+  const response = await api.getRepo(repository);
+  if (isUnreadable(response.status)) {
+    return undefined;
+  }
+  if (response.status !== 200) {
+    throw new Error(`GET repository ${slug} returned HTTP ${response.status}`);
+  }
+  const repo = response.body;
+  const defaultBranch = repo?.default_branch;
+  if (typeof defaultBranch !== 'string' || defaultBranch === '') {
+    throw new Error(`GET repository ${slug} returned no default branch`);
+  }
+
+  const candidates = branchCandidates(entity, repository, branchAnnotations);
+  const branch = await findBranch(
+    api,
+    repository,
+    candidates.length > 0 ? candidates : [defaultBranch],
+  );
+  return branch && { repo, branch };
 }

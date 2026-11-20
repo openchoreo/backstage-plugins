@@ -1,10 +1,13 @@
 import { ConfigReader } from '@backstage/config';
 import type { Entity } from '@backstage/catalog-model';
 import { ScmIntegrations } from '@backstage/integration';
+import type { GithubApi } from './githubApi';
 import {
   branchCandidates,
   parseRepositoryReference,
+  resolveBranch,
   resolveGithubRepository,
+  type GithubRepository,
 } from './repository';
 import { DEFAULT_REPO_ANNOTATIONS, readGithubFactsOptions } from './options';
 
@@ -226,6 +229,120 @@ describe('branchCandidates', () => {
         [],
       ),
     ).toEqual([]);
+  });
+});
+
+describe('resolveBranch', () => {
+  const repository = {
+    owner: 'org',
+    name: 'repo',
+    urlRefPath: ['feature', 'login'],
+  } as GithubRepository;
+  const repoBody = { default_branch: 'main', archived: false };
+
+  /** Answers by request path; paths it doesn't list are a 404. */
+  const apiAnswering = (answers: Record<string, any>) => {
+    const getRepo = jest.fn(async (_repository, path = '') => {
+      const answer = answers[path];
+      return typeof answer === 'number'
+        ? { status: answer }
+        : answer ?? { status: 404 };
+    });
+    return { api: { getRepo } as unknown as GithubApi, getRepo };
+  };
+  // A repository whose URL names no branch, so the default branch is read.
+  const withoutRef = { ...repository, urlRefPath: undefined };
+  const resolve = (
+    api: GithubApi,
+    {
+      annotations = {},
+      branchAnnotations = [] as string[],
+      from = repository,
+    } = {},
+  ) => resolveBranch(api, entityWith(annotations), from, branchAnnotations);
+
+  it("reads the repository's default branch when the component names none", async () => {
+    const { api, getRepo } = apiAnswering({
+      '': { status: 200, body: repoBody },
+      '/branches/main': { status: 200, body: { protected: true } },
+    });
+    await expect(resolve(api, { from: withoutRef })).resolves.toEqual({
+      repo: repoBody,
+      branch: { name: 'main', body: { protected: true } },
+    });
+    expect(getRepo).toHaveBeenCalledTimes(2);
+  });
+
+  it('prefers a configured branch annotation over the default branch', async () => {
+    const { api } = apiAnswering({
+      '': { status: 200, body: repoBody },
+      '/branches/release/1.x': { status: 200, body: {} },
+    });
+    const resolved = await resolve(api, {
+      annotations: { 'openchoreo.io/branch': 'release/1.x' },
+      branchAnnotations: ['openchoreo.io/branch'],
+    });
+    expect(resolved?.branch.name).toBe('release/1.x');
+  });
+
+  it('takes the first candidate from the URL that is a branch', async () => {
+    const { api } = apiAnswering({
+      '': { status: 200, body: repoBody },
+      '/branches/feature/login': { status: 200, body: {} },
+    });
+    await expect(resolve(api)).resolves.toMatchObject({
+      branch: { name: 'feature/login' },
+    });
+  });
+
+  it.each([404, 403])(
+    'is undefined for a repository GitHub answers with %s',
+    async status => {
+      const { api, getRepo } = apiAnswering({ '': status });
+      await expect(resolve(api)).resolves.toBeUndefined();
+      expect(getRepo).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('is undefined when none of the candidates is a branch', async () => {
+    const { api } = apiAnswering({ '': { status: 200, body: repoBody } });
+    await expect(resolve(api)).resolves.toBeUndefined();
+  });
+
+  it('is undefined when the branch is refused', async () => {
+    const { api } = apiAnswering({
+      '': { status: 200, body: repoBody },
+      '/branches/main': 403,
+    });
+    await expect(resolve(api, { from: withoutRef })).resolves.toBeUndefined();
+  });
+
+  it('throws for a repository that answers 500', async () => {
+    const { api } = apiAnswering({ '': 500 });
+    await expect(resolve(api)).rejects.toThrow(
+      'GET repository org/repo returned HTTP 500',
+    );
+  });
+
+  it.each([{}, { default_branch: '' }, { default_branch: 7 }])(
+    'throws for a repository with no usable default branch %j',
+    async body => {
+      const { api, getRepo } = apiAnswering({ '': { status: 200, body } });
+      await expect(resolve(api)).rejects.toThrow(
+        'GET repository org/repo returned no default branch',
+      );
+      expect(getRepo).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('throws for a branch that answers 500', async () => {
+    const { api } = apiAnswering({
+      '': { status: 200, body: repoBody },
+      '/branches/feature': 500,
+    });
+    await expect(resolve(api)).rejects.toThrow(
+      "GET branch 'feature' of org/repo returned HTTP 500",
+    );
   });
 });
 

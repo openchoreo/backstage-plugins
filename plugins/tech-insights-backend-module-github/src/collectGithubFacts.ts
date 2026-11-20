@@ -1,3 +1,7 @@
+import type {
+  CacheService,
+  LoggerService,
+} from '@backstage/backend-plugin-api';
 import { CatalogClient } from '@backstage/catalog-client';
 import { stringifyEntityRef, type Entity } from '@backstage/catalog-model';
 import { ScmIntegrations } from '@backstage/integration';
@@ -21,6 +25,45 @@ import { resolveGithubRepository, type GithubRepository } from './repository';
 export interface CollectionCursor {
   get(): Promise<string | undefined>;
   set(entityRef: string | undefined): Promise<void>;
+}
+
+/**
+ * Keeps where a rate-limited run stopped in the plugin's cache under `key`,
+ * one per retriever. A cache that can't be reached only means the next run
+ * starts from the first entity.
+ */
+export function cacheCursor(
+  cache: CacheService,
+  logger: LoggerService,
+  key: string,
+): CollectionCursor {
+  return {
+    async get() {
+      try {
+        return await cache.get<string>(key);
+      } catch (error) {
+        logger.warn(
+          `Couldn't read where the last run stopped, starting from the first entity: ${
+            (error as Error).message
+          }`,
+        );
+        return undefined;
+      }
+    },
+    async set(entityRef) {
+      try {
+        if (entityRef) {
+          await cache.set(key, entityRef, { ttl: { days: 30 } });
+        } else {
+          await cache.delete(key);
+        }
+      } catch (error) {
+        logger.warn(
+          `Couldn't record where this run stopped: ${(error as Error).message}`,
+        );
+      }
+    },
+  };
 }
 
 function compareRefs(a: string, b: string): number {
