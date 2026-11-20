@@ -243,8 +243,9 @@ export const EndpointContent: FC<EndpointContentProps> = ({
 
   const deprecatedRows = endpointsForm?.deprecatedRows;
   const cards = useMemo(
-    () => endpointCards(endpoints, endpointsForm?.mode, deprecatedRows),
-    [endpoints, endpointsForm?.mode, deprecatedRows],
+    () =>
+      endpointCards(endpoints, endpointsForm?.mode, deprecatedRows, choices),
+    [endpoints, endpointsForm?.mode, deprecatedRows, choices],
   );
 
   if (componentEndpoints?.mode === 'none' && !componentEndpoints.loadError) {

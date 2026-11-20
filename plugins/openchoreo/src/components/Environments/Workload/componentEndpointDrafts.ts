@@ -33,12 +33,15 @@ export type EndpointFormMode = 'endpoints' | 'legacy' | 'none';
  * Endpoints form one card per endpoint, except workload endpoints from
  * before Endpoints that are still as loaded (their visibility stays on the
  * workload until a card replaces them); none without a form; every workload
- * endpoint in the legacy form.
+ * endpoint in the legacy form. A row from before Endpoints that has been
+ * given an Endpoint type, as a new Endpoint written in YAML can, is listed
+ * even when it's still as loaded, since saving creates its Endpoint.
  */
 export function endpointCards<T extends ExposableEndpoint>(
   endpoints: Record<string, T>,
   mode: EndpointFormMode | undefined,
   deprecatedRows: Record<string, ExposableEndpoint> | undefined,
+  choices?: Record<string, unknown>,
 ): Record<string, T> {
   if (mode === 'none') return {};
   if (mode !== 'endpoints' || !deprecatedRows) return endpoints;
@@ -46,6 +49,7 @@ export function endpointCards<T extends ExposableEndpoint>(
     Object.entries(endpoints).filter(
       ([name, endpoint]) =>
         !deprecatedRows[name] ||
+        !!choices?.[name] ||
         JSON.stringify(deprecatedRows[name]) !== JSON.stringify(endpoint),
     ),
   );

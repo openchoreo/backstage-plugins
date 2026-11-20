@@ -722,6 +722,7 @@ export function WorkloadEditor({
       isNew: true,
       allowedEndpoints: componentEndpoints?.allowedEndpoints,
       freeWorkloadEndpoints,
+      workloadEndpoints: workloadResource?.spec?.endpoints,
       componentName: yamlContext.componentName,
     });
     if ('error' in edit) {
@@ -774,12 +775,19 @@ export function WorkloadEditor({
 
   // Removing an Endpoint's tab deletes the Endpoint on save; its workload
   // endpoint stays, within the project, to be removed in the Workload tab.
+  // With the Workload tab open, its YAML is refreshed too, or switching to
+  // Form would apply the old visibility again; while that YAML has errors,
+  // the Endpoint can't be removed, so the user's text isn't overwritten.
   const removeEndpointTab = (name: string) => {
     if (!componentEndpoints || !workloadResource?.spec?.endpoints?.[name]) {
       return;
     }
+    if (yamlTab === WORKLOAD_YAML_TAB && yamlError) {
+      setYamlError('Fix YAML errors before removing an Endpoint');
+      return;
+    }
     const endpoints = workloadResource.spec.endpoints;
-    setWorkloadResource({
+    const updated = {
       ...workloadResource,
       spec: {
         ...workloadResource.spec,
@@ -788,7 +796,9 @@ export function WorkloadEditor({
           [name]: { ...endpoints[name], visibility: ['project'] },
         },
       },
-    } as WorkloadResource);
+    } as WorkloadResource;
+    setWorkloadResource(updated);
+    if (yamlTab === WORKLOAD_YAML_TAB) setYamlContent(resourceToYaml(updated));
     componentEndpoints.restoreChoice(name, undefined);
     if (yamlTab === `endpoint:${name}`) setEndpointYamlError(undefined);
   };
@@ -851,6 +861,7 @@ export function WorkloadEditor({
       isNew: tab.isNew,
       allowedEndpoints: componentEndpoints.allowedEndpoints,
       freeWorkloadEndpoints: [...freeWorkloadEndpoints, tab.workloadEndpoint],
+      workloadEndpoints: workloadResource?.spec?.endpoints,
       componentName: yamlContext.componentName,
     });
     if ('error' in edit) {
@@ -922,6 +933,7 @@ export function WorkloadEditor({
       formData.endpoints || {},
       componentEndpoints?.mode,
       componentEndpoints?.deprecatedRows,
+      componentEndpoints?.choices,
     ),
   ).length;
   const dependencyCount =

@@ -396,6 +396,42 @@ describe('EndpointInfoService component Endpoints', () => {
       expect(saved.workloadEndpoint).toBe('http');
     });
 
+    it("leaves another line's backend on its name when renaming", async () => {
+      const canary = endpoint('orders-api');
+      canary.spec.backendRefs = [
+        {
+          name: 'orders-next-api',
+          kind: 'Component',
+          weight: 1,
+          component: { name: 'orders', endpoint: 'api', releaseLine: 'next' },
+        },
+        ...canary.spec.backendRefs,
+      ];
+      mockGET.mockResolvedValue(createOkResponse(canary));
+      mockPUT.mockImplementation((_path: string, { body }: any) =>
+        Promise.resolve(createOkResponse(body)),
+      );
+
+      const saved = await service.updateComponentEndpoint({
+        ...ref,
+        endpointName: 'orders-api',
+        visibility: ['external'],
+        workloadEndpoint: 'http',
+      });
+
+      const body = mockPUT.mock.calls[0][1].body;
+      expect(
+        body.spec.backendRefs.map((r: any) => [
+          r.component.releaseLine,
+          r.component.endpoint,
+        ]),
+      ).toEqual([
+        ['next', 'api'],
+        [undefined, 'http'],
+      ]);
+      expect(saved.workloadEndpoint).toBe('http');
+    });
+
     it("refuses an Endpoint the component doesn't own", async () => {
       mockGET.mockResolvedValue(
         createOkResponse(endpoint('orders-api', { component: 'payments' })),

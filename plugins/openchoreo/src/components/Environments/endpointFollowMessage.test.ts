@@ -43,7 +43,7 @@ describe('endpointFollowMessage', () => {
         'deployed',
       ),
     ).toEqual({
-      text: "Endpoints that didn't follow: orders-new (it has no release yet); forbidden. Repeat the action to retry them.",
+      text: "Endpoints that didn't follow: orders-new (it has no release yet); forbidden. Deploy, promote or remove them from each Endpoint's Deploy tab.",
       failed: true,
     });
   });

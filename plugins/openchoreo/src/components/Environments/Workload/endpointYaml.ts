@@ -3,6 +3,8 @@ import {
   NO_ENDPOINT,
   buildComponentEndpoint,
   componentEndpointName,
+  endpointProtocol,
+  endpointTypeCandidates,
   endpointTypeKey,
   endpointTypeOptions,
   endpointVisibilities,
@@ -61,7 +63,7 @@ export function endpointYamlTabs(
   const primary = primaryOriginals(state.originals, state.renames);
   const tabs: EndpointYamlTab[] = [];
   for (const [name, endpoint] of Object.entries(
-    endpointCards(endpoints, state.mode, state.deprecatedRows),
+    endpointCards(endpoints, state.mode, state.deprecatedRows, state.choices),
   )) {
     const choice = state.choices[name];
     const typeKey = rowEndpointType(endpoint, state.allowedEndpoints, choice);
@@ -126,6 +128,23 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+/**
+ * Whether a parsed value refers back to itself. YAML aliases can build such
+ * a value, which nothing downstream can compare or send.
+ */
+function isCyclic(value: unknown, ancestors: unknown[] = []): boolean {
+  if (typeof value !== 'object' || value === null) return false;
+  if (ancestors.includes(value)) return true;
+  const next = [...ancestors, value];
+  return Object.values(value).some(v => isCyclic(v, next));
+}
+
+/** An EndpointType key as the YAML writes it: `<kind>/<name>`. */
+function typeLabel(key: string): string {
+  const { kind, name } = parseEndpointTypeKey(key);
+  return `${kind}/${name}`;
+}
+
 function sortedJson(value: unknown): string {
   const sorted = (v: unknown): unknown => {
     if (Array.isArray(v)) return v.map(sorted);
@@ -182,6 +201,11 @@ export interface EndpointYamlRules {
    * Workload without an Endpoint, and its own.
    */
   freeWorkloadEndpoints?: string[];
+  /**
+   * The Workload's endpoints, so a new Endpoint's type is checked against
+   * the protocol of the workload endpoint it routes to.
+   */
+  workloadEndpoints?: Record<string, ExposableEndpoint>;
   componentName?: string;
 }
 
@@ -207,6 +231,9 @@ export function parseEndpointYaml(
     parsed = YAML.parse(text);
   } catch (e) {
     return { error: `Invalid YAML: ${(e as Error).message}` };
+  }
+  if (isCyclic(parsed)) {
+    return { error: 'Invalid YAML: an alias refers back to itself.' };
   }
   if (!isPlainObject(parsed)) {
     return { error: 'The Endpoint must be a YAML object.' };
@@ -274,6 +301,28 @@ export function parseEndpointYaml(
     return {
       error: `Workload endpoint ${component.endpoint} isn't in the Workload tab, or another Endpoint already routes to it. Add it under spec.endpoints in the Workload tab.`,
     };
+  }
+  // The type must serve the workload endpoint's protocol, or the page would
+  // expose it through the protocol's default type instead.
+  const target = rules.workloadEndpoints?.[component.endpoint];
+  if (target) {
+    const protocol = endpointProtocol(target);
+    const serving = endpointTypeCandidates(
+      protocol,
+      rules.allowedEndpoints ?? [],
+    ).map(e => endpointTypeKey(e.ref));
+    if (!serving.includes(typeKey)) {
+      return {
+        error:
+          serving.length > 0
+            ? `${typeLabel(
+                typeKey,
+              )} doesn't serve ${protocol}, the protocol of workload endpoint ${
+                component.endpoint
+              }. Use one of: ${serving.map(typeLabel).join(', ')}.`
+            : `No Endpoint type the component type allows serves ${protocol}, the protocol of workload endpoint ${component.endpoint}. Change its protocol in the Workload tab.`,
+      };
+    }
   }
   return { ...edit, typeKey, workloadEndpoint: component.endpoint };
 }

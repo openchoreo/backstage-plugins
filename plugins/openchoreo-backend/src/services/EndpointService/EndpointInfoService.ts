@@ -25,6 +25,7 @@ import {
 } from '@openchoreo/backstage-plugin-common';
 import type { ApiSchemaResponse } from '../types';
 import {
+  isLineBackend,
   listComponentEndpoints,
   toComponentEndpointSummary,
   type ComponentRef,
@@ -392,8 +393,11 @@ export class EndpointInfoService {
             parameters: request.parameters,
           }),
         ...(renameTo && {
+          // Only this line's backends follow the rename. A backend on another
+          // line routes to that line's workload, which keeps the old name.
           backendRefs: spec.backendRefs.map(ref =>
-            ref.component?.endpoint === current.workloadEndpoint
+            ref.component?.endpoint === current.workloadEndpoint &&
+            isLineBackend(ref, request.componentName, request.releaseLine)
               ? { ...ref, component: { ...ref.component, endpoint: renameTo } }
               : ref,
           ),

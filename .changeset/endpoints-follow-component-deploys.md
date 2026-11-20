@@ -26,8 +26,8 @@ lines, are left alone.
 An existing binding keeps its environment overrides; only its release
 changes. An Endpoint created just before a deploy gets a few seconds to have
 its first release cut. An Endpoint that can't follow never undoes the
-component's change: the result names it and why, and repeating the action
-retries it.
+component's change: the result names it and why, and points at the
+Endpoint's Deploy tab to put it right.
 
 The backend's `PUT /update-release-binding` takes an optional
 `sourceEnvironment` (a promotion) and adds an `endpoints` result to its

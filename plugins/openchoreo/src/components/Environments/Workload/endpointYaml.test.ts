@@ -180,6 +180,16 @@ describe('parseEndpointYaml', () => {
       error: expect.stringMatching(/^Invalid YAML/),
     });
   });
+
+  it('reports an alias that refers back to itself', () => {
+    const edited = yaml.replace(
+      'backendRefs:',
+      'parameters: &p\n    self: *p\n  backendRefs:',
+    );
+    expect(parseEndpointYaml(edited, tab.resource)).toEqual({
+      error: expect.stringMatching(/alias refers back to itself/),
+    });
+  });
 });
 
 describe('new Endpoints in YAML', () => {
@@ -245,6 +255,21 @@ describe('new Endpoints in YAML', () => {
     ).toEqual({
       error: expect.stringMatching(
         /Workload endpoint api isn't in the Workload tab/,
+      ),
+    });
+  });
+
+  it("refuses a type that doesn't serve the workload endpoint's protocol", () => {
+    const withWeb = (protocol: string) =>
+      parseEndpointYaml(yaml.replace('<workload-endpoint>', 'web'), template, {
+        ...rules,
+        workloadEndpoints: { web: { protocol } },
+      });
+
+    expect(withWeb('HTTP')).toMatchObject({ typeKey: ROUTE });
+    expect(withWeb('TCP')).toEqual({
+      error: expect.stringMatching(
+        /No Endpoint type the component type allows serves TCP/,
       ),
     });
   });

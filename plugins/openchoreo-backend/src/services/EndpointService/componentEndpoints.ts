@@ -7,6 +7,7 @@ import {
 import {
   endpointManagingComponent,
   endpointManagingReleaseLine,
+  isSameReleaseLine,
   toStoredReleaseLine,
   type ComponentEndpointSummary,
 } from '@openchoreo/backstage-plugin-common';
@@ -77,17 +78,39 @@ export function isManagedBy(
  * workload endpoint is the first one its backends route to: the one it was
  * created for, unless backends were added since.
  */
+/**
+ * Whether a backend routes to the given line of a component. A component's
+ * Endpoint can also route to its other lines, as for a canary.
+ */
+export function isLineBackend(
+  ref: { component?: { name?: string; releaseLine?: string } },
+  componentName: string | undefined,
+  releaseLine: string | undefined,
+): boolean {
+  return (
+    !!componentName &&
+    ref.component?.name === componentName &&
+    isSameReleaseLine(ref.component?.releaseLine, releaseLine)
+  );
+}
+
 export function toComponentEndpointSummary(
   endpoint: Endpoint,
 ): ComponentEndpointSummary {
   const spec = endpoint.spec;
   const ready = endpoint.status?.conditions?.find(c => c.type === 'Ready');
+  const releaseLine = endpointManagingReleaseLine(spec?.owner) ?? '';
+  const refs = (spec?.backendRefs ?? []).filter(ref => ref.component?.endpoint);
+  // The workload endpoint is the one on the managing line's backend; any
+  // backend serves for an Endpoint no line manages.
+  const lineRef =
+    refs.find(ref =>
+      isLineBackend(ref, spec?.owner?.componentName, releaseLine),
+    ) ?? refs[0];
   return {
     name: endpoint.metadata.name,
-    releaseLine: endpointManagingReleaseLine(spec?.owner) ?? '',
-    workloadEndpoint:
-      spec?.backendRefs?.find(ref => ref.component?.endpoint)?.component
-        ?.endpoint ?? '',
+    releaseLine,
+    workloadEndpoint: lineRef?.component?.endpoint ?? '',
     typeKind:
       spec?.type?.kind === 'ClusterEndpointType'
         ? 'ClusterEndpointType'

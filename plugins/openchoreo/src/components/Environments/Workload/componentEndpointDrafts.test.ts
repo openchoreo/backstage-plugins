@@ -293,6 +293,14 @@ describe('endpointCards', () => {
     ]);
   });
 
+  it('shows a pre-Endpoint row given an Endpoint type, even unchanged', () => {
+    expect(
+      Object.keys(
+        endpointCards(rows, 'endpoints', { old }, { old: { type: 'x' } }),
+      ),
+    ).toEqual(['old', 'added']);
+  });
+
   it('lists nothing without a form and everything in the legacy form', () => {
     expect(endpointCards(rows, 'none', { old })).toEqual({});
     expect(endpointCards(rows, 'legacy', { old })).toBe(rows);

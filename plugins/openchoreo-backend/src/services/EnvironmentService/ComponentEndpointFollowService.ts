@@ -64,7 +64,8 @@ function reasonOf(error: unknown): string {
  * promoted, redeployed or undeployed, following the rules in
  * `planEndpointFollow`. Runs after the component's own binding has changed:
  * an Endpoint that can't follow is reported, never undoing the component's
- * change, and repeating the action repeats every step safely. A promotion
+ * change, and is then put right from its own Deploy tab. Repeating the
+ * action, where it's still offered, repeats every step safely. A promotion
  * is checked first, with `checkPromotion`, before the component moves.
  */
 export class ComponentEndpointFollowService {

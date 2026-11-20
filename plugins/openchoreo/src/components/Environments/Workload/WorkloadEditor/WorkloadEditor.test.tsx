@@ -592,6 +592,36 @@ describe('YAML tabs for the Endpoints', () => {
     expect(screen.getAllByText('Invalid YAML').length).toBeGreaterThan(0);
   });
 
+  it('refreshes the Workload YAML when an Endpoint is removed from it', () => {
+    renderWithEndpoints();
+    const editor = screen.getByTestId('yaml-editor') as HTMLTextAreaElement;
+    expect(editor.value).toContain('- external');
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Remove Endpoint: orders-api' }),
+    );
+
+    expect(editor.value).not.toContain('- external');
+    expect(editor.value).toContain('- project');
+  });
+
+  it('keeps an Endpoint while the Workload YAML has errors', () => {
+    renderWithEndpoints();
+    const editor = screen.getByTestId('yaml-editor') as HTMLTextAreaElement;
+    fireEvent.change(editor, { target: { value: 'spec: [' } });
+    setWorkloadResourceSpy.mockClear();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Remove Endpoint: orders-api' }),
+    );
+
+    expect(setWorkloadResourceSpy).not.toHaveBeenCalled();
+    expect(
+      screen.getAllByText('Fix YAML errors before removing an Endpoint').length,
+    ).toBeGreaterThan(0);
+    expect(editor.value).toBe('spec: [');
+  });
+
   it("refuses changes to an Endpoint's fixed fields", () => {
     renderWithEndpoints();
     fireEvent.click(screen.getByRole('tab', { name: 'Endpoint: orders-api' }));

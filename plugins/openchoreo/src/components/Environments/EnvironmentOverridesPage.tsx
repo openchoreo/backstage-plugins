@@ -196,6 +196,14 @@ export const EnvironmentOverridesPage = ({
 
   const error = loadError || saveError;
 
+  // A failed save, such as a promotion rejected because an Endpoint isn't
+  // deployed in the source, goes back to the form with the entered
+  // overrides so the action can be tried again; a failed load reloads.
+  const handleRetry = () => {
+    setSaveError(null);
+    if (loadError) reload();
+  };
+
   // Calculate changes
   const changes = useOverrideChanges(
     formState.initialComponentTypeFormData,
@@ -944,7 +952,7 @@ export const EnvironmentOverridesPage = ({
         {error && !loading && (
           <div className={classes.errorContainer}>
             <Typography color="error">{error}</Typography>
-            <Button onClick={reload} variant="outlined">
+            <Button onClick={handleRetry} variant="outlined">
               Retry
             </Button>
           </div>

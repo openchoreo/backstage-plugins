@@ -7,9 +7,11 @@ function list(names: string[]): string {
 /**
  * Says how a component's Endpoints followed it, after the component's own
  * message, e.g. "Endpoints promoted: orders-api." An Endpoint that didn't
- * follow is named with why, and the message is then an error, since the
- * user should repeat the action. Undefined when the component owns no
- * Endpoints on the line.
+ * follow is named with why, and the message is then an error. It points at
+ * the Endpoint's Deploy tab: once the component's action succeeds, its
+ * button changes (Promoted, Redeploy, Undeploy) or goes away with the
+ * binding, so repeating it isn't always possible. Undefined when the
+ * component owns no Endpoints on the line.
  */
 export function endpointFollowMessage(
   result: EndpointFollowResult | undefined,
@@ -35,7 +37,7 @@ export function endpointFollowMessage(
     parts.push(
       `Endpoints that didn't follow: ${failures.join(
         '; ',
-      )}. Repeat the action to retry them.`,
+      )}. Deploy, promote or remove them from each Endpoint's Deploy tab.`,
     );
   }
   if (parts.length === 0) return undefined;
