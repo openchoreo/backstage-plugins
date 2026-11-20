@@ -272,10 +272,10 @@ describe('EndpointEnvironmentsList', () => {
   });
 
   it('deploys the latest release to the first environment from Set up', async () => {
-    const updateEndpointReleaseBinding = jest.fn().mockResolvedValue({});
+    const deployEndpointRelease = jest.fn().mockResolvedValue(undefined);
     renderList({
       fetchEndpointEnvironmentInfo: jest.fn().mockResolvedValue(ENVS),
-      updateEndpointReleaseBinding,
+      deployEndpointRelease,
     });
 
     fireEvent.click(
@@ -284,10 +284,10 @@ describe('EndpointEnvironmentsList', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Deploy' }));
 
     await waitFor(() =>
-      expect(updateEndpointReleaseBinding).toHaveBeenCalledWith(
+      expect(deployEndpointRelease).toHaveBeenCalledWith(
         ENTITY,
         'development',
-        { endpointRelease: 'orders-api-abc' },
+        'orders-api-abc',
       ),
     );
   });

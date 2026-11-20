@@ -1,6 +1,11 @@
 import { createApiRef } from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
 import type {
+  EndpointBackendMatch,
+  EndpointSplit,
+  EndpointTrafficInfo,
+  EndpointTrafficResult,
+  SaveEndpointBackendRequest,
   WorkloadResource,
   ComponentRelease,
   ReleaseBindingCondition,
@@ -895,6 +900,52 @@ export interface OpenChoreoClientApi {
     entity: Entity,
     backendName: string,
     weight: number,
+  ): Promise<void>;
+
+  /**
+   * Fetch an Endpoint's backends with how each gets traffic, the routing its
+   * type renders, and what each environment pins and sets.
+   */
+  fetchEndpointTraffic(entity: Entity): Promise<EndpointTrafficInfo>;
+
+  /**
+   * Add a backend, or change how one gets traffic when `editing` names it.
+   * One Endpoint update, one release.
+   */
+  saveEndpointBackend(
+    entity: Entity,
+    backend: Omit<SaveEndpointBackendRequest, 'namespaceName' | 'endpointName'>,
+  ): Promise<EndpointTrafficResult & { backendName: string }>;
+
+  /**
+   * Remove a backend, which cuts a release. Refused for the last backend and
+   * for one whose removal leaves no backend with a share.
+   */
+  removeTrafficBackend(
+    entity: Entity,
+    backendName: string,
+  ): Promise<EndpointTrafficResult>;
+
+  /** Save the Endpoint's default split, which cuts a release. */
+  setEndpointSplit(
+    entity: Entity,
+    split: EndpointSplit,
+  ): Promise<EndpointTrafficResult>;
+
+  /** Save an environment's own traffic, applied now, or drop it with null. */
+  setEnvironmentSplit(
+    entity: Entity,
+    environment: string,
+    split: EndpointSplit | null,
+    /** The environment's own conditions, by backend name. */
+    matches?: Record<string, EndpointBackendMatch>,
+  ): Promise<void>;
+
+  /** Deploy or promote a release to an environment, keeping its own split where it applies. */
+  deployEndpointRelease(
+    entity: Entity,
+    environment: string,
+    releaseName: string,
   ): Promise<void>;
 
   /** Remove one of an Endpoint entity's backends; the last can't be removed. */

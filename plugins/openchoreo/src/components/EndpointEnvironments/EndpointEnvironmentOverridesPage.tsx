@@ -1,21 +1,43 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import {
   Box,
   Button,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Tooltip,
   Typography,
   makeStyles,
 } from '@material-ui/core';
 import { Alert } from '@material-ui/lab';
+import SettingsIcon from '@material-ui/icons/Settings';
+import CallSplitIcon from '@material-ui/icons/CallSplit';
 import type { JSONSchema7 } from 'json-schema';
+import { useSearchParams } from 'react-router-dom';
 import { useApi } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import {
+  ChangesList,
   DetailPageLayout,
   ForbiddenState,
+  UnsavedChangesDialog,
 } from '@openchoreo/backstage-plugin-react';
-import { RjsfForm, Skeleton } from '@openchoreo/backstage-design-system';
+import {
+  RjsfForm,
+  Skeleton,
+  VerticalTabNav,
+  type TabItemData,
+} from '@openchoreo/backstage-design-system';
 import {
   openChoreoClientApiRef,
   type EndpointEnvironment,
@@ -23,6 +45,10 @@ import {
 import { isForbiddenError, getErrorMessage } from '../../utils/errorUtils';
 import { useNotification } from '../../hooks';
 import { NotificationBanner } from '../Environments/components';
+import { EnvironmentTrafficTab } from './traffic/EnvironmentTrafficTab';
+import { useEnvironmentTrafficDraft } from './traffic/useEnvironmentTrafficDraft';
+import { useUnsavedGuard } from './traffic/useUnsavedGuard';
+import { ClearOverridesDialog } from './ClearOverridesDialog';
 
 const useStyles = makeStyles(theme => ({
   loadingContainer: {
@@ -47,6 +73,9 @@ const useStyles = makeStyles(theme => ({
     gap: theme.spacing(1),
     alignItems: 'center',
   },
+  tabNav: {
+    minHeight: 400,
+  },
   emptyState: {
     color: theme.palette.text.secondary,
     fontStyle: 'italic',
@@ -66,10 +95,69 @@ export interface EndpointEnvironmentOverridesPageProps {
   onSaved: () => void;
 }
 
+function trafficStatus(traffic: {
+  dirty: boolean;
+  problem: string;
+  own: boolean;
+}): TabItemData['status'] {
+  if (traffic.dirty && traffic.problem) return 'error';
+  if (traffic.dirty) return 'info';
+  if (traffic.own) return 'success';
+  return undefined;
+}
+
+/**
+ * The page's content, in the Configuration and Traffic tabs of a Component's
+ * overrides page when the environment routes to more than one backend, or
+ * on its own otherwise.
+ */
+const TabsIfTraffic = ({
+  show,
+  activeTab,
+  onChange,
+  configStatus,
+  trafficStatus: status,
+  traffic,
+  className,
+  children,
+}: {
+  show: boolean;
+  activeTab: string;
+  onChange: (tab: string) => void;
+  configStatus: TabItemData['status'];
+  trafficStatus: TabItemData['status'];
+  traffic: ReactNode;
+  className?: string;
+  children: ReactNode;
+}) => {
+  if (!show) return <>{children}</>;
+  const tabs: TabItemData[] = [
+    {
+      id: 'configuration',
+      label: 'Configuration',
+      icon: <SettingsIcon />,
+      status: configStatus,
+    },
+    { id: 'traffic', label: 'Traffic', icon: <CallSplitIcon />, status },
+  ];
+  return (
+    <VerticalTabNav
+      tabs={tabs}
+      activeTabId={activeTab}
+      onChange={onChange}
+      className={className}
+    >
+      {activeTab === 'traffic' ? traffic : children}
+    </VerticalTabNav>
+  );
+};
+
 /**
  * Edits `EndpointReleaseBinding.spec.endpointTypeEnvironmentConfigs` for a
- * single environment. Saving updates the binding through the BFF, and the
- * controller re-renders the endpoint's routes there with the new values.
+ * single environment, and its own traffic (`spec.backendOverrides`) on the
+ * Traffic tab when its release routes to more than one backend. Saving
+ * updates the binding through the BFF, and the controller re-renders the
+ * endpoint's routes there with the new values.
  *
  * The schema comes from the snapshot stored on the pinned EndpointRelease
  * (not the live (Cluster)EndpointType) so the form validates against what
@@ -113,6 +201,11 @@ export const EndpointEnvironmentOverridesPage = ({
   const [saving, setSaving] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const [confirmingClear, setConfirmingClear] = useState(false);
+  const [search, setSearch] = useSearchParams();
+  const traffic = useEnvironmentTrafficDraft(entity, envName);
+  const trafficGuard = useUnsavedGuard(traffic.dirty && !saving);
 
   const namespaceName =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] || '';
@@ -122,6 +215,11 @@ export const EndpointEnvironmentOverridesPage = ({
   const envDisplayName = envInfo?.name ?? envName;
   const hasBinding = Boolean(envInfo?.bindingName);
   const isDeployMode = Boolean(releaseFromUrl);
+  const showTraffic = !isDeployMode && traffic.applies;
+  const activeTab =
+    showTraffic && search.get('tab') === 'traffic'
+      ? 'traffic'
+      : 'configuration';
 
   const effectiveRelease =
     releaseFromUrl ?? envInfo?.endpointRelease ?? envInfo?.latestRelease ?? '';
@@ -226,48 +324,83 @@ export const EndpointEnvironmentOverridesPage = ({
   );
 
   const handlePrimary = useCallback(async () => {
+    setConfirming(false);
     setSaving(true);
     setSaveError(null);
     try {
-      await persist(overrides);
+      if (isDeployMode) {
+        // First, so no write pins the release with overrides it doesn't
+        // heed: this keeps the environment's own traffic where the release
+        // still has its backends, as a promote does.
+        await client.deployEndpointRelease(
+          entity,
+          envInfo?.resourceName ?? envName,
+          effectiveRelease,
+        );
+      }
+      if (isDeployMode || hasChanges) await persist(overrides);
+      if (traffic.dirty) await traffic.save();
       notification.showSuccess(
         isDeployMode
           ? `Deployed ${effectiveRelease} to ${envDisplayName}.`
           : `Saved overrides for ${envDisplayName}.`,
       );
-      onSaved();
+      trafficGuard.pass(onSaved);
     } catch (err: unknown) {
       setSaveError(getErrorMessage(err));
     } finally {
       setSaving(false);
     }
   }, [
+    client,
     effectiveRelease,
+    entity,
     envDisplayName,
+    envInfo?.resourceName,
+    envName,
+    hasChanges,
     isDeployMode,
     notification,
     onSaved,
     overrides,
     persist,
+    traffic,
+    trafficGuard,
   ]);
 
   const handleClear = useCallback(async () => {
     setClearing(true);
     setSaveError(null);
     try {
-      await persist({});
+      if (hasActualOverrides) await persist({});
+      if (traffic.own) await traffic.reset();
       notification.showSuccess(`Cleared overrides for ${envDisplayName}.`);
-      onSaved();
+      setConfirmingClear(false);
+      trafficGuard.pass(onSaved);
     } catch (err: unknown) {
       setSaveError(getErrorMessage(err));
+      setConfirmingClear(false);
     } finally {
       setClearing(false);
     }
-  }, [envDisplayName, notification, onSaved, persist]);
+  }, [
+    envDisplayName,
+    hasActualOverrides,
+    notification,
+    onSaved,
+    persist,
+    traffic,
+    trafficGuard,
+  ]);
 
   const canPrimary = isDeployMode ? Boolean(effectiveRelease) : hasBinding;
+  const trafficProblem = traffic.dirty ? traffic.problem : '';
   const primaryDisabled =
-    saving || clearing || !canPrimary || (!isDeployMode && !hasChanges);
+    saving ||
+    clearing ||
+    !canPrimary ||
+    Boolean(trafficProblem) ||
+    (!isDeployMode && !hasChanges && !traffic.dirty);
   let primaryLabel: string;
   if (isDeployMode) {
     primaryLabel = saving ? 'Deploying' : 'Deploy';
@@ -278,24 +411,51 @@ export const EndpointEnvironmentOverridesPage = ({
   const headerActions = !loading && !loadError && (
     <Box className={classes.actionsRow}>
       {!isDeployMode && (
-        <Button
-          onClick={handleClear}
-          disabled={saving || clearing || !hasActualOverrides || !hasBinding}
+        <Tooltip
+          title={
+            traffic.error
+              ? 'Couldn’t read this environment’s traffic, so its overrides can’t all be cleared yet. Reload to retry.'
+              : ''
+          }
         >
-          {clearing ? 'Clearing' : 'Clear Overrides'}
-        </Button>
+          <span>
+            <Button
+              onClick={() => setConfirmingClear(true)}
+              disabled={
+                saving ||
+                clearing ||
+                // Clearing waits for the traffic read, so it never reports
+                // success while the environment's own traffic stays.
+                traffic.loading ||
+                Boolean(traffic.error) ||
+                !(hasActualOverrides || traffic.own) ||
+                !hasBinding
+              }
+            >
+              {clearing ? 'Clearing' : 'Clear Overrides'}
+            </Button>
+          </span>
+        </Tooltip>
       )}
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={handlePrimary}
-        disabled={primaryDisabled}
-        startIcon={
-          saving ? <CircularProgress size={20} color="inherit" /> : undefined
-        }
-      >
-        {primaryLabel}
-      </Button>
+      <Tooltip title={trafficProblem}>
+        <span>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() =>
+              traffic.dirty ? setConfirming(true) : void handlePrimary()
+            }
+            disabled={primaryDisabled}
+            startIcon={
+              saving ? (
+                <CircularProgress size={20} color="inherit" />
+              ) : undefined
+            }
+          >
+            {primaryLabel}
+          </Button>
+        </span>
+      </Tooltip>
     </Box>
   );
 
@@ -316,7 +476,7 @@ export const EndpointEnvironmentOverridesPage = ({
     <DetailPageLayout
       title={`Configure Environment Overrides — ${envDisplayName}`}
       subtitle={subtitle}
-      onBack={onBack}
+      onBack={() => trafficGuard.leave(onBack)}
       actions={headerActions}
     >
       <NotificationBanner notification={notification.notification} />
@@ -354,40 +514,127 @@ export const EndpointEnvironmentOverridesPage = ({
       )}
 
       {!loading && !loadError && (isDeployMode || hasBinding) && (
-        <Box className={classes.formCard}>
-          {hasFields ? (
-            <>
-              <Typography className={classes.formHint}>
-                Only fields you fill in here are persisted on this binding.
-                Empty fields use the endpoint type&apos;s defaults.
+        <TabsIfTraffic
+          show={showTraffic}
+          activeTab={activeTab}
+          onChange={tab =>
+            setSearch(
+              prev => {
+                const next = new URLSearchParams(prev);
+                next.set('tab', tab);
+                return next;
+              },
+              { replace: true },
+            )
+          }
+          configStatus={hasChanges ? 'info' : undefined}
+          trafficStatus={trafficStatus(traffic)}
+          traffic={
+            <EnvironmentTrafficTab
+              traffic={traffic}
+              envLabel={envDisplayName}
+              disabled={saving || clearing}
+            />
+          }
+          className={classes.tabNav}
+        >
+          <Box className={classes.formCard}>
+            {hasFields ? (
+              <>
+                <Typography className={classes.formHint}>
+                  Only fields you fill in here are persisted on this binding.
+                  Empty fields use the endpoint type&apos;s defaults.
+                </Typography>
+                <RjsfForm
+                  schema={schema as any}
+                  uiSchema={{}}
+                  formData={overrides}
+                  onChange={data => {
+                    const next = (data.formData ?? {}) as Record<
+                      string,
+                      unknown
+                    >;
+                    setOverrides(next);
+                    // RJSF normalizes formData on first render (e.g. injects
+                    // schema defaults). Treat that normalized snapshot as
+                    // the baseline so the user's actual edits surface as
+                    // changes; without this, hasChanges flips true on mount.
+                    if (!formInitializedRef.current) {
+                      setInitialOverrides(next);
+                      formInitializedRef.current = true;
+                    }
+                  }}
+                  tagName="div"
+                />
+              </>
+            ) : (
+              <Typography className={classes.emptyState}>
+                {typeDisplayName} declares no environment-configs schema, so
+                per-env overrides are not applicable for this release.
               </Typography>
-              <RjsfForm
-                schema={schema as any}
-                uiSchema={{}}
-                formData={overrides}
-                onChange={data => {
-                  const next = (data.formData ?? {}) as Record<string, unknown>;
-                  setOverrides(next);
-                  // RJSF normalizes formData on first render (e.g. injects
-                  // schema defaults). Treat that normalized snapshot as
-                  // the baseline so the user's actual edits surface as
-                  // changes; without this, hasChanges flips true on mount.
-                  if (!formInitializedRef.current) {
-                    setInitialOverrides(next);
-                    formInitializedRef.current = true;
-                  }
-                }}
-                tagName="div"
-              />
-            </>
-          ) : (
-            <Typography className={classes.emptyState}>
-              {typeDisplayName} declares no environment-configs schema, so
-              per-env overrides are not applicable for this release.
-            </Typography>
-          )}
-        </Box>
+            )}
+          </Box>
+        </TabsIfTraffic>
       )}
+
+      <Dialog
+        open={confirming}
+        onClose={() => !saving && setConfirming(false)}
+        maxWidth="md"
+        fullWidth
+        aria-labelledby="confirm-env-traffic-title"
+      >
+        <DialogTitle id="confirm-env-traffic-title">
+          Confirm Save Changes ({traffic.changes.length}{' '}
+          {traffic.changes.length === 1 ? 'change' : 'changes'})
+        </DialogTitle>
+        <DialogContent dividers>
+          <ChangesList
+            sections={[
+              { title: 'Traffic Overrides', changes: traffic.changes },
+            ]}
+            emptyMessage="No changes to save"
+          />
+          <Typography
+            variant="body2"
+            color="textSecondary"
+            style={{ marginTop: 16 }}
+          >
+            This will trigger a redeployment of the{' '}
+            <strong>{envDisplayName}</strong> environment.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirming(false)} disabled={saving}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            disabled={saving}
+            onClick={() => void handlePrimary()}
+          >
+            {saving ? 'Saving...' : 'Confirm Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <ClearOverridesDialog
+        open={confirmingClear}
+        envLabel={envDisplayName}
+        configFields={
+          hasActualOverrides ? Object.keys(initialOverrides).length : 0
+        }
+        trafficBackends={traffic.env?.overrides.length ?? 0}
+        clearing={clearing}
+        onCancel={() => setConfirmingClear(false)}
+        onConfirm={() => void handleClear()}
+      />
+
+      <UnsavedChangesDialog
+        {...trafficGuard.dialog}
+        changeCount={traffic.changes.length}
+      />
     </DetailPageLayout>
   );
 };

@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import {
   Accordion,
   AccordionDetails,
@@ -6,6 +6,7 @@ import {
   Box,
   Button,
   CircularProgress,
+  Collapse,
   IconButton,
   Tooltip,
   Typography,
@@ -39,6 +40,7 @@ import { buildUrl } from '../Environments/utils/invokeUrlUtils';
 import type { EndpointEnvironment } from '../../api/OpenChoreoClientApi';
 import { useResourceEnvironmentDetailPanelStyles } from '../ResourceEnvironments/styles';
 import { useEndpointEnvironmentsContext } from './EndpointEnvironmentsContext';
+import { TrafficBlock } from './traffic/TrafficBlock';
 import {
   deriveEndpointEnvBadgeStatus,
   envResourceName,
@@ -49,6 +51,17 @@ const useBackendStyles = makeStyles(theme => ({
   resolvedIcon: {
     color: theme.palette.success.main,
   },
+  toggleRow: { cursor: 'pointer' },
+  summary: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: theme.spacing(0.5),
+    marginLeft: 'auto',
+  },
+  summaryIcon: { fontSize: 16 },
+  resolvedText: { color: theme.palette.success.main },
+  expand: { transition: theme.transitions.create('transform') },
+  expanded: { transform: 'rotate(180deg)' },
 }));
 
 interface EndpointEnvironmentDetailPanelProps {
@@ -280,7 +293,9 @@ function EndpointEnvironmentDetailContent({
 
             <InvokeUrlsSection urls={env.urls} />
 
-            <BackendsSection backends={env.backends ?? []} />
+            <TrafficBlock env={env} />
+
+            <BackendsSection key={envName} backends={env.backends ?? []} />
 
             <Box className={classes.section}>
               <Box className={classes.sectionTitleRow}>
@@ -424,7 +439,10 @@ function InvokeUrlsSection({ urls }: { urls: EndpointEnvironment['urls'] }) {
 
 /**
  * How each backend resolved in this environment: its in-cluster address, or
- * why it didn't resolve (e.g. its component isn't deployed here).
+ * why it didn't resolve (e.g. its component isn't deployed here, or its
+ * workload endpoint isn't internal or external). Collapsed to a summary,
+ * since Traffic above lists the backends that get requests; open from the
+ * start when one didn't resolve.
  */
 function BackendsSection({
   backends,
@@ -433,64 +451,94 @@ function BackendsSection({
 }) {
   const classes = useResourceEnvironmentDetailPanelStyles();
   const backendClasses = useBackendStyles();
+  const unresolved = backends.filter(b => !b.resolved).length;
+  const [open, setOpen] = useState(unresolved > 0);
   if (backends.length === 0) return null;
 
   return (
     <Box className={classes.section}>
-      <Typography className={classes.sectionHeading}>
-        Backends ({backends.length})
-      </Typography>
-      {backends.map(backend => {
-        const url = formatServiceURL(backend.serviceURL);
-        return (
-          <Box key={backend.name} mt={1} display="flex" gridGap={8}>
-            {backend.resolved ? (
-              <CheckCircleOutlineIcon
-                fontSize="small"
-                className={backendClasses.resolvedIcon}
-                aria-label="Resolved"
-              />
-            ) : (
-              <ErrorOutlineIcon
-                fontSize="small"
-                color="error"
-                aria-label="Not resolved"
-              />
-            )}
-            <Box minWidth={0}>
-              <Typography variant="body2">
-                {backend.name}
-                {backend.weight !== undefined && (
-                  <Typography
-                    component="span"
-                    variant="caption"
-                    color="textSecondary"
-                  >
-                    {` · weight ${backend.weight}`}
-                  </Typography>
-                )}
-              </Typography>
-              {backend.resolved
-                ? url && (
-                    <Typography
-                      variant="caption"
-                      color="textSecondary"
-                      style={{ wordBreak: 'break-all' }}
-                    >
-                      {url}
-                    </Typography>
-                  )
-                : (backend.reason || backend.message) && (
-                    <Typography variant="caption" color="error">
-                      {[backend.reason, backend.message]
-                        .filter(Boolean)
-                        .join(': ')}
-                    </Typography>
-                  )}
+      <Box
+        className={`${classes.sectionTitleRow} ${backendClasses.toggleRow}`}
+        onClick={() => setOpen(o => !o)}
+      >
+        <Typography className={classes.sectionHeading}>Backends</Typography>
+        {unresolved > 0 ? (
+          <Typography
+            variant="caption"
+            color="error"
+            className={backendClasses.summary}
+          >
+            <ErrorOutlineIcon className={backendClasses.summaryIcon} />
+            {unresolved} of {backends.length} not resolved
+          </Typography>
+        ) : (
+          <Typography
+            variant="caption"
+            className={`${backendClasses.summary} ${backendClasses.resolvedText}`}
+          >
+            <CheckCircleOutlineIcon className={backendClasses.summaryIcon} />
+            {backends.length} resolved
+          </Typography>
+        )}
+        <IconButton
+          size="small"
+          aria-label={open ? 'Hide backends' : 'Show backends'}
+          aria-expanded={open}
+          onClick={e => {
+            e.stopPropagation();
+            setOpen(o => !o);
+          }}
+        >
+          <ExpandMoreIcon
+            fontSize="small"
+            className={`${backendClasses.expand} ${
+              open ? backendClasses.expanded : ''
+            }`}
+          />
+        </IconButton>
+      </Box>
+      <Collapse in={open} unmountOnExit>
+        {backends.map(backend => {
+          const url = formatServiceURL(backend.serviceURL);
+          return (
+            <Box key={backend.name} mt={1} display="flex" gridGap={8}>
+              {backend.resolved ? (
+                <CheckCircleOutlineIcon
+                  fontSize="small"
+                  className={backendClasses.resolvedIcon}
+                  aria-label="Resolved"
+                />
+              ) : (
+                <ErrorOutlineIcon
+                  fontSize="small"
+                  color="error"
+                  aria-label="Not resolved"
+                />
+              )}
+              <Box minWidth={0}>
+                <Typography variant="body2">{backend.name}</Typography>
+                {backend.resolved
+                  ? url && (
+                      <Typography
+                        variant="caption"
+                        color="textSecondary"
+                        style={{ wordBreak: 'break-all' }}
+                      >
+                        {url}
+                      </Typography>
+                    )
+                  : (backend.reason || backend.message) && (
+                      <Typography variant="caption" color="error">
+                        {[backend.reason, backend.message]
+                          .filter(Boolean)
+                          .join(': ')}
+                      </Typography>
+                    )}
+              </Box>
             </Box>
-          </Box>
-        );
-      })}
+          );
+        })}
+      </Collapse>
     </Box>
   );
 }

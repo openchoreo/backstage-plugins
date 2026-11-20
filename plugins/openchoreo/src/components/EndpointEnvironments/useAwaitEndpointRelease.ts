@@ -62,7 +62,14 @@ export function useAwaitEndpointRelease({
   awaitingNewRelease: boolean;
   /** Polling gave up before the change showed up. */
   unconfirmed: boolean;
-  beginAwaitingNewRelease: (change: EndpointBackendChange) => void;
+  /**
+   * `baseline` is the latest release before the change, when the caller
+   * saved it elsewhere; otherwise the one reported now.
+   */
+  beginAwaitingNewRelease: (
+    change: EndpointBackendChange,
+    baseline?: string,
+  ) => void;
   /** Polls again for an unconfirmed change. */
   retryAwait: () => void;
   /** Stops waiting for an unconfirmed change. */
@@ -81,8 +88,8 @@ export function useAwaitEndpointRelease({
   refreshRef.current = refreshEntity;
 
   const beginAwaitingNewRelease = useCallback(
-    (change: EndpointBackendChange) => {
-      setPending({ baseline: latestRelease, change });
+    (change: EndpointBackendChange, baseline?: string) => {
+      setPending({ baseline: baseline ?? latestRelease, change });
       setTimedOut(false);
     },
     [latestRelease],

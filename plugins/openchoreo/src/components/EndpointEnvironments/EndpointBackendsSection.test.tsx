@@ -1,160 +1,196 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { Entity } from '@backstage/catalog-model';
+import type {
+  EndpointTrafficBackend,
+  EndpointTrafficInfo,
+} from '@openchoreo/backstage-plugin-common';
 import { EndpointBackendsSection } from './EndpointBackendsSection';
+import { EndpointTrafficProvider } from './traffic/useEndpointTraffic';
 
-let mockEntity: Entity;
+const mockNavigate = jest.fn();
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => mockNavigate,
+}));
+
+const entity = {
+  apiVersion: 'backstage.io/v1alpha1',
+  kind: 'Endpoint',
+  metadata: { name: 'orders-api', namespace: 'acme' },
+  spec: {},
+} as Entity;
 jest.mock('@backstage/plugin-catalog-react', () => ({
-  useEntity: () => ({ entity: mockEntity }),
+  useEntity: () => ({ entity }),
+  useAsyncEntity: () => ({ refresh: jest.fn() }),
   EntityRefLink: ({ entityRef }: any) => <span>{entityRef.name}</span>,
 }));
 
-let mockCanUpdate = true;
+const mockPermission = {
+  canUpdate: true,
+  loading: false,
+  updateDeniedTooltip: 'You do not have permission to change this Endpoint',
+};
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
-  useResourceDefinitionPermission: () => ({
-    canUpdate: mockCanUpdate,
-    loading: false,
-    updateDeniedTooltip: mockCanUpdate
-      ? ''
-      : 'You do not have permission to update this endpoint',
-  }),
+  ...jest.requireActual('@openchoreo/backstage-plugin-react'),
+  useResourceDefinitionPermission: () => mockPermission,
 }));
 
-jest.mock('./AddEndpointBackendDialog', () => ({
-  AddEndpointBackendDialog: ({ open, onAdded }: any) =>
-    open ? (
-      <div role="dialog">
-        add backend
-        <button
-          type="button"
-          onClick={() => onAdded({ kind: 'add', backendName: 'new' })}
-        >
-          confirm add
-        </button>
-      </div>
-    ) : null,
-}));
-
-jest.mock('./EndpointBackendDialogs', () => ({
-  backendLabel: (b: any) => `${b.component} / ${b.endpoint}`,
-  EditBackendWeightDialog: ({ backend }: any) =>
-    backend ? <div role="dialog">edit weight of {backend.name}</div> : null,
+jest.mock('./traffic/RemoveBackendDialog', () => ({
+  ...jest.requireActual('./traffic/RemoveBackendDialog'),
   RemoveBackendDialog: ({ backend }: any) =>
     backend ? <div role="dialog">remove {backend.name}</div> : null,
 }));
 
-const primary = {
-  name: 'primary',
-  component: 'orders',
+const backend = (
+  name: string,
+  weight: number,
+  extra: Partial<EndpointTrafficBackend> = {},
+): EndpointTrafficBackend => ({
+  name,
+  componentName: name,
   endpoint: 'http',
-  weight: 90,
-};
-const canary = {
-  name: 'canary',
-  component: 'orders-v2',
-  endpoint: 'http',
-  weight: 10,
-};
+  weight,
+  ...extra,
+});
 
-function endpointEntity(backends: unknown[]): Entity {
-  return {
-    apiVersion: 'backstage.io/v1alpha1',
-    kind: 'Endpoint',
-    metadata: { name: 'orders-api', namespace: 'acme' },
-    spec: { backends },
-  } as Entity;
+function renderSection(backends: EndpointTrafficBackend[], awaiting = false) {
+  const info: EndpointTrafficInfo = { backends, environments: [] };
+  return render(
+    <EndpointTrafficProvider
+      value={{ info, loading: false, error: null, refetch: jest.fn() }}
+    >
+      <EndpointBackendsSection awaiting={awaiting} onChanged={jest.fn()} />
+    </EndpointTrafficProvider>,
+  );
 }
 
 describe('EndpointBackendsSection', () => {
   beforeEach(() => {
-    mockCanUpdate = true;
+    mockNavigate.mockReset();
+    mockPermission.canUpdate = true;
   });
 
-  it('lists the backends with their traffic shares', () => {
-    mockEntity = endpointEntity([primary, canary]);
-    render(<EndpointBackendsSection awaiting={false} onChanged={jest.fn()} />);
-
-    expect(screen.getByText('Backends (2)')).toBeInTheDocument();
-    expect(screen.getByText('90%')).toBeInTheDocument();
-    expect(screen.getByText('10%')).toBeInTheDocument();
-  });
-
-  it('opens the weight and remove dialogs for a backend', () => {
-    mockEntity = endpointEntity([primary, canary]);
-    render(<EndpointBackendsSection awaiting={false} onChanged={jest.fn()} />);
-
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Edit weight of orders-v2 / http' }),
-    );
-    expect(screen.getByText('edit weight of canary')).toBeInTheDocument();
-
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Remove orders-v2 / http' }),
-    );
-    expect(screen.getByText('remove canary')).toBeInTheDocument();
-  });
-
-  it("doesn't remove the last backend", () => {
-    mockEntity = endpointEntity([primary]);
-    render(<EndpointBackendsSection awaiting={false} onChanged={jest.fn()} />);
-
-    expect(
-      screen.getByRole('button', { name: 'Remove orders / http' }),
-    ).toBeDisabled();
-  });
-
-  it('stops adding at 16 backends', () => {
-    mockEntity = endpointEntity(
-      Array.from({ length: 16 }, (_, i) => ({ ...primary, name: `b${i}` })),
-    );
-    render(<EndpointBackendsSection awaiting={false} onChanged={jest.fn()} />);
-
+  it('disables changes while the last change’s release is cut', () => {
+    renderSection([backend('trips', 100), backend('trips-go', 0)], true);
     expect(screen.getByRole('button', { name: 'Add backend' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Edit trips' })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Remove trips-go' }),
+    ).toBeDisabled();
   });
 
   it('disables changes without permission to update the Endpoint', () => {
-    mockCanUpdate = false;
-    mockEntity = endpointEntity([primary, canary]);
-    render(<EndpointBackendsSection awaiting={false} onChanged={jest.fn()} />);
-
+    mockPermission.canUpdate = false;
+    renderSection([backend('trips', 100), backend('trips-go', 0)]);
     expect(screen.getByRole('button', { name: 'Add backend' })).toBeDisabled();
-    expect(
-      screen.getByRole('button', { name: 'Edit weight of orders / http' }),
-    ).toBeDisabled();
-    expect(
-      screen.getByRole('button', { name: 'Remove orders / http' }),
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Edit trips' })).toBeDisabled();
   });
 
-  it('labels the add button Add', () => {
-    mockEntity = endpointEntity([primary]);
-    render(<EndpointBackendsSection awaiting={false} onChanged={jest.fn()} />);
+  it('shows each backend’s share, condition and copy, with no Edit split', () => {
+    renderSection([
+      backend('primary', 90),
+      backend('canary', 10, {
+        match: { headers: [{ name: 'x-canary', value: 'true' }] },
+      }),
+      backend('shadow', 0, { mirror: { percent: 20 } }),
+    ]);
 
     expect(
-      screen.getByRole('button', { name: 'Add backend' }),
-    ).toHaveTextContent(/^Add$/);
+      screen.getByRole('button', { name: 'Edit the share of primary' }),
+    ).toHaveTextContent('90%');
+    expect(screen.getByText('+ if header x-canary: true')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Edit the share of shadow' }),
+    ).toHaveTextContent('copy 20%');
+    expect(
+      screen.queryByRole('button', { name: 'Edit split' }),
+    ).not.toBeInTheDocument();
   });
 
-  it('hands a saved change to the pane', () => {
-    mockEntity = endpointEntity([primary]);
-    const onChanged = jest.fn();
-    render(<EndpointBackendsSection awaiting={false} onChanged={onChanged} />);
+  it('opens the backend page on its share field, or on the backend', () => {
+    renderSection([backend('primary', 90), backend('canary', 10)]);
 
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Edit the share of canary' }),
+    );
+    expect(mockNavigate).toHaveBeenCalledWith('backend/canary?focus=share');
+    fireEvent.click(screen.getByRole('button', { name: 'Edit primary' }));
+    expect(mockNavigate).toHaveBeenCalledWith('backend/primary');
     fireEvent.click(screen.getByRole('button', { name: 'Add backend' }));
-    fireEvent.click(screen.getByRole('button', { name: 'confirm add' }));
-
-    expect(onChanged).toHaveBeenCalledWith({ kind: 'add', backendName: 'new' });
+    expect(mockNavigate).toHaveBeenCalledWith('add-backend');
   });
 
-  it('holds further changes while a new release is in progress', () => {
-    mockEntity = endpointEntity([primary, canary]);
-    render(<EndpointBackendsSection awaiting onChanged={jest.fn()} />);
+  it('removes a backend, but keeps the last one with a share', () => {
+    renderSection([backend('primary', 100), backend('canary', 0)]);
+
+    expect(
+      screen.getByRole('button', { name: 'Remove primary' }),
+    ).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Remove canary' }));
+    expect(screen.getByRole('dialog')).toHaveTextContent('remove canary');
+  });
+
+  it('stops adding backends at the CRD maximum', () => {
+    renderSection(Array.from({ length: 16 }, (_, i) => backend(`b${i}`, 1)));
 
     expect(screen.getByRole('button', { name: 'Add backend' })).toBeDisabled();
+  });
+
+  it('offers to remove a backend no environment serves', () => {
+    const env = (releaseUnknown?: boolean) => ({
+      environment: 'development',
+      bindingName: 'orders-api-development',
+      endpointRelease: 'orders-api-7',
+      release: releaseUnknown
+        ? []
+        : [backend('trips', 0), backend('trips-go', 100)],
+      overrides: [],
+      ...(releaseUnknown && { releaseUnknown }),
+    });
+    const show = (releaseUnknown?: boolean) =>
+      render(
+        <EndpointTrafficProvider
+          value={{
+            info: {
+              backends: [backend('trips', 50), backend('trips-go', 50)],
+              environments: [env(releaseUnknown)],
+            },
+            loading: false,
+            error: null,
+            refetch: jest.fn(),
+          }}
+        >
+          <EndpointBackendsSection awaiting={false} onChanged={jest.fn()} />
+        </EndpointTrafficProvider>,
+      );
+
+    const { unmount } = show();
+    expect(screen.getByText(/gets no traffic in any environment/)).toBeTruthy();
+    unmount();
+
+    show(true);
+    expect(screen.queryByText(/gets no traffic in any environment/)).toBeNull();
+  });
+
+  it('says when the backends couldn’t be read, with a retry', () => {
+    const refetch = jest.fn();
+    render(
+      <EndpointTrafficProvider
+        value={{
+          info: null,
+          loading: false,
+          error: new Error('forbidden'),
+          refetch,
+        }}
+      >
+        <EndpointBackendsSection awaiting={false} onChanged={jest.fn()} />
+      </EndpointTrafficProvider>,
+    );
+    expect(screen.queryByText('Loading backends…')).toBeNull();
     expect(
-      screen.getByRole('button', { name: 'Edit weight of orders / http' }),
-    ).toBeDisabled();
-    expect(
-      screen.getByRole('button', { name: 'Remove orders / http' }),
-    ).toBeDisabled();
+      screen.getByText(/Couldn’t read the backends: forbidden/),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(refetch).toHaveBeenCalled();
   });
 });

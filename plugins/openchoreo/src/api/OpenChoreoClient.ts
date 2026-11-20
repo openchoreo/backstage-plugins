@@ -14,6 +14,11 @@ import {
   type ComponentEndpointInput,
   type ComponentEndpointSummary,
   type EndpointTypeKind,
+  type EndpointBackendMatch,
+  type EndpointSplit,
+  type EndpointTrafficInfo,
+  type EndpointTrafficResult,
+  type SaveEndpointBackendRequest,
 } from '@openchoreo/backstage-plugin-common';
 import { CLUSTER_SCOPED_RESOURCE_KINDS } from './OpenChoreoClientApi';
 import type {
@@ -118,6 +123,7 @@ const API_ENDPOINTS = {
   CLUSTER_ENDPOINT_TYPE_SCHEMA: '/cluster-endpoint-type-schema',
   COMPONENT_ENDPOINTS: '/component-endpoints',
   RELEASE_LINE_ENDPOINT_DRAFTS: '/release-line-endpoint-drafts',
+  ENDPOINT_TRAFFIC: '/endpoint-traffic',
   COMPONENT_TRAITS: '/component-traits',
   RELEASE_LINE: '/release-line',
   COMPONENT_CONFIG: '/component-config',
@@ -284,6 +290,12 @@ function extractEndpointEntityMetadata(entity: Entity): EndpointEntityMetadata {
   }
 
   return { endpointName, projectName, namespaceName };
+}
+
+/** The namespace and name that identify an Endpoint in a request body. */
+function endpointRefBody(entity: Entity) {
+  const { namespaceName, endpointName } = extractEndpointEntityMetadata(entity);
+  return { namespaceName, endpointName };
 }
 
 interface ProjectEntityMetadata {
@@ -734,6 +746,74 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     await this.apiFetch(API_ENDPOINTS.ENDPOINT_BACKENDS, {
       method: 'PATCH',
       body: { namespaceName, endpointName, backendName, weight },
+    });
+  }
+
+  async fetchEndpointTraffic(entity: Entity): Promise<EndpointTrafficInfo> {
+    const ref = endpointRefBody(entity);
+    return this.apiFetch(API_ENDPOINTS.ENDPOINT_TRAFFIC, {
+      params: {
+        namespaceName: ref.namespaceName,
+        endpointName: ref.endpointName,
+      },
+    });
+  }
+
+  async saveEndpointBackend(
+    entity: Entity,
+    backend: Omit<SaveEndpointBackendRequest, 'namespaceName' | 'endpointName'>,
+  ): Promise<EndpointTrafficResult & { backendName: string }> {
+    return this.apiFetch(`${API_ENDPOINTS.ENDPOINT_TRAFFIC}/backend`, {
+      method: 'PUT',
+      body: { ...endpointRefBody(entity), ...backend },
+    });
+  }
+
+  async removeTrafficBackend(
+    entity: Entity,
+    backendName: string,
+  ): Promise<EndpointTrafficResult> {
+    return this.apiFetch(`${API_ENDPOINTS.ENDPOINT_TRAFFIC}/backend`, {
+      method: 'DELETE',
+      body: { ...endpointRefBody(entity), backendName },
+    });
+  }
+
+  async setEndpointSplit(
+    entity: Entity,
+    split: EndpointSplit,
+  ): Promise<EndpointTrafficResult> {
+    return this.apiFetch(`${API_ENDPOINTS.ENDPOINT_TRAFFIC}/split`, {
+      method: 'PUT',
+      body: { ...endpointRefBody(entity), split },
+    });
+  }
+
+  async setEnvironmentSplit(
+    entity: Entity,
+    environment: string,
+    split: EndpointSplit | null,
+    matches?: Record<string, EndpointBackendMatch>,
+  ): Promise<void> {
+    await this.apiFetch(`${API_ENDPOINTS.ENDPOINT_TRAFFIC}/environment`, {
+      method: 'PUT',
+      body: { ...endpointRefBody(entity), environment, split, matches },
+    });
+  }
+
+  async deployEndpointRelease(
+    entity: Entity,
+    environment: string,
+    releaseName: string,
+  ): Promise<void> {
+    await this.apiFetch(`${API_ENDPOINTS.ENDPOINT_TRAFFIC}/deploy`, {
+      method: 'PUT',
+      body: {
+        ...endpointRefBody(entity),
+        projectName: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT],
+        environment,
+        releaseName,
+      },
     });
   }
 
