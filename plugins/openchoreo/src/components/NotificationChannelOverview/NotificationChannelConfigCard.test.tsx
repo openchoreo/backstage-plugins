@@ -4,6 +4,7 @@ import { NotificationChannelConfigCard } from './NotificationChannelConfigCard';
 let mockEntity: any;
 jest.mock('@backstage/plugin-catalog-react', () => ({
   useEntity: () => ({ entity: mockEntity }),
+  catalogApiRef: { id: 'catalog' },
 }));
 
 jest.mock('@backstage/core-plugin-api', () => ({
@@ -16,8 +17,15 @@ jest.mock('../../api/OpenChoreoClientApi', () => ({
 
 // Conditions the live channel reports; the card reads them through useOpenChoreoQuery.
 let mockConditions: any[] | undefined;
+// How many channels of the environment the catalog reports as marked default.
+let mockMarkedCount: number | undefined;
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
-  useOpenChoreoQuery: () => ({ data: mockConditions }),
+  useOpenChoreoQuery: (key: unknown[]) => ({
+    data:
+      key[0] === 'notification-channel-env-defaults'
+        ? mockMarkedCount
+        : mockConditions,
+  }),
 }));
 
 jest.mock('@backstage/core-components', () => ({
@@ -43,6 +51,7 @@ const baseEntity = (spec: Record<string, unknown>, namespace = 'my-ns') => ({
 describe('NotificationChannelConfigCard', () => {
   beforeEach(() => {
     mockConditions = undefined;
+    mockMarkedCount = undefined;
   });
 
   it('renders email config details', () => {
@@ -179,6 +188,36 @@ describe('NotificationChannelConfigCard', () => {
 
     render(<NotificationChannelConfigCard />);
     expect(screen.queryByText('Environment Default')).not.toBeInTheDocument();
+  });
+
+  describe('when the channel is marked as default', () => {
+    const markedEntity = () =>
+      baseEntity({
+        environment: 'dev',
+        type: 'email',
+        isEnvDefault: true,
+        emailConfig: { from: 'a@b.com', to: ['c@d.com'], smtp: {} },
+      });
+
+    it('shows no hint when it is the only marked channel of the environment', () => {
+      mockEntity = markedEntity();
+      mockMarkedCount = 1;
+
+      render(<NotificationChannelConfigCard />);
+      expect(screen.queryByText(/marked as default/)).not.toBeInTheDocument();
+    });
+
+    it('shows the hint when several channels of the environment are marked', () => {
+      mockEntity = markedEntity();
+      mockMarkedCount = 2;
+
+      render(<NotificationChannelConfigCard />);
+      expect(
+        screen.getByText(
+          /Multiple channels in this environment are marked as default/,
+        ),
+      ).toBeInTheDocument();
+    });
   });
 
   it('links the environment name to its catalog page under the entity namespace', () => {

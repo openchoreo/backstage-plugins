@@ -13,14 +13,17 @@ import DeleteOutlineIcon from '@material-ui/icons/DeleteOutline';
 import type { FieldValidation } from '@rjsf/utils';
 import { FieldExtensionComponentProps } from '@backstage/plugin-scaffolder-react';
 import {
+  MAX_ENDPOINT_BACKENDS,
+  MAX_ENDPOINT_BACKEND_WEIGHT,
+  deriveEndpointBackendName,
+  endpointBackendsTakeTraffic,
+  isEndpointBackendWeight,
+} from '@openchoreo/backstage-plugin-common';
+import {
   projectKey,
   readProjectNamespace,
   useProjectWorkloadEndpoints,
 } from './useProjectWorkloadEndpoints';
-
-/** The Endpoint CRD's limits on backends. */
-export const MAX_BACKENDS = 16;
-export const MAX_WEIGHT = 1_000_000;
 
 /** One backend as the scaffolder action receives it. */
 export interface EndpointBackendValue {
@@ -51,29 +54,6 @@ const useStyles = makeStyles(theme => ({
 }));
 
 const BACKEND_NAME_PATTERN = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/;
-
-/**
- * Derives a backend's name from its component and workload endpoint, made
- * unique within the list. Backend names key the Endpoint's backendRefs.
- */
-export function deriveBackendName(
-  component: string,
-  endpoint: string,
-  taken: string[],
-): string {
-  const base = `${component}-${endpoint}`
-    .toLowerCase()
-    .replace(/[^a-z0-9-]/g, '-')
-    // Cut before trimming, so a cut just after a hyphen can't leave the name
-    // ending in one.
-    .slice(0, 60)
-    .replace(/^-+|-+$/g, '');
-  let name = base;
-  for (let i = 2; taken.includes(name); i++) {
-    name = `${base}-${i}`;
-  }
-  return name;
-}
 
 /**
  * Picks the backends an Endpoint routes traffic to: rows of component, one of
@@ -127,7 +107,7 @@ export const EndpointBackendsField = ({
     const next = backends.map((b, i) => (i === index ? { ...b, ...patch } : b));
     const row = next[index];
     if ((patch.component || patch.endpoint) && row.component && row.endpoint) {
-      row.name = deriveBackendName(
+      row.name = deriveEndpointBackendName(
         row.component,
         row.endpoint,
         next.filter((_, i) => i !== index).map(b => b.name),
@@ -159,8 +139,8 @@ export const EndpointBackendsField = ({
     <Box>
       <Typography variant="body2" className={classes.hint}>
         Route traffic to workload endpoints of components in {project}, up to{' '}
-        {MAX_BACKENDS} backends. Weights are relative; a backend with weight 0
-        gets no traffic.
+        {MAX_ENDPOINT_BACKENDS} backends. Weights are relative; a backend with
+        weight 0 gets no traffic.
       </Typography>
       {error && (
         <Typography variant="body2" color="error">
@@ -229,7 +209,7 @@ export const EndpointBackendsField = ({
               variant="outlined"
               size="small"
               className={classes.weight}
-              inputProps={{ min: 0, max: MAX_WEIGHT, step: 1 }}
+              inputProps={{ min: 0, max: MAX_ENDPOINT_BACKEND_WEIGHT, step: 1 }}
               value={backend.weight ?? ''}
               onChange={e =>
                 setRow(index, {
@@ -254,7 +234,9 @@ export const EndpointBackendsField = ({
         startIcon={<AddIcon />}
         onClick={addRow}
         disabled={
-          loading || options.length === 0 || backends.length >= MAX_BACKENDS
+          loading ||
+          options.length === 0 ||
+          backends.length >= MAX_ENDPOINT_BACKENDS
         }
       >
         Add backend
@@ -277,8 +259,8 @@ export const EndpointBackendsFieldSchema = {
 
 /**
  * Every row needs a component and workload endpoint, a valid unique name and
- * a whole weight from 0 to {@link MAX_WEIGHT}, at least one backend must take
- * traffic, and there can be at most {@link MAX_BACKENDS} backends.
+ * a whole weight from 0 to {@link MAX_ENDPOINT_BACKEND_WEIGHT}, at least one backend must take
+ * traffic, and there can be at most {@link MAX_ENDPOINT_BACKENDS} backends.
  */
 export const endpointBackendsFieldValidation = (
   value: EndpointBackendValue[] | undefined,
@@ -289,8 +271,10 @@ export const endpointBackendsFieldValidation = (
     validation.addError('Add at least one backend.');
     return;
   }
-  if (backends.length > MAX_BACKENDS) {
-    validation.addError(`An Endpoint takes at most ${MAX_BACKENDS} backends.`);
+  if (backends.length > MAX_ENDPOINT_BACKENDS) {
+    validation.addError(
+      `An Endpoint takes at most ${MAX_ENDPOINT_BACKENDS} backends.`,
+    );
   }
   const names = new Set<string>();
   backends.forEach((b, i) => {
@@ -305,19 +289,15 @@ export const endpointBackendsFieldValidation = (
       validation.addError(`${row}: name "${b.name}" is already used.`);
     }
     names.add(b.name);
-    if (
-      b.weight !== undefined &&
-      (!Number.isInteger(b.weight) || b.weight < 0 || b.weight > MAX_WEIGHT)
-    ) {
+    if (b.weight !== undefined && !isEndpointBackendWeight(b.weight)) {
       validation.addError(
-        `${row}: weight must be a whole number from 0 to ${MAX_WEIGHT.toLocaleString(
+        `${row}: weight must be a whole number from 0 to ${MAX_ENDPOINT_BACKEND_WEIGHT.toLocaleString(
           'en-US',
         )}.`,
       );
     }
   });
-  // A missing weight defaults to 1 on the Endpoint.
-  if (backends.every(b => b.weight === 0)) {
+  if (!endpointBackendsTakeTraffic(backends)) {
     validation.addError('At least one backend needs a weight above 0.');
   }
 };

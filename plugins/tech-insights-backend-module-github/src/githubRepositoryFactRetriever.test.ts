@@ -112,9 +112,8 @@ describe('githubRepositoryFactRetriever', () => {
           : respond(repository, path),
       );
 
-      expect(await collectFacts()).toMatchObject({
+      expect(await collectFacts()).toEqual({
         githubRepositoryResolved: false,
-        githubBranchProtected: null,
       });
     },
   );
@@ -307,9 +306,8 @@ describe('githubRepositoryFactRetriever', () => {
       });
       respondWithBranch('other');
 
-      expect(await collectFacts()).toMatchObject({
+      expect(await collectFacts()).toEqual({
         githubRepositoryResolved: false,
-        githubBranch: null,
       });
       expect(branchLookups()).toHaveLength(3);
     });

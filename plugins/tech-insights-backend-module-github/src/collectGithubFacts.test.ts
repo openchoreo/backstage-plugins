@@ -5,7 +5,6 @@ import type { FactRetrieverContext } from '@backstage-community/plugin-tech-insi
 import {
   cacheCursor,
   collectGithubFacts,
-  unresolvedFacts,
   type CollectionCursor,
 } from './collectGithubFacts';
 import { GithubRateLimitError } from './githubApi';
@@ -150,18 +149,10 @@ describe('collectGithubFacts', () => {
 
   it('reports an entity without a repository as unresolved', async () => {
     mockGetEntities.mockResolvedValue({ items: [component('image-only')] });
-    const unresolved = unresolvedFacts(
-      { githubRepositoryResolved: {}, githubIsArchived: {} },
-      'githubRepositoryResolved',
-    );
-
     const facts = await collectGithubFacts(context(), jest.fn(), {
-      unresolvedFacts: unresolved,
+      unresolvedFacts: { githubRepositoryResolved: false },
     });
-    expect(facts[0].facts).toEqual({
-      githubRepositoryResolved: false,
-      githubIsArchived: null,
-    });
+    expect(facts[0].facts).toEqual({ githubRepositoryResolved: false });
   });
 
   it('keeps going past an entity whose collection fails', async () => {

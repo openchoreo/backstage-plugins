@@ -36,6 +36,12 @@ export const CHOREO_ANNOTATIONS = {
   ENDPOINT_UID: 'openchoreo.io/endpoint-uid',
   ENDPOINTTYPE: 'openchoreo.io/endpointtype',
   ENDPOINTTYPE_KIND: 'openchoreo.io/endpointtype-kind',
+  // The component owning an Endpoint (its spec.owner.componentName); absent
+  // when the project owns it.
+  ENDPOINT_OWNER_COMPONENT: 'openchoreo.io/endpoint-owner-component',
+  // The release line of that component owning the Endpoint (its
+  // spec.owner.releaseLineName); absent when the component or project owns it.
+  ENDPOINT_OWNER_RELEASE_LINE: 'openchoreo.io/endpoint-owner-release-line',
   // Component Type Definition (CTD) annotations
   CTD_NAME: 'openchoreo.io/ctd-name',
   CTD_DISPLAY_NAME: 'openchoreo.io/ctd-display-name',
