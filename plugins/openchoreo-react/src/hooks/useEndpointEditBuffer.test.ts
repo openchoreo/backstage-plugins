@@ -157,7 +157,7 @@ describe('useEndpointEditBuffer', () => {
     );
   });
 
-  it('applyEdit does NOT set oldNameToRemove for new endpoints even if name changed', () => {
+  it('applyEdit passes the placeholder name as oldNameToRemove when a new endpoint is renamed', () => {
     const onEndpointReplace = jest.fn();
     const { result } = renderHook(() =>
       useEndpointEditBuffer(makeOptions({ onEndpointReplace })),
@@ -176,7 +176,7 @@ describe('useEndpointEditBuffer', () => {
     expect(onEndpointReplace).toHaveBeenCalledWith(
       'final-name',
       expect.any(Object),
-      undefined, // no old name to remove for new endpoints
+      'temp-name', // the placeholder the list added for the new row
     );
   });
 

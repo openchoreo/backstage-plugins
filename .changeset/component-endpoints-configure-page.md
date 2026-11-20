@@ -52,8 +52,9 @@ workload endpoint within the project.
 A card with an Endpoint shows its name, Ready state, type and parameters. It can
 be edited or deleted, and changes are staged with the workload and saved after
 it. A renamed workload endpoint keeps its Endpoints; one that's removed has
-its Endpoints deleted on save. The endpoint editor's Type field is now
-Protocol.
+its Endpoints deleted on save. Renaming a new endpoint before saving it no
+longer leaves an `endpoint-<n>` row behind, in either form. The endpoint
+editor's Type field is now Protocol.
 
 The component owns the Endpoints created here (`spec.owner.componentName`), so
 deleting the component deletes them. A release line's configure page manages

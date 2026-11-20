@@ -577,6 +577,21 @@ describe('YAML tabs for the Endpoints', () => {
     expect(restoreChoice).toHaveBeenCalledWith('api', undefined);
   });
 
+  it('holds a workload endpoint that has no fields yet as invalid YAML', () => {
+    renderWithEndpoints();
+    const editor = screen.getByTestId('yaml-editor') as HTMLTextAreaElement;
+    setWorkloadResourceSpy.mockClear();
+
+    fireEvent.change(editor, {
+      target: {
+        value: editor.value.replace('endpoints:', 'endpoints:\n    admin:'),
+      },
+    });
+
+    expect(setWorkloadResourceSpy).not.toHaveBeenCalled();
+    expect(screen.getAllByText('Invalid YAML').length).toBeGreaterThan(0);
+  });
+
   it("refuses changes to an Endpoint's fixed fields", () => {
     renderWithEndpoints();
     fireEvent.click(screen.getByRole('tab', { name: 'Endpoint: orders-api' }));

@@ -221,16 +221,33 @@ function resourceToYaml(resource: WorkloadResource | null): string {
   return YAML.stringify(resource, { indent: 2 });
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
 /**
- * Parse YAML string back into a WorkloadResource.
+ * Parse YAML string back into a WorkloadResource. A workload endpoint
+ * that isn't a mapping yet, such as `api:` while it's being typed, makes
+ * the YAML invalid rather than reaching the form as null.
  */
 function yamlToResource(yamlStr: string): WorkloadResource | null {
   try {
     const parsed = YAML.parse(yamlStr);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    if (!isPlainObject(parsed)) {
       return null;
     }
-    return parsed as WorkloadResource;
+    const endpoints = isPlainObject(parsed.spec)
+      ? parsed.spec.endpoints
+      : undefined;
+    if (
+      endpoints !== undefined &&
+      endpoints !== null &&
+      (!isPlainObject(endpoints) ||
+        !Object.values(endpoints).every(isPlainObject))
+    ) {
+      return null;
+    }
+    return parsed as unknown as WorkloadResource;
   } catch {
     return null;
   }
