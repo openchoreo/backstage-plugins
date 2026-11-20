@@ -28,7 +28,8 @@ export interface Config {
          * Increase this whenever `tools` changes, and never lower it.
          * tech-insights keeps the schema it already has for a version and
          * always uses the highest, so otherwise the change has no effect.
-         * Required when `tools` is set.
+         * Required when `tools` is set, and then at least 2: version 1 is the
+         * schema of the default scanners.
          */
         schemaVersion?: number;
         /**

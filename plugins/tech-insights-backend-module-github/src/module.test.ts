@@ -44,7 +44,7 @@ describe('techInsightsModuleGithub', () => {
   it('fails startup on config that would produce unusable facts', async () => {
     await expect(
       start({
-        schemaVersion: 1,
+        schemaVersion: 2,
         tools: [{ id: 'my-scanner', toolName: 'x', label: 'x' }],
       }),
     ).rejects.toThrow('part of fact names');

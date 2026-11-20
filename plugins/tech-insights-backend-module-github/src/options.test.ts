@@ -37,8 +37,14 @@ describe('readCodeScanningOptions', () => {
     );
   });
 
+  it('rejects schemaVersion 1 when scanners are configured', () => {
+    expect(() => read({ schemaVersion: 1, tools: [tool('semgrep')] })).toThrow(
+      'at least 2 when tools is set',
+    );
+  });
+
   it('rejects an empty scanner list', () => {
-    expect(() => read({ schemaVersion: 1, tools: [] })).toThrow(
+    expect(() => read({ schemaVersion: 2, tools: [] })).toThrow(
       'at least one scanner',
     );
   });
@@ -46,7 +52,7 @@ describe('readCodeScanningOptions', () => {
   it.each(['Semgrep', '1scanner', 'my-scanner', 'my scanner'])(
     'rejects id %s, which would make a bad fact name',
     id => {
-      expect(() => read({ schemaVersion: 1, tools: [tool(id)] })).toThrow(
+      expect(() => read({ schemaVersion: 2, tools: [tool(id)] })).toThrow(
         'part of fact names',
       );
     },
@@ -55,7 +61,7 @@ describe('readCodeScanningOptions', () => {
   it.each(['dependabot', 'secretScanning'])(
     'rejects id %s, which is kept for its own facts',
     id => {
-      expect(() => read({ schemaVersion: 1, tools: [tool(id)] })).toThrow(
+      expect(() => read({ schemaVersion: 2, tools: [tool(id)] })).toThrow(
         `Scanner id '${id}' is reserved`,
       );
     },
@@ -64,7 +70,7 @@ describe('readCodeScanningOptions', () => {
   it('rejects a repeated id', () => {
     expect(() =>
       read({
-        schemaVersion: 1,
+        schemaVersion: 2,
         tools: [tool('trivy', 'Trivy'), tool('trivy', 'Other')],
       }),
     ).toThrow("id 'trivy' is listed more than once");
@@ -73,7 +79,7 @@ describe('readCodeScanningOptions', () => {
   it('rejects tool names that differ only by case', () => {
     expect(() =>
       read({
-        schemaVersion: 1,
+        schemaVersion: 2,
         tools: [tool('one', 'Trivy'), tool('two', 'trivy')],
       }),
     ).toThrow("toolName 'trivy' is listed more than once");

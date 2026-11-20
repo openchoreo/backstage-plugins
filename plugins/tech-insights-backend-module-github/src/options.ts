@@ -84,6 +84,13 @@ export function readCodeScanningOptions(config: Config): CodeScanningOptions {
       `techInsights.github.codeScanning.schemaVersion must be a positive whole number, got ${schemaVersion}`,
     );
   }
+  // Version 1 is the schema of the default scanners, which tech-insights may
+  // already hold, so a custom list on it would keep that schema.
+  if (configured && schemaVersion < 2) {
+    throw new Error(
+      `techInsights.github.codeScanning.schemaVersion must be at least 2 when tools is set, got ${schemaVersion}`,
+    );
+  }
   if (tools.length === 0) {
     throw new Error(
       'techInsights.github.codeScanning.tools must list at least one scanner',

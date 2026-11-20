@@ -113,7 +113,8 @@ permission for a GitHub App or a fine-grained token, or the `security_events` sc
 token (`public_repo` covers public repositories only). GitHub refuses code scanning requests without
 credentials even for a public repository, answering HTTP 401, so every component is then skipped.
 
-Scanners default to CodeQL and Trivy. To change them, list every scanner and raise `schemaVersion`:
+Scanners default to CodeQL and Trivy. To change them, list every scanner and set `schemaVersion` to
+2 or more (1 is the schema of the defaults, so the backend fails to start on 1):
 
 ```yaml
 techInsights:
