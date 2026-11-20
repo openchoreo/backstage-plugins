@@ -128,6 +128,31 @@ describe('IncidentRow', () => {
     );
   });
 
+  it("links the component name to the incident's release line page", () => {
+    renderRow({
+      catalogNamespace: 'my-ns',
+      incident: { ...sampleIncident, releaseLineName: 'next' },
+    });
+
+    expect(screen.getByText('api-service').closest('a')).toHaveAttribute(
+      'href',
+      '/catalog/my-ns/releaseline/next',
+    );
+  });
+
+  it('links a main-line incident to the component page', () => {
+    renderRow({
+      catalogNamespace: 'my-ns',
+      incident: { ...sampleIncident, releaseLineName: 'main' },
+    });
+
+    expect(screen.getByText('api-service').closest('a')).toHaveAttribute(
+      'href',
+      '/catalog/my-ns/component/api-service',
+    );
+    expect(screen.queryByText('main')).not.toBeInTheDocument();
+  });
+
   it('does not expand the row when the component link is clicked', async () => {
     const user = userEvent.setup();
     renderRow();
