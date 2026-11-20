@@ -20,7 +20,9 @@ import type {
   EndpointInfo,
   EndpointURLSecurity,
 } from '../hooks/useEnvironmentData';
-import { EntityRefLink } from '@backstage/plugin-catalog-react';
+import { Link as RouterLink } from 'react-router-dom';
+import { useRouteRef } from '@backstage/core-plugin-api';
+import { entityRouteRef } from '@backstage/plugin-catalog-react';
 import {
   buildServiceUrl,
   buildUrl,
@@ -148,6 +150,40 @@ export const URLRow = ({ url, label, security }: URLRowProps) => {
   );
 };
 
+/**
+ * Opens the page of the Endpoint a workload endpoint's URLs come from.
+ * Rendered only inside the open dialog, so the route lookup needs the app's
+ * routes only when there's an Endpoint to link to.
+ */
+const ManageEndpointButton = ({
+  namespaceName,
+  endpointName,
+  onClick,
+}: {
+  namespaceName: string;
+  endpointName: string;
+  onClick: () => void;
+}) => {
+  const entityRoute = useRouteRef(entityRouteRef);
+  return (
+    <Button
+      size="small"
+      color="primary"
+      component={RouterLink}
+      to={entityRoute({
+        kind: 'endpoint',
+        namespace: namespaceName,
+        name: endpointName,
+      })}
+      onClick={onClick}
+      aria-label={`Manage Endpoint ${endpointName}`}
+      style={{ marginLeft: 'auto' }}
+    >
+      Manage Endpoint
+    </Button>
+  );
+};
+
 interface InvokeUrlsDialogProps {
   open: boolean;
   onClose: () => void;
@@ -159,8 +195,8 @@ interface InvokeUrlsDialogProps {
 /**
  * Lists every URL of a component's workload endpoints in one environment.
  * A workload endpoint exposed through one of the component's Endpoints shows
- * the Endpoint's URLs, with the security each enforces and a link to the
- * Endpoint; any other shows the URLs from the component's ReleaseBinding.
+ * the Endpoint's URLs, with the security each enforces and a button to
+ * manage the Endpoint; any other shows the URLs from the component's ReleaseBinding.
  */
 export const InvokeUrlsDialog = ({
   open,
@@ -199,21 +235,11 @@ export const InvokeUrlsDialog = ({
                   </Typography>
                 )}
                 {endpoint.endpointName && (
-                  <Typography
-                    variant="caption"
-                    color="textSecondary"
-                    style={{ marginLeft: 'auto' }}
-                  >
-                    via Endpoint{' '}
-                    <EntityRefLink
-                      entityRef={{
-                        kind: 'endpoint',
-                        namespace: namespaceName,
-                        name: endpoint.endpointName,
-                      }}
-                      onClick={onClose}
-                    />
-                  </Typography>
+                  <ManageEndpointButton
+                    namespaceName={namespaceName}
+                    endpointName={endpoint.endpointName}
+                    onClick={onClose}
+                  />
                 )}
               </Box>
               <Divider style={{ marginBottom: 12 }} />

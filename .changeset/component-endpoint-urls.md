@@ -10,9 +10,9 @@ environment that Endpoint is deployed to, takes its URLs from the Endpoint's
 binding: external, internal, namespace and project, each with the security a
 caller must present. The environment panel and its View All dialog show them,
 with a Namespace row, a padlock describing the security (for example "API key
-(header api-key)") and a link to the Endpoint they come from. An Endpoint's
-project URL replaces the in-cluster service URL; without one, the service URL
-stays.
+(header api-key)") and a **Manage Endpoint** button that opens the Endpoint
+they come from. An Endpoint's project URL replaces the in-cluster service URL;
+without one, the service URL stays.
 
 Everything else keeps the URLs from the component's ReleaseBinding, as
 before: components without Endpoints (such as those of legacy
