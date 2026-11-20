@@ -19,7 +19,7 @@
   ],
   "versionField": "openChoreoVersion",
   "versionFile": "src/version.ts",
-  "lastSyncCommit": "5efd7829",
-  "lastSyncDate": "2026-11-12T11:56:54+05:30",
-  "lastSyncDescription": "feat: route Endpoints to release lines and let a line own its Endpoints (#5389)"
+  "lastSyncCommit": "12dce69e",
+  "lastSyncDate": "2026-11-19T13:26:45+05:30",
+  "lastSyncDescription": "feat: make the Backstage portal excludable at install time (#5200)"
 }

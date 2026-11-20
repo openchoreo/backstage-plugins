@@ -6085,8 +6085,8 @@ export interface components {
         releaseLineName?: string;
       };
       type: components['schemas']['EndpointTypeRef'];
-      /** @description Scopes this Endpoint exposes its backends to. The project scope is implicit for every workload endpoint and is not accepted. */
-      visibility: ('namespace' | 'internal' | 'external')[];
+      /** @description Scopes this Endpoint exposes its backends to. Project asks the EndpointType to serve callers in the Endpoint's project, typically with a Kubernetes Service. Reachability comes from what the types render; without project listed, callers in the project reach a backend only through the Service its ComponentType renders, when it renders one. */
+      visibility: ('project' | 'namespace' | 'internal' | 'external')[];
       /** @description Backends this Endpoint routes traffic to, with relative weights. Names must be unique. */
       backendRefs: components['schemas']['EndpointBackendRef'][];
       /** @description API definition this Endpoint exposes. When unset it resolves from the backend's workload endpoint schema. */
@@ -6220,7 +6220,7 @@ export interface components {
         spec: components['schemas']['EndpointTypeSpec'];
       };
       /** @description Snapshot of the visibilities requested by the Endpoint. */
-      visibility: ('namespace' | 'internal' | 'external')[];
+      visibility: ('project' | 'namespace' | 'internal' | 'external')[];
       /** @description Snapshot of the backend references and weights from the Endpoint. */
       backendRefs: components['schemas']['EndpointBackendRef'][];
       /** @description Snapshot of the explicit schema override, if any. */
@@ -6306,7 +6306,9 @@ export interface components {
     };
     /**
      * @description Template for one URL and the security clients must satisfy to call it. Resolved only when the
-     *     Endpoint requests the visibility (project is implicit and always applies) and includeWhen passes.
+     *     Endpoint requests the visibility and includeWhen passes. The project URL is evaluated whether or not the
+     *     Endpoint lists project, so includeWhen is its only condition; a type that serves project itself gates it
+     *     with includeWhen: ${"project" in visibility}.
      */
     EndpointURLTemplate: {
       /**
@@ -6412,7 +6414,7 @@ export interface components {
       resolved: boolean;
       serviceURL?: components['schemas']['EndpointURL'];
       /**
-       * @description Why the backend could not be resolved (e.g. NotDeployed, EndpointNotAvailable, UnsupportedProtocol, NamespaceMismatch).
+       * @description Why the backend could not be resolved (e.g. NotDeployed, EndpointNotAvailable, ObservedComponent, UnsupportedProtocol, NamespaceMismatch).
        * @example NotDeployed
        */
       reason?: string;
@@ -7675,7 +7677,7 @@ export interface components {
        */
       environment: string;
       /**
-       * @description Whether this is the default notification channel for the environment
+       * @description Marks this channel as the default notification channel for the environment. If several channels of an environment are marked, the most recently created one is used.
        * @default false
        */
       isEnvDefault: boolean;
@@ -7781,20 +7783,26 @@ export interface components {
        */
       contentType: 'text/plain' | 'text/html';
     };
-    /** @description Configuration for webhook notification channels */
+    /** @description Configuration for webhook notification channels. Exactly one of url or urlFrom must be set. */
     NotificationWebhookConfig: {
       /**
        * Format: uri
-       * @description Webhook endpoint URL where alerts will be sent
-       * @example https://hooks.slack.com/services/example
+       * @description Inline webhook endpoint URL where alerts will be sent. It is stored in plain text, so use
+       *     urlFrom for a URL that carries a credential, such as a Slack incoming webhook.
+       * @example https://webhook.example.com/alerts
        */
-      url: string;
+      url?: string;
+      urlFrom?: components['schemas']['NotificationWebhookURLFrom'];
       /** @description Optional HTTP headers to include in the webhook request */
       headers?: {
         [key: string]: components['schemas']['NotificationWebhookHeaderValue'];
       };
       /** @description Optional JSON payload template using CEL expressions */
       payloadTemplate?: string;
+    } & (unknown | unknown);
+    /** @description Secret reference to the webhook endpoint URL, as an alternative to url */
+    NotificationWebhookURLFrom: {
+      secretKeyRef: components['schemas']['NotificationSecretKeyRef'];
     };
     /** @description Header value that can be provided inline or via secret reference */
     NotificationWebhookHeaderValue: {
@@ -7817,12 +7825,12 @@ export interface components {
        * @description Name of the SecretReference (or, deprecated, of the Kubernetes Secret)
        * @example smtp-credentials
        */
-      name?: string;
+      name: string;
       /**
        * @description Secret key of a SecretReference data entry (or, deprecated, key within the Kubernetes Secret)
        * @example password
        */
-      key?: string;
+      key: string;
     };
     /** @description Request body for creating a git secret */
     CreateGitSecretRequest: {
