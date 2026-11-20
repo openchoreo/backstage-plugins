@@ -11,9 +11,25 @@ export interface CodeScanningAlert {
 const PAGE_SIZE = 100;
 
 /**
- * A response the facts can't be read from. 403 is code scanning disabled or a
- * token without Code scanning alerts: read — the facts can't be determined, so
- * the entity is skipped rather than reported as never scanned or clean.
+ * Thrown for a 403 from the code scanning endpoints: code scanning is off for
+ * the repository, or the token lacks Code scanning alerts: read. The retriever
+ * reports the unresolved facts for it, so the component's checks fail instead
+ * of the component vanishing. A rate-limited 403 never gets here, since
+ * `getRepo` throws for it first.
+ */
+export class CodeScanningUnreadableError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'CodeScanningUnreadableError';
+  }
+}
+
+/**
+ * A response the facts can't be read from. A 403 can't be told from a missing
+ * token permission and means the facts can't be determined; it fails with
+ * `CodeScanningUnreadableError`. Any other status, such as a 5xx, is a plain
+ * error that skips the entity, so a scanner that couldn't be read never looks
+ * as though it never ran.
  */
 function unreadable(
   request: string,
@@ -21,9 +37,10 @@ function unreadable(
   { status, body }: GithubApiResponse,
 ): Error | undefined {
   if (status !== 200) {
-    return new Error(
-      `GET ${request} of ${repository.owner}/${repository.name} returned HTTP ${status}`,
-    );
+    const message = `GET ${request} of ${repository.owner}/${repository.name} returned HTTP ${status}`;
+    return status === 403
+      ? new CodeScanningUnreadableError(message)
+      : new Error(message);
   }
   if (!Array.isArray(body)) {
     return new Error(
@@ -118,6 +135,20 @@ export async function listOpenCodeScanningAlerts(
  */
 export const CODE_SCANNERS_FACT = 'githubCodeScanners';
 
+/**
+ * The fact that says whether code scanning could be read for the component,
+ * like `githubRepositoryResolved`: false for a component with no GitHub
+ * repository or branch the portal can read, or whose code scanning GitHub
+ * refuses (403).
+ */
+export const CODE_SCANNING_RESOLVED_FACT = 'githubCodeScanningResolved';
+
+export const codeScanningResolvedSchema: FactSchemaField = {
+  type: 'boolean',
+  description:
+    "Whether code scanning could be read for the component. When false (the component names no GitHub repository and branch the portal can read, or GitHub refuses code scanning: it is off for the repository or the token lacks Code scanning alerts: read), the scanner list is null and every scanner's Scanned fact is false with null counts",
+};
+
 /** The start of one scanner's fact names: `trivy` gives `githubTrivy`. */
 export function factPrefix(id: string): string {
   return `github${id.charAt(0).toUpperCase()}${id.slice(1)}`;
@@ -125,9 +156,9 @@ export function factPrefix(id: string): string {
 
 /**
  * The seven `github<Id>*` facts for one scanning tool. When the tool has never
- * run, or the component names no GitHub repository, `github<Id>Scanned` is
- * false and every count is null, so checks fail the component instead of
- * skipping it. Alerts without a security severity (quality-only rules, or a
+ * run, or its alerts can't be read (no GitHub repository, or a 403),
+ * `github<Id>Scanned` is false and every count is null, so checks fail the
+ * component instead of skipping it. Alerts without a security severity (quality-only rules, or a
  * tool that reports none) count only towards `github<Id>OpenAlertCount`.
  */
 export function codeScanningFacts(
@@ -170,7 +201,7 @@ export function codeScannersSchema(tools: CodeScanningTool[]): FactSchemaField {
   const ids = tools.map(tool => tool.id).join(', ');
   return {
     type: 'set',
-    description: `The scanners that uploaded an analysis for the branch the component builds from (githubBranch), out of: ${ids}. A list, so use contains or doesNotContain. Empty when none ran; null when the component names no GitHub repository and branch the portal can read`,
+    description: `The scanners that uploaded an analysis for the branch the component builds from (githubBranch), out of: ${ids}. A list, so use contains or doesNotContain. Empty when none ran; null when githubCodeScanningResolved is false`,
   };
 }
 
@@ -195,7 +226,7 @@ export function codeScanningSchema(
     fact(
       'Scanned',
       'boolean',
-      `Whether ${label} has uploaded an analysis for the branch the component builds from (githubBranch). When false (it never ran there, or the component names no GitHub repository and branch the portal can read), every other fact is null`,
+      `Whether ${label} has uploaded an analysis for the branch the component builds from (githubBranch). When false (it never ran there, or githubCodeScanningResolved is false), every other fact is null`,
     ),
     severityCount('OpenCriticalAlertCount', 'critical'),
     severityCount('OpenHighAlertCount', 'high'),

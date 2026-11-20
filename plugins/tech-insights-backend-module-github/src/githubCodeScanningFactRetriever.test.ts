@@ -121,6 +121,7 @@ const alertRequests = () =>
   scanRequests().filter(path => path.startsWith('/code-scanning/alerts'));
 
 const unresolved = {
+  githubCodeScanningResolved: false,
   githubCodeScanners: null,
   ...codeScanningFacts('codeql', undefined),
   ...codeScanningFacts('trivy', undefined),
@@ -154,6 +155,7 @@ describe('createGithubCodeScanningFactRetriever', () => {
       githubWithUploads({ CodeQL: [], Trivy: [] });
       const [{ facts }] = await run();
       expect(facts).toEqual({
+        githubCodeScanningResolved: true,
         githubCodeScanners: ['codeql', 'trivy'],
         ...codeScanningFacts('codeql', []),
         ...codeScanningFacts('trivy', []),
@@ -197,6 +199,7 @@ describe('createGithubCodeScanningFactRetriever', () => {
       githubWithUploads({});
       const [{ facts }] = await run();
       expect(facts).toEqual({
+        githubCodeScanningResolved: true,
         githubCodeScanners: [],
         ...codeScanningFacts('codeql', undefined),
         ...codeScanningFacts('trivy', undefined),
@@ -305,6 +308,7 @@ describe('createGithubCodeScanningFactRetriever', () => {
       });
       const [{ facts }] = await run();
       expect(facts).toEqual({
+        githubCodeScanningResolved: true,
         githubCodeScanners: ['codeql', 'trivy'],
         githubCodeqlScanned: true,
         githubCodeqlOpenCriticalAlertCount: 1,
@@ -369,7 +373,7 @@ describe('createGithubCodeScanningFactRetriever', () => {
       ['analyses', '/code-scanning/analyses'],
       ['alerts', '/code-scanning/alerts'],
     ])(
-      'skips the entity rather than reporting it when %s answers 403',
+      'reports the facts unresolved, not skipped, when %s answers 403',
       async (_name, failing) => {
         githubWithUploads({ CodeQL: [], Trivy: [] });
         const answer = mockGetRepo.getMockImplementation()!;
@@ -377,9 +381,42 @@ describe('createGithubCodeScanningFactRetriever', () => {
           path.startsWith(failing) ? { status: 403 } : answer(repository, path),
         );
         const ctx = context();
+        const [{ facts }] = await run({}, ctx);
+        expect(facts).toEqual(unresolved);
+        expect(ctx.logger.debug).toHaveBeenCalledWith(
+          expect.stringContaining('HTTP 403'),
+        );
+        expect(ctx.logger.warn).not.toHaveBeenCalled();
+      },
+    );
+
+    it('reports every scanner unresolved when only the second one is refused', async () => {
+      githubWithUploads({ CodeQL: alerts('high', 1), Trivy: [] });
+      const answer = mockGetRepo.getMockImplementation()!;
+      mockGetRepo.mockImplementation(async (repository, path = '') =>
+        path.includes('tool_name=Trivy')
+          ? { status: 403 }
+          : answer(repository, path),
+      );
+      const [{ facts }] = await run();
+      expect(facts).toEqual(unresolved);
+    });
+
+    it.each([
+      ['analyses', '/code-scanning/analyses'],
+      ['alerts', '/code-scanning/alerts'],
+    ])(
+      'skips the entity rather than reporting it when %s answers 500',
+      async (_name, failing) => {
+        githubWithUploads({ CodeQL: [], Trivy: [] });
+        const answer = mockGetRepo.getMockImplementation()!;
+        mockGetRepo.mockImplementation(async (repository, path = '') =>
+          path.startsWith(failing) ? { status: 500 } : answer(repository, path),
+        );
+        const ctx = context();
         await expect(run({}, ctx)).resolves.toEqual([]);
         expect(ctx.logger.warn).toHaveBeenCalledWith(
-          expect.stringContaining('HTTP 403'),
+          expect.stringContaining('HTTP 500'),
         );
       },
     );

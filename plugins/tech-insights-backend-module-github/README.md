@@ -89,13 +89,18 @@ Each scanner adds seven facts, named after its `id`. For `codeql`:
 
 `githubCodeScanners` lists the ids of the scanners that ran. It's a list, so rules test it with
 `contains` or `doesNotContain`, for example `githubCodeScanners contains codeql`.
+`githubCodeScanningResolved`, like `githubRepositoryResolved`, says whether code scanning could be
+read for the component at all.
 
-A scanner that never ran on the branch reports its `Scanned` fact false and null counts, while one that
-ran and found nothing reports real zeros, so checks fail a component that isn't scanned instead of
-passing it. A component that names no GitHub repository and branch the portal can read gets the
-same null facts, with `githubCodeScanners` null. Any other error, such as code scanning being
-disabled or credentials without access to it, skips the component, which keeps its previous facts
-until they expire.
+A scanner that never ran on the branch reports its `Scanned` fact false and null counts, while one
+that ran and found nothing reports real zeros, so checks fail a component that isn't scanned instead
+of passing it. A component whose code scanning can't be read gets those same facts for every
+scanner, with `githubCodeScanners` null and `githubCodeScanningResolved` false, so its checks fail
+too. That covers a component that names no GitHub repository and branch the portal can read, and a
+repository for which GitHub answers HTTP 403: code scanning is off (a private repository without
+GitHub Code Security) or the credentials lack access to it. The two causes aren't told apart. Any
+other error, such as a rate limit or a server error, skips the component, which keeps its previous
+facts until they expire.
 
 ```yaml
 techInsights:

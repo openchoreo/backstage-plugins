@@ -9,8 +9,11 @@ import {
 } from './collectGithubFacts';
 import {
   CODE_SCANNERS_FACT,
+  CODE_SCANNING_RESOLVED_FACT,
+  CodeScanningUnreadableError,
   codeScannersSchema,
   codeScanningFacts,
+  codeScanningResolvedSchema,
   codeScanningSchema,
   hasCodeScanningAnalysis,
   listOpenCodeScanningAlerts,
@@ -71,12 +74,16 @@ function cacheCursor(
  * Scans are read on the branch the component builds from, chosen as
  * githubRepositoryFactRetriever chooses it, so both describe the same code. A
  * repository or branch the portal can't read gets the unresolved facts, as
- * there.
+ * there, and so does a repository whose code scanning GitHub refuses with a
+ * 403 (off, or a token without Code scanning alerts: read), so that
+ * `githubCodeScanningResolved` is false and the component's checks fail
+ * instead of the component dropping out of them once its facts expire.
  *
  * All scanners share one row of facts per entity. They also share an endpoint
- * and a token, so an error for one is treated as an error for all: the entity
- * is skipped and keeps its previous facts, rather than a scanner that couldn't
- * be read looking as though it never ran.
+ * and a token, so an error for one is treated as an error for all. Any other
+ * error, such as a rate limit or a 5xx, skips the entity, which keeps its
+ * previous facts, rather than a scanner that couldn't be read looking as
+ * though it never ran.
  */
 export function createGithubCodeScanningFactRetriever({
   cache,
@@ -86,6 +93,7 @@ export function createGithubCodeScanningFactRetriever({
   options: CodeScanningOptions;
 }): FactRetriever {
   const unresolvedFacts = {
+    [CODE_SCANNING_RESOLVED_FACT]: false,
     [CODE_SCANNERS_FACT]: null,
     ...Object.fromEntries(
       tools.flatMap(tool =>
@@ -105,6 +113,7 @@ export function createGithubCodeScanningFactRetriever({
       'Which configured scanners ran on the branch a component builds from, and the open alerts of each by severity, read from GitHub Code Scanning.',
     entityFilter: [{ kind: 'component' }],
     schema: {
+      [CODE_SCANNING_RESOLVED_FACT]: codeScanningResolvedSchema,
       [CODE_SCANNERS_FACT]: codeScannersSchema(tools),
       ...Object.fromEntries(
         tools.flatMap(tool => Object.entries(codeScanningSchema(tool))),
@@ -150,25 +159,39 @@ export function createGithubCodeScanningFactRetriever({
 
           const scanners: string[] = [];
           const facts: Record<string, boolean | number | null> = {};
-          for (const { id, toolName } of tools) {
-            const ran = await hasCodeScanningAnalysis(
-              api,
-              repository,
-              toolName,
-              branch,
-            );
-            if (ran) scanners.push(id);
-            const alerts = ran
-              ? await listOpenCodeScanningAlerts(
-                  api,
-                  repository,
-                  toolName,
-                  branch,
-                )
-              : undefined;
-            Object.assign(facts, codeScanningFacts(id, alerts));
+          try {
+            for (const { id, toolName } of tools) {
+              const ran = await hasCodeScanningAnalysis(
+                api,
+                repository,
+                toolName,
+                branch,
+              );
+              if (ran) scanners.push(id);
+              const alerts = ran
+                ? await listOpenCodeScanningAlerts(
+                    api,
+                    repository,
+                    toolName,
+                    branch,
+                  )
+                : undefined;
+              Object.assign(facts, codeScanningFacts(id, alerts));
+            }
+          } catch (error) {
+            if (error instanceof CodeScanningUnreadableError) {
+              context.logger.debug(
+                `Code scanning for ${slug}@${branch} unreadable: ${error.message}; code scanning may be off, or the token needs Code scanning alerts: read`,
+              );
+              return unresolvedFacts;
+            }
+            throw error;
           }
-          return { [CODE_SCANNERS_FACT]: scanners, ...facts };
+          return {
+            [CODE_SCANNING_RESOLVED_FACT]: true,
+            [CODE_SCANNERS_FACT]: scanners,
+            ...facts,
+          };
         },
         {
           unresolvedFacts,

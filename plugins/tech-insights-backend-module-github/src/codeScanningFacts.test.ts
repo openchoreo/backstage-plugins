@@ -1,6 +1,7 @@
 import type { GithubApi } from './githubApi';
 import type { GithubRepository } from './repository';
 import {
+  CodeScanningUnreadableError,
   codeScannersSchema,
   codeScanningFacts,
   codeScanningSchema,
@@ -152,15 +153,29 @@ describe('listOpenCodeScanningAlerts', () => {
     ).rejects.toThrow('HTTP 500');
   });
 
-  it.each([403, 404])(
-    'throws on HTTP %s so the entity is skipped, not reported clean',
-    async status => {
-      const { api } = apiReturning({ status });
-      await expect(
-        listOpenCodeScanningAlerts(api, repository, 'CodeQL', 'main'),
-      ).rejects.toThrow(`HTTP ${status}`);
-    },
-  );
+  it('throws an unreadable error on HTTP 403, not a clean result', async () => {
+    const { api } = apiReturning({ status: 403 });
+    const failure = listOpenCodeScanningAlerts(
+      api,
+      repository,
+      'CodeQL',
+      'main',
+    );
+    await expect(failure).rejects.toThrow(CodeScanningUnreadableError);
+    await expect(failure).rejects.toThrow('HTTP 403');
+  });
+
+  it('throws a plain error on HTTP 404 so the entity is skipped, not reported clean', async () => {
+    const { api } = apiReturning({ status: 404 });
+    const failure = listOpenCodeScanningAlerts(
+      api,
+      repository,
+      'CodeQL',
+      'main',
+    );
+    await expect(failure).rejects.toThrow('HTTP 404');
+    await expect(failure).rejects.not.toThrow(CodeScanningUnreadableError);
+  });
 
   it('throws when a page is not a list', async () => {
     const { api } = apiReturning({ status: 200, body: { message: 'x' } });
@@ -200,8 +215,16 @@ describe('hasCodeScanningAnalysis', () => {
     await expect(ran({ status: 200, body: [] })).resolves.toBe(false);
   });
 
-  it.each([403, 500])('throws on HTTP %s', async status => {
-    await expect(ran({ status })).rejects.toThrow(`HTTP ${status}`);
+  it('throws an unreadable error on HTTP 403', async () => {
+    const failure = ran({ status: 403 });
+    await expect(failure).rejects.toThrow(CodeScanningUnreadableError);
+    await expect(failure).rejects.toThrow('HTTP 403');
+  });
+
+  it('throws a plain error on HTTP 500', async () => {
+    const failure = ran({ status: 500 });
+    await expect(failure).rejects.toThrow('HTTP 500');
+    await expect(failure).rejects.not.toThrow(CodeScanningUnreadableError);
   });
 
   it('throws when the answer is not a list, rather than reporting never ran', async () => {
