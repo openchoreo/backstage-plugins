@@ -21,6 +21,7 @@ interface IncidentsTableProps {
   namespaceName: string;
   projectName: string;
   environmentName?: string;
+  catalogNamespace?: string;
   onViewRCA?: (incident: IncidentSummary) => void;
   onViewCostAnalysis?: (incident: IncidentSummary) => void;
   onAcknowledge?: (incident: IncidentSummary) => void;
@@ -34,6 +35,7 @@ export const IncidentsTable: FC<IncidentsTableProps> = ({
   namespaceName,
   projectName,
   environmentName = '',
+  catalogNamespace,
   onViewRCA,
   onViewCostAnalysis,
   onAcknowledge,
@@ -94,6 +96,7 @@ export const IncidentsTable: FC<IncidentsTableProps> = ({
                   namespaceName={namespaceName}
                   projectName={projectName}
                   environmentName={environmentName}
+                  catalogNamespace={catalogNamespace}
                   onViewRCA={onViewRCA ?? (() => {})}
                   onViewCostAnalysis={onViewCostAnalysis}
                   onAcknowledge={onAcknowledge}

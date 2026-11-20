@@ -13,6 +13,8 @@ import {
 import OpenInNewIcon from '@material-ui/icons/OpenInNew';
 import CheckIcon from '@material-ui/icons/Check';
 import DoneAllIcon from '@material-ui/icons/DoneAll';
+import { Link } from '@backstage/core-components';
+import { toStoredReleaseLine } from '@openchoreo/backstage-plugin-common';
 import type { IncidentSummary } from '../../types';
 import { useLogEntryStyles } from '../RuntimeLogs/styles';
 
@@ -21,6 +23,7 @@ interface IncidentRowProps {
   namespaceName: string;
   projectName: string;
   environmentName?: string;
+  catalogNamespace?: string;
   onViewRCA: (incident: IncidentSummary) => void;
   onViewCostAnalysis?: (incident: IncidentSummary) => void;
   onAcknowledge?: (incident: IncidentSummary) => void;
@@ -59,6 +62,7 @@ export const IncidentRow: FC<IncidentRowProps> = ({
   namespaceName,
   projectName,
   environmentName,
+  catalogNamespace = 'default',
   onViewRCA,
   onViewCostAnalysis,
   onAcknowledge,
@@ -96,6 +100,13 @@ export const IncidentRow: FC<IncidentRowProps> = ({
 
   const effectiveProject = incident.projectName || projectName || '—';
   const effectiveComponent = incident.componentName || '—';
+  const releaseLine = toStoredReleaseLine(incident.releaseLineName);
+  let componentUrl: string | undefined;
+  if (incident.componentName) {
+    componentUrl = releaseLine
+      ? `/catalog/${catalogNamespace}/releaseline/${releaseLine}`
+      : `/catalog/${catalogNamespace}/component/${incident.componentName}`;
+  }
   const effectiveEnvironment =
     incident.environmentName || environmentName || '—';
   const effectiveNamespace = incident.namespaceName || namespaceName || '—';
@@ -108,6 +119,63 @@ export const IncidentRow: FC<IncidentRowProps> = ({
       shortIncidentId = fullIncidentId;
     }
   }
+
+  const renderComponentName = () =>
+    componentUrl ? (
+      <Link to={componentUrl} onClick={event => event.stopPropagation()}>
+        {effectiveComponent}
+      </Link>
+    ) : (
+      effectiveComponent
+    );
+
+  const renderStatusActions = (variant: 'text' | 'outlined') => (
+    <>
+      {incident.status === 'active' && onAcknowledge && (
+        <Tooltip title="Mark this incident as acknowledged">
+          <span>
+            <Button
+              size="small"
+              variant={variant}
+              disabled={updating}
+              startIcon={
+                updating ? (
+                  <CircularProgress size={14} />
+                ) : (
+                  <CheckIcon fontSize="small" />
+                )
+              }
+              onClick={handleAcknowledgeClick}
+            >
+              Acknowledge
+            </Button>
+          </span>
+        </Tooltip>
+      )}
+
+      {incident.status === 'acknowledged' && onResolve && (
+        <Tooltip title="Mark this incident as resolved">
+          <span>
+            <Button
+              size="small"
+              variant={variant}
+              disabled={updating}
+              startIcon={
+                updating ? (
+                  <CircularProgress size={14} />
+                ) : (
+                  <DoneAllIcon fontSize="small" />
+                )
+              }
+              onClick={handleResolveClick}
+            >
+              Resolve
+            </Button>
+          </span>
+        </Tooltip>
+      )}
+    </>
+  );
 
   return (
     <>
@@ -151,20 +219,20 @@ export const IncidentRow: FC<IncidentRowProps> = ({
           </Typography>
         </TableCell>
         <TableCell style={{ fontSize: '0.75rem' }}>
-          {effectiveComponent}
-          {incident.releaseLineName && (
+          {renderComponentName()}
+          {releaseLine && (
             <Tooltip title="Release line">
               <Chip
                 size="small"
                 variant="outlined"
-                label={incident.releaseLineName}
+                label={releaseLine}
                 style={{ marginLeft: 4, height: 18, fontSize: '0.65rem' }}
               />
             </Tooltip>
           )}
         </TableCell>
         <TableCell>
-          <Box display="flex" style={{ gap: 8 }}>
+          <Box display="flex" flexWrap="wrap" style={{ gap: 8 }}>
             {incident.incidentTriggerAiRca && (
               <Tooltip title="Open RCA Reports tab for this incident">
                 <Button
@@ -187,6 +255,7 @@ export const IncidentRow: FC<IncidentRowProps> = ({
                 </Button>
               </Tooltip>
             )}
+            {renderStatusActions('text')}
           </Box>
         </TableCell>
       </TableRow>
@@ -234,49 +303,7 @@ export const IncidentRow: FC<IncidentRowProps> = ({
                         </Tooltip>
                       )}
 
-                    {incident.status === 'active' && onAcknowledge && (
-                      <Tooltip title="Mark this incident as acknowledged">
-                        <span>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            disabled={updating}
-                            startIcon={
-                              updating ? (
-                                <CircularProgress size={14} />
-                              ) : (
-                                <CheckIcon fontSize="small" />
-                              )
-                            }
-                            onClick={handleAcknowledgeClick}
-                          >
-                            Acknowledge
-                          </Button>
-                        </span>
-                      </Tooltip>
-                    )}
-
-                    {incident.status === 'acknowledged' && onResolve && (
-                      <Tooltip title="Mark this incident as resolved">
-                        <span>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            disabled={updating}
-                            startIcon={
-                              updating ? (
-                                <CircularProgress size={14} />
-                              ) : (
-                                <DoneAllIcon fontSize="small" />
-                              )
-                            }
-                            onClick={handleResolveClick}
-                          >
-                            Resolve
-                          </Button>
-                        </span>
-                      </Tooltip>
-                    )}
+                    {renderStatusActions('outlined')}
                   </Box>
                 </Box>
 
@@ -306,17 +333,17 @@ export const IncidentRow: FC<IncidentRowProps> = ({
                     <Box className={classes.metadataItem}>
                       <span className={classes.metadataKey}>Component:</span>
                       <span className={classes.metadataValue}>
-                        {effectiveComponent}
+                        {renderComponentName()}
                       </span>
                     </Box>
 
-                    {incident.releaseLineName && (
+                    {releaseLine && (
                       <Box className={classes.metadataItem}>
                         <span className={classes.metadataKey}>
                           Release Line:
                         </span>
                         <span className={classes.metadataValue}>
-                          {incident.releaseLineName}
+                          {releaseLine}
                         </span>
                       </Box>
                     )}

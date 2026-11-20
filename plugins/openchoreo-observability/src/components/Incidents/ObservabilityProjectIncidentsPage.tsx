@@ -313,6 +313,7 @@ const ObservabilityProjectIncidentsContent = () => {
             environmentName={
               selectedEnvironment?.displayName || selectedEnvironment?.name
             }
+            catalogNamespace={entity.metadata.namespace || 'default'}
             onViewRCA={handleViewRCA}
             onViewCostAnalysis={handleViewCostAnalysis}
             onAcknowledge={handleAcknowledge}
