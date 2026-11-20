@@ -8,6 +8,7 @@ import {
   Tooltip,
 } from '@material-ui/core';
 import FileCopyOutlined from '@material-ui/icons/FileCopyOutlined';
+import { Link } from '@backstage/core-components';
 import { MAIN_RELEASE_LINE } from '@openchoreo/backstage-plugin-common';
 import { LogEntry as LogEntryType, LogEntryField } from './types';
 import { useLogEntryStyles } from './styles';
@@ -48,6 +49,11 @@ interface LogEntryProps {
    */
   getLogsSnapshot?: () => LogEntryType[];
   renderRowAction?: RenderLogRowAction;
+  /**
+   * Builds the link to a component's logs page. When set, the component
+   * name column links there; project-level logs supply it.
+   */
+  getComponentLogsUrl?: (componentName: string) => string;
 }
 
 export const LogEntry: FC<LogEntryProps> = ({
@@ -60,6 +66,7 @@ export const LogEntry: FC<LogEntryProps> = ({
   onToggleExpand,
   getLogsSnapshot,
   renderRowAction,
+  getComponentLogsUrl,
 }) => {
   const classes = useLogEntryStyles();
   const [copySuccess, setCopySuccess] = useState(false);
@@ -142,13 +149,25 @@ export const LogEntry: FC<LogEntryProps> = ({
           }
 
           if (field === LogEntryField.ComponentName) {
+            const name = log.metadata?.componentName ?? componentName ?? '';
             return (
               <Box
                 key={field}
                 style={getColumnStyle(field)}
                 className={`${classes.cell} ${classes.monospaceCell}`}
               >
-                {log.metadata?.componentName ?? componentName ?? ''}
+                {name && getComponentLogsUrl ? (
+                  <Link
+                    to={getComponentLogsUrl(name)}
+                    title={`View logs for ${name}`}
+                    // Follow the link without also expanding the row.
+                    onClick={event => event.stopPropagation()}
+                  >
+                    {name}
+                  </Link>
+                ) : (
+                  name
+                )}
               </Box>
             );
           }

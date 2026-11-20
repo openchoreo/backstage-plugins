@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { renderInTestApp } from '@backstage/test-utils';
 import { LogEntry } from './LogEntry';
 import { LogEntryField } from './types';
 import { LogEntry as LogEntryType } from './types';
@@ -95,6 +96,51 @@ describe('LogEntry', () => {
     });
 
     expect(screen.getByText('api-service')).toBeInTheDocument();
+  });
+
+  it('shows the component name as plain text without a logs link builder', () => {
+    renderLogEntry({
+      selectedFields: [...allFields, LogEntryField.ComponentName],
+    });
+
+    expect(screen.queryByRole('link', { name: 'api-service' })).toBeNull();
+  });
+
+  it("links the component name to the component's logs", async () => {
+    await renderInTestApp(
+      <LogEntry
+        log={sampleLog}
+        selectedFields={[...allFields, LogEntryField.ComponentName]}
+        expanded={false}
+        onToggleExpand={() => {}}
+        getComponentLogsUrl={name =>
+          `/catalog/default/component/${name}/runtime-logs?timeRange=1h`
+        }
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: 'api-service' })).toHaveAttribute(
+      'href',
+      '/catalog/default/component/api-service/runtime-logs?timeRange=1h',
+    );
+  });
+
+  it('does not expand the row when the component link is clicked', async () => {
+    const user = userEvent.setup();
+    const onToggleExpand = jest.fn();
+    await renderInTestApp(
+      <LogEntry
+        log={sampleLog}
+        selectedFields={[...allFields, LogEntryField.ComponentName]}
+        expanded={false}
+        onToggleExpand={onToggleExpand}
+        getComponentLogsUrl={name => `/catalog/default/component/${name}`}
+      />,
+    );
+
+    await user.click(screen.getByRole('link', { name: 'api-service' }));
+
+    expect(onToggleExpand).not.toHaveBeenCalled();
   });
 
   it('renders the release line when ReleaseLine field is selected', () => {

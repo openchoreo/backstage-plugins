@@ -50,8 +50,11 @@ jest.mock('./LogsFilter', () => ({
 }));
 
 jest.mock('./LogsTable', () => ({
-  LogsTable: ({ logs, loading, selectedFields }: any) => (
+  LogsTable: ({ logs, loading, selectedFields, getComponentLogsUrl }: any) => (
     <div data-testid="logs-table">
+      <span data-testid="component-logs-url">
+        {getComponentLogsUrl?.('svc-a')}
+      </span>
       <span data-testid="log-count">{logs.length}</span>
       <span data-testid="table-loading">{String(loading)}</span>
       <span data-testid="field-count">{selectedFields.length}</span>
@@ -220,6 +223,16 @@ describe('ObservabilityProjectRuntimeLogsPage', () => {
       );
     },
   );
+
+  it("links component names to the component's logs, keeping the filters", async () => {
+    await renderPage(
+      '/?env=development&timeRange=1h&logLevel=ERROR&components=svc-a,svc-b&fields=Timestamp,Log',
+    );
+
+    expect(screen.getByTestId('component-logs-url')).toHaveTextContent(
+      '/catalog/default/component/svc-a/runtime-logs?env=development&timeRange=1h&logLevel=ERROR',
+    );
+  });
 
   it('shows progress while checking permissions', async () => {
     mockUseLogsPermission.mockReturnValue({
