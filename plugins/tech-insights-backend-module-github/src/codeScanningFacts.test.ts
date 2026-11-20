@@ -45,7 +45,7 @@ describe('codeScanningFacts', () => {
         alert(null),
       ]),
     ).toEqual({
-      githubCodeqlScanEnabled: true,
+      githubCodeqlScanned: true,
       githubCodeqlOpenCriticalAlertCount: 1,
       githubCodeqlOpenHighAlertCount: 2,
       githubCodeqlOpenMediumAlertCount: 0,
@@ -57,7 +57,7 @@ describe('codeScanningFacts', () => {
 
   it('counts alerts with no security severity only in the total', () => {
     expect(codeScanningFacts('semgrep', [alert(null), {}])).toMatchObject({
-      githubSemgrepScanEnabled: true,
+      githubSemgrepScanned: true,
       githubSemgrepOpenCriticalAlertCount: 0,
       githubSemgrepOpenAlertCount: 2,
       githubSemgrepHasOpenCriticalAlerts: false,
@@ -66,7 +66,7 @@ describe('codeScanningFacts', () => {
 
   it('reports a clean scan with real zero values', () => {
     expect(codeScanningFacts('trivy', [])).toEqual({
-      githubTrivyScanEnabled: true,
+      githubTrivyScanned: true,
       githubTrivyOpenCriticalAlertCount: 0,
       githubTrivyOpenHighAlertCount: 0,
       githubTrivyOpenMediumAlertCount: 0,
@@ -76,9 +76,9 @@ describe('codeScanningFacts', () => {
     });
   });
 
-  it('reports ScanEnabled: false and null counts when the tool never ran', () => {
+  it('reports Scanned: false and null counts when the tool never ran', () => {
     expect(codeScanningFacts('trivy', undefined)).toEqual({
-      githubTrivyScanEnabled: false,
+      githubTrivyScanned: false,
       githubTrivyOpenCriticalAlertCount: null,
       githubTrivyOpenHighAlertCount: null,
       githubTrivyOpenMediumAlertCount: null,
@@ -229,7 +229,7 @@ describe('codeScanningSchema', () => {
       'githubTrivyOpenHighAlertCount',
       'githubTrivyOpenLowAlertCount',
       'githubTrivyOpenMediumAlertCount',
-      'githubTrivyScanEnabled',
+      'githubTrivyScanned',
     ]);
   });
 

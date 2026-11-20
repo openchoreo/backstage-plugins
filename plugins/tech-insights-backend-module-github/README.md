@@ -82,7 +82,7 @@ Each scanner adds seven facts, named after its `id`. For `codeql`:
 
 | Fact                                                                     | Type    | Meaning                                              |
 | ------------------------------------------------------------------------ | ------- | ---------------------------------------------------- |
-| `githubCodeqlScanEnabled`                                                | boolean | Whether CodeQL uploaded an analysis for the branch   |
+| `githubCodeqlScanned`                                                    | boolean | Whether CodeQL uploaded an analysis for the branch   |
 | `githubCodeqlOpenCriticalAlertCount` ... `githubCodeqlOpenLowAlertCount` | integer | Open alerts with each security severity              |
 | `githubCodeqlOpenAlertCount`                                             | integer | All open alerts, with or without a security severity |
 | `githubCodeqlHasOpenCriticalAlerts`                                      | boolean | Whether there is at least one open critical alert    |
@@ -90,7 +90,7 @@ Each scanner adds seven facts, named after its `id`. For `codeql`:
 `githubCodeScanners` lists the ids of the scanners that ran. It's a list, so rules test it with
 `contains` or `doesNotContain`, for example `githubCodeScanners contains codeql`.
 
-A scanner that never ran on the branch reports `ScanEnabled` false and null counts, while one that
+A scanner that never ran on the branch reports its `Scanned` fact false and null counts, while one that
 ran and found nothing reports real zeros, so checks fail a component that isn't scanned instead of
 passing it. A component that names no GitHub repository and branch the portal can read gets the
 same null facts, with `githubCodeScanners` null. Any other error, such as code scanning being

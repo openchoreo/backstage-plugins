@@ -125,7 +125,7 @@ export function factPrefix(id: string): string {
 
 /**
  * The seven `github<Id>*` facts for one scanning tool. When the tool has never
- * run, or the component names no GitHub repository, `github<Id>ScanEnabled` is
+ * run, or the component names no GitHub repository, `github<Id>Scanned` is
  * false and every count is null, so checks fail the component instead of
  * skipping it. Alerts without a security severity (quality-only rules, or a
  * tool that reports none) count only towards `github<Id>OpenAlertCount`.
@@ -137,7 +137,7 @@ export function codeScanningFacts(
   const prefix = factPrefix(id);
   if (!alerts) {
     return {
-      [`${prefix}ScanEnabled`]: false,
+      [`${prefix}Scanned`]: false,
       [`${prefix}OpenCriticalAlertCount`]: null,
       [`${prefix}OpenHighAlertCount`]: null,
       [`${prefix}OpenMediumAlertCount`]: null,
@@ -150,7 +150,7 @@ export function codeScanningFacts(
     alerts.filter(a => a.rule?.security_severity_level === severity).length;
   const critical = count('critical');
   return {
-    [`${prefix}ScanEnabled`]: true,
+    [`${prefix}Scanned`]: true,
     [`${prefix}OpenCriticalAlertCount`]: critical,
     [`${prefix}OpenHighAlertCount`]: count('high'),
     [`${prefix}OpenMediumAlertCount`]: count('medium'),
@@ -193,7 +193,7 @@ export function codeScanningSchema(
     );
   return Object.fromEntries([
     fact(
-      'ScanEnabled',
+      'Scanned',
       'boolean',
       `Whether ${label} has uploaded an analysis for the branch the component builds from (githubBranch). When false (it never ran there, or the component names no GitHub repository and branch the portal can read), every other fact is null`,
     ),

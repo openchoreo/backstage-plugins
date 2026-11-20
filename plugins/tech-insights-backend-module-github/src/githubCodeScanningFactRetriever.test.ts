@@ -158,19 +158,19 @@ describe('createGithubCodeScanningFactRetriever', () => {
         ...codeScanningFacts('codeql', []),
         ...codeScanningFacts('trivy', []),
       });
-      expect(facts.githubTrivyScanEnabled).toBe(true);
+      expect(facts.githubTrivyScanned).toBe(true);
       expect(facts.githubTrivyOpenCriticalAlertCount).toBe(0);
       expect(facts.githubTrivyHasOpenCriticalAlerts).toBe(false);
     });
 
-    it('reports a scanner as not enabled when only another scanner uploaded', async () => {
+    it('reports a scanner as not scanned when only another scanner uploaded', async () => {
       githubWithUploads({ CodeQL: alerts('critical', 1) });
       const [{ facts }] = await run();
       expect(facts).toMatchObject({
         githubCodeScanners: ['codeql'],
-        githubCodeqlScanEnabled: true,
+        githubCodeqlScanned: true,
         githubCodeqlOpenCriticalAlertCount: 1,
-        githubTrivyScanEnabled: false,
+        githubTrivyScanned: false,
         githubTrivyOpenCriticalAlertCount: null,
         githubTrivyOpenAlertCount: null,
         githubTrivyHasOpenCriticalAlerts: null,
@@ -189,11 +189,11 @@ describe('createGithubCodeScanningFactRetriever', () => {
         { analysesOfUnusedTool: { status: 200, body: [] } },
       );
       const [{ facts }] = await run();
-      expect(facts.githubTrivyScanEnabled).toBe(false);
+      expect(facts.githubTrivyScanned).toBe(false);
       expect(facts.githubTrivyOpenCriticalAlertCount).toBeNull();
     });
 
-    it('reports every scanner as not enabled for a repository with no uploads', async () => {
+    it('reports every scanner as not scanned for a repository with no uploads', async () => {
       githubWithUploads({});
       const [{ facts }] = await run();
       expect(facts).toEqual({
@@ -306,14 +306,14 @@ describe('createGithubCodeScanningFactRetriever', () => {
       const [{ facts }] = await run();
       expect(facts).toEqual({
         githubCodeScanners: ['codeql', 'trivy'],
-        githubCodeqlScanEnabled: true,
+        githubCodeqlScanned: true,
         githubCodeqlOpenCriticalAlertCount: 1,
         githubCodeqlOpenHighAlertCount: 0,
         githubCodeqlOpenMediumAlertCount: 0,
         githubCodeqlOpenLowAlertCount: 0,
         githubCodeqlOpenAlertCount: 1,
         githubCodeqlHasOpenCriticalAlerts: true,
-        githubTrivyScanEnabled: true,
+        githubTrivyScanned: true,
         githubTrivyOpenCriticalAlertCount: 1,
         githubTrivyOpenHighAlertCount: 22,
         githubTrivyOpenMediumAlertCount: 32,
@@ -346,7 +346,7 @@ describe('createGithubCodeScanningFactRetriever', () => {
   });
 
   describe('entities whose scanners cannot be read', () => {
-    it('reports not enabled for a component with no repository', async () => {
+    it('reports not scanned for a component with no repository', async () => {
       mockGetEntities.mockResolvedValue({ items: [component('a')] });
       const [{ facts }] = await run();
       expect(facts).toEqual(unresolved);
@@ -475,10 +475,10 @@ describe('createGithubCodeScanningFactRetriever', () => {
       ).toContain('out of: codeql, trivy, semgrep.');
       expect(facts).toMatchObject({
         githubCodeScanners: ['semgrep'],
-        githubSemgrepScanEnabled: true,
+        githubSemgrepScanned: true,
         githubSemgrepOpenHighAlertCount: 2,
-        githubCodeqlScanEnabled: false,
-        githubTrivyScanEnabled: false,
+        githubCodeqlScanned: false,
+        githubTrivyScanned: false,
       });
       expect(mockGetRepo).toHaveBeenCalledWith(
         expect.anything(),
