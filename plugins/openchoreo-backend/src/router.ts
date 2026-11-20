@@ -29,6 +29,7 @@ import {
   type ResourceReleaseSchemaSection,
 } from './services/ResourceReleaseService/ResourceReleaseInfoService';
 import { EndpointInfoService } from './services/EndpointService/EndpointInfoService';
+import { EndpointTrafficService } from './services/EndpointService/EndpointTrafficService';
 import {
   ProjectReleaseInfoService,
   type ProjectReleaseSchemaSection,
@@ -117,6 +118,33 @@ function requestReleaseLine(req: express.Request): string | undefined {
 
 const ENDPOINT_BACKEND_WEIGHT_ERROR = `weight must be an integer from 0 to ${MAX_ENDPOINT_BACKEND_WEIGHT}`;
 
+/** A whole percentage, as a split's values are. */
+function isPercent(value: unknown): value is number {
+  return (
+    typeof value === 'number' &&
+    Number.isInteger(value) &&
+    value >= 0 &&
+    value <= 100
+  );
+}
+
+function isSplit(split: unknown): split is Record<string, number> {
+  return (
+    typeof split === 'object' &&
+    split !== null &&
+    !Array.isArray(split) &&
+    Object.values(split).every(isPercent)
+  );
+}
+
+/** A condition's shape; its values are checked by the service. */
+function isMatch(match: unknown): boolean {
+  return typeof match === 'object' && match !== null && !Array.isArray(match);
+}
+
+const SPLIT_ERROR =
+  'split must map backend names to whole percentages from 0 to 100';
+
 export async function createRouter({
   environmentInfoService,
   cellDiagramInfoService,
@@ -133,6 +161,7 @@ export async function createRouter({
   resourceReleaseInfoService,
   endpointInfoService,
   componentEndpointFollowService,
+  endpointTrafficService,
   projectReleaseInfoService,
   secretReferencesInfoService,
   secretsService,
@@ -167,6 +196,7 @@ export async function createRouter({
   resourceReleaseInfoService: ResourceReleaseInfoService;
   endpointInfoService: EndpointInfoService;
   componentEndpointFollowService: ComponentEndpointFollowService;
+  endpointTrafficService: EndpointTrafficService;
   projectReleaseInfoService: ProjectReleaseInfoService;
   secretReferencesInfoService: SecretReferencesService;
   secretsService: SecretsService;
@@ -1826,6 +1856,160 @@ export async function createRouter({
     res.json(
       await endpointInfoService.updateEndpointBackendWeight(
         { namespaceName, endpointName, backendName, weight },
+        getUserTokenFromRequest(req),
+      ),
+    );
+  });
+
+  router.get('/endpoint-traffic', async (req, res) => {
+    const { namespaceName, endpointName } = req.query;
+    if (typeof namespaceName !== 'string' || typeof endpointName !== 'string') {
+      throw new InputError(
+        'namespaceName and endpointName are required query parameters',
+      );
+    }
+    res.json(
+      await endpointTrafficService.fetchTraffic(
+        namespaceName,
+        endpointName,
+        getUserTokenFromRequest(req),
+      ),
+    );
+  });
+
+  router.put('/endpoint-traffic/backend', requireAuth, async (req, res) => {
+    const {
+      namespaceName,
+      endpointName,
+      componentName,
+      endpoint,
+      releaseLine,
+      name,
+      traffic,
+      editing,
+      split,
+    } = req.body;
+    if (!namespaceName || !endpointName || !componentName || !endpoint) {
+      throw new InputError(
+        'namespaceName, endpointName, componentName and endpoint are required in request body',
+      );
+    }
+    if (split !== undefined && !isSplit(split))
+      throw new InputError(SPLIT_ERROR);
+    const kind = traffic?.kind;
+    if (
+      !(
+        kind === 'weight' ||
+        (kind === 'match' &&
+          typeof traffic.match === 'object' &&
+          traffic.match !== null) ||
+        (kind === 'mirror' && isPercent(traffic.percent))
+      )
+    ) {
+      throw new InputError(
+        'traffic must be {kind: weight}, {kind: match, match} or {kind: mirror, percent}',
+      );
+    }
+    res.json(
+      await endpointTrafficService.saveBackend(
+        {
+          namespaceName,
+          endpointName,
+          componentName,
+          endpoint,
+          releaseLine:
+            typeof releaseLine === 'string'
+              ? toStoredReleaseLine(releaseLine)
+              : undefined,
+          ...(typeof name === 'string' && name && { name }),
+          traffic,
+          ...(typeof editing === 'string' && editing && { editing }),
+          ...(split !== undefined && { split }),
+        },
+        getUserTokenFromRequest(req),
+      ),
+    );
+  });
+
+  router.delete('/endpoint-traffic/backend', requireAuth, async (req, res) => {
+    const { namespaceName, endpointName, backendName } = req.body;
+    if (!namespaceName || !endpointName || !backendName) {
+      throw new InputError(
+        'namespaceName, endpointName and backendName are required in request body',
+      );
+    }
+    res.json(
+      await endpointTrafficService.removeBackend(
+        { namespaceName, endpointName, backendName },
+        getUserTokenFromRequest(req),
+      ),
+    );
+  });
+
+  router.put('/endpoint-traffic/split', requireAuth, async (req, res) => {
+    const { namespaceName, endpointName, split } = req.body;
+    if (!namespaceName || !endpointName) {
+      throw new InputError(
+        'namespaceName and endpointName are required in request body',
+      );
+    }
+    if (!isSplit(split)) throw new InputError(SPLIT_ERROR);
+    res.json(
+      await endpointTrafficService.setDefaultSplit(
+        { namespaceName, endpointName, split },
+        getUserTokenFromRequest(req),
+      ),
+    );
+  });
+
+  router.put('/endpoint-traffic/environment', requireAuth, async (req, res) => {
+    const { namespaceName, endpointName, environment, split, matches } =
+      req.body;
+    if (!namespaceName || !endpointName || !environment) {
+      throw new InputError(
+        'namespaceName, endpointName and environment are required in request body',
+      );
+    }
+    if (split !== null && !isSplit(split)) throw new InputError(SPLIT_ERROR);
+    if (
+      matches !== undefined &&
+      (typeof matches !== 'object' ||
+        matches === null ||
+        Array.isArray(matches) ||
+        !Object.values(matches).every(isMatch))
+    ) {
+      throw new InputError('matches must map backend names to conditions');
+    }
+    res.json(
+      await endpointTrafficService.setEnvironmentSplit(
+        { namespaceName, endpointName, environment, split, matches },
+        getUserTokenFromRequest(req),
+      ),
+    );
+  });
+
+  router.put('/endpoint-traffic/deploy', requireAuth, async (req, res) => {
+    const {
+      namespaceName,
+      projectName,
+      endpointName,
+      environment,
+      releaseName,
+    } = req.body;
+    if (
+      !namespaceName ||
+      !projectName ||
+      !endpointName ||
+      !environment ||
+      !releaseName
+    ) {
+      throw new InputError(
+        'namespaceName, projectName, endpointName, environment and releaseName are required in request body',
+      );
+    }
+    res.json(
+      await endpointTrafficService.deployRelease(
+        { namespaceName, projectName, endpointName, environment, releaseName },
         getUserTokenFromRequest(req),
       ),
     );
