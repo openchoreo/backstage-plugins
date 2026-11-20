@@ -106,6 +106,7 @@ function createMockServices() {
       deleteComponentEndpoint: jest.fn(),
     },
     componentEndpointFollowService: {
+      checkPromotion: jest.fn(),
       follow: jest.fn(),
       remove: jest.fn(),
       bindingEnvironment: jest.fn(),
@@ -960,6 +961,91 @@ describe('createRouter', () => {
       });
     });
 
+    it('checks them before promoting the component', async () => {
+      services.environmentInfoService.updateReleaseBinding.mockResolvedValue(
+        {},
+      );
+      services.componentEndpointFollowService.follow.mockResolvedValue(
+        followed,
+      );
+
+      await request(app)
+        .put('/update-release-binding')
+        .send({
+          ...owner,
+          environment: 'staging',
+          releaseName: 'orders-r3',
+          sourceEnvironment: 'dev',
+        });
+
+      expect(
+        services.componentEndpointFollowService.checkPromotion,
+      ).toHaveBeenCalledWith(
+        {
+          ...owner,
+          releaseLine: undefined,
+          environment: 'staging',
+          sourceEnvironment: 'dev',
+        },
+        'mock-user-token',
+      );
+      expect(
+        services.componentEndpointFollowService.checkPromotion.mock
+          .invocationCallOrder[0],
+      ).toBeLessThan(
+        services.environmentInfoService.updateReleaseBinding.mock
+          .invocationCallOrder[0],
+      );
+    });
+
+    it('rejects a promotion, changing nothing, when an Endpoint is not deployed in the source', async () => {
+      services.componentEndpointFollowService.checkPromotion.mockRejectedValue(
+        new ConflictError(
+          "Can't promote orders to staging: Endpoint orders-api isn't deployed in dev.",
+        ),
+      );
+
+      const response = await request(app)
+        .put('/update-release-binding')
+        .send({
+          ...owner,
+          environment: 'staging',
+          releaseName: 'orders-r3',
+          sourceEnvironment: 'dev',
+        });
+
+      expect(response.status).toBe(409);
+      expect(response.body.error.message).toContain(
+        "Endpoint orders-api isn't deployed in dev",
+      );
+      expect(
+        services.environmentInfoService.updateReleaseBinding,
+      ).not.toHaveBeenCalled();
+      expect(
+        services.componentEndpointFollowService.follow,
+      ).not.toHaveBeenCalled();
+    });
+
+    it("rejects a promotion when the Endpoints can't be checked", async () => {
+      services.componentEndpointFollowService.checkPromotion.mockRejectedValue(
+        new Error('forbidden'),
+      );
+
+      const response = await request(app)
+        .put('/update-release-binding')
+        .send({
+          ...owner,
+          environment: 'staging',
+          releaseName: 'orders-r3',
+          sourceEnvironment: 'dev',
+        });
+
+      expect(response.status).toBe(500);
+      expect(
+        services.environmentInfoService.updateReleaseBinding,
+      ).not.toHaveBeenCalled();
+    });
+
     it('deploys them without a source environment', async () => {
       services.environmentInfoService.updateReleaseBinding.mockResolvedValue(
         {},
@@ -975,6 +1061,9 @@ describe('createRouter', () => {
       expect(
         services.componentEndpointFollowService.follow.mock.calls[0][0],
       ).toMatchObject({ environment: 'dev', action: 'deploy' });
+      expect(
+        services.componentEndpointFollowService.checkPromotion,
+      ).not.toHaveBeenCalled();
     });
 
     it("reports, without failing the deploy, when they can't be read", async () => {

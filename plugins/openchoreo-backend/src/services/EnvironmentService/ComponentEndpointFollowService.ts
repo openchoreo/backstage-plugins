@@ -1,5 +1,5 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import { NotFoundError } from '@backstage/errors';
+import { ConflictError, NotFoundError } from '@backstage/errors';
 import {
   assertApiResponse,
   createOpenChoreoApiClient,
@@ -7,8 +7,10 @@ import {
   type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
 import {
+  checkPromotion,
   emptyEndpointFollowResult,
   planEndpointFollow,
+  promotionBlockedMessage,
   type EndpointFollowAction,
   type EndpointFollowResult,
   type FollowingEndpoint,
@@ -62,7 +64,8 @@ function reasonOf(error: unknown): string {
  * promoted, redeployed or undeployed, following the rules in
  * `planEndpointFollow`. Runs after the component's own binding has changed:
  * an Endpoint that can't follow is reported, never undoing the component's
- * change, and repeating the action repeats every step safely.
+ * change, and repeating the action repeats every step safely. A promotion
+ * is checked first, with `checkPromotion`, before the component moves.
  */
 export class ComponentEndpointFollowService {
   private readonly releaseWaitMs: number;
@@ -114,6 +117,63 @@ export class ComponentEndpointFollowService {
     )?.spec?.endpointRelease;
   }
 
+  /** The release each Endpoint's binding in an environment pins. */
+  private async boundReleases(
+    client: OpenChoreoApiClient,
+    request: ComponentRef,
+    endpoints: Endpoint[],
+    environment: string,
+  ): Promise<Map<string, string>> {
+    const releases = new Map<string, string>();
+    for (const endpoint of endpoints) {
+      const release = await this.boundRelease(
+        client,
+        request,
+        endpoint.metadata.name,
+        environment,
+      );
+      if (release) releases.set(endpoint.metadata.name, release);
+    }
+    return releases;
+  }
+
+  /**
+   * Checks, before the component is promoted, that every Endpoint its line
+   * owns is deployed in the source environment, so the promotion can take
+   * each one's verified release along. Throws a ConflictError naming the
+   * Endpoints that aren't; a failure to read them propagates too, so a
+   * promotion never goes ahead unchecked.
+   */
+  async checkPromotion(
+    request: ComponentRef & {
+      environment: string;
+      sourceEnvironment: string;
+    },
+    token?: string,
+  ): Promise<void> {
+    const client = this.client(token);
+    const endpoints = await listComponentEndpoints(client, request);
+    if (endpoints.length === 0) return;
+    const sourceReleases = await this.boundReleases(
+      client,
+      request,
+      endpoints,
+      request.sourceEnvironment,
+    );
+    const blocker = checkPromotion(
+      {
+        componentName: request.componentName,
+        targetEnvironment: request.environment,
+        sourceEnvironment: request.sourceEnvironment,
+      },
+      endpoints.map(endpoint => ({
+        name: endpoint.metadata.name,
+        sourceRelease: sourceReleases.get(endpoint.metadata.name),
+      })),
+    );
+    if (blocker) throw new ConflictError(promotionBlockedMessage(blocker));
+  }
+
   /**
    * Binds the Endpoints the component's line owns in the environment the
    * component was just deployed, promoted or redeployed to.
@@ -132,24 +192,22 @@ export class ComponentEndpointFollowService {
     const result = emptyEndpointFollowResult();
     if (endpoints.length === 0) return result;
 
-    const sourceReleases = new Map<string, string>();
-    if (request.action === 'promote' && request.sourceEnvironment) {
-      for (const endpoint of endpoints) {
-        const release = await this.boundRelease(
-          client,
-          request,
-          endpoint.metadata.name,
-          request.sourceEnvironment,
-        );
-        if (release) sourceReleases.set(endpoint.metadata.name, release);
-      }
-    }
+    const sourceReleases =
+      request.action === 'promote' && request.sourceEnvironment
+        ? await this.boundReleases(
+            client,
+            request,
+            endpoints,
+            request.sourceEnvironment,
+          )
+        : new Map<string, string>();
 
     // An Endpoint created just before the deploy may not have a release
-    // yet: the controller cuts it asynchronously. Wait for it briefly.
+    // yet: the controller cuts it asynchronously. Wait for it briefly. A
+    // promotion binds only source releases, so it never waits.
     const waitsForRelease = (endpoint: Endpoint) =>
+      request.action !== 'promote' &&
       !(request.action === 'deploy' && endpoint.spec?.autoDeploy) &&
-      !sourceReleases.has(endpoint.metadata.name) &&
       !endpoint.status?.latestRelease?.name;
     const deadline = Date.now() + this.releaseWaitMs;
     while (endpoints.some(waitsForRelease) && Date.now() < deadline) {
@@ -172,6 +230,15 @@ export class ComponentEndpointFollowService {
         result.failed.push({
           endpoint: step.endpoint,
           reason: 'it has no release yet',
+        });
+        continue;
+      }
+      if (step.kind === 'unboundInSource') {
+        // checkPromotion rejects this before the component is promoted;
+        // it's reached only if the source binding went away in between.
+        result.failed.push({
+          endpoint: step.endpoint,
+          reason: `it isn't deployed in ${request.sourceEnvironment}`,
         });
         continue;
       }

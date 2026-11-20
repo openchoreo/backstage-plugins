@@ -1,5 +1,5 @@
 import { mockServices } from '@backstage/backend-test-utils';
-import { NotFoundError } from '@backstage/errors';
+import { ConflictError, NotFoundError } from '@backstage/errors';
 import { createOkResponse } from '@openchoreo/test-utils';
 import { ComponentEndpointFollowService } from './ComponentEndpointFollowService';
 
@@ -146,7 +146,10 @@ describe('ComponentEndpointFollowService', () => {
     it('moves the release each Endpoint has in the source environment on a promote', async () => {
       serve(
         [endpoint('orders-api'), endpoint('orders-auto', { autoDeploy: true })],
-        [binding('orders-api', 'dev', 'orders-api-r1')],
+        [
+          binding('orders-api', 'dev', 'orders-api-r1'),
+          binding('orders-auto', 'dev', 'orders-auto-r1'),
+        ],
       );
       const { service } = createService();
 
@@ -163,15 +166,38 @@ describe('ComponentEndpointFollowService', () => {
       // Auto deploy covers only the first environment, so it's bound too.
       expect(result.bound).toEqual([
         { endpoint: 'orders-api', releaseName: 'orders-api-r1' },
-        { endpoint: 'orders-auto', releaseName: 'orders-auto-r2' },
+        { endpoint: 'orders-auto', releaseName: 'orders-auto-r1' },
+      ]);
+    });
+
+    it('reports, rather than binding its latest release, an Endpoint whose source binding went away after the check', async () => {
+      serve([endpoint('orders-api')]);
+      const { service, writer } = createService();
+
+      const result = await service.follow(
+        {
+          ...component,
+          environment: 'staging',
+          action: 'promote',
+          sourceEnvironment: 'dev',
+        },
+        'token',
+      );
+
+      expect(writer.updateEndpointReleaseBinding).not.toHaveBeenCalled();
+      expect(result.failed).toEqual([
+        { endpoint: 'orders-api', reason: "it isn't deployed in dev" },
       ]);
     });
 
     it("follows only the promoted release line's Endpoints", async () => {
-      serve([
-        endpoint('orders-api'),
-        endpoint('orders-canary-api', { releaseLineName: 'canary' }),
-      ]);
+      serve(
+        [
+          endpoint('orders-api'),
+          endpoint('orders-canary-api', { releaseLineName: 'canary' }),
+        ],
+        [binding('orders-canary-api', 'dev', 'orders-canary-api-r1')],
+      );
       const { service } = createService();
 
       const result = await service.follow(
@@ -249,6 +275,95 @@ describe('ComponentEndpointFollowService', () => {
         skipped: [],
         failed: [],
       });
+    });
+  });
+
+  describe('checkPromotion', () => {
+    const promotion = {
+      ...component,
+      environment: 'staging',
+      sourceEnvironment: 'dev',
+    };
+
+    it('passes when every Endpoint the line owns is deployed in the source', async () => {
+      serve(
+        [endpoint('orders-api'), endpoint('orders-auto', { autoDeploy: true })],
+        [
+          binding('orders-api', 'dev', 'orders-api-r1'),
+          binding('orders-auto', 'dev', 'orders-auto-r1'),
+        ],
+      );
+      const { service } = createService();
+
+      await expect(
+        service.checkPromotion(promotion, 'token'),
+      ).resolves.toBeUndefined();
+    });
+
+    it('passes when the line owns no Endpoints', async () => {
+      serve([endpoint('shared', { componentName: null })]);
+      const { service } = createService();
+
+      await expect(
+        service.checkPromotion(promotion, 'token'),
+      ).resolves.toBeUndefined();
+    });
+
+    it('rejects, naming them all, when Endpoints (auto-deploying ones too) are not deployed in the source', async () => {
+      serve(
+        [
+          endpoint('orders-api'),
+          endpoint('orders-web'),
+          endpoint('orders-auto', { autoDeploy: true }),
+        ],
+        [
+          binding('orders-web', 'dev', 'orders-web-r1'),
+          // Bound elsewhere, not in the source.
+          binding('orders-api', 'staging', 'orders-api-r1'),
+        ],
+      );
+      const { service, writer } = createService();
+
+      const check = service.checkPromotion(promotion, 'token');
+
+      await expect(check).rejects.toBeInstanceOf(ConflictError);
+      await expect(check).rejects.toThrow(
+        "Can't promote orders to staging: Endpoints orders-api and orders-auto aren't deployed in dev.",
+      );
+      expect(writer.updateEndpointReleaseBinding).not.toHaveBeenCalled();
+    });
+
+    it("checks only the promoted release line's Endpoints", async () => {
+      serve(
+        [
+          endpoint('orders-api'),
+          endpoint('orders-canary-api', { releaseLineName: 'canary' }),
+        ],
+        [binding('orders-canary-api', 'dev', 'orders-canary-api-r1')],
+      );
+      const { service } = createService();
+
+      await expect(
+        service.checkPromotion(
+          { ...promotion, releaseLine: 'canary' },
+          'token',
+        ),
+      ).resolves.toBeUndefined();
+    });
+
+    it("fails closed when the bindings can't be read", async () => {
+      serve([endpoint('orders-api')]);
+      const fallback = mockGET.getMockImplementation()!;
+      mockGET.mockImplementation((path: string, options: any) =>
+        path.endsWith('/endpointreleasebindings')
+          ? Promise.reject(new Error('forbidden'))
+          : fallback(path, options),
+      );
+      const { service } = createService();
+
+      await expect(service.checkPromotion(promotion, 'token')).rejects.toThrow(
+        'forbidden',
+      );
     });
   });
 

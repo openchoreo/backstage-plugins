@@ -244,6 +244,9 @@ export {
 export {
   planEndpointFollow,
   emptyEndpointFollowResult,
+  checkPromotion,
+  promotionBlockedMessage,
+  type PromotionBlocker,
   type EndpointFollowAction,
   type EndpointFollowResult,
   type EndpointFollowStep,

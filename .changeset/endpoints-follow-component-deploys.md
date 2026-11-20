@@ -15,9 +15,10 @@ lines, are left alone.
   environment. Endpoints with `autoDeploy` are left to the controller, which
   already keeps them on their latest release there.
 - **Promote:** each Endpoint gets the release its binding pins in the source
-  environment, so the same Endpoint version moves with the component, or its
-  latest release when it isn't bound there. Every Endpoint is bound, whatever
-  its `autoDeploy`.
+  environment, so the same Endpoint version moves with the component. Every
+  Endpoint is bound, whatever its `autoDeploy`. If any of them isn't deployed
+  in the source environment, the promotion is rejected (409) before anything
+  changes, with a message naming them.
 - **Redeploy:** each Endpoint is bound to its latest release again.
 - **Undeploy and remove:** the Endpoints' bindings in that environment are
   deleted, so their routes don't point at a workload that's gone.

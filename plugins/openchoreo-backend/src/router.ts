@@ -2033,6 +2033,21 @@ export async function createRouter({
       releaseLine: requestReleaseLine(req),
     };
 
+    // A promotion takes the line's Endpoints along with the release each has
+    // in the source environment, so every one must be deployed there. Check
+    // before the component moves: a rejected promotion (409) changes nothing,
+    // and one that can't be checked doesn't go ahead either.
+    if (sourceEnvironment) {
+      await componentEndpointFollowService.checkPromotion(
+        {
+          ...owner,
+          environment: environment as string,
+          sourceEnvironment,
+        },
+        userToken,
+      );
+    }
+
     const binding = await environmentInfoService.updateReleaseBinding(
       {
         ...owner,
