@@ -411,6 +411,12 @@ describe('openchoreoDeploymentFactRetriever', () => {
   );
 
   describe('release lines', () => {
+    const allLines = {
+      ...allBindings,
+      'workload:view': { allowed: [{ path: '*' }] },
+    };
+    const callsTo = (client: { GET: jest.Mock }, path: string) =>
+      client.GET.mock.calls.filter(([calledPath]) => calledPath === path);
     const synced = {
       conditions: [
         { type: 'ReleaseSynced', status: 'True' },
@@ -482,7 +488,7 @@ describe('openchoreoDeploymentFactRetriever', () => {
 
     it('reports a release line from its own Workload, bindings and latest release', async () => {
       const client = fakeClient({
-        capabilities: allBindings,
+        capabilities: allLines,
         bindings,
         workloads,
       });
@@ -531,7 +537,7 @@ describe('openchoreoDeploymentFactRetriever', () => {
       const { byName } = await run(
         [releaseLineEntity('api', 'canary')],
         fakeClient({
-          capabilities: allBindings,
+          capabilities: allLines,
           bindings,
           workloads,
           releaseLine: () => ok({}),
@@ -549,7 +555,7 @@ describe('openchoreoDeploymentFactRetriever', () => {
       const { byName, logger } = await run(
         [releaseLineEntity('api', 'next')],
         fakeClient({
-          capabilities: allBindings,
+          capabilities: allLines,
           workloads,
           releaseLine: () => status(404),
         }),
@@ -559,6 +565,107 @@ describe('openchoreoDeploymentFactRetriever', () => {
       expect(logger.warn).toHaveBeenCalledWith(
         expect.stringContaining(
           'Leaving out deployment facts for api:next: GET release line returned HTTP 404',
+        ),
+      );
+    });
+
+    it('lists the bindings and Workloads of a component once for all its lines', async () => {
+      const client = fakeClient({
+        capabilities: allLines,
+        bindings,
+        workloads,
+      });
+      const { byName } = await run(
+        [
+          annotated('api'),
+          releaseLineEntity('api', 'next'),
+          releaseLineEntity('api', 'canary'),
+        ],
+        client,
+      );
+      expect(byName.api).toHaveProperty('openchoreoDeployedEnvironments', [
+        'development',
+      ]);
+      expect(byName.next).toMatchObject({
+        openchoreoImagePinned: false,
+        openchoreoDeployedEnvironments: ['production'],
+      });
+      expect(byName.canary).toHaveProperty('openchoreoDeployedEnvironments', [
+        'staging',
+      ]);
+      expect(
+        callsTo(client, '/api/v1/namespaces/{namespaceName}/releasebindings'),
+      ).toHaveLength(1);
+      expect(
+        callsTo(client, '/api/v1/namespaces/{namespaceName}/workloads'),
+      ).toHaveLength(1);
+    });
+
+    it.each([
+      ['no Workload grant', {}],
+      [
+        'a Workload grant limited by a CEL condition',
+        {
+          'workload:view': {
+            allowed: [
+              {
+                path: '*',
+                constraints: {
+                  expressions: ['resource.releaseLine == "main"'],
+                },
+              },
+            ],
+          },
+        },
+      ],
+      [
+        'a cluster-wide Workload grant with the component denied',
+        {
+          'workload:view': {
+            allowed: [{ path: '*' }],
+            denied: [{ path: 'ns/acme/project/payments/component/api' }],
+          },
+        },
+      ],
+    ])(
+      'leaves out the Workload facts of a release line with %s',
+      async (_label, workloadGrant) => {
+        const client = fakeClient({
+          capabilities: { ...allBindings, ...workloadGrant },
+          bindings,
+          workloads,
+        });
+        const { byName, logger } = await run(
+          [releaseLineEntity('api', 'next')],
+          client,
+        );
+        expect(byName.next).not.toHaveProperty('openchoreoImagePinned');
+        expect(byName.next).not.toHaveProperty(
+          'openchoreoPlainTextSecretEnvCount',
+        );
+        expect(byName.next).toHaveProperty('openchoreoDeployedEnvironments', [
+          'production',
+        ]);
+        expect(
+          callsTo(client, '/api/v1/namespaces/{namespaceName}/workloads'),
+        ).toHaveLength(0);
+        expect(logger.warn).not.toHaveBeenCalled();
+      },
+    );
+
+    it('leaves out the Workload facts of a release line when the authz profile cannot be read', async () => {
+      const client = fakeClient({ profile: () => status(503), workloads });
+      const { byName, logger } = await run(
+        [releaseLineEntity('api', 'next')],
+        client,
+      );
+      expect(byName.next).toEqual({ openchoreoComponentResolved: true });
+      expect(
+        callsTo(client, '/api/v1/namespaces/{namespaceName}/workloads'),
+      ).toHaveLength(0);
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'Leaving out deployment facts for api:next: GET authz profile for namespace acme returned HTTP 503',
         ),
       );
     });

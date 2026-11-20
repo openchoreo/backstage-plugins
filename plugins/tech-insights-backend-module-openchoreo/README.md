@@ -92,7 +92,11 @@ techInsights:
 
 The component type facts need `clustercomponenttype:view` and `componenttype:view`. The Workload
 facts (image registry and pinning, external endpoints, plain secret-like env values) need
-`workload:view`.
+`workload:view`. A release line's Workload is found by listing its component's Workloads, and the
+list leaves out any the caller can't view. So a line gets Workload facts only when `workload:view`
+covers the component's `ns/<ns>/project/<project>/component/<name>` path with no CEL condition and
+no denial at, above or below it. Otherwise a hidden Workload would look like a line that hasn't
+been built.
 
 The deployment facts (environments, production, ready, latest release) need three more grants:
 

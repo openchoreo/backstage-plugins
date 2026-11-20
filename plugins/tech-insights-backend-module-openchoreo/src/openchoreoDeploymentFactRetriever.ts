@@ -114,37 +114,81 @@ function namespaceLoader(client: OpenChoreoApiClient) {
   };
 }
 
-/**
- * The Workload of a release line. The API lists a component's Workloads on
- * every line, so the line's is the one it owns. Undefined when the line has
- * no Workload yet.
- */
-async function lineWorkload(
-  client: OpenChoreoApiClient,
+type ComponentList<T> = (
   namespaceName: string,
   componentName: string,
-  releaseLine: string,
   signal: AbortSignal,
-): Promise<WorkloadSpec | undefined> {
-  const workloads = await fetchAllPages(cursor =>
-    client
-      .GET('/api/v1/namespaces/{namespaceName}/workloads', {
-        params: {
-          path: { namespaceName },
-          query: { component: componentName, cursor },
-        },
-        signal,
-      })
-      .then(({ data, response }) => {
-        if (!data) {
-          throw new Error(`GET workloads returned HTTP ${response.status}`);
-        }
-        return data;
-      }),
-  );
-  return workloads
-    .map(workload => (workload.spec ?? {}) as WorkloadSpec)
-    .find(spec => spec.owner?.releaseLine === releaseLine);
+) => Promise<T[]>;
+
+/**
+ * A component's lists for one run, read once and shared by its main line and
+ * its release lines. Failed loads aren't kept, as with namespace contexts.
+ */
+function componentListLoader<T>(list: ComponentList<T>): ComponentList<T> {
+  const loads = new Map<string, Promise<T[]>>();
+  return (namespaceName, componentName, signal) => {
+    const key = `${namespaceName}/${componentName}`;
+    let load = loads.get(key);
+    if (!load) {
+      load = list(namespaceName, componentName, signal);
+      loads.set(key, load);
+      load.catch(() => loads.delete(key));
+    }
+    return load;
+  };
+}
+
+/**
+ * The Workloads of every line of a component. The API has no filter by
+ * line, so a line's Workload is the one it owns.
+ */
+function listWorkloads(
+  client: OpenChoreoApiClient,
+): ComponentList<WorkloadSpec> {
+  return async (namespaceName, componentName, signal) => {
+    const workloads = await fetchAllPages(cursor =>
+      client
+        .GET('/api/v1/namespaces/{namespaceName}/workloads', {
+          params: {
+            path: { namespaceName },
+            query: { component: componentName, cursor },
+          },
+          signal,
+        })
+        .then(({ data, response }) => {
+          if (!data) {
+            throw new Error(`GET workloads returned HTTP ${response.status}`);
+          }
+          return data;
+        }),
+    );
+    return workloads.map(workload => (workload.spec ?? {}) as WorkloadSpec);
+  };
+}
+
+/** The release bindings of every line of a component. */
+function listReleaseBindings(
+  client: OpenChoreoApiClient,
+): ComponentList<ReleaseBinding> {
+  return async (namespaceName, componentName, signal) =>
+    (await fetchAllPages(cursor =>
+      client
+        .GET('/api/v1/namespaces/{namespaceName}/releasebindings', {
+          params: {
+            path: { namespaceName },
+            query: { component: componentName, cursor },
+          },
+          signal,
+        })
+        .then(({ data, response }) => {
+          if (!data) {
+            throw new Error(
+              `GET release bindings returned HTTP ${response.status}`,
+            );
+          }
+          return data;
+        }),
+    )) as ReleaseBinding[];
 }
 
 const schema: FactRetriever['schema'] = {
@@ -156,7 +200,7 @@ const schema: FactRetriever['schema'] = {
   openchoreoImageRegistry: {
     type: 'string',
     description:
-      'Registry host of the container image, docker.io when the image names none. Left out until the component has a Workload.',
+      "Registry host of the container image, docker.io when the image names none. Left out until the line has a Workload, and for a release line when the portal service credentials can't view every Workload of its component.",
   },
   openchoreoImagePinned: {
     type: 'boolean',
@@ -212,9 +256,18 @@ export function createOpenChoreoDeploymentFactRetriever(
         context,
         async () => {
           const client = await createServiceClient(context, tokenService);
-          return { client, namespaceOf: namespaceLoader(client) };
+          return {
+            client,
+            namespaceOf: namespaceLoader(client),
+            workloadsOf: componentListLoader(listWorkloads(client)),
+            bindingsOf: componentListLoader(listReleaseBindings(client)),
+          };
         },
-        async (entity, { client, namespaceOf }, signal) => {
+        async (
+          entity,
+          { client, namespaceOf, workloadsOf, bindingsOf },
+          signal,
+        ) => {
           const annotations = entity.metadata.annotations ?? {};
           const namespaceName = annotations[CHOREO_ANNOTATIONS.NAMESPACE];
           const projectName = annotations[CHOREO_ANNOTATIONS.PROJECT];
@@ -235,6 +288,20 @@ export function createOpenChoreoDeploymentFactRetriever(
             ? `${componentName}:${releaseLine}`
             : componentName;
 
+          // A failed load is held as its error and reported with the
+          // deployment facts, so a main line keeps its Workload facts.
+          const namespace = await namespaceOf(namespaceName, signal).catch(
+            (error: Error) => error,
+          );
+          const grants = (action: string) =>
+            !(namespace instanceof Error) &&
+            !!projectName &&
+            grantsUnconditionally(
+              namespace.capabilities,
+              action,
+              componentPath(namespaceName, projectName, componentName),
+            );
+
           const facts: Record<string, string | number | boolean | string[]> = {
             openchoreoComponentResolved: true,
           };
@@ -242,13 +309,14 @@ export function createOpenChoreoDeploymentFactRetriever(
           // resolves, so its deployment facts show it deployed nowhere.
           let workload: WorkloadSpec | undefined;
           if (releaseLine) {
-            workload = await lineWorkload(
-              client,
-              namespaceName,
-              componentName,
-              releaseLine,
-              signal,
-            );
+            // The list leaves out Workloads the caller can't view, and the
+            // check can depend on the line, so a line's Workload missing
+            // from it means unbuilt only under a grant without conditions.
+            if (grants('workload:view')) {
+              workload = (
+                await workloadsOf(namespaceName, componentName, signal)
+              ).find(spec => spec.owner?.releaseLine === releaseLine);
+            }
           } else if (workloadName) {
             const workloadResponse = await client.GET(
               '/api/v1/namespaces/{namespaceName}/workloads/{workloadName}',
@@ -281,22 +349,11 @@ export function createOpenChoreoDeploymentFactRetriever(
           // be read in full: a list the caller can't see all of comes back
           // as 200 with only the visible items, so an undeployed component
           // would look the same as an unreadable one.
-          let namespace: NamespaceContext;
-          try {
-            namespace = await namespaceOf(namespaceName, signal);
-          } catch (error) {
-            return withoutDeployment((error as Error).message);
+          if (namespace instanceof Error) {
+            return withoutDeployment(namespace.message);
           }
-          const { capabilities, productionEnvironments } = namespace;
-          if (
-            !productionEnvironments ||
-            !projectName ||
-            !grantsUnconditionally(
-              capabilities,
-              'releasebinding:view',
-              componentPath(namespaceName, projectName, componentName),
-            )
-          ) {
+          const { productionEnvironments } = namespace;
+          if (!productionEnvironments || !grants('releasebinding:view')) {
             return facts;
           }
 
@@ -328,25 +385,10 @@ export function createOpenChoreoDeploymentFactRetriever(
           }
           let bindings: ReleaseBinding[];
           try {
-            const all = (await fetchAllPages(cursor =>
-              client
-                .GET('/api/v1/namespaces/{namespaceName}/releasebindings', {
-                  params: {
-                    path: { namespaceName },
-                    query: { component: componentName, cursor },
-                  },
-                  signal,
-                })
-                .then(({ data, response }) => {
-                  if (!data) {
-                    throw new Error(
-                      `GET release bindings returned HTTP ${response.status}`,
-                    );
-                  }
-                  return data;
-                }),
-            )) as ReleaseBinding[];
-            bindings = lineBindings(all, releaseLine);
+            bindings = lineBindings(
+              await bindingsOf(namespaceName, componentName, signal),
+              releaseLine,
+            );
           } catch (error) {
             return withoutDeployment((error as Error).message);
           }
