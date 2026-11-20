@@ -1143,4 +1143,81 @@ describe('translateNewReleaseLineToEntity', () => {
       },
     });
   });
+
+  describe('source location and branch', () => {
+    const line = (workflowParameters?: Record<string, unknown>) =>
+      ({
+        metadata: { name: 'next', namespace: 'default' },
+        spec: {
+          owner: { projectName: 'default', componentName: 'hello' },
+          ...(workflowParameters && {
+            workflow: { parameters: workflowParameters },
+          }),
+        },
+      } as any);
+    const component = (workflow?: Record<string, unknown>) =>
+      ({
+        metadata: { name: 'hello', namespace: 'default' },
+        spec: { owner: { projectName: 'default' }, workflow },
+      } as any);
+    const sourceWorkflow = {
+      kind: 'ClusterWorkflow',
+      name: 'dockerfile-builder',
+      parameters: {
+        repository: {
+          url: 'https://github.com/org/repo',
+          revision: { branch: 'main' },
+          appPath: '/service',
+        },
+      },
+    };
+    const translate = (
+      releaseLine: ReturnType<typeof line>,
+      owner?: ReturnType<typeof component>,
+    ) =>
+      translateNewReleaseLineToEntity(
+        releaseLine,
+        'default',
+        'group:default/owner',
+        ctx as any,
+        owner,
+      ).metadata.annotations;
+
+    it("keeps the component's repository when the line overrides only the branch", () => {
+      const annotations = translate(
+        line({ repository: { revision: { branch: 'release-next' } } }),
+        component(sourceWorkflow),
+      );
+
+      expect(annotations?.['backstage.io/source-location']).toBe(
+        'url:https://github.com/org/repo/tree/release-next/service/',
+      );
+      expect(annotations?.['openchoreo.io/branch']).toBe('release-next');
+    });
+
+    it("builds from the component's branch when the line has no override", () => {
+      const annotations = translate(line(), component(sourceWorkflow));
+
+      expect(annotations?.['backstage.io/source-location']).toBe(
+        'url:https://github.com/org/repo/tree/main/service/',
+      );
+      expect(annotations?.['openchoreo.io/branch']).toBe('main');
+    });
+
+    it('leaves both out for a component built from an image', () => {
+      const annotations = translate(line(), component());
+
+      expect(annotations).not.toHaveProperty('backstage.io/source-location');
+      expect(annotations).not.toHaveProperty('openchoreo.io/branch');
+    });
+
+    it('leaves both out when the component is unknown', () => {
+      const annotations = translate(
+        line({ repository: { revision: { branch: 'release-next' } } }),
+      );
+
+      expect(annotations).not.toHaveProperty('backstage.io/source-location');
+      expect(annotations).not.toHaveProperty('openchoreo.io/branch');
+    });
+  });
 });

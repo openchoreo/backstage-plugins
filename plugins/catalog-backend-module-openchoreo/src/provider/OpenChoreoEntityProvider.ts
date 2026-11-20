@@ -879,7 +879,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             const releaseLineEntities = await this.fetchReleaseLineEntities(
               client,
               nsName,
-              componentName,
+              component,
               resolvedOwner,
             );
 
@@ -2123,9 +2123,10 @@ export class OpenChoreoEntityProvider implements EntityProvider {
   private async fetchReleaseLineEntities(
     client: Awaited<ReturnType<typeof createAuthenticatedOpenChoreoApiClient>>,
     namespaceName: string,
-    componentName: string,
+    component: NewComponent,
     owner: string,
   ): Promise<Entity[]> {
+    const componentName = getName(component)!;
     try {
       const releaseLines = await fetchAllPages<NewReleaseLine>(cursor =>
         client
@@ -2152,6 +2153,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           namespaceName,
           owner,
           this.translatorContext,
+          component,
         ),
       );
     } catch (error) {

@@ -52,6 +52,7 @@ function createMockServices() {
       updateComponentConfig: jest.fn(),
       createComponent: jest.fn(),
       deleteComponent: jest.fn(),
+      updateReleaseLine: jest.fn(),
     },
     projectInfoService: {
       fetchProjectDetails: jest.fn(),
@@ -138,6 +139,10 @@ function createMockServices() {
     },
     catalogService: {
       getEntities: jest.fn(),
+      getEntityByRef: jest.fn(),
+    },
+    immediateCatalog: {
+      insertEntity: jest.fn(),
     },
     auth: {
       getPluginRequestToken: jest.fn(),
@@ -395,6 +400,64 @@ describe('createRouter', () => {
       expect(response.body).toMatchObject({
         error: expect.objectContaining({ message }),
       });
+    });
+  });
+
+  describe('PUT /release-line', () => {
+    it("adds the line to the catalog with its component's repository and its own branch", async () => {
+      services.componentInfoService.updateReleaseLine.mockResolvedValue({
+        metadata: { name: 'next' },
+        spec: {
+          owner: { projectName: 'my-project', componentName: 'my-component' },
+          workflow: {
+            parameters: {
+              repository: { revision: { branch: 'release-next' } },
+            },
+          },
+        },
+      });
+      services.componentInfoService.fetchComponentDetails.mockResolvedValue({
+        name: 'my-component',
+        componentWorkflow: {
+          name: 'dockerfile-builder',
+          parameters: {
+            repository: {
+              url: 'https://github.com/org/repo',
+              revision: { branch: 'main' },
+            },
+          },
+        },
+      });
+      services.catalogService.getEntityByRef.mockResolvedValue({
+        spec: { owner: 'group:default/team' },
+      });
+
+      const response = await request(app)
+        .put('/release-line')
+        .send({
+          componentName: 'my-component',
+          namespaceName: 'my-namespace',
+          releaseLineName: 'next',
+          releaseLine: { spec: {} },
+        });
+
+      expect(response.status).toBe(200);
+      expect(
+        services.componentInfoService.fetchComponentDetails,
+      ).toHaveBeenCalledWith(
+        'my-namespace',
+        'my-project',
+        'my-component',
+        'mock-user-token',
+      );
+      const [entity] = services.immediateCatalog.insertEntity.mock.calls[0];
+      expect(entity.metadata.annotations).toEqual(
+        expect.objectContaining({
+          'backstage.io/source-location':
+            'url:https://github.com/org/repo/tree/release-next/',
+          'openchoreo.io/branch': 'release-next',
+        }),
+      );
     });
   });
 
