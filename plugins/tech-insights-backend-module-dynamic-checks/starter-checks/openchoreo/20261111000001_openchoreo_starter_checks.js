@@ -10,7 +10,9 @@
 // already ran it won't run it again, and knex refuses to migrate when its
 // ledger names a file that's gone.
 
-const COMPONENT = { kind: 'Component' };
+// A release line is held to the same checks as its component's main line,
+// judged on its own facts.
+const COMPONENT = { kind: ['Component', 'ReleaseLine'] };
 const COMPONENT_TYPE = { kind: ['ClusterComponentType', 'ComponentType'] };
 // Proxy types render no pods, so their container facts are always false.
 const COMPONENT_TYPE_WITH_PODS = {
