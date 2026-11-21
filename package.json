@@ -7,7 +7,7 @@
     "url": "https://github.com/openchoreo/backstage-plugins.git"
   },
   "engines": {
-    "node": "20 || 22"
+    "node": "^24.15.0 || ^26.13.0"
   },
   "scripts": {
     "start": "NODE_OPTIONS=--no-node-snapshot backstage-cli repo start",
@@ -36,8 +36,8 @@
     ]
   },
   "devDependencies": {
-    "@backstage/cli": "^0.36.2",
-    "@backstage/cli-defaults": "^0.1.2",
+    "@backstage/cli": "^0.36.8",
+    "@backstage/cli-defaults": "^0.1.8",
     "@backstage/e2e-test-utils": "^0.1.2",
     "@changesets/cli": "2.29.7",
     "@playwright/test": "1.56.0",
@@ -47,11 +47,15 @@
     "jest-environment-jsdom": "^29.7.0",
     "node-gyp": "10.3.1",
     "prettier": "2.8.8",
-    "typescript": "5.8.3"
+    "typescript": "5.9.3"
   },
   "resolutions": {
     "@types/react": "18.3.26",
-    "@types/react-dom": "18.3.7"
+    "@types/react-dom": "18.3.7",
+    "@backstage/plugin-api-docs": "0.14.7",
+    "@backstage/plugin-catalog-backend": "4.0.3",
+    "@backstage/plugin-kubernetes-backend": "0.21.13",
+    "@backstage/plugin-scaffolder-backend-module-github": "0.10.2"
   },
   "prettier": "@backstage/cli/config/prettier",
   "lint-staged": {

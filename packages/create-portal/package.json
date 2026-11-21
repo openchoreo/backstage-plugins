@@ -38,7 +38,7 @@
     "inquirer": "^8.2.6"
   },
   "devDependencies": {
-    "@backstage/cli": "^0.36.2",
+    "@backstage/cli": "^0.36.8",
     "@types/fs-extra": "^11.0.4",
     "@types/inquirer": "^8.2.10"
   }
