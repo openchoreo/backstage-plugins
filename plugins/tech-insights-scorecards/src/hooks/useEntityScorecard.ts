@@ -10,9 +10,11 @@ import {
   childRefsOf,
   createRollup,
   normalizeRef,
+  variantRefsOf,
   type RollupNode,
 } from '../utils/rollup';
 import { progressByCategory, type CategoryProgress } from '../utils/scoring';
+import { useVariantConfig } from '../utils/variants';
 
 export interface EntityScorecard {
   /** The entity, with the entities that belong to it nested beneath. */
@@ -25,17 +27,24 @@ export interface EntityScorecard {
  * An entity's scores. For a Domain, System or Group it fetches everything
  * that belongs to it, level by level (see `ROLLUP_RELATIONS`), and
  * evaluates the whole tree in one bulk request, so the entity's tier
- * combines its own checks with those of everything beneath it.
+ * combines its own checks with those of everything beneath it. Variants
+ * (see `techInsights.scorecards.variants`) of the entity and of everything
+ * beneath it are evaluated in the same request, but scored on their own.
  */
 export function useEntityScorecard(entity: Entity) {
   const catalogApi = useApi(catalogApiRef);
   const maturityApi = useApi(maturityApiRef);
+  const variants = useVariantConfig();
 
   return useAsyncRetry(async (): Promise<EntityScorecard> => {
     const rootRef = normalizeRef(entity);
     const entities = new Map<string, Entity>([[rootRef, entity]]);
     const requested = new Set<string>([rootRef]);
-    let frontier = childRefsOf(entity);
+    const belongingTo = (item: Entity) => [
+      ...childRefsOf(item, variants),
+      ...variantRefsOf(item, variants),
+    ];
+    let frontier = belongingTo(entity);
     while (frontier.length > 0) {
       frontier.forEach(ref => requested.add(ref));
       const { items } = await catalogApi.getEntitiesByRefs({
@@ -46,7 +55,7 @@ export function useEntityScorecard(entity: Entity) {
       items.forEach(item => {
         if (!item) return;
         entities.set(normalizeRef(item), item);
-        childRefsOf(item).forEach(ref => next.add(ref));
+        belongingTo(item).forEach(ref => next.add(ref));
       });
       frontier = Array.from(next).filter(ref => !requested.has(ref));
     }
@@ -55,9 +64,9 @@ export function useEntityScorecard(entity: Entity) {
       maturityApi,
       Array.from(entities.values()),
     );
-    const root = createRollup(entities, results)(rootRef)!;
+    const root = createRollup(entities, results, variants)(rootRef)!;
     return { root, categories: progressByCategory(root.checks) };
-  }, [catalogApi, maturityApi, entity]);
+  }, [catalogApi, maturityApi, entity, variants]);
 }
 
 /**

@@ -6,8 +6,13 @@ import Box from '@material-ui/core/Box';
 import Grid from '@material-ui/core/Grid';
 import Typography from '@material-ui/core/Typography';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
-import { EmptyState, InfoCard, Progress } from '@backstage/core-components';
-import { useEntity } from '@backstage/plugin-catalog-react';
+import {
+  EmptyState,
+  InfoCard,
+  Link,
+  Progress,
+} from '@backstage/core-components';
+import { EntityDisplayName, useEntity } from '@backstage/plugin-catalog-react';
 import {
   Rank,
   type MaturityCheckResult,
@@ -15,24 +20,52 @@ import {
 import {
   countOf,
   inSentence,
+  pluralOf,
   useEntityLabel,
   useKindLabel,
 } from '../../utils/kinds';
-import { isRollupKind } from '../../utils/rollup';
+import { isRollupKind, variantParentRefOf } from '../../utils/rollup';
 import {
   UNCATEGORIZED,
   compareCheckResults,
   rankOf,
 } from '../../utils/scoring';
-import { useEntityScorecard, useFactCollectionTimes } from '../../hooks';
+import { useVariantConfig } from '../../utils/variants';
+import {
+  useEntityScorecard,
+  useEntityTabLink,
+  useFactCollectionTimes,
+} from '../../hooks';
 import { LoadErrorState } from '../LoadErrorState';
 import { ProgressRing } from '../ProgressRing';
-import { RollupTable } from '../RollupTable';
+import { MainChip, RollupTable } from '../RollupTable';
 import { TierChip } from '../TierChip';
 import { TierLadder } from '../TierLadder';
 import { CheckResultItem } from './CheckResultItem';
 
 const RING_SIZE = 96;
+
+/** On a variant's tab, says its parent's tier leaves it out. */
+function VariantNote({
+  parentRef,
+  label,
+  mainVariant,
+}: {
+  parentRef: string;
+  label: string;
+  mainVariant: string;
+}) {
+  const tabLink = useEntityTabLink();
+  return (
+    <Typography variant="body2" color="textSecondary">
+      This {label} is scored on its own. The tier of{' '}
+      <Link to={tabLink(parentRef)}>
+        <EntityDisplayName entityRef={parentRef} hideIcon />
+      </Link>{' '}
+      covers only its {mainVariant}.
+    </Typography>
+  );
+}
 
 /**
  * Read-only scorecard for one entity: its pass rate, tier and progress
@@ -40,6 +73,10 @@ const RING_SIZE = 96;
  * tier first within each. Check management lives on the scorecards page. A
  * System, Domain or Group also lists the entities that belong to it, each
  * expanding to its own, and its tier combines them all.
+ *
+ * An entity with variants, such as a component with release lines, is
+ * scored on its own checks only and lists its variants with their own
+ * tiers. A variant's tab scores the variant and links to its parent.
  *
  * A category with a check failing at or below the next tier after the one
  * shown at the top sorts first and starts expanded, so the list explains
@@ -54,11 +91,19 @@ export function EntityScorecardContent() {
   const { value, loading, error, retry } = useEntityScorecard(entity);
   const ownChecks = value?.root.ownChecks;
   const collectedAt = useFactCollectionTimes(entity, ownChecks);
-  const label = inSentence(useKindLabel()(entity.kind));
+  const kindLabel = useKindLabel();
+  const label = inSentence(kindLabel(entity.kind));
   const entityLabel = useEntityLabel();
+  const variants = useVariantConfig();
   const rollup = isRollupKind(entity.kind);
+  const parentRef = variantParentRefOf(entity, variants);
+  const variantLabel = variants ? kindLabel(variants.kind) : '';
+  const mainVariant = variants
+    ? `${variants.mainLabel} ${inSentence(variantLabel)}`
+    : '';
 
   const root = value?.root;
+  const hasVariants = !!root && root.variants.length > 0;
   const ownRank = ownChecks ? rankOf(ownChecks) : undefined;
   const shownRank = root?.scored ? root.rank : ownRank;
 
@@ -98,8 +143,26 @@ export function EntityScorecardContent() {
   );
   const ready = !loading && !error && root;
 
+  let checksTitle = 'Checks';
+  let emptyDescription = `Published checks whose filter matches this ${label}, and whose facts have been collected for it, appear here.`;
+  if (rollup) {
+    checksTitle = `Checks on this ${label}`;
+    emptyDescription = `Published checks that match this ${label}, or the ${entityLabel.plural} in it, appear here once their facts have been collected.`;
+  } else if (hasVariants) {
+    checksTitle = `Checks on the ${mainVariant}`;
+  }
+
   return (
     <Grid container spacing={2}>
+      {parentRef && (
+        <Grid item xs={12}>
+          <VariantNote
+            parentRef={parentRef}
+            label={label}
+            mainVariant={mainVariant}
+          />
+        </Grid>
+      )}
       {ready && root.scored && (
         <Grid item xs={12}>
           <InfoCard>
@@ -148,6 +211,15 @@ export function EntityScorecardContent() {
                     </Typography>
                   </Box>
                 )}
+                {hasVariants && (
+                  <Box display="flex" alignItems="center" style={{ gap: 8 }}>
+                    <MainChip />
+                    <Typography variant="body2" color="textSecondary">
+                      This tier covers only the {mainVariant}. Each{' '}
+                      {inSentence(variantLabel)} is scored on its own.
+                    </Typography>
+                  </Box>
+                )}
               </Box>
             </Box>
           </InfoCard>
@@ -173,17 +245,13 @@ export function EntityScorecardContent() {
           <EmptyState
             missing="data"
             title="No checks apply yet"
-            description={
-              rollup
-                ? `Published checks that match this ${label}, or the ${entityLabel.plural} in it, appear here once their facts have been collected.`
-                : `Published checks whose filter matches this ${label}, and whose facts have been collected for it, appear here.`
-            }
+            description={emptyDescription}
           />
         </Grid>
       )}
       {ready && categoryGroups.length > 0 && (
         <Grid item xs={12}>
-          <InfoCard title={rollup ? `Checks on this ${label}` : 'Checks'}>
+          <InfoCard title={checksTitle}>
             {categoryGroups.map(({ category, checks, hasBlockingFailure }) => (
               <Accordion key={category} defaultExpanded={hasBlockingFailure}>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -213,6 +281,24 @@ export function EntityScorecardContent() {
             subheader={`Each ${entityLabel.singular}'s tier combines its own checks with those of the ${entityLabel.plural} in it. Expand a row to see them.`}
           >
             <RollupTable nodes={root.children} />
+          </InfoCard>
+        </Grid>
+      )}
+      {ready && hasVariants && (
+        <Grid item xs={12}>
+          <InfoCard
+            title={pluralOf(variantLabel)}
+            subheader={`Each ${inSentence(
+              variantLabel,
+            )} is scored on its own and leaves this ${label}'s tier unchanged.`}
+          >
+            <RollupTable
+              nodes={root.variants}
+              showKind={false}
+              expandable={false}
+              unscored="show"
+              showTierProgress
+            />
           </InfoCard>
         </Grid>
       )}

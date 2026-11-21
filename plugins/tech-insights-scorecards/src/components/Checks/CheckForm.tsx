@@ -25,14 +25,17 @@ import {
 } from '../../hooks';
 import {
   filterCoversKinds,
+  inSentence,
   isKindKey,
   kindsOfFilter,
+  pluralOf,
   useCatalogKinds,
   useEntityLabel,
   useKindDisplay,
   withArticle,
 } from '../../utils/kinds';
 import { CHECK_TIERS } from '../../utils/tierPalette';
+import { isKind, useVariantConfig } from '../../utils/variants';
 import { useCoveredKindsText } from '../FactCollectorsPanel/CollectorInfoButton';
 import { FORMAT_SHORTCUT, SUGGEST_SHORTCUT } from '../JsonEditor/JsonEditor';
 import { FilterEditor } from '../JsonEditor/FilterEditor';
@@ -202,6 +205,7 @@ export function CheckForm(props: CheckFormProps) {
   const kindLabel = useKindDisplay();
   const entityLabel = useEntityLabel();
   const tierLabel = useTierLabel();
+  const variants = useVariantConfig();
   // Retrievers keep a schema after they're removed, so only the ones
   // scheduled now are offered; a check keeps any it already uses.
   const { value: scheduledRetrievers } = useAsync(async () => {
@@ -404,6 +408,18 @@ export function CheckForm(props: CheckFormProps) {
 
   const coveredKinds = useCoveredKindsText();
   const narrowingKinds = rawFilter ? kindsOfRawFilter(filterJson) : kinds;
+  const variantsNote =
+    variants &&
+    kinds.some(kind => isKind(kind, variants.parentKind)) &&
+    !kinds.some(kind => isKind(kind, variants.kind))
+      ? ` ${pluralOf(
+          kindLabel(variants.kind),
+        )} are scored apart from their ${inSentence(
+          kindLabel(variants.parentKind),
+        )} and run this check only when ${kindLabel(
+          variants.kind,
+        )} is picked too.`
+      : '';
   const covers = (schema: FactSchema) =>
     filterCoversKinds(schema.entityFilter, narrowingKinds);
   const retrieverOptions = factSchemas
@@ -507,7 +523,7 @@ export function CheckForm(props: CheckFormProps) {
                 <TextField
                   {...params}
                   label="Kinds"
-                  helperText={`The check runs only against ${entityLabel.plural} of these kinds. Leave empty to run against every ${entityLabel.singular} the chosen facts cover.`}
+                  helperText={`The check runs only against ${entityLabel.plural} of these kinds. Leave empty to run against every ${entityLabel.singular} the chosen facts cover.${variantsNote}`}
                 />
               )}
             />

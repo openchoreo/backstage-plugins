@@ -31,6 +31,21 @@ export interface Config {
        * @deepVisibility frontend
        */
       categories?: string[];
+      /**
+       * A kind scored apart from the entity it belongs to, for example
+       * `{ kind: ReleaseLine, parentKind: Component }`. A parent's variants
+       * are its `hasPart` targets of `kind`. Its tier covers only itself,
+       * and it's listed first among its variants as `mainLabel` (default
+       * "main"), each variant with its own tier. Variants never count
+       * towards a parent, System, Domain or Group, and have no row of their
+       * own in the breakdown. Their names come from `kindLabels`.
+       * @deepVisibility frontend
+       */
+      variants?: {
+        kind: string;
+        parentKind: string;
+        mainLabel?: string;
+      };
     };
     maturity?: {
       /**

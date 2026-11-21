@@ -106,6 +106,7 @@ app:
                 - Group
                 - ClusterComponentType
                 - ComponentType
+                - ReleaseLine
 
 backend:
   # Used for enabling authentication, secret is shared by all backend plugins
@@ -188,6 +189,12 @@ techInsights:
       plural: resources
     # Suggested in the check editor, which also accepts new ones.
     categories: [Security, Reliability, Documentation]
+    # A component's tier covers its main line only. Its release lines are
+    # scored on their own and listed under it.
+    variants:
+      kind: ReleaseLine
+      parentKind: Component
+      mainLabel: main
   factRetrievers:
     # Tech Insights schedules only the retrievers listed here. timeToLive is
     # kept at several cadences so an entity skipped by a transient failure
