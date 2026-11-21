@@ -26,3 +26,100 @@ export function readGithubFactsOptions(config: Config): GithubFactsOptions {
       DEFAULT_BRANCH_ANNOTATIONS,
   };
 }
+
+/** A scanner whose SARIF results are uploaded to GitHub Code Scanning. */
+export interface CodeScanningTool {
+  /**
+   * Names the scanner's facts (`trivy` gives `githubTrivyOpenAlertCount`), and
+   * is its value in the `githubCodeScanners` fact.
+   */
+  id: string;
+  /** The tool's name in GitHub Code Scanning, sent as `tool_name`. */
+  toolName: string;
+  /** The name people see. */
+  label: string;
+}
+
+export interface CodeScanningOptions {
+  schemaVersion: number;
+  tools: CodeScanningTool[];
+}
+
+export const DEFAULT_CODE_SCANNING_TOOLS: CodeScanningTool[] = [
+  { id: 'codeql', toolName: 'CodeQL', label: 'CodeQL' },
+];
+
+const SCANNER_ID = /^[a-z][a-zA-Z0-9]*$/;
+
+/**
+ * Scanner ids that would give the fact names of other GitHub security
+ * retrievers (`githubDependabotOpenCriticalAlertCount`), so they stay free
+ * rather than being renamed later.
+ */
+const RESERVED_SCANNER_IDS = ['dependabot', 'secretScanning'];
+
+/**
+ * Reads the configured scanners. Config that would produce unusable fact
+ * names, or two scanners reading the same alerts, fails the backend's startup
+ * rather than surfacing later as checks that never pass.
+ */
+export function readCodeScanningOptions(config: Config): CodeScanningOptions {
+  const section = config.getOptionalConfig('techInsights.github.codeScanning');
+  const configured = section?.getOptionalConfigArray('tools');
+  const tools =
+    configured?.map(tool => ({
+      id: tool.getString('id'),
+      toolName: tool.getString('toolName'),
+      label: tool.getString('label'),
+    })) ?? DEFAULT_CODE_SCANNING_TOOLS;
+  // tech-insights keeps the schema it already has for a version, so a list
+  // that changed without a new version would never take effect.
+  const schemaVersion = configured
+    ? section!.getNumber('schemaVersion')
+    : section?.getOptionalNumber('schemaVersion') ?? 1;
+
+  if (!Number.isInteger(schemaVersion) || schemaVersion < 1) {
+    throw new Error(
+      `techInsights.github.codeScanning.schemaVersion must be a positive whole number, got ${schemaVersion}`,
+    );
+  }
+  // Version 1 is the schema of the default scanners, which tech-insights may
+  // already hold, so a custom list on it would keep that schema.
+  if (configured && schemaVersion < 2) {
+    throw new Error(
+      `techInsights.github.codeScanning.schemaVersion must be at least 2 when tools is set, got ${schemaVersion}`,
+    );
+  }
+  if (tools.length === 0) {
+    throw new Error(
+      'techInsights.github.codeScanning.tools must list at least one scanner',
+    );
+  }
+  const ids = new Set<string>();
+  const toolNames = new Set<string>();
+  for (const { id, toolName } of tools) {
+    if (!SCANNER_ID.test(id)) {
+      throw new Error(
+        `Scanner id '${id}' must start with a lowercase letter and contain only letters and digits, because it is part of fact names`,
+      );
+    }
+    if (RESERVED_SCANNER_IDS.includes(id)) {
+      throw new Error(
+        `Scanner id '${id}' is reserved for the GitHub ${id} facts, so it can't name a code scanning tool`,
+      );
+    }
+    if (ids.has(id)) {
+      throw new Error(`Scanner id '${id}' is listed more than once`);
+    }
+    ids.add(id);
+    // GitHub matches tool_name ignoring case, so these would be the same scanner.
+    const key = toolName.toLocaleLowerCase('en-US');
+    if (toolNames.has(key)) {
+      throw new Error(
+        `Scanner toolName '${toolName}' is listed more than once`,
+      );
+    }
+    toolNames.add(key);
+  }
+  return { schemaVersion, tools };
+}
