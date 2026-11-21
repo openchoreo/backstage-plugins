@@ -21,6 +21,7 @@ import { ClusterResourceTypeInfoService } from './services/ClusterResourceTypeSe
 import { ResourceReleaseInfoService } from './services/ResourceReleaseService/ResourceReleaseInfoService';
 import { EndpointInfoService } from './services/EndpointService/EndpointInfoService';
 import { ProjectReleaseInfoService } from './services/ProjectReleaseService/ProjectReleaseInfoService';
+import { ReleaseBindingRevisionService } from './services/ReleaseBindingRevisionService/ReleaseBindingRevisionService';
 import { SecretReferencesService } from './services/SecretReferencesService/SecretReferencesService';
 import { SecretsService } from './services/SecretsService/SecretsService';
 import { AuthzService } from './services/AuthzService/AuthzService';
@@ -156,6 +157,11 @@ export const choreoPlugin = createBackendPlugin({
           baseUrl,
         );
 
+        const releaseBindingRevisionService = new ReleaseBindingRevisionService(
+          logger,
+          baseUrl,
+        );
+
         const secretReferencesInfoService = new SecretReferencesService(
           logger,
           baseUrl,
@@ -249,6 +255,7 @@ export const choreoPlugin = createBackendPlugin({
             resourceReleaseInfoService,
             endpointInfoService,
             projectReleaseInfoService,
+            releaseBindingRevisionService,
             secretReferencesInfoService,
             secretsService,
             authzService,

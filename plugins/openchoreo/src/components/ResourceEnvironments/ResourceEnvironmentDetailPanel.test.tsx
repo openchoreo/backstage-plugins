@@ -13,6 +13,22 @@ jest.mock('@openchoreo/backstage-design-system', () => ({
   ),
 }));
 
+// The revision history fetches on its own; ResourceRevisionHistorySection.test
+// covers it. Here only its placement matters.
+jest.mock('./ResourceRevisionHistorySection', () => ({
+  ResourceRevisionHistorySection: ({
+    env,
+  }: {
+    env: { bindingName?: string; resourceName?: string };
+  }) => (
+    <div
+      data-testid="revision-history"
+      data-binding={env.bindingName}
+      data-env={env.resourceName}
+    />
+  ),
+}));
+
 const mockUpdatePerm = jest.fn();
 const mockDeletePerm = jest.fn();
 const mockPromotePerm = jest.fn();
@@ -312,6 +328,25 @@ describe('ResourceEnvironmentDetailPanel', () => {
     });
     expect(screen.queryByText(/outputs \(/i)).toBeNull();
     expect(screen.queryByRole('button', { name: /view all/i })).toBeNull();
+  });
+
+  it('renders the revision history for an env with a binding', () => {
+    renderPanel({
+      name: 'Development',
+      resourceName: 'development',
+      bindingName: 'b-dev',
+      resourceRelease: 'rel-1',
+      status: 'Ready',
+      latestRelease: 'rel-1',
+    });
+    const history = screen.getByTestId('revision-history');
+    expect(history).toHaveAttribute('data-binding', 'b-dev');
+    expect(history).toHaveAttribute('data-env', 'development');
+  });
+
+  it('omits the revision history when the env has no binding', () => {
+    renderPanel({ name: 'dev', status: 'NotDeployed' } as any);
+    expect(screen.queryByTestId('revision-history')).toBeNull();
   });
 
   it('shows Promoting... while a promote is in flight', () => {

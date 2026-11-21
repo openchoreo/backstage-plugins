@@ -1843,6 +1843,78 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}/rollback': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Roll back a component release binding
+     * @description Restores the binding spec recorded by an earlier ReleaseBindingRevision. The binding is written once, conditional on the resourceVersion read at the start of the request: spec is replaced with the target revision's bindingSpec. No revision is created: the restored spec is the one the target records, so the controller makes the target revision active again under its own name and number, sets the binding's status.currentRevision to it, and restarts its health at Progressing.
+     *
+     *     If a GitOps tool applies the binding from Git (it carries Flux's kustomize.toolkit.fluxcd.io or helm.toolkit.fluxcd.io name or namespace label, or Argo CD's argocd.argoproj.io/tracking-id annotation), the tool would restore the configuration in Git on its next sync, so the rollback (dry runs included) is refused with 409 GITOPS_MANAGED and nothing is changed. Revert the binding's configuration in Git instead.
+     *
+     *     If auto-deploy is enabled for the binding's line and the binding is in the first environment of its deployment pipeline, auto-deploy would move the binding back to the line's latest release right after the rollback, so the rollback (dry runs included) is refused with 409 AUTO_DEPLOY_ENABLED and nothing is changed. For the main line that is the component's autoDeploy; for a release line, the ReleaseLine's autoDeploy when set, otherwise the component's. Turn off auto-deploy for the component or release line to roll back that environment. Other environments are not affected.
+     *
+     *     Without a revision, the target is the revision that was active immediately before the current one. With dryRun, every check runs and the response is the same, but nothing is written. Requires the releasebinding:rollback permission on the binding's component.
+     */
+    post: operations['rollbackReleaseBinding'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/releasebindingrevisions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List component release binding revisions
+     * @description Returns the revision history of a component's release bindings, optionally for one environment, ordered by environment and then by revision number, newest first. Requires the releasebinding:view permission.
+     */
+    get: operations['listReleaseBindingRevisions'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/releasebindingrevisions/{releaseBindingRevisionName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get component release binding revision
+     * @description Returns one revision, including the full binding spec it recorded. Requires the releasebinding:view permission.
+     */
+    get: operations['getReleaseBindingRevision'];
+    put?: never;
+    post?: never;
+    /**
+     * Delete a component release binding revision
+     * @description Deletes one revision from its binding's history. The remaining revisions keep their numbers and a deleted revision's number is never reused: new revisions are numbered above the binding's status.highestRevision. A deleted revision can no longer be rolled back to; deploying its spec again records a new revision.
+     *
+     *     Refused with 409 REVISION_PROTECTED when the revision is active, is the newest known-good revision, when the binding's spec matches it (a rollback to it is being applied), or when the controller has not finished recording it. The delete is conditional on the revision as checked, so one made active meanwhile is refused with 409 CONCURRENT_MODIFICATION. With dryRun every check runs and nothing is deleted. Requires the releasebinding:delete-revision permission on the binding.
+     */
+    delete: operations['deleteReleaseBindingRevision'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}/k8sresources/tree': {
     parameters: {
       query?: never;
@@ -2537,6 +2609,76 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/namespaces/{namespaceName}/resourcereleasebindings/{resourceReleaseBindingName}/rollback': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Roll back a resource release binding
+     * @description Restores the binding spec recorded by an earlier ResourceReleaseBindingRevision. The binding is written once, conditional on the resourceVersion read at the start of the request: spec is replaced with the target revision's bindingSpec. No revision is created: the restored spec is the one the target records, so the controller makes the target revision active again under its own name and number, sets the binding's status.currentRevision to it, and restarts its health at Progressing.
+     *
+     *     If a GitOps tool applies the binding from Git (it carries Flux's kustomize.toolkit.fluxcd.io or helm.toolkit.fluxcd.io name or namespace label, or Argo CD's argocd.argoproj.io/tracking-id annotation), the tool would restore the configuration in Git on its next sync, so the rollback (dry runs included) is refused with 409 GITOPS_MANAGED and nothing is changed. Revert the binding's configuration in Git instead.
+     *
+     *     Without a revision, the target is the revision that was active immediately before the current one. With dryRun, every check runs and the response is the same, but nothing is written. Requires the resourcereleasebinding:rollback permission on the binding's resource.
+     */
+    post: operations['rollbackResourceReleaseBinding'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/resourcereleasebindingrevisions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List resource release binding revisions
+     * @description Returns the revision history of a resource's release bindings, optionally for one environment, ordered by environment and then by revision number, newest first. Requires the resourcereleasebinding:view permission.
+     */
+    get: operations['listResourceReleaseBindingRevisions'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/resourcereleasebindingrevisions/{resourceReleaseBindingRevisionName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get resource release binding revision
+     * @description Returns one revision, including the full binding spec it recorded. Requires the resourcereleasebinding:view permission.
+     */
+    get: operations['getResourceReleaseBindingRevision'];
+    put?: never;
+    post?: never;
+    /**
+     * Delete a resource release binding revision
+     * @description Deletes one revision from its binding's history. The remaining revisions keep their numbers and a deleted revision's number is never reused: new revisions are numbered above the binding's status.highestRevision. A deleted revision can no longer be rolled back to; deploying its spec again records a new revision.
+     *
+     *     Refused with 409 REVISION_PROTECTED when the revision is active, is the newest known-good revision, when the binding's spec matches it (a rollback to it is being applied), or when the controller has not finished recording it. The delete is conditional on the revision as checked, so one made active meanwhile is refused with 409 CONCURRENT_MODIFICATION. With dryRun every check runs and nothing is deleted. Requires the resourcereleasebinding:delete-revision permission on the binding.
+     */
+    delete: operations['deleteResourceReleaseBindingRevision'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/namespaces/{namespaceName}/endpointtypes': {
     parameters: {
       query?: never;
@@ -2994,7 +3136,13 @@ export interface components {
         | 'UNPROCESSABLE_CONTENT'
         | 'INTERNAL_ERROR'
         | 'NOT_IMPLEMENTED'
-        | 'UNKNOWN_GIT_PROVIDER';
+        | 'UNKNOWN_GIT_PROVIDER'
+        | 'RELEASE_DELETED'
+        | 'CONCURRENT_MODIFICATION'
+        | 'REVISION_PROTECTED'
+        | 'NO_PREVIOUS_REVISION'
+        | 'AUTO_DEPLOY_ENABLED'
+        | 'GITOPS_MANAGED';
       /** @description Additional error details (e.g., validation errors) */
       details?: {
         /**
@@ -3608,6 +3756,12 @@ export interface components {
        */
       isProduction?: boolean;
       gateway?: components['schemas']['GatewaySpec'];
+      /**
+       * Format: int32
+       * @description Number of old revisions kept, to allow rollback, for each ReleaseBinding in this environment, and for each ResourceReleaseBinding too. The active revision is always kept and does not count. 0 keeps no old revisions. A binding's own revisionHistoryLimit overrides it. When unset, the controller's --component-revision-history-limit applies.
+       * @example 10
+       */
+      componentRevisionHistoryLimit?: number;
     };
     /** @description Observed state of an Environment */
     EnvironmentStatus: {
@@ -5138,6 +5292,56 @@ export interface components {
       items: components['schemas']['ReleaseBinding'][];
       pagination: components['schemas']['Pagination'];
     };
+    /** @description Paginated list of component release binding revisions */
+    ReleaseBindingRevisionList: {
+      items: components['schemas']['ReleaseBindingRevision'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /**
+     * @description ReleaseBindingRevision resource.
+     *     An immutable record of one ReleaseBinding spec, owned by that binding. Only status changes after creation.
+     */
+    ReleaseBindingRevision: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example ReleaseBindingRevision
+       */
+      readonly kind?: string;
+      metadata: components['schemas']['ObjectMeta'];
+      spec: components['schemas']['ReleaseBindingRevisionSpec'];
+      readonly status?: components['schemas']['BindingRevisionStatus'];
+    };
+    /** @description The recorded state of one revision. Immutable. */
+    ReleaseBindingRevisionSpec: {
+      /**
+       * Format: int64
+       * @description Sequence number of this revision within its binding
+       * @example 3
+       */
+      revision: number;
+      cause: components['schemas']['RevisionCause'];
+      /**
+       * @description ComponentRelease bound by this revision
+       * @example api-service-6f9c2a
+       */
+      componentReleaseName: string;
+      /**
+       * @description Optional reason given for the change this revision records, copied from the binding's openchoreo.dev/change-message annotation
+       * @example Fix checkout timeout
+       */
+      message?: string;
+      /**
+       * @description SHA-256 of the canonical binding spec
+       * @example 9f2c4e7a1b3d5f60718293a4b5c6d7e8f9012a3b4c5d6e7f8091a2b3c4d5e6f7
+       */
+      snapshotHash: string;
+      bindingSpec: components['schemas']['ReleaseBindingSpec'];
+    };
     /**
      * @description ReleaseBinding resource.
      *     Binds a ComponentRelease to a specific environment.
@@ -5203,9 +5407,20 @@ export interface components {
        * @enum {string}
        */
       state: 'Active' | 'Undeploy';
+      /**
+       * Format: int32
+       * @description Number of old revisions kept for this binding to allow rollback. The active revision is always kept and does not count. 0 keeps no old revisions, so the binding cannot be rolled back. When unset, the Environment's componentRevisionHistoryLimit applies, then the controller's --component-revision-history-limit. Changing it creates no revision, and a rollback leaves it as it is.
+       * @example 10
+       */
+      revisionHistoryLimit?: number;
     };
     /** @description Observed state of a ReleaseBinding */
     ReleaseBindingStatus: {
+      /**
+       * @description Name of the revision this binding currently applies ({binding}-r{N}). Updated whenever the active revision changes, including when a rollback makes an earlier revision active again.
+       * @example api-service-dev-r3
+       */
+      currentRevision?: string;
       /**
        * Format: int64
        * @description Most recent generation observed by the controller
@@ -5844,6 +6059,56 @@ export interface components {
       items: components['schemas']['ResourceReleaseBinding'][];
       pagination: components['schemas']['Pagination'];
     };
+    /** @description Paginated list of resource release binding revisions */
+    ResourceReleaseBindingRevisionList: {
+      items: components['schemas']['ResourceReleaseBindingRevision'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /**
+     * @description ResourceReleaseBindingRevision resource.
+     *     An immutable record of one ResourceReleaseBinding spec, owned by that binding. Only status changes after creation.
+     */
+    ResourceReleaseBindingRevision: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example ResourceReleaseBindingRevision
+       */
+      readonly kind?: string;
+      metadata: components['schemas']['ObjectMeta'];
+      spec: components['schemas']['ResourceReleaseBindingRevisionSpec'];
+      readonly status?: components['schemas']['BindingRevisionStatus'];
+    };
+    /** @description The recorded state of one revision. Immutable. */
+    ResourceReleaseBindingRevisionSpec: {
+      /**
+       * Format: int64
+       * @description Sequence number of this revision within its binding
+       * @example 3
+       */
+      revision: number;
+      cause: components['schemas']['RevisionCause'];
+      /**
+       * @description ResourceRelease pinned by this revision
+       * @example analytics-shared-db-abc123
+       */
+      resourceReleaseName: string;
+      /**
+       * @description Optional reason given for the change this revision records, copied from the binding's openchoreo.dev/change-message annotation
+       * @example Fix checkout timeout
+       */
+      message?: string;
+      /**
+       * @description SHA-256 of the canonical binding spec
+       * @example 9f2c4e7a1b3d5f60718293a4b5c6d7e8f9012a3b4c5d6e7f8091a2b3c4d5e6f7
+       */
+      snapshotHash: string;
+      bindingSpec: components['schemas']['ResourceReleaseBindingSpec'];
+    };
     /**
      * @description ResourceReleaseBinding resource.
      *     Pins a ResourceRelease to an Environment and carries per-env config overrides.
@@ -5903,6 +6168,12 @@ export interface components {
       resourceTypeEnvironmentConfigs?: {
         [key: string]: unknown;
       };
+      /**
+       * Format: int32
+       * @description Number of old revisions kept for this binding to allow rollback. The active revision is always kept and does not count. 0 keeps no old revisions, so the binding cannot be rolled back. When unset, the Environment's componentRevisionHistoryLimit applies, then the controller's --component-revision-history-limit. Changing it creates no revision, and a rollback leaves it as it is.
+       * @example 10
+       */
+      revisionHistoryLimit?: number;
     };
     /**
      * @description Resolved output value populated by the binding controller after evaluating
@@ -5926,6 +6197,11 @@ export interface components {
     };
     /** @description Observed state of a ResourceReleaseBinding. */
     ResourceReleaseBindingStatus: {
+      /**
+       * @description Name of the revision this binding currently applies ({binding}-r{N}). Updated whenever the active revision changes, including when a rollback makes an earlier revision active again.
+       * @example postgres-dev-r3
+       */
+      currentRevision?: string;
       /** @description Latest available observations of the binding's state. Includes Synced, ResourcesReady, OutputsResolved, Ready (aggregate), and Finalizing. */
       conditions?: components['schemas']['Condition'][];
       /** @description Resolved outputs for this environment, populated from the underlying RenderedRelease.status by the binding controller. */
@@ -6696,6 +6972,159 @@ export interface components {
        *     ]
        */
       args?: string[] | null;
+    };
+    /**
+     * @description Why a binding revision was created
+     * @example Deploy
+     * @enum {string}
+     */
+    RevisionCause: 'Deploy' | 'Promote' | 'Override' | 'Undeploy' | 'Redeploy';
+    /** @description Observed state of a binding revision. Only the active revision follows the binding's health; a revision that stops being active keeps the health it last had. */
+    BindingRevisionStatus: {
+      /**
+       * @example Healthy
+       * @enum {string}
+       */
+      health?: 'Progressing' | 'Healthy' | 'Degraded' | 'Failed' | 'Unknown';
+      /** @description True for the one revision the binding currently applies */
+      active?: boolean;
+      /** @description True once the revision stayed Healthy for the controller's known-good window. Never reverts. */
+      knownGood?: boolean;
+      /**
+       * Format: date-time
+       * @description When health last changed
+       */
+      observedAt?: string;
+      /**
+       * Format: date-time
+       * @description When the revision last became Healthy; unset while it is not Healthy
+       */
+      healthySince?: string;
+      conditions?: components['schemas']['Condition'][];
+    };
+    /** @description Request to restore the binding spec recorded by an earlier revision */
+    RollbackRequest: {
+      /**
+       * Format: int64
+       * @description Number of the revision to roll back to. When omitted, the revision that was active immediately before the current one, by activation history rather than revision number (like kubectl rollout undo). If that revision was deleted, or the history cannot say which it was, the rollback is refused with 409 NO_PREVIOUS_REVISION and nothing is changed.
+       * @example 3
+       */
+      revision?: number;
+      /**
+       * @description Run every check and return the response without writing anything
+       * @default false
+       */
+      dryRun: boolean;
+      /**
+       * @description Optional reason for the rollback. It is written to the binding's openchoreo.dev/change-message annotation with the restored spec, shown on the binding's RevisionReactivated event, and recorded in the audit log. A rollback creates no revision, so it is not stored on one.
+       * @example Payments failing since r4
+       */
+      message?: string;
+    };
+    /** @description A revision deletion, applied or dry-run */
+    DeleteBindingRevisionResponse: {
+      /**
+       * @description The deleted revision's object name, {binding}-r{N}
+       * @example api-service-dev-r2
+       */
+      revisionName: string;
+      /**
+       * @description How the revision is shown to people, {component or resource name}-r{N}
+       * @example api-service-v5-r2
+       */
+      revisionDisplayName?: string;
+      /**
+       * Format: int64
+       * @description The deleted revision's number. Other revisions keep theirs.
+       * @example 2
+       */
+      revision: number;
+      /**
+       * @description The binding the revision belonged to
+       * @example api-service-dev
+       */
+      binding: string;
+      /** @example development */
+      environment: string;
+      /** @description True when nothing was deleted because dryRun was requested */
+      dryRun: boolean;
+    };
+    /** @description Result of a rollback, or of its dry run */
+    RollbackResponse: {
+      /**
+       * @description Object name of the revision active after the rollback ({binding}-r{N}). A rollback creates no revision, so this is always the target revision.
+       * @example api-service-dev-r3
+       */
+      revisionName: string;
+      /**
+       * @description How the target revision is shown to people, {component or resource name}-r{N}
+       * @example api-service-6f9c2a-r3
+       */
+      revisionDisplayName?: string;
+      /**
+       * Format: int64
+       * @description Number of the revision active after the rollback; always the target revision
+       * @example 3
+       */
+      revision: number;
+      /**
+       * Format: int64
+       * @description The revision whose spec is restored
+       * @example 3
+       */
+      targetRevision: number;
+      /**
+       * Format: int64
+       * @description The revision that was active when the rollback was made
+       * @example 5
+       */
+      revertedFrom?: number;
+      /** @description True when nothing was written */
+      dryRun: boolean;
+      /** @description The binding spec fields the rollback changes, with their current and restored values. Empty when the target spec equals the current one. */
+      changes: components['schemas']['RollbackSpecChange'][];
+      /** @description Pre-flight findings that do not block the rollback */
+      warnings: components['schemas']['RollbackWarning'][];
+    };
+    /** @description One binding spec field a rollback changes */
+    RollbackSpecChange: {
+      /**
+       * @description Top-level binding spec field
+       * @example releaseName
+       */
+      field: string;
+      /**
+       * @description Current value; absent when the field is unset
+       * @example api-service-9a1b2c
+       */
+      current?: unknown;
+      /**
+       * @description Value after the rollback; absent when the rollback unsets the field
+       * @example api-service-6f9c2a
+       */
+      target?: unknown;
+    };
+    /** @description A pre-flight finding that does not block the rollback */
+    RollbackWarning: {
+      /**
+       * @description TargetNotKnownGood: the target never stayed Healthy for the known-good window. TargetUnhealthy: the target was Degraded or Failed when it stopped being active. TargetUndeploys: the target revision has state Undeploy, so the rollback removes the deployment. NoSpecChange: the target spec equals the current one; no revision will be recorded. UnrecordedChange: the binding has a spec change the controller has not recorded yet; the rollback discards it. ProjectCellDrift: the project's cell in this environment is bound to a ProjectRelease created after the target revision, so the restored spec will run in a cell it was never deployed with. SecretReferenceDrift: a SecretReference the target revision uses is missing, lacks a referenced key, or was recreated after the target revision. PreviousRevisionInferred: no revision was named and the current revision predates activation tracking, so the target is the revision activated just before it; a revision deleted since may have been active in between.
+       * @example TargetNotKnownGood
+       * @enum {string}
+       */
+      code:
+        | 'TargetNotKnownGood'
+        | 'TargetUnhealthy'
+        | 'TargetUndeploys'
+        | 'NoSpecChange'
+        | 'UnrecordedChange'
+        | 'ProjectCellDrift'
+        | 'SecretReferenceDrift'
+        | 'PreviousRevisionInferred';
+      /**
+       * @description Human-readable explanation
+       * @example revision 3 never stayed Healthy for the known-good window
+       */
+      message: string;
     };
     /** @description Response describing the Job created from a manual cronjob trigger */
     CronJobTriggerResponse: {
@@ -8095,6 +8524,33 @@ export interface components {
         'application/json': components['schemas']['ErrorResponse'];
       };
     };
+    /** @description The binding, or the revision to roll back to, does not exist */
+    RollbackNotFound: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        'application/json': components['schemas']['ErrorResponse'];
+      };
+    };
+    /** @description The rollback cannot be applied as requested: the release the revision binds has been deleted, or the binding changed while the rollback was being applied, or the binding is managed by GitOps */
+    RollbackConflict: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        'application/json': components['schemas']['ErrorResponse'];
+      };
+    };
+    /** @description The revision may not be deleted: it is protected, or it changed while it was being deleted */
+    RevisionDeleteConflict: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        'application/json': components['schemas']['ErrorResponse'];
+      };
+    };
     /** @description Request body is well-formed but failed validation */
     UnprocessableContent: {
       headers: {
@@ -8200,6 +8656,16 @@ export interface components {
     WorkflowRunNameParam: string;
     /** @description Release binding name */
     ReleaseBindingNameParam: string;
+    /** @description Only list the revisions of this binding. A component (or resource) can have several bindings in one environment, one per release line, each numbered from r1, so filtering by environment alone can mix their histories. */
+    RevisionListBindingQueryParam: string;
+    /** @description The binding the revision is expected to belong to. A revision of any other binding is reported as not found. */
+    RevisionBindingQueryParam: string;
+    /** @description Run every check without deleting the revision */
+    RevisionDeleteDryRunQueryParam: boolean;
+    /** @description Release binding revision name ({releaseBinding}-r{N}) */
+    ReleaseBindingRevisionNameParam: string;
+    /** @description Component whose release binding revisions to list */
+    RevisionComponentQueryParam: string;
     /** @description Component release name */
     ComponentReleaseNameParam: string;
     /** @description ClusterResourceType name */
@@ -8222,6 +8688,10 @@ export interface components {
     ResourceQueryParam: string;
     /** @description Resource release binding name */
     ResourceReleaseBindingNameParam: string;
+    /** @description Resource release binding revision name ({resourceReleaseBinding}-r{N}) */
+    ResourceReleaseBindingRevisionNameParam: string;
+    /** @description Resource whose release binding revisions to list */
+    RevisionResourceQueryParam: string;
     /** @description ClusterEndpointType name */
     ClusterEndpointTypeNameParam: string;
     /** @description EndpointType name */
@@ -13141,6 +13611,147 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
+  rollbackReleaseBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Release binding name */
+        releaseBindingName: components['parameters']['ReleaseBindingNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RollbackRequest'];
+      };
+    };
+    responses: {
+      /** @description Rollback applied, or validated when dryRun is true */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RollbackResponse'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['RollbackNotFound'];
+      409: components['responses']['RollbackConflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listReleaseBindingRevisions: {
+    parameters: {
+      query: {
+        /** @description Component whose release binding revisions to list */
+        component: components['parameters']['RevisionComponentQueryParam'];
+        /** @description Filter resources by environment name */
+        environment?: components['parameters']['EnvironmentQueryParam'];
+        /** @description Only list the revisions of this binding. A component (or resource) can have several bindings in one environment, one per release line, each numbered from r1, so filtering by environment alone can mix their histories. */
+        binding?: components['parameters']['RevisionListBindingQueryParam'];
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of component release binding revisions */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReleaseBindingRevisionList'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getReleaseBindingRevision: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Release binding revision name ({releaseBinding}-r{N}) */
+        releaseBindingRevisionName: components['parameters']['ReleaseBindingRevisionNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Revision details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReleaseBindingRevision'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteReleaseBindingRevision: {
+    parameters: {
+      query?: {
+        /** @description The binding the revision is expected to belong to. A revision of any other binding is reported as not found. */
+        binding?: components['parameters']['RevisionBindingQueryParam'];
+        /** @description Run every check without deleting the revision */
+        dryRun?: components['parameters']['RevisionDeleteDryRunQueryParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Release binding revision name ({releaseBinding}-r{N}) */
+        releaseBindingRevisionName: components['parameters']['ReleaseBindingRevisionNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Revision deleted, or allowed to be deleted when dryRun is true */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DeleteBindingRevisionResponse'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['RevisionDeleteConflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
   getReleaseBindingK8sResourceTree: {
     parameters: {
       query?: never;
@@ -14980,6 +15591,147 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  rollbackResourceReleaseBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Resource release binding name */
+        resourceReleaseBindingName: components['parameters']['ResourceReleaseBindingNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RollbackRequest'];
+      };
+    };
+    responses: {
+      /** @description Rollback applied, or validated when dryRun is true */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RollbackResponse'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['RollbackNotFound'];
+      409: components['responses']['RollbackConflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listResourceReleaseBindingRevisions: {
+    parameters: {
+      query: {
+        /** @description Resource whose release binding revisions to list */
+        resource: components['parameters']['RevisionResourceQueryParam'];
+        /** @description Filter resources by environment name */
+        environment?: components['parameters']['EnvironmentQueryParam'];
+        /** @description Only list the revisions of this binding. A component (or resource) can have several bindings in one environment, one per release line, each numbered from r1, so filtering by environment alone can mix their histories. */
+        binding?: components['parameters']['RevisionListBindingQueryParam'];
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of resource release binding revisions */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResourceReleaseBindingRevisionList'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getResourceReleaseBindingRevision: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Resource release binding revision name ({resourceReleaseBinding}-r{N}) */
+        resourceReleaseBindingRevisionName: components['parameters']['ResourceReleaseBindingRevisionNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Revision details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResourceReleaseBindingRevision'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteResourceReleaseBindingRevision: {
+    parameters: {
+      query?: {
+        /** @description The binding the revision is expected to belong to. A revision of any other binding is reported as not found. */
+        binding?: components['parameters']['RevisionBindingQueryParam'];
+        /** @description Run every check without deleting the revision */
+        dryRun?: components['parameters']['RevisionDeleteDryRunQueryParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Resource release binding revision name ({resourceReleaseBinding}-r{N}) */
+        resourceReleaseBindingRevisionName: components['parameters']['ResourceReleaseBindingRevisionNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Revision deleted, or allowed to be deleted when dryRun is true */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DeleteBindingRevisionResponse'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['RevisionDeleteConflict'];
       500: components['responses']['InternalError'];
     };
   };

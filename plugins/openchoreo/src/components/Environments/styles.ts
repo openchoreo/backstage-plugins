@@ -562,6 +562,14 @@ export const useEnvironmentDetailPanelStyles = makeStyles(theme => ({
     gap: theme.spacing(0.5),
     marginTop: theme.spacing(0.5),
   },
+  // Roll back and Promote, laid out like EnvironmentActions' row below them.
+  primaryActionsRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: theme.spacing(1),
+  },
   releaseNameLabel: {
     textTransform: 'uppercase',
     letterSpacing: 0.6,

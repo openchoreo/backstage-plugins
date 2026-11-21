@@ -3400,7 +3400,7 @@ export class EnvironmentInfoService implements EnvironmentService {
    *
    * @param request.componentName - Name of the component to filter releases by
    * @param request.namespaceName - Name of the namespace
-   * @returns Paginated list of component releases (frozen workload snapshots)
+   * @returns Every component release across all pages (frozen workload snapshots)
    */
   async listComponentReleases(
     request: {

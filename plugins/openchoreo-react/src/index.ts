@@ -481,6 +481,10 @@ export {
   useReleaseBindingUpdatePermission,
   type UseReleaseBindingUpdatePermissionResult,
 } from './hooks/useReleaseBindingUpdatePermission';
+export {
+  useReleaseBindingRollbackPermission,
+  type UseReleaseBindingRollbackPermissionResult,
+} from './hooks/useReleaseBindingRollbackPermission';
 export { useEnvScopedPermission } from './hooks/useEnvScopedPermission';
 export {
   useResourceReleaseBindingUpdatePermission,
@@ -494,6 +498,15 @@ export {
   useResourceReleaseBindingDeletePermission,
   type UseResourceReleaseBindingDeletePermissionResult,
 } from './hooks/useResourceReleaseBindingDeletePermission';
+export {
+  useResourceReleaseBindingRollbackPermission,
+  type UseResourceReleaseBindingRollbackPermissionResult,
+} from './hooks/useResourceReleaseBindingRollbackPermission';
+export {
+  useReleaseBindingDeleteRevisionPermission,
+  useResourceReleaseBindingDeleteRevisionPermission,
+  type UseBindingRevisionDeletePermissionResult,
+} from './hooks/useBindingRevisionDeletePermission';
 export {
   useRemoveDeploymentPermission,
   type UseRemoveDeploymentPermissionResult,

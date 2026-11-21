@@ -83,6 +83,41 @@ jest.mock('./ReleaseManifestDialog', () => ({
   },
 }));
 
+// The revision history fetches on its own; RevisionHistorySection.test
+// covers it. Here only its placement matters. As in the real module, the
+// revision row and Roll back render only under a provider, which an env
+// without a binding does not get.
+jest.mock('./RevisionHistorySection', () => {
+  const { createContext, useContext } = jest.requireActual('react');
+  const Bound = createContext(false);
+  return {
+    RevisionHistoryProvider: ({
+      environment,
+      releasesKnown,
+      children,
+    }: {
+      environment: { bindingName?: string };
+      releasesKnown: boolean;
+      children: React.ReactNode;
+    }) => (
+      <Bound.Provider value={!!environment.bindingName}>
+        {environment.bindingName && (
+          <div
+            data-testid="revision-history"
+            data-binding={environment.bindingName}
+            data-releases-known={String(releasesKnown)}
+          />
+        )}
+        {children}
+      </Bound.Provider>
+    ),
+    RevisionInfoRow: () =>
+      useContext(Bound) ? <div data-testid="revision-info-row" /> : null,
+    RollbackAction: () =>
+      useContext(Bound) ? <button type="button">Roll back</button> : null,
+  };
+});
+
 jest.mock('./ReleaseBrowserDialog', () => ({
   ReleaseBrowserDialog: ({ open }: { open: boolean }) =>
     open ? <div role="dialog" data-testid="browser-dialog" /> : null,
@@ -609,6 +644,105 @@ describe('EnvironmentDetailPanel', () => {
     expect(screen.getByText('my-comp-rel-7')).toBeInTheDocument();
     expect(screen.getByLabelText('Copy release name')).toBeInTheDocument();
     expect(screen.getByLabelText('View release')).toBeInTheDocument();
+  });
+
+  it('renders the revision history for an env with a binding', () => {
+    renderPanel({
+      selection: {
+        kind: 'env',
+        environment: makeEnv({
+          name: 'staging',
+          bindingName: 'staging-binding',
+          deployment: { status: 'Ready', releaseName: 'rel-5' },
+        }),
+      },
+    });
+    const history = screen.getByTestId('revision-history');
+    expect(history).toHaveAttribute('data-binding', 'staging-binding');
+    expect(history).toHaveAttribute('data-releases-known', 'true');
+  });
+
+  it('omits the revision history for an env without a binding', () => {
+    renderPanel({
+      selection: {
+        kind: 'env',
+        environment: makeEnv({ name: 'staging', deployment: {} }),
+      },
+    });
+    expect(screen.queryByTestId('revision-history')).toBeNull();
+    expect(screen.queryByTestId('revision-info-row')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Roll back' })).toBeNull();
+  });
+
+  it('shows the revision under the release, before the deploy time', () => {
+    renderPanel({
+      selection: {
+        kind: 'env',
+        environment: makeEnv({
+          name: 'staging',
+          bindingName: 'staging-binding',
+          deployment: {
+            status: 'Ready',
+            releaseName: 'rel-5',
+            lastDeployed: '2025-01-06T10:00:00Z',
+          },
+        }),
+      },
+    });
+    const row = screen.getByTestId('revision-info-row');
+    const releaseRow = screen
+      .getByLabelText('Copy release name')
+      .closest('div')!;
+    const deployedRow = screen.getByText('Deployed').closest('div')!;
+    // The release section's rows: release, then revision, then Deployed.
+    expect(row.parentElement).toBe(releaseRow.parentElement);
+    expect(row.previousElementSibling).toBe(releaseRow);
+    expect(row.nextElementSibling).toBe(deployedRow);
+    // The standalone Revisions section is gone.
+    expect(screen.queryByText('Revisions')).toBeNull();
+  });
+
+  it('puts Roll back beside Promote in the Actions section', () => {
+    renderPanel({
+      selection: {
+        kind: 'env',
+        environment: makeEnv({
+          name: 'staging',
+          bindingName: 'staging-binding',
+          deployment: { status: 'Ready', releaseName: 'rel-5' },
+          promotionTargets: [{ name: 'prod', resourceName: 'prod-res' }],
+        }),
+      },
+    });
+    const rollback = screen.getByRole('button', { name: 'Roll back' });
+    const promote = screen.getByRole('button', { name: /^promote$/i });
+    // One row, Roll back first.
+    expect(rollback.parentElement).toContainElement(promote);
+    expect(
+      rollback.compareDocumentPosition(promote) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(screen.getByText('Actions').parentElement).toContainElement(
+      rollback,
+    );
+  });
+
+  it('keeps Roll back in the Actions section when there is nothing to promote', () => {
+    renderPanel({
+      selection: {
+        kind: 'env',
+        environment: makeEnv({
+          name: 'staging',
+          bindingName: 'staging-binding',
+          deployment: { status: 'Ready', releaseName: 'rel-5' },
+          promotionTargets: [],
+        }),
+      },
+    });
+    expect(screen.queryByRole('button', { name: /^promote$/i })).toBeNull();
+    expect(screen.getByText('Actions').parentElement).toContainElement(
+      screen.getByRole('button', { name: 'Roll back' }),
+    );
   });
 
   it('omits the release name row when the env has no release', () => {

@@ -823,6 +823,27 @@ export const openchoreoReleaseBindingUpdatePermission = createPermission({
 });
 
 /**
+ * Permission to roll a release binding back to an earlier revision.
+ * Resource-based: gates the Roll back action in the revision history.
+ */
+export const openchoreoReleaseBindingRollbackPermission = createPermission({
+  name: 'openchoreo.releasebinding.rollback',
+  attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to delete one inactive revision from a release binding's history.
+ * Resource-based: gates the Delete action in the Revision Browser.
+ */
+export const openchoreoReleaseBindingDeleteRevisionPermission =
+  createPermission({
+    name: 'openchoreo.releasebinding.deleterevision',
+    attributes: { action: 'delete' },
+    resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+  });
+
+/**
  * Permission to delete a release binding (i.e., remove a deployment from an
  * environment). Resource-based — gates the per-env "Remove deployment" button.
  */
@@ -852,6 +873,31 @@ export const openchoreoResourceReleaseBindingUpdatePermission =
   createPermission({
     name: 'openchoreo.resourcereleasebinding.update',
     attributes: { action: 'update' },
+    resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+  });
+
+/**
+ * Permission to roll a ResourceReleaseBinding back to an earlier revision.
+ * Resource-scoped on the Resource entity: gates the Roll back action in the
+ * resource's revision history. Independent of the component-side rollback
+ * permission, like the other resource release-binding permissions.
+ */
+export const openchoreoResourceReleaseBindingRollbackPermission =
+  createPermission({
+    name: 'openchoreo.resourcereleasebinding.rollback',
+    attributes: { action: 'update' },
+    resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+  });
+
+/**
+ * Permission to delete one inactive revision from a ResourceReleaseBinding's
+ * history. Resource-scoped on the Resource entity, like the other resource
+ * release-binding permissions.
+ */
+export const openchoreoResourceReleaseBindingDeleteRevisionPermission =
+  createPermission({
+    name: 'openchoreo.resourcereleasebinding.deleterevision',
+    attributes: { action: 'delete' },
     resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
   });
 
@@ -1249,8 +1295,12 @@ export const openchoreoPermissions = [
   openchoreoReleaseBindingReadPermission,
   openchoreoReleaseBindingViewPermission,
   openchoreoReleaseBindingUpdatePermission,
+  openchoreoReleaseBindingRollbackPermission,
+  openchoreoReleaseBindingDeleteRevisionPermission,
   openchoreoReleaseBindingDeletePermission,
   openchoreoResourceReleaseBindingUpdatePermission,
+  openchoreoResourceReleaseBindingRollbackPermission,
+  openchoreoResourceReleaseBindingDeleteRevisionPermission,
   openchoreoResourceReleaseBindingCreatePermission,
   openchoreoResourceReleaseBindingDeletePermission,
   openchoreoEndpointReleaseBindingUpdatePermission,
@@ -1385,10 +1435,16 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.release.create': 'componentrelease:create',
   'openchoreo.release.read': 'componentrelease:view',
   'openchoreo.releasebinding.update': 'releasebinding:update',
+  'openchoreo.releasebinding.rollback': 'releasebinding:rollback',
+  'openchoreo.releasebinding.deleterevision': 'releasebinding:delete-revision',
   'openchoreo.releasebinding.delete': 'releasebinding:delete',
   'openchoreo.releasebinding.read': 'releasebinding:view',
   'openchoreo.releasebinding.view': 'releasebinding:view',
   'openchoreo.resourcereleasebinding.update': 'resourcereleasebinding:update',
+  'openchoreo.resourcereleasebinding.rollback':
+    'resourcereleasebinding:rollback',
+  'openchoreo.resourcereleasebinding.deleterevision':
+    'resourcereleasebinding:delete-revision',
   'openchoreo.resourcereleasebinding.create': 'resourcereleasebinding:create',
   'openchoreo.resourcereleasebinding.delete': 'resourcereleasebinding:delete',
   'openchoreo.endpointreleasebinding.update': 'endpointreleasebinding:update',

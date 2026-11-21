@@ -4,6 +4,11 @@ import type {
   WorkloadResource,
   ComponentRelease,
   ReleaseBindingCondition,
+  ReleaseBindingRevision,
+  ResourceReleaseBindingRevision,
+  RollbackResponse,
+  DeleteBindingRevisionResponse,
+  BindingRevisionHistoryLimit,
   ReleaseLineSummary,
   ReleaseLineOverrides,
   ReleaseLineResource,
@@ -945,6 +950,102 @@ export interface OpenChoreoClientApi {
     entity: Entity,
     releaseLine?: string,
   ): Promise<ComponentReleasesResponse>;
+
+  /**
+   * List the revisions of the component's release binding in one
+   * environment. Order is not guaranteed; callers sort. Pass bindingName to
+   * keep one binding's history: a component has one binding per release line
+   * in an environment, each numbered from r1.
+   */
+  listReleaseBindingRevisions(
+    entity: Entity,
+    environment: string,
+    bindingName?: string,
+  ): Promise<ReleaseBindingRevision[]>;
+
+  /**
+   * Roll a release binding back to an earlier revision. With dryRun, nothing
+   * is written and the response carries the changes and warnings.
+   */
+  rollbackReleaseBinding(
+    entity: Entity,
+    bindingName: string,
+    revision: number,
+    dryRun: boolean,
+    /** Optional reason for the rollback; only sent with an applied rollback. */
+    message?: string,
+  ): Promise<RollbackResponse>;
+
+  /**
+   * Delete one inactive revision from the Component's release binding
+   * history, or with dryRun only check that it may be deleted. The other
+   * revisions keep their numbers.
+   */
+  deleteReleaseBindingRevision(
+    entity: Entity,
+    bindingName: string,
+    revisionName: string,
+    dryRun: boolean,
+  ): Promise<DeleteBindingRevisionResponse>;
+
+  /**
+   * List the revisions of the Resource's release binding in one
+   * environment. Order is not guaranteed; callers sort. Pass bindingName to
+   * keep one binding's history.
+   */
+  listResourceReleaseBindingRevisions(
+    entity: Entity,
+    environment: string,
+    bindingName?: string,
+  ): Promise<ResourceReleaseBindingRevision[]>;
+
+  /**
+   * Roll a resource release binding back to an earlier revision. With
+   * dryRun, nothing is written and the response carries the changes and
+   * warnings.
+   */
+  rollbackResourceReleaseBinding(
+    entity: Entity,
+    bindingName: string,
+    revision: number,
+    dryRun: boolean,
+    /** Optional reason for the rollback; only sent with an applied rollback. */
+    message?: string,
+  ): Promise<RollbackResponse>;
+
+  /**
+   * Delete one inactive revision from the Resource's release binding
+   * history, or with dryRun only check that it may be deleted.
+   */
+  deleteResourceReleaseBindingRevision(
+    entity: Entity,
+    bindingName: string,
+    revisionName: string,
+    dryRun: boolean,
+  ): Promise<DeleteBindingRevisionResponse>;
+
+  /**
+   * The revision history limit of a Component's ('component') or a
+   * Resource's ('resource') release binding: how many old revisions it keeps
+   * for rollback, with the Environment's limit it falls back to.
+   */
+  getBindingRevisionHistoryLimit(
+    entity: Entity,
+    kind: 'component' | 'resource',
+    bindingName: string,
+  ): Promise<BindingRevisionHistoryLimit>;
+
+  /**
+   * Set a binding's revision history limit, or clear it with null so the
+   * Environment's applies. Changing it records no revision; lowering it
+   * deletes the oldest revisions.
+   */
+  setBindingRevisionHistoryLimit(
+    entity: Entity,
+    kind: 'component' | 'resource',
+    bindingName: string,
+    limit: number | null,
+  ): Promise<BindingRevisionHistoryLimit>;
 
   /** Create or update a release binding for deploy/promote actions */
   updateReleaseBinding(
