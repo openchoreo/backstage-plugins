@@ -156,7 +156,7 @@ export function factPrefix(id: string): string {
 }
 
 /**
- * The seven `github<Id>*` facts for one scanning tool. When the tool has never
+ * The six `github<Id>*` facts for one scanning tool. When the tool has never
  * run on the branch (`alerts` undefined), `github<Id>Scanned` is false and
  * every count is null, so a check that needs the scanner fails the component
  * instead of skipping it. Alerts without a security severity (quality-only
@@ -176,20 +176,17 @@ export function codeScanningFacts(
       [`${prefix}OpenMediumAlertCount`]: null,
       [`${prefix}OpenLowAlertCount`]: null,
       [`${prefix}OpenAlertCount`]: null,
-      [`${prefix}HasOpenCriticalAlerts`]: null,
     };
   }
   const count = (severity: string) =>
     alerts.filter(a => a.rule?.security_severity_level === severity).length;
-  const critical = count('critical');
   return {
     [`${prefix}Scanned`]: true,
-    [`${prefix}OpenCriticalAlertCount`]: critical,
+    [`${prefix}OpenCriticalAlertCount`]: count('critical'),
     [`${prefix}OpenHighAlertCount`]: count('high'),
     [`${prefix}OpenMediumAlertCount`]: count('medium'),
     [`${prefix}OpenLowAlertCount`]: count('low'),
     [`${prefix}OpenAlertCount`]: alerts.length,
-    [`${prefix}HasOpenCriticalAlerts`]: critical > 0,
   };
 }
 
@@ -238,11 +235,6 @@ export function codeScanningSchema(
       'OpenAlertCount',
       'integer',
       `All open ${label} alerts on the branch the component builds from. The severity counts leave out alerts with no security severity, so use this fact for a scanner that doesn't report one`,
-    ),
-    fact(
-      'HasOpenCriticalAlerts',
-      'boolean',
-      `Whether there is at least one open critical ${label} alert`,
     ),
   ]);
 }

@@ -81,14 +81,13 @@ both describe the code the component builds from. A scan counts only when the sc
 branch, so a component that builds from a branch the scan workflow doesn't cover reports the
 scanner as not run.
 
-Each scanner adds seven facts, named after its `id`. For `codeql`:
+Each scanner adds six facts, named after its `id`. For `codeql`:
 
 | Fact                                                                     | Type    | Meaning                                              |
 | ------------------------------------------------------------------------ | ------- | ---------------------------------------------------- |
 | `githubCodeqlScanned`                                                    | boolean | Whether CodeQL uploaded an analysis for the branch   |
 | `githubCodeqlOpenCriticalAlertCount` ... `githubCodeqlOpenLowAlertCount` | integer | Open alerts with each security severity              |
 | `githubCodeqlOpenAlertCount`                                             | integer | All open alerts, with or without a security severity |
-| `githubCodeqlHasOpenCriticalAlerts`                                      | boolean | Whether there is at least one open critical alert    |
 
 `githubCodeScanners` lists the ids of the scanners that ran. It's a list, so rules test it with
 `contains` or `doesNotContain`, for example `githubCodeScanners contains codeql`.

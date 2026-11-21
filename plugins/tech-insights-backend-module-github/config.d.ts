@@ -33,7 +33,7 @@ export interface Config {
          */
         schemaVersion?: number;
         /**
-         * The scanners to collect. Each adds seven facts named after its
+         * The scanners to collect. Each adds six facts named after its
          * `id`, on top of the shared `githubCodeScanners` fact.
          */
         tools?: Array<{

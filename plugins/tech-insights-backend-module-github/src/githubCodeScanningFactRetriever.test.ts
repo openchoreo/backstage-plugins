@@ -158,7 +158,6 @@ describe('createGithubCodeScanningFactRetriever', () => {
       });
       expect(facts.githubTrivyScanned).toBe(true);
       expect(facts.githubTrivyOpenCriticalAlertCount).toBe(0);
-      expect(facts.githubTrivyHasOpenCriticalAlerts).toBe(false);
     });
 
     it('reports a scanner as not scanned when only another scanner uploaded', async () => {
@@ -171,7 +170,6 @@ describe('createGithubCodeScanningFactRetriever', () => {
         githubTrivyScanned: false,
         githubTrivyOpenCriticalAlertCount: null,
         githubTrivyOpenAlertCount: null,
-        githubTrivyHasOpenCriticalAlerts: null,
       });
     });
 
@@ -312,14 +310,12 @@ describe('createGithubCodeScanningFactRetriever', () => {
         githubCodeqlOpenMediumAlertCount: 0,
         githubCodeqlOpenLowAlertCount: 0,
         githubCodeqlOpenAlertCount: 1,
-        githubCodeqlHasOpenCriticalAlerts: true,
         githubTrivyScanned: true,
         githubTrivyOpenCriticalAlertCount: 1,
         githubTrivyOpenHighAlertCount: 22,
         githubTrivyOpenMediumAlertCount: 32,
         githubTrivyOpenLowAlertCount: 3,
         githubTrivyOpenAlertCount: 58,
-        githubTrivyHasOpenCriticalAlerts: true,
       });
     });
 

@@ -52,7 +52,6 @@ describe('codeScanningFacts', () => {
       githubCodeqlOpenMediumAlertCount: 0,
       githubCodeqlOpenLowAlertCount: 1,
       githubCodeqlOpenAlertCount: 5,
-      githubCodeqlHasOpenCriticalAlerts: true,
     });
   });
 
@@ -61,7 +60,6 @@ describe('codeScanningFacts', () => {
       githubSemgrepScanned: true,
       githubSemgrepOpenCriticalAlertCount: 0,
       githubSemgrepOpenAlertCount: 2,
-      githubSemgrepHasOpenCriticalAlerts: false,
     });
   });
 
@@ -73,7 +71,6 @@ describe('codeScanningFacts', () => {
       githubTrivyOpenMediumAlertCount: 0,
       githubTrivyOpenLowAlertCount: 0,
       githubTrivyOpenAlertCount: 0,
-      githubTrivyHasOpenCriticalAlerts: false,
     });
   });
 
@@ -85,7 +82,6 @@ describe('codeScanningFacts', () => {
       githubTrivyOpenMediumAlertCount: null,
       githubTrivyOpenLowAlertCount: null,
       githubTrivyOpenAlertCount: null,
-      githubTrivyHasOpenCriticalAlerts: null,
     });
   });
 });
@@ -246,7 +242,6 @@ describe('codeScanningSchema', () => {
 
   it('names each fact after the scanner id', () => {
     expect(Object.keys(schema).sort()).toEqual([
-      'githubTrivyHasOpenCriticalAlerts',
       'githubTrivyOpenAlertCount',
       'githubTrivyOpenCriticalAlertCount',
       'githubTrivyOpenHighAlertCount',
