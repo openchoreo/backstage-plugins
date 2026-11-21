@@ -199,6 +199,28 @@ describe('describeRollbackError', () => {
     expect(isConcurrentModification(err)).toBe(true);
   });
 
+  it('shows the server message of a GitOps refusal without a prefix', async () => {
+    const message =
+      'Rollback blocked: the binding is managed by GitOps: release binding "api-development" is applied from Git by Argo CD application "apps".';
+    const err = await apiError(409, {
+      name: 'ConflictError',
+      message,
+      code: 'GITOPS_MANAGED',
+    });
+    expect(describeRollbackError(err)).toBe(message);
+  });
+
+  it('shows the server message when there is no previous revision', async () => {
+    const message =
+      'No previous revision to roll back to: the previously active revision has been deleted.';
+    const err = await apiError(409, {
+      name: 'ConflictError',
+      message,
+      code: 'NO_PREVIOUS_REVISION',
+    });
+    expect(describeRollbackError(err)).toBe(message);
+  });
+
   it('keeps the detail of a 409 without a code', async () => {
     const err = await apiError(409, { name: 'ConflictError', message: 'odd' });
     expect(describeRollbackError(err)).toBe(

@@ -145,10 +145,12 @@ export const RevisionSelect = ({
   );
 
   return (
-    <Autocomplete<BindingRevision, false, true, false>
+    // DisableClearable is typed boolean, not true, so the value can be null:
+    // controlled from the first render, before the revisions have loaded.
+    <Autocomplete<BindingRevision, false, boolean, false>
       size="small"
       options={revisions}
-      value={selected ?? undefined}
+      value={selected}
       disableClearable
       disabled={revisions.length === 0}
       noOptionsText={

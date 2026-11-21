@@ -204,6 +204,17 @@ export const describeRollbackError = (error: unknown): string => {
           return 'The deployment changed while you were reviewing the rollback. Review the updated preview and confirm again.';
         case 'AUTO_DEPLOY_ENABLED':
           return 'Rollback blocked: auto deploy is enabled for this component, and this is the first environment of its deployment pipeline, so auto deploy would move it straight back to the latest release. Turn off auto deploy for the component in the Set Up tab, then roll back again.';
+        // The server's message already says why and what to do.
+        case 'GITOPS_MANAGED':
+          return (
+            detail ??
+            'Rollback blocked: this deployment is managed by GitOps. Revert its configuration in Git instead.'
+          );
+        case 'NO_PREVIOUS_REVISION':
+          return (
+            detail ??
+            'There is no previous revision to roll back to. Pick a revision instead.'
+          );
         default:
           return `The rollback conflicts with the current deployment${
             detail ? `: ${detail}` : '.'
