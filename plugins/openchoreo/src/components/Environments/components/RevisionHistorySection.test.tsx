@@ -97,7 +97,6 @@ const makeRevision = (
     spec: {
       revision: n,
       cause: opts.cause ?? 'Deploy',
-      componentReleaseName: opts.release ?? `frontend-v${n}`,
       bindingSpec: {
         owner: { projectName: 'shop', componentName: 'frontend' },
         releaseName: opts.release ?? `frontend-v${n}`,

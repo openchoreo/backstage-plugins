@@ -356,8 +356,8 @@ export type ReleaseBindingRevision =
   OpenChoreoComponents['schemas']['ReleaseBindingRevision'];
 /**
  * One recorded spec of a ResourceReleaseBinding, the resource counterpart of
- * ReleaseBindingRevision: it records resourceReleaseName instead of
- * componentReleaseName and shares the status and rollback models.
+ * ReleaseBindingRevision: its recorded binding spec pins a ResourceRelease
+ * instead of a ComponentRelease, and it shares the status and rollback models.
  */
 export type ResourceReleaseBindingRevision =
   OpenChoreoComponents['schemas']['ResourceReleaseBindingRevision'];

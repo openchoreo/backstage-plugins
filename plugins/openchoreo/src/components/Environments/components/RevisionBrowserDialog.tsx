@@ -38,6 +38,7 @@ import {
   isActive,
   isKnownGood,
   isReleaseAvailable,
+  isResourceRevision,
   revisionAccessibleName,
   revisionName,
   revisionNumber,
@@ -307,7 +308,7 @@ export const revisionYaml = (rev: BindingRevision): string => {
       (rev as { apiVersion?: string }).apiVersion ?? 'openchoreo.dev/v1alpha1',
     kind:
       (rev as { kind?: string }).kind ??
-      ('resourceReleaseName' in rev.spec
+      (isResourceRevision(rev)
         ? 'ResourceReleaseBindingRevision'
         : 'ReleaseBindingRevision'),
     metadata,

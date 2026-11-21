@@ -105,11 +105,10 @@ const makeRevision = (
     spec: {
       revision: n,
       cause: opts.cause ?? 'Deploy',
-      resourceReleaseName: `orders-db-v${n}`,
       snapshotHash: `hash-${n}`,
       bindingSpec: {
         owner: { projectName: 'shop', resourceName: 'orders-db' },
-        releaseName: `orders-db-v${n}`,
+        resourceRelease: `orders-db-v${n}`,
         resourceTypeEnvironmentConfigs: { size: opts.size ?? 'small' },
       },
     },
@@ -299,7 +298,7 @@ describe('ResourceRevisionHistorySection', () => {
     expect(view.metadata.name).toBe('orders-db-development-r2');
     expect(view.spec).toMatchObject({
       revision: 2,
-      resourceReleaseName: 'orders-db-v2',
+      bindingSpec: { resourceRelease: 'orders-db-v2' },
     });
     const dialog = screen.getByRole('dialog');
     expect(within(dialog).getAllByText('orders-db-v2').length).toBeGreaterThan(

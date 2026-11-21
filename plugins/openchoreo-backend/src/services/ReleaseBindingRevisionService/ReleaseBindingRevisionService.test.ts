@@ -26,7 +26,14 @@ function createService() {
 
 const revision = (n: number) => ({
   metadata: { name: `api-dev-r${n}`, namespace: 'test-ns' },
-  spec: { revision: n, cause: 'Deploy', componentReleaseName: `api-${n}` },
+  spec: {
+    revision: n,
+    cause: 'Deploy',
+    bindingSpec: {
+      owner: { projectName: 'shop', componentName: 'api' },
+      releaseName: `api-${n}`,
+    },
+  },
   status: { health: 'Healthy', active: false, knownGood: true },
 });
 
@@ -215,7 +222,14 @@ describe('ReleaseBindingRevisionService', () => {
   describe('listResourceRevisions', () => {
     const resourceRevision = (n: number) => ({
       metadata: { name: `db-dev-r${n}`, namespace: 'test-ns' },
-      spec: { revision: n, cause: 'Deploy', resourceReleaseName: `db-${n}` },
+      spec: {
+        revision: n,
+        cause: 'Deploy',
+        bindingSpec: {
+          owner: { projectName: 'shop', resourceName: 'db' },
+          resourceRelease: `db-${n}`,
+        },
+      },
       status: { health: 'Healthy', active: false },
     });
     const resourceListRequest = {

@@ -9,8 +9,10 @@ import {
   hasProgressing,
   healthPill,
   isConcurrentModification,
+  isResourceRevision,
   revisionAccessibleName,
   revisionMessage,
+  revisionReleaseName,
   rollbackBlockedReason,
   shortMessage,
   sortNewestFirst,
@@ -25,8 +27,10 @@ const makeRevision = (
     spec: {
       revision: n,
       cause: 'Deploy',
-      componentReleaseName: `api-v${n}`,
-      bindingSpec: { owner: { projectName: 'shop', componentName: 'api' } },
+      bindingSpec: {
+        owner: { projectName: 'shop', componentName: 'api' },
+        releaseName: `api-v${n}`,
+      },
     },
     status: { health: 'Healthy', active: false, knownGood: false, ...status },
   } as unknown as ReleaseBindingRevision);
@@ -232,6 +236,38 @@ describe('describeRollbackError', () => {
     expect(describeRollbackError(new Error('boom'))).toBe(
       'Rollback failed: boom',
     );
+  });
+});
+
+describe('revisionReleaseName', () => {
+  it('reads a component revision release from its binding spec', () => {
+    const rev = makeRevision(3);
+    expect(isResourceRevision(rev)).toBe(false);
+    expect(revisionReleaseName(rev)).toBe('api-v3');
+  });
+
+  it('reads a resource revision release from its binding spec', () => {
+    const rev = {
+      metadata: { name: 'db-development-r2' },
+      spec: {
+        revision: 2,
+        cause: 'Deploy',
+        bindingSpec: {
+          owner: { projectName: 'shop', resourceName: 'db' },
+          resourceRelease: 'db-v2',
+        },
+      },
+    } as unknown as ReleaseBindingRevision;
+    expect(isResourceRevision(rev)).toBe(true);
+    expect(revisionReleaseName(rev)).toBe('db-v2');
+  });
+
+  it('does not throw for a revision without a recorded owner', () => {
+    const rev = {
+      spec: { revision: 1, bindingSpec: {} },
+    } as unknown as ReleaseBindingRevision;
+    expect(isResourceRevision(rev)).toBe(false);
+    expect(revisionReleaseName(rev)).toBe('');
   });
 });
 

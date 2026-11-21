@@ -5316,7 +5316,7 @@ export interface components {
       spec: components['schemas']['ReleaseBindingRevisionSpec'];
       readonly status?: components['schemas']['BindingRevisionStatus'];
     };
-    /** @description The recorded state of one revision. Immutable. */
+    /** @description The recorded state of one revision. Immutable. bindingSpec.releaseName is the ComponentRelease the revision binds. */
     ReleaseBindingRevisionSpec: {
       /**
        * Format: int64
@@ -5325,11 +5325,6 @@ export interface components {
        */
       revision: number;
       cause: components['schemas']['RevisionCause'];
-      /**
-       * @description ComponentRelease bound by this revision
-       * @example api-service-6f9c2a
-       */
-      componentReleaseName: string;
       /**
        * @description Optional reason given for the change this revision records, copied from the binding's openchoreo.dev/change-message annotation
        * @example Fix checkout timeout
@@ -6083,7 +6078,7 @@ export interface components {
       spec: components['schemas']['ResourceReleaseBindingRevisionSpec'];
       readonly status?: components['schemas']['BindingRevisionStatus'];
     };
-    /** @description The recorded state of one revision. Immutable. */
+    /** @description The recorded state of one revision. Immutable. bindingSpec.resourceRelease is the ResourceRelease the revision pins. */
     ResourceReleaseBindingRevisionSpec: {
       /**
        * Format: int64
@@ -6092,11 +6087,6 @@ export interface components {
        */
       revision: number;
       cause: components['schemas']['RevisionCause'];
-      /**
-       * @description ResourceRelease pinned by this revision
-       * @example analytics-shared-db-abc123
-       */
-      resourceReleaseName: string;
       /**
        * @description Optional reason given for the change this revision records, copied from the binding's openchoreo.dev/change-message annotation
        * @example Fix checkout timeout

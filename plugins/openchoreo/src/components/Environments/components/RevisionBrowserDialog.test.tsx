@@ -53,7 +53,6 @@ const makeRevision = (
     spec: {
       revision: n,
       cause: opts.cause ?? 'Deploy',
-      componentReleaseName: `frontend-v${n}`,
       snapshotHash: `hash-${n}`,
       bindingSpec: {
         owner: { projectName: 'shop', componentName: 'frontend' },
@@ -148,7 +147,7 @@ describe('RevisionBrowserDialog', () => {
     expect(doc.spec).toMatchObject({
       revision: 2,
       cause: 'Promote',
-      componentReleaseName: 'frontend-v2',
+      bindingSpec: { releaseName: 'frontend-v2' },
     });
     expect(doc.status).toMatchObject({ health: 'Healthy', active: false });
   });
@@ -364,8 +363,10 @@ describe('matchesRevision', () => {
       spec: {
         revision: n,
         cause: 'Deploy',
-        componentReleaseName: release,
-        bindingSpec: { owner: { projectName: 'shop', componentName: 'api' } },
+        bindingSpec: {
+          owner: { projectName: 'shop', componentName: 'api' },
+          releaseName: release,
+        },
       },
       status: { health: 'Healthy', active: false },
     } as unknown as ReleaseBindingRevision);
@@ -398,8 +399,10 @@ describe('matchesRevision', () => {
       spec: {
         revision: 3,
         cause: 'Deploy',
-        componentReleaseName: 'api-0a1b2c3d4e',
-        bindingSpec: { owner: { projectName: 'shop', componentName: 'api' } },
+        bindingSpec: {
+          owner: { projectName: 'shop', componentName: 'api' },
+          releaseName: 'api-0a1b2c3d4e',
+        },
         message: 'Fix checkout timeout',
       },
     } as unknown as ReleaseBindingRevision;

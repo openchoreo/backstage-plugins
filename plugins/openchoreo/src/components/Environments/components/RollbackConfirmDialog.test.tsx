@@ -22,7 +22,6 @@ const makeRevision = (n: number): ReleaseBindingRevision =>
     spec: {
       revision: n,
       cause: 'Deploy',
-      componentReleaseName: `frontend-v${n}`,
       bindingSpec: {
         owner: { projectName: 'shop', componentName: 'frontend' },
         environment: 'development',

@@ -14,8 +14,10 @@ const revision = {
   spec: {
     revision: 30,
     cause: 'Override',
-    componentReleaseName: 'myapp',
-    bindingSpec: { releaseName: 'myapp' },
+    bindingSpec: {
+      owner: { projectName: 'shop', componentName: 'myapp' },
+      releaseName: 'myapp',
+    },
   },
   status: { health: 'Healthy', active: true },
 } as unknown as BindingRevision;

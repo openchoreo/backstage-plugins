@@ -3,6 +3,7 @@ import type { StatusType } from '@openchoreo/backstage-design-system';
 import type {
   BindingRevision,
   BindingRevisionHealth,
+  ResourceReleaseBindingRevision,
 } from '@openchoreo/backstage-plugin-common';
 import { getErrorMessage } from '../../../utils/errorUtils';
 
@@ -39,13 +40,26 @@ export const revisionNumber = (rev: BindingRevision): number =>
   rev.spec.revision;
 
 /**
- * The release a revision bound: its ComponentRelease for a ReleaseBinding
- * revision, its ResourceRelease for a ResourceReleaseBinding revision.
+ * True for a ResourceReleaseBinding revision: its recorded binding spec is
+ * owned by a Resource rather than a Component.
+ */
+export const isResourceRevision = (
+  rev: BindingRevision,
+): rev is ResourceReleaseBindingRevision => {
+  // Used while rendering: a partial object must not throw.
+  const owner: object | undefined = rev.spec.bindingSpec?.owner;
+  return !!owner && 'resourceName' in owner;
+};
+
+/**
+ * The release a revision bound, from the binding spec it recorded: its
+ * ComponentRelease for a ReleaseBinding revision, its ResourceRelease for a
+ * ResourceReleaseBinding revision.
  */
 export const revisionReleaseName = (rev: BindingRevision): string =>
-  'resourceReleaseName' in rev.spec
-    ? rev.spec.resourceReleaseName
-    : rev.spec.componentReleaseName;
+  (isResourceRevision(rev)
+    ? rev.spec.bindingSpec.resourceRelease
+    : rev.spec.bindingSpec.releaseName) ?? '';
 
 /**
  * The Component or Resource whose binding a revision records: the owner in

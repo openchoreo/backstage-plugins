@@ -26,7 +26,14 @@ const makeRevision = (
 ): ReleaseBindingRevision =>
   ({
     metadata: { name: `api-development-r${n}` },
-    spec: { revision: n, cause: 'Deploy', componentReleaseName: `api-v${n}` },
+    spec: {
+      revision: n,
+      cause: 'Deploy',
+      bindingSpec: {
+        owner: { projectName: 'shop', componentName: 'api' },
+        releaseName: `api-v${n}`,
+      },
+    },
     status: { health, active, knownGood: health === 'Healthy' },
   } as unknown as ReleaseBindingRevision);
 
@@ -223,7 +230,10 @@ describe('useReleaseBindingRevisions', () => {
         spec: {
           revision: 1,
           cause: 'Deploy',
-          componentReleaseName: `api-v${++read}`,
+          bindingSpec: {
+            owner: { projectName: 'shop', componentName: 'api' },
+            releaseName: `api-v${++read}`,
+          },
         },
       },
     ]);
@@ -303,7 +313,14 @@ describe('useReleaseBindingRevisions', () => {
     const resourceRevision = (n: number, health: string, active = false) =>
       ({
         metadata: { name: `db-development-r${n}` },
-        spec: { revision: n, cause: 'Deploy', resourceReleaseName: `db-v${n}` },
+        spec: {
+          revision: n,
+          cause: 'Deploy',
+          bindingSpec: {
+            owner: { projectName: 'shop', resourceName: 'db' },
+            resourceRelease: `db-v${n}`,
+          },
+        },
         status: { health, active },
       } as unknown);
 
