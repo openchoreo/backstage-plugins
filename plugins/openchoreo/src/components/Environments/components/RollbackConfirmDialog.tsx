@@ -210,6 +210,9 @@ export const RollbackConfirmDialog = ({
     result?.warnings.some(w => w.code === 'NoSpecChange') ?? false;
 
   const handleConfirm = async () => {
+    // The dialog stays on screen while it fades out after closing, with no
+    // target: a click then must not send a rollback.
+    if (!open || !target) return;
     setApplying(true);
     setApplyError(null);
     try {
@@ -358,7 +361,7 @@ export const RollbackConfirmDialog = ({
           variant="contained"
           color="primary"
           onClick={handleConfirm}
-          disabled={!result || applying}
+          disabled={!open || !target || !result || applying}
           startIcon={
             applying ? (
               <CircularProgress size={16} color="inherit" />

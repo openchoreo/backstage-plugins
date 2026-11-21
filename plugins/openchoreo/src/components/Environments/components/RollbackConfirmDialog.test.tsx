@@ -1,4 +1,5 @@
-import { act, render, screen } from '@testing-library/react';
+import { useState } from 'react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { TestApiProvider } from '@backstage/test-utils';
 import type {
   ReleaseBindingRevision,
@@ -85,5 +86,53 @@ describe('RollbackConfirmDialog', () => {
       screen.getByText(/frontend-r2 becomes active again/),
     ).toBeInTheDocument();
     expect(screen.queryByText(/frontend-r1/)).not.toBeInTheDocument();
+  });
+
+  // After a rollback the dialog closes, but stays on screen while it fades
+  // out, with its target cleared. Its Roll back button must not send
+  // another rollback (for revision 0) from there.
+  it('sends no rollback from the dialog while it closes', async () => {
+    const client = {
+      rollbackReleaseBinding: jest.fn(
+        (_e: unknown, _b: string, target: number, dryRun: boolean) =>
+          Promise.resolve({ ...previewOf(target), dryRun }),
+      ),
+    };
+    const Harness = () => {
+      const [target, setTarget] = useState<ReleaseBindingRevision | null>(
+        makeRevision(1),
+      );
+      return (
+        <TestApiProvider apis={[[openChoreoClientApiRef, client]]}>
+          <RollbackConfirmDialog
+            open={target !== null}
+            onClose={() => setTarget(null)}
+            bindingName="frontend-development"
+            environmentName="Development"
+            target={target}
+            onRolledBack={jest.fn()}
+          />
+        </TestApiProvider>
+      );
+    };
+    render(<Harness />);
+    await screen.findByText(/frontend-r1 becomes active again/);
+
+    const rollBack = () =>
+      screen.getByRole('button', { name: 'Roll back', hidden: true });
+    await act(async () => {
+      fireEvent.click(rollBack());
+    });
+    expect(client.rollbackReleaseBinding).toHaveBeenCalledTimes(2); // preview, apply
+
+    // Closed and fading out: still rendered, but it sends nothing.
+    expect(rollBack()).toBeDisabled();
+    await act(async () => {
+      fireEvent.click(rollBack());
+    });
+    expect(client.rollbackReleaseBinding).toHaveBeenCalledTimes(2);
+    expect(
+      client.rollbackReleaseBinding.mock.calls.map(c => c[2]),
+    ).not.toContain(0);
   });
 });
