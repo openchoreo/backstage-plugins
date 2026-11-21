@@ -20,6 +20,9 @@ import type {
   EndpointInfo,
   EndpointURLSecurity,
 } from '../hooks/useEnvironmentData';
+import { Link as RouterLink } from 'react-router-dom';
+import { useRouteRef } from '@backstage/core-plugin-api';
+import { entityRouteRef } from '@backstage/plugin-catalog-react';
 import {
   buildServiceUrl,
   buildUrl,
@@ -147,16 +150,59 @@ export const URLRow = ({ url, label, security }: URLRowProps) => {
   );
 };
 
+/**
+ * Opens the page of the Endpoint a workload endpoint's URLs come from.
+ * Rendered only inside the open dialog, so the route lookup needs the app's
+ * routes only when there's an Endpoint to link to.
+ */
+const ManageEndpointButton = ({
+  namespaceName,
+  endpointName,
+  onClick,
+}: {
+  namespaceName: string;
+  endpointName: string;
+  onClick: () => void;
+}) => {
+  const entityRoute = useRouteRef(entityRouteRef);
+  return (
+    <Button
+      size="small"
+      color="primary"
+      component={RouterLink}
+      to={entityRoute({
+        kind: 'endpoint',
+        namespace: namespaceName,
+        name: endpointName,
+      })}
+      onClick={onClick}
+      aria-label={`Manage Endpoint ${endpointName}`}
+      style={{ marginLeft: 'auto' }}
+    >
+      Manage Endpoint
+    </Button>
+  );
+};
+
 interface InvokeUrlsDialogProps {
   open: boolean;
   onClose: () => void;
   endpoints: EndpointInfo[];
+  /** Catalog namespace of the component, which its Endpoints share. */
+  namespaceName?: string;
 }
 
+/**
+ * Lists every URL of a component's workload endpoints in one environment.
+ * A workload endpoint exposed through one of the component's Endpoints shows
+ * the Endpoint's URLs, with the security each enforces and a button to
+ * manage the Endpoint; any other shows the URLs from the component's ReleaseBinding.
+ */
 export const InvokeUrlsDialog = ({
   open,
   onClose,
   endpoints,
+  namespaceName = 'default',
 }: InvokeUrlsDialogProps) => {
   return (
     <Dialog
@@ -188,6 +234,13 @@ export const InvokeUrlsDialog = ({
                     ({endpoint.type})
                   </Typography>
                 )}
+                {endpoint.endpointName && (
+                  <ManageEndpointButton
+                    namespaceName={namespaceName}
+                    endpointName={endpoint.endpointName}
+                    onClick={onClose}
+                  />
+                )}
               </Box>
               <Divider style={{ marginBottom: 12 }} />
 
@@ -198,6 +251,7 @@ export const InvokeUrlsDialog = ({
                       key={`ext-${protocol}`}
                       url={buildUrl(details)}
                       label="External"
+                      security={details.security}
                     />
                   ),
                 )}
@@ -209,15 +263,36 @@ export const InvokeUrlsDialog = ({
                       key={`int-${protocol}`}
                       url={buildUrl(details)}
                       label="Internal"
+                      security={details.security}
                     />
                   ),
                 )}
 
-              {endpoint.serviceURL && (
+              {endpoint.namespaceURLs &&
+                Object.entries(endpoint.namespaceURLs).map(
+                  ([protocol, details]) => (
+                    <URLRow
+                      key={`ns-${protocol}`}
+                      url={buildUrl(details)}
+                      label="Namespace"
+                      security={details.security}
+                    />
+                  ),
+                )}
+
+              {endpoint.projectURL ? (
                 <URLRow
-                  url={buildServiceUrl(endpoint.serviceURL)}
+                  url={buildUrl(endpoint.projectURL)}
                   label="Project"
+                  security={endpoint.projectURL.security}
                 />
+              ) : (
+                endpoint.serviceURL && (
+                  <URLRow
+                    url={buildServiceUrl(endpoint.serviceURL)}
+                    label="Project"
+                  />
+                )
               )}
             </Box>
           ))

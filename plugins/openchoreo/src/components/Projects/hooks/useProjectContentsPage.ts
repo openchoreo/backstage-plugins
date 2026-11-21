@@ -5,6 +5,8 @@ import { useApi } from '@backstage/core-plugin-api';
 import {
   CHOREO_ANNOTATIONS,
   hasReleaseLines,
+  CHOREO_LABELS,
+  ENDPOINT_SCOPE,
 } from '@openchoreo/backstage-plugin-common';
 import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import {
@@ -157,21 +159,43 @@ function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
+/**
+ * Builds the catalog filter for the contents table. Endpoints managed by a
+ * component (created for one of its workload endpoints) are left out: they
+ * belong to that component and show on its deploy page instead. The catalog
+ * cannot filter on a missing field, so project-owned Endpoints are selected by
+ * their always-present scope label, in a second filter OR'ed with the first.
+ */
 function buildFilter(
   project: string,
   namespace: string,
   kinds: Set<string> | null,
   types: Set<string> | null,
 ) {
-  const filter: Record<string, string | string[]> = {
-    kind: kinds && kinds.size > 0 ? [...kinds].map(capitalize) : ALL_KINDS,
+  const selected =
+    kinds && kinds.size > 0 ? [...kinds].map(capitalize) : ALL_KINDS;
+  const base: Record<string, string | string[]> = {
     'spec.system': project,
     'metadata.namespace': namespace,
   };
   if (types && types.size > 0) {
-    filter['spec.type'] = [...types];
+    base['spec.type'] = [...types];
   }
-  return filter;
+
+  const filters: Record<string, string | string[]>[] = [];
+  const nonEndpointKinds = selected.filter(kind => kind !== 'Endpoint');
+  if (nonEndpointKinds.length > 0) {
+    filters.push({ ...base, kind: nonEndpointKinds });
+  }
+  if (selected.includes('Endpoint')) {
+    filters.push({
+      ...base,
+      kind: 'Endpoint',
+      [`metadata.labels.${CHOREO_LABELS.ENDPOINT_SCOPE}`]:
+        ENDPOINT_SCOPE.PROJECT,
+    });
+  }
+  return filters;
 }
 
 function buildOrderFields(

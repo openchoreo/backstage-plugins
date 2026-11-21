@@ -8,6 +8,10 @@ import type {
   ReleaseLineOverrides,
   ReleaseLineResource,
   ResolvedEndpointBackend,
+  AllowedEndpointTypeEntry,
+  ComponentEndpointInput,
+  ComponentEndpointSummary,
+  EndpointTypeKind,
 } from '@openchoreo/backstage-plugin-common';
 import type { Environment } from '../components/RuntimeLogs/types';
 import type { EndpointURLDetails } from '../components/Environments/hooks/useEnvironmentData';
@@ -897,6 +901,85 @@ export interface OpenChoreoClientApi {
   removeEndpointBackend(entity: Entity, backendName: string): Promise<void>;
 
   /**
+   * Fetch the parameters schema of a (Cluster)EndpointType by name, for the
+   * parameters of an Endpoint the configure page is about to create.
+   */
+  fetchEndpointTypeParametersSchema(
+    kind: 'EndpointType' | 'ClusterEndpointType',
+    name: string,
+    namespaceName?: string,
+  ): Promise<{ success: boolean; data?: Record<string, unknown> }>;
+
+  /**
+   * Fetch the Endpoints a component owns for its own workload endpoints, on
+   * its main line or on the given release line, with its ComponentType's
+   * endpoint policy: the allowedEndpoints, and whether the type stays on
+   * legacy endpoints (`openchoreo.dev/legacy-endpoints: "true"`).
+   */
+  fetchComponentEndpoints(
+    entity: Entity,
+    releaseLine?: string,
+  ): Promise<{
+    endpoints: ComponentEndpointSummary[];
+    allowedEndpoints: AllowedEndpointTypeEntry[];
+    /** Whether the ComponentType stays on legacy endpoints. */
+    legacyEndpoints: boolean;
+  }>;
+
+  /**
+   * Fetch drafts of a release line's Endpoints: copies of the component's
+   * main-line Endpoints for the line, less those the line already has.
+   * Nothing is created; the line's configure page creates the drafts kept.
+   */
+  fetchReleaseLineEndpointDrafts(
+    entity: Entity,
+    releaseLine: string,
+  ): Promise<ComponentEndpointInput[]>;
+
+  /**
+   * Create an Endpoint for one of a component's workload endpoints, on its
+   * main line or on the given release line.
+   */
+  createComponentEndpoint(
+    entity: Entity,
+    endpoint: {
+      workloadEndpoint: string;
+      typeKind: EndpointTypeKind;
+      typeName: string;
+      visibility: string[];
+      parameters?: Record<string, unknown>;
+      autoDeploy: boolean;
+    },
+    releaseLine?: string,
+  ): Promise<{ name: string }>;
+
+  /**
+   * Update the visibility and parameters of one of a component's Endpoints,
+   * and the workload endpoint it routes to when that was renamed. The
+   * Endpoint must belong to the given line (main when omitted).
+   */
+  updateComponentEndpoint(
+    entity: Entity,
+    endpointName: string,
+    update: {
+      visibility: string[];
+      parameters?: Record<string, unknown>;
+      workloadEndpoint?: string;
+    },
+    releaseLine?: string,
+  ): Promise<ComponentEndpointSummary>;
+
+  /**
+   * Delete one of a component's Endpoints. The Endpoint must belong to the
+   * given line (main when omitted).
+   */
+  deleteComponentEndpoint(
+    entity: Entity,
+    endpointName: string,
+    releaseLine?: string,
+  ): Promise<void>;
+
+  /**
    * Fetch per-environment deploy info for a Project entity. Returns one entry
    * per environment in the project's deployment pipeline (including
    * environments without bindings yet), joined with the project's latest
@@ -947,6 +1030,12 @@ export interface OpenChoreoClientApi {
   ): Promise<ComponentReleasesResponse>;
 
   /** Create or update a release binding for deploy/promote actions */
+  /**
+   * Deploys or promotes a component's release to an environment, creating or
+   * updating its binding there. The Endpoints the component's line owns
+   * follow it: from `sourceEnvironment` on a promotion. The result carries
+   * how they followed under `endpoints` (an EndpointFollowResult).
+   */
   updateReleaseBinding(
     entity: Entity,
     environment: string,
@@ -955,6 +1044,7 @@ export interface OpenChoreoClientApi {
     traitEnvironmentConfigs?: unknown,
     workloadOverrides?: any,
     releaseLine?: string,
+    sourceEnvironment?: string,
   ): Promise<any>;
 
   /** Patch release binding overrides */

@@ -10,6 +10,10 @@ import {
   type ReleaseLineSummary,
   type ReleaseLineOverrides,
   type ReleaseLineResource,
+  type AllowedEndpointTypeEntry,
+  type ComponentEndpointInput,
+  type ComponentEndpointSummary,
+  type EndpointTypeKind,
 } from '@openchoreo/backstage-plugin-common';
 import { CLUSTER_SCOPED_RESOURCE_KINDS } from './OpenChoreoClientApi';
 import type {
@@ -110,6 +114,10 @@ const API_ENDPOINTS = {
   ENDPOINT_RELEASE: '/endpoint-release',
   ENDPOINT_RELEASE_SCHEMA: '/endpoint-release-schema',
   ENDPOINT_BACKENDS: '/endpoint-backends',
+  ENDPOINT_TYPE_SCHEMA: '/endpoint-type-schema',
+  CLUSTER_ENDPOINT_TYPE_SCHEMA: '/cluster-endpoint-type-schema',
+  COMPONENT_ENDPOINTS: '/component-endpoints',
+  RELEASE_LINE_ENDPOINT_DRAFTS: '/release-line-endpoint-drafts',
   COMPONENT_TRAITS: '/component-traits',
   RELEASE_LINE: '/release-line',
   COMPONENT_CONFIG: '/component-config',
@@ -214,6 +222,16 @@ function withReleaseLine(
 ): Record<string, string> {
   const line = toStoredReleaseLine(releaseLine);
   return line ? { ...params, releaseLine: line } : params;
+}
+
+/** The component a Component entity stands for, as the BFF's bodies name it. */
+function componentRefBody(entity: Entity) {
+  const { component, project, namespace } = extractEntityMetadata(entity);
+  return {
+    componentName: component,
+    projectName: project,
+    namespaceName: namespace,
+  };
 }
 
 /** The `releaseLine` body field for a release line, left out for the main line. */
@@ -731,6 +749,121 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     });
   }
 
+  async fetchEndpointTypeParametersSchema(
+    kind: 'EndpointType' | 'ClusterEndpointType',
+    name: string,
+    namespaceName?: string,
+  ): Promise<{ success: boolean; data?: Record<string, unknown> }> {
+    if (kind === 'ClusterEndpointType') {
+      return this.apiFetch(API_ENDPOINTS.CLUSTER_ENDPOINT_TYPE_SCHEMA, {
+        params: { cetName: name },
+      });
+    }
+    if (!namespaceName) {
+      throw new Error(`A namespace is required to read EndpointType ${name}`);
+    }
+    return this.apiFetch(API_ENDPOINTS.ENDPOINT_TYPE_SCHEMA, {
+      params: { namespaceName, etName: name },
+    });
+  }
+
+  async fetchComponentEndpoints(
+    entity: Entity,
+    releaseLine?: string,
+  ): Promise<{
+    endpoints: ComponentEndpointSummary[];
+    allowedEndpoints: AllowedEndpointTypeEntry[];
+    /** Whether the ComponentType stays on legacy endpoints. */
+    legacyEndpoints: boolean;
+  }> {
+    const { component, project, namespace } = extractEntityMetadata(entity);
+    const annotations = entity.metadata.annotations ?? {};
+    // The annotation reads `<workloadType>/<name>`.
+    const componentType = annotations[CHOREO_ANNOTATIONS.COMPONENT_TYPE] ?? '';
+    return this.apiFetch(API_ENDPOINTS.COMPONENT_ENDPOINTS, {
+      params: withReleaseLine(
+        {
+          componentName: component,
+          projectName: project,
+          namespaceName: namespace,
+          componentTypeKind:
+            annotations[CHOREO_ANNOTATIONS.COMPONENT_TYPE_KIND] ??
+            'ComponentType',
+          componentTypeName: componentType.slice(
+            componentType.indexOf('/') + 1,
+          ),
+        },
+        releaseLine,
+      ),
+    });
+  }
+
+  async fetchReleaseLineEndpointDrafts(
+    entity: Entity,
+    releaseLine: string,
+  ): Promise<ComponentEndpointInput[]> {
+    return this.apiFetch(API_ENDPOINTS.RELEASE_LINE_ENDPOINT_DRAFTS, {
+      params: withReleaseLine(componentRefBody(entity), releaseLine),
+    });
+  }
+
+  async createComponentEndpoint(
+    entity: Entity,
+    endpoint: {
+      workloadEndpoint: string;
+      typeKind: EndpointTypeKind;
+      typeName: string;
+      visibility: string[];
+      parameters?: Record<string, unknown>;
+      autoDeploy: boolean;
+    },
+    releaseLine?: string,
+  ): Promise<{ name: string }> {
+    return this.apiFetch(API_ENDPOINTS.COMPONENT_ENDPOINTS, {
+      method: 'POST',
+      body: {
+        ...componentRefBody(entity),
+        ...releaseLineField(releaseLine),
+        ...endpoint,
+      },
+    });
+  }
+
+  async updateComponentEndpoint(
+    entity: Entity,
+    endpointName: string,
+    update: {
+      visibility: string[];
+      parameters?: Record<string, unknown>;
+      workloadEndpoint?: string;
+    },
+    releaseLine?: string,
+  ): Promise<ComponentEndpointSummary> {
+    return this.apiFetch(API_ENDPOINTS.COMPONENT_ENDPOINTS, {
+      method: 'PUT',
+      body: {
+        ...componentRefBody(entity),
+        ...releaseLineField(releaseLine),
+        endpointName,
+        ...update,
+      },
+    });
+  }
+
+  async deleteComponentEndpoint(
+    entity: Entity,
+    endpointName: string,
+    releaseLine?: string,
+  ): Promise<void> {
+    await this.apiFetch(API_ENDPOINTS.COMPONENT_ENDPOINTS, {
+      method: 'DELETE',
+      body: {
+        ...componentRefBody(entity),
+        ...releaseLineField(releaseLine),
+        endpointName,
+      },
+    });
+  }
   async fetchProjectEnvironmentInfo(
     entity: Entity,
   ): Promise<ProjectEnvironment[]> {
@@ -827,6 +960,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     traitEnvironmentConfigs?: unknown,
     workloadOverrides?: any,
     releaseLine?: string,
+    sourceEnvironment?: string,
   ): Promise<any> {
     const { component, project, namespace } = extractEntityMetadata(entity);
 
@@ -836,6 +970,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       componentName: component,
       environment,
       releaseName,
+      ...(sourceEnvironment && { sourceEnvironment }),
     };
     Object.assign(body, releaseLineField(releaseLine));
 

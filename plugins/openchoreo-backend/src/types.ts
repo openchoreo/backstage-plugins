@@ -109,7 +109,16 @@ export interface EndpointInfo {
   type?: string;
   externalURLs?: Record<string, EndpointURLDetails>;
   internalURLs?: Record<string, EndpointURLDetails>;
+  /** Namespace-visibility URLs; only an Endpoint resolves them. */
+  namespaceURLs?: Record<string, EndpointURLDetails>;
   serviceURL?: EndpointURLDetails;
+  /** The project-visibility URL an Endpoint resolved; preferred over serviceURL. */
+  projectURL?: EndpointURLDetails;
+  /**
+   * The component's Endpoint the URLs come from. Unset when they come from
+   * the component's ReleaseBinding.
+   */
+  endpointName?: string;
 }
 
 export interface Environment {

@@ -1,3 +1,4 @@
+import type { EndpointFollowResult } from '@openchoreo/backstage-plugin-common';
 import { useState, useMemo, useEffect } from 'react';
 import {
   Box,
@@ -74,6 +75,11 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
+/** The environment a promotion comes from, which the Endpoints' releases come from too. */
+function promotedFrom(action: PendingAction): string | undefined {
+  return action.type === 'promote' ? action.sourceEnvironment : undefined;
+}
+
 interface EnvironmentOverridesPageProps {
   environment: Environment;
   entity: Entity;
@@ -82,7 +88,10 @@ interface EnvironmentOverridesPageProps {
   /** Pending action to execute after saving overrides */
   pendingAction?: PendingAction;
   /** Callback when overrides are saved and pending action should be executed */
-  onPendingActionComplete?: (action: PendingAction) => Promise<void>;
+  onPendingActionComplete?: (
+    action: PendingAction,
+    endpoints?: EndpointFollowResult,
+  ) => Promise<void>;
   /** Callback when Previous button is clicked (only shown when pendingAction exists) */
   onPrevious?: () => void;
   /** Initial tab to display (from URL) */
@@ -186,6 +195,14 @@ export const EnvironmentOverridesPage = ({
   );
 
   const error = loadError || saveError;
+
+  // A failed save, such as a promotion rejected because an Endpoint isn't
+  // deployed in the source, goes back to the form with the entered
+  // overrides so the action can be tried again; a failed load reloads.
+  const handleRetry = () => {
+    setSaveError(null);
+    if (loadError) reload();
+  };
 
   // Calculate changes
   const changes = useOverrideChanges(
@@ -513,7 +530,7 @@ export const EnvironmentOverridesPage = ({
       setSaving(true);
       try {
         // No override changes — just ensure binding exists with correct releaseName
-        await client.updateReleaseBinding(
+        const result = await client.updateReleaseBinding(
           entity,
           environmentName,
           pendingAction.releaseName,
@@ -521,8 +538,9 @@ export const EnvironmentOverridesPage = ({
           undefined,
           undefined,
           releaseLine,
+          promotedFrom(pendingAction),
         );
-        await onPendingActionComplete(pendingAction);
+        await onPendingActionComplete(pendingAction, result?.endpoints);
       } catch (err) {
         setSaveError(
           isForbiddenError(err)
@@ -547,11 +565,12 @@ export const EnvironmentOverridesPage = ({
     setSaving(true);
     setSaveError(null);
 
+    let endpoints: EndpointFollowResult | undefined;
     try {
       if (pendingAction) {
         // updateReleaseBinding handles create-or-update + sets releaseName
         // This is the ONLY call needed — replaces both patchReleaseBindingOverrides and deploy/promote
-        await client.updateReleaseBinding(
+        const result = await client.updateReleaseBinding(
           entity,
           environmentName,
           pendingAction.releaseName,
@@ -559,7 +578,9 @@ export const EnvironmentOverridesPage = ({
           formState.traitFormDataMap,
           formState.workloadFormData,
           releaseLine,
+          promotedFrom(pendingAction),
         );
+        endpoints = result?.endpoints;
       } else {
         // Plain save — use existing patchReleaseBindingOverrides
         await client.patchReleaseBindingOverrides(
@@ -577,7 +598,7 @@ export const EnvironmentOverridesPage = ({
 
       // If there's a pending action, notify and navigate
       if (pendingAction && onPendingActionComplete) {
-        await onPendingActionComplete(pendingAction);
+        await onPendingActionComplete(pendingAction, endpoints);
         // onPendingActionComplete handles navigation
       } else {
         onSaved();
@@ -931,7 +952,7 @@ export const EnvironmentOverridesPage = ({
         {error && !loading && (
           <div className={classes.errorContainer}>
             <Typography color="error">{error}</Typography>
-            <Button onClick={reload} variant="outlined">
+            <Button onClick={handleRetry} variant="outlined">
               Retry
             </Button>
           </div>

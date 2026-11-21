@@ -106,6 +106,21 @@ export const CHOREO_LABELS = {
   WORKFLOW_TYPE: 'openchoreo.dev/workflow-type',
   // Marks a SecretReference's category (e.g. git credentials).
   SECRET_TYPE: 'openchoreo.dev/secret-type',
+  // Set on catalog Endpoint entities: whether a component owns the Endpoint
+  // or its project does. See {@link ENDPOINT_SCOPE}.
+  ENDPOINT_SCOPE: 'openchoreo.io/endpoint-scope',
+} as const;
+
+/**
+ * Values of the {@link CHOREO_LABELS.ENDPOINT_SCOPE} label. A component-scoped
+ * Endpoint is owned by a component (`spec.owner.componentName`), shows on its
+ * configure page and is deleted with it; a project-scoped one is managed from
+ * the project. The label is always set, because the catalog can't filter on a
+ * missing field.
+ */
+export const ENDPOINT_SCOPE = {
+  COMPONENT: 'component',
+  PROJECT: 'project',
 } as const;
 
 /**

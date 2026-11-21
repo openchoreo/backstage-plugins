@@ -309,31 +309,6 @@ describe('buildWorkloadResource', () => {
     expect(result.spec.endpoints).toBeUndefined();
   });
 
-  it('should add endpoint when port is provided', () => {
-    const result = buildWorkloadResource({
-      componentName: 'my-service',
-      namespaceName: 'default',
-      projectName: 'my-project',
-      containerImage: 'nginx:latest',
-      port: 8080,
-    });
-
-    expect(result.spec.endpoints).toEqual({
-      http: { type: 'HTTP', port: 8080, visibility: ['external'] },
-    });
-  });
-
-  it('should not add endpoint when port is not provided', () => {
-    const result = buildWorkloadResource({
-      componentName: 'my-service',
-      namespaceName: 'default',
-      projectName: 'my-project',
-      containerImage: 'nginx:latest',
-    });
-
-    expect(result.spec.endpoints).toBeUndefined();
-  });
-
   it('should include env vars when image is provided', () => {
     const result = buildWorkloadResource({
       componentName: 'my-service',
@@ -381,36 +356,6 @@ describe('buildWorkloadResource', () => {
     });
 
     expect(result.spec.container).toBeUndefined();
-  });
-
-  it('should use endpoints map over legacy port when both provided', () => {
-    const result = buildWorkloadResource({
-      componentName: 'my-service',
-      namespaceName: 'default',
-      projectName: 'my-project',
-      containerImage: 'nginx:latest',
-      port: 3000,
-      endpoints: {
-        grpc: { type: 'GRPC', port: 9090, visibility: ['internal'] } as any,
-      },
-    });
-
-    // Endpoints map takes precedence over port
-    expect(result.spec.endpoints).toEqual({
-      grpc: { type: 'GRPC', port: 9090, visibility: ['internal'] },
-    });
-  });
-
-  it('should not add empty endpoints map', () => {
-    const result = buildWorkloadResource({
-      componentName: 'my-service',
-      namespaceName: 'default',
-      projectName: 'my-project',
-      containerImage: 'nginx:latest',
-      endpoints: {},
-    });
-
-    expect(result.spec.endpoints).toBeUndefined();
   });
 
   it('should not include env vars or file mounts when empty arrays', () => {

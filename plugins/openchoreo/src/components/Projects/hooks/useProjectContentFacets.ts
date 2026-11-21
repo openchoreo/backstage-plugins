@@ -1,7 +1,11 @@
 import { Entity } from '@backstage/catalog-model';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
-import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import {
+  CHOREO_ANNOTATIONS,
+  CHOREO_LABELS,
+  ENDPOINT_SCOPE,
+} from '@openchoreo/backstage-plugin-common';
 import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 
 export interface ProjectContentFacets {
@@ -77,8 +81,15 @@ export function useProjectContentFacets(
           filter: { ...base, kind: 'Resource' },
           facets: ['spec.type'],
         }),
+        // Only project-owned Endpoints are listed; component-managed ones
+        // show on their component's deploy page.
         catalogApi.getEntityFacets({
-          filter: { ...base, kind: 'Endpoint' },
+          filter: {
+            ...base,
+            kind: 'Endpoint',
+            [`metadata.labels.${CHOREO_LABELS.ENDPOINT_SCOPE}`]:
+              ENDPOINT_SCOPE.PROJECT,
+          },
           facets: ['spec.type'],
         }),
       ]);

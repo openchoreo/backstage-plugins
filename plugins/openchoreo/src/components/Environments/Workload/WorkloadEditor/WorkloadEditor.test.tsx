@@ -9,6 +9,7 @@ import { WorkloadEditor } from './WorkloadEditor';
 
 // useWorkloadContext: controllable workload state + spy on setWorkloadResource.
 const setWorkloadResourceSpy = jest.fn();
+const setEditingSectionSpy = jest.fn();
 const mockUseWorkloadContext = jest.fn();
 jest.mock('../WorkloadContext', () => ({
   useWorkloadContext: () => mockUseWorkloadContext(),
@@ -23,7 +24,13 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
     // need to switch tabs do so via the initialTab prop instead.
     return [initialTab ?? defaultTab, jest.fn()];
   },
-  YamlEditor: (_: any) => <div data-testid="yaml-editor" />,
+  YamlEditor: (props: any) => (
+    <textarea
+      data-testid="yaml-editor"
+      value={props.content}
+      onChange={e => props.onChange?.(e.target.value)}
+    />
+  ),
 }));
 
 // design-system: trivial stubs.
@@ -157,6 +164,7 @@ function renderEditor(workloadResource: WorkloadResource | null) {
   mockUseWorkloadContext.mockReturnValue({
     workloadResource,
     setWorkloadResource: setWorkloadResourceSpy,
+    setEditingSection: setEditingSectionSpy,
     isDeploying: false,
   });
   return render(
@@ -388,5 +396,246 @@ describe('WorkloadEditor', () => {
       expect(spec.dependencies?.endpoints).toEqual([endpointDep]);
       expect(spec.dependencies?.resources).toEqual([]);
     });
+  });
+});
+
+describe('YAML tabs for the Endpoints', () => {
+  const setChoice = jest.fn();
+  const componentEndpoints = {
+    loading: false,
+    loadError: null,
+    allowedEndpoints: [
+      {
+        protocols: ['HTTP'],
+        ref: { kind: 'ClusterEndpointType', name: 'http-route' },
+        default: true,
+      },
+    ],
+    originals: [
+      {
+        name: 'orders-api',
+        releaseLine: '',
+        workloadEndpoint: 'api',
+        typeKind: 'ClusterEndpointType' as const,
+        typeName: 'http-route',
+        visibility: ['external'],
+        parameters: {},
+        autoDeploy: true,
+      },
+    ],
+    draftedFromMain: 0,
+    choices: { api: { type: 'ClusterEndpointType/http-route' } },
+    renames: {},
+    mode: 'endpoints' as const,
+    deprecatedRows: {},
+    canUseEndpoints: true,
+    setChoice,
+    restoreChoice: jest.fn(),
+    renameWorkloadEndpoint: jest.fn(),
+    prepare: (e: any) => e,
+    apply: jest.fn(),
+  };
+
+  function renderWithEndpoints(
+    endpoints: Record<string, unknown> = {
+      api: { type: 'HTTP', port: 8080, visibility: ['external'] },
+    },
+  ) {
+    mockUseWorkloadContext.mockReturnValue({
+      workloadResource: buildWorkload({ endpoints }),
+      setWorkloadResource: setWorkloadResourceSpy,
+      setEditingSection: setEditingSectionSpy,
+      isDeploying: false,
+    });
+    render(
+      <MemoryRouter>
+        <EntityProvider entity={testEntity}>
+          <WorkloadEditor
+            initialTab="endpoints"
+            componentEndpoints={componentEndpoints}
+          />
+        </EntityProvider>
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByTestId('form-yaml-toggle'));
+  }
+
+  beforeEach(() => {
+    setChoice.mockClear();
+    setWorkloadResourceSpy.mockClear();
+    setEditingSectionSpy.mockClear();
+  });
+
+  it('shows a Workload tab and one tab per Endpoint', () => {
+    renderWithEndpoints();
+
+    expect(screen.getByRole('tab', { name: 'Workload' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(
+      screen.getByRole('tab', { name: 'Endpoint: orders-api' }),
+    ).toBeInTheDocument();
+    expect(
+      (screen.getByTestId('yaml-editor') as HTMLTextAreaElement).value,
+    ).toContain('kind: Workload');
+  });
+
+  it("edits an Endpoint's visibility and parameters from its tab", () => {
+    renderWithEndpoints();
+    fireEvent.click(screen.getByRole('tab', { name: 'Endpoint: orders-api' }));
+
+    const editor = screen.getByTestId('yaml-editor') as HTMLTextAreaElement;
+    expect(editor.value).toContain('kind: Endpoint');
+    fireEvent.change(editor, {
+      target: {
+        value: editor.value
+          .replace('- external', '- internal')
+          .replace(
+            'backendRefs:',
+            'parameters:\n    pathPrefix: /v2\n  backendRefs:',
+          ),
+      },
+    });
+
+    expect(setChoice).toHaveBeenCalledWith('api', {
+      type: 'ClusterEndpointType/http-route',
+      parameters: { pathPrefix: '/v2' },
+    });
+    const saved = setWorkloadResourceSpy.mock.calls.at(-1)?.[0];
+    expect(saved.spec.endpoints.api.visibility).toEqual(['internal']);
+  });
+
+  it('opens a new Endpoint as a YAML template and holds Save until it is complete', () => {
+    renderWithEndpoints();
+    fireEvent.click(screen.getByRole('button', { name: /Add Endpoint/ }));
+
+    expect(screen.getByRole('tab', { name: /New Endpoint/ })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    const editor = screen.getByTestId('yaml-editor') as HTMLTextAreaElement;
+    expect(editor.value).toContain('kind: Endpoint');
+    expect(editor.value).toContain('endpoint: <workload-endpoint>');
+    expect(setEditingSectionSpy).toHaveBeenCalledWith('endpointYaml', true);
+  });
+
+  it('says what a new Endpoint still needs', () => {
+    renderWithEndpoints();
+    fireEvent.click(screen.getByRole('button', { name: /Add Endpoint/ }));
+    const editor = screen.getByTestId('yaml-editor') as HTMLTextAreaElement;
+    fireEvent.change(editor, {
+      target: {
+        value: editor.value.replace('<workload-endpoint>', 'missing'),
+      },
+    });
+
+    expect(
+      screen.getByText(/Workload endpoint missing isn't in the Workload tab/),
+    ).toBeInTheDocument();
+    expect(setChoice).not.toHaveBeenCalled();
+  });
+
+  it('stages a new Endpoint once it names a free workload endpoint', () => {
+    renderWithEndpoints({
+      api: { type: 'HTTP', port: 8080, visibility: ['external'] },
+      web: { type: 'HTTP', port: 9090, visibility: ['project'] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Add Endpoint/ }));
+    const editor = screen.getByTestId('yaml-editor') as HTMLTextAreaElement;
+    expect(screen.getByText(/without an Endpoint: web/)).toBeInTheDocument();
+    fireEvent.change(editor, {
+      target: {
+        value: editor.value
+          .replace('<workload-endpoint>', 'web')
+          .replace('- project', '- external'),
+      },
+    });
+
+    expect(setChoice).toHaveBeenCalledWith('web', {
+      type: 'ClusterEndpointType/http-route',
+      parameters: {},
+    });
+    const saved = setWorkloadResourceSpy.mock.calls.at(-1)?.[0];
+    expect(saved.spec.endpoints.web.visibility).toEqual(['external']);
+  });
+
+  it("removes only the Endpoint with its tab's ✕", () => {
+    const restoreChoice = componentEndpoints.restoreChoice as jest.Mock;
+    restoreChoice.mockClear();
+    renderWithEndpoints();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Remove Endpoint: orders-api' }),
+    );
+
+    const saved = setWorkloadResourceSpy.mock.calls.at(-1)?.[0];
+    expect(saved.spec.endpoints.api).toEqual({
+      type: 'HTTP',
+      port: 8080,
+      visibility: ['project'],
+    });
+    expect(restoreChoice).toHaveBeenCalledWith('api', undefined);
+  });
+
+  it('holds a workload endpoint that has no fields yet as invalid YAML', () => {
+    renderWithEndpoints();
+    const editor = screen.getByTestId('yaml-editor') as HTMLTextAreaElement;
+    setWorkloadResourceSpy.mockClear();
+
+    fireEvent.change(editor, {
+      target: {
+        value: editor.value.replace('endpoints:', 'endpoints:\n    admin:'),
+      },
+    });
+
+    expect(setWorkloadResourceSpy).not.toHaveBeenCalled();
+    expect(screen.getAllByText('Invalid YAML').length).toBeGreaterThan(0);
+  });
+
+  it('refreshes the Workload YAML when an Endpoint is removed from it', () => {
+    renderWithEndpoints();
+    const editor = screen.getByTestId('yaml-editor') as HTMLTextAreaElement;
+    expect(editor.value).toContain('- external');
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Remove Endpoint: orders-api' }),
+    );
+
+    expect(editor.value).not.toContain('- external');
+    expect(editor.value).toContain('- project');
+  });
+
+  it('keeps an Endpoint while the Workload YAML has errors', () => {
+    renderWithEndpoints();
+    const editor = screen.getByTestId('yaml-editor') as HTMLTextAreaElement;
+    fireEvent.change(editor, { target: { value: 'spec: [' } });
+    setWorkloadResourceSpy.mockClear();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Remove Endpoint: orders-api' }),
+    );
+
+    expect(setWorkloadResourceSpy).not.toHaveBeenCalled();
+    expect(
+      screen.getAllByText('Fix YAML errors before removing an Endpoint').length,
+    ).toBeGreaterThan(0);
+    expect(editor.value).toBe('spec: [');
+  });
+
+  it("refuses changes to an Endpoint's fixed fields", () => {
+    renderWithEndpoints();
+    fireEvent.click(screen.getByRole('tab', { name: 'Endpoint: orders-api' }));
+
+    const editor = screen.getByTestId('yaml-editor') as HTMLTextAreaElement;
+    fireEvent.change(editor, {
+      target: { value: editor.value.replace('orders-api', 'renamed') },
+    });
+
+    expect(
+      screen.getAllByText(
+        /Only spec.visibility and spec.parameters can be changed/,
+      ).length,
+    ).toBeGreaterThan(0);
+    expect(setChoice).not.toHaveBeenCalled();
   });
 });

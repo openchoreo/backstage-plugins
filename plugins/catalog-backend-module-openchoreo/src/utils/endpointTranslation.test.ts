@@ -149,6 +149,9 @@ describe('translateNewEndpointToEntities', () => {
     expect(
       endpoint.metadata.annotations?.['openchoreo.io/endpoint-owner-component'],
     ).toBeUndefined();
+    expect(endpoint.metadata.labels?.['openchoreo.io/endpoint-scope']).toBe(
+      'project',
+    );
   });
 
   it('records the owning component', () => {
@@ -177,6 +180,9 @@ describe('translateNewEndpointToEntities', () => {
     expect(
       endpoint.metadata.annotations?.['openchoreo.io/endpoint-owner-component'],
     ).toBe('orders');
+    expect(endpoint.metadata.labels?.['openchoreo.io/endpoint-scope']).toBe(
+      'component',
+    );
     expect(
       endpoint.metadata.annotations?.[
         'openchoreo.io/endpoint-owner-release-line'
