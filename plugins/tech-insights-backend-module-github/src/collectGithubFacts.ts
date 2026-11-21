@@ -29,8 +29,10 @@ export interface CollectionCursor {
 
 /**
  * Keeps where a rate-limited run stopped in the plugin's cache under `key`,
- * one per retriever. A cache that can't be reached only means the next run
- * starts from the first entity.
+ * one per retriever. A cache that can't be reached never fails the run: a
+ * failed read starts the run from the first entity, while a failed write or
+ * delete can leave the previous position, so the next run may start from
+ * there again.
  */
 export function cacheCursor(
   cache: CacheService,

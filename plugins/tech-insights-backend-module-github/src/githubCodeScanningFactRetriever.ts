@@ -18,6 +18,11 @@ import { resolveBranch } from './repository';
 export const GITHUB_CODE_SCANNING_FACT_RETRIEVER_ID =
   'githubCodeScanningFactRetriever';
 
+// Only the resolved flag, like githubRepositoryFactRetriever: jsonfc skips a
+// check when a fact it reads is absent, but evaluates it, and so fails it,
+// when the fact is present as null.
+const UNRESOLVED_FACTS = { [CODE_SCANNING_RESOLVED_FACT]: false };
+
 const CURSOR_KEY = `${GITHUB_CODE_SCANNING_FACT_RETRIEVER_ID}:cursor`;
 
 /**
@@ -29,11 +34,14 @@ const CURSOR_KEY = `${GITHUB_CODE_SCANNING_FACT_RETRIEVER_ID}:cursor`;
  *
  * Scans are read on the branch the component builds from, chosen as
  * githubRepositoryFactRetriever chooses it, so both describe the same code. A
- * repository or branch the portal can't read gets the unresolved facts, as
- * there, and so does a repository whose code scanning GitHub refuses with a
- * 403 (off, or a token without Code scanning alerts: read), so that
- * `githubCodeScanningResolved` is false and the component's checks fail
- * instead of the component dropping out of them once its facts expire.
+ * repository or branch the portal can't read gets only
+ * `githubCodeScanningResolved: false`, as there, and so does a repository
+ * whose code scanning GitHub refuses with a 403 (off, or a token without Code
+ * scanning alerts: read). Its other facts are left out, so jsonfc skips the
+ * checks that read them, and the component keeps a current fact of its own
+ * instead of dropping out once its facts expire. A scanner that never ran on
+ * a readable repository is `Scanned` false with null counts, so a check that
+ * needs it fails.
  *
  * All scanners share one row of facts per entity. They also share an endpoint
  * and a token, so an error for one is treated as an error for all. Any other
@@ -48,16 +56,6 @@ export function createGithubCodeScanningFactRetriever({
   cache: CacheService;
   options: CodeScanningOptions;
 }): FactRetriever {
-  const unresolvedFacts = {
-    [CODE_SCANNING_RESOLVED_FACT]: false,
-    [CODE_SCANNERS_FACT]: null,
-    ...Object.fromEntries(
-      tools.flatMap(tool =>
-        Object.entries(codeScanningFacts(tool.id, undefined)),
-      ),
-    ),
-  };
-
   return {
     id: GITHUB_CODE_SCANNING_FACT_RETRIEVER_ID,
     // The first number is for changes to the facts here; the second is for
@@ -88,7 +86,7 @@ export function createGithubCodeScanningFactRetriever({
             options.branchAnnotations,
           );
           if (!resolved) {
-            return unresolvedFacts;
+            return UNRESOLVED_FACTS;
           }
           const branch = resolved.branch.name;
 
@@ -118,7 +116,7 @@ export function createGithubCodeScanningFactRetriever({
               context.logger.debug(
                 `Code scanning for ${repository.owner}/${repository.name}@${branch} unreadable: ${error.message}; code scanning may be off, or the token needs Code scanning alerts: read`,
               );
-              return unresolvedFacts;
+              return UNRESOLVED_FACTS;
             }
             throw error;
           }
@@ -129,7 +127,7 @@ export function createGithubCodeScanningFactRetriever({
           };
         },
         {
-          unresolvedFacts,
+          unresolvedFacts: UNRESOLVED_FACTS,
           cursor: cacheCursor(cache, context.logger, CURSOR_KEY),
         },
       ),

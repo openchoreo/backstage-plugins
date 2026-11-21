@@ -52,7 +52,9 @@ within a run, and a request that takes longer than 30 seconds skips that compone
 
 When a run hits the rate limit, it stops and the next run starts at the entity where it stopped.
 That position is kept in the plugin cache, so with the default in-memory store it's per replica
-and lost on restart, and the next run then starts from the first entity.
+and lost on restart, and the next run then starts from the first entity. If the cache can't be read
+the run starts from the first entity too, and if it can't be written the previous position can stay,
+so the next run may start there again.
 
 ## Configuration
 
@@ -94,10 +96,14 @@ Each scanner adds seven facts, named after its `id`. For `codeql`:
 read for the component at all.
 
 A scanner that never ran on the branch reports its `Scanned` fact false and null counts, while one
-that ran and found nothing reports real zeros, so checks fail a component that isn't scanned instead
-of passing it. A component whose code scanning can't be read gets those same facts for every
-scanner, with `githubCodeScanners` null and `githubCodeScanningResolved` false, so its checks fail
-too. That covers a component that names no GitHub repository and branch the portal can read, and a
+that ran and found nothing reports real zeros. A check that needs the scanner to have run should
+read `Scanned`, for example `githubCodeqlScanned equal true`: a `notEqual` on a count passes when
+the count is null.
+
+When code scanning can't be read for a component, only `githubCodeScanningResolved` is reported, as
+false, and every other code scanning fact is left out, so jsonfc skips the checks on them instead of
+failing the component. A check that should fail such a component reads `githubCodeScanningResolved`.
+That covers a component that names no GitHub repository and branch the portal can read, and a
 repository for which GitHub answers HTTP 403: code scanning is off (a private repository without
 GitHub Code Security) or the credentials lack access to it. The two causes aren't told apart. Any
 other error, such as a rate limit or a server error, skips the component, which keeps its previous

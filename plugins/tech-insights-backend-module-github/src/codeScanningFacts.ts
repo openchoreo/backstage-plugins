@@ -13,9 +13,9 @@ const PAGE_SIZE = 100;
 /**
  * Thrown for a 403 from the code scanning endpoints: code scanning is off for
  * the repository, or the token lacks Code scanning alerts: read. The retriever
- * reports the unresolved facts for it, so the component's checks fail instead
- * of the component vanishing. A rate-limited 403 never gets here, since
- * `getRepo` throws for it first.
+ * reports only `githubCodeScanningResolved: false` for it, so the component
+ * keeps a current fact instead of vanishing once its old facts expire. A
+ * rate-limited 403 never gets here, since `getRepo` throws for it first.
  */
 export class CodeScanningUnreadableError extends Error {
   constructor(message: string) {
@@ -139,14 +139,15 @@ export const CODE_SCANNERS_FACT = 'githubCodeScanners';
  * The fact that says whether code scanning could be read for the component,
  * like `githubRepositoryResolved`: false for a component with no GitHub
  * repository or branch the portal can read, or whose code scanning GitHub
- * refuses (403).
+ * refuses (403). It is then the only code scanning fact reported, so jsonfc
+ * skips the checks on the others.
  */
 export const CODE_SCANNING_RESOLVED_FACT = 'githubCodeScanningResolved';
 
 export const codeScanningResolvedSchema: FactSchemaField = {
   type: 'boolean',
   description:
-    "Whether code scanning could be read for the component. When false (the component names no GitHub repository and branch the portal can read, or GitHub refuses code scanning: it is off for the repository or the token lacks Code scanning alerts: read), the scanner list is null and every scanner's Scanned fact is false with null counts",
+    'Whether code scanning could be read for the component. When false (the component names no GitHub repository and branch the portal can read, or GitHub refuses code scanning: it is off for the repository or the token lacks Code scanning alerts: read), every other code scanning fact is left out',
 };
 
 /** The start of one scanner's fact names: `trivy` gives `githubTrivy`. */
@@ -156,10 +157,11 @@ export function factPrefix(id: string): string {
 
 /**
  * The seven `github<Id>*` facts for one scanning tool. When the tool has never
- * run, or its alerts can't be read (no GitHub repository, or a 403),
- * `github<Id>Scanned` is false and every count is null, so checks fail the
- * component instead of skipping it. Alerts without a security severity (quality-only rules, or a
- * tool that reports none) count only towards `github<Id>OpenAlertCount`.
+ * run on the branch (`alerts` undefined), `github<Id>Scanned` is false and
+ * every count is null, so a check that needs the scanner fails the component
+ * instead of skipping it. Alerts without a security severity (quality-only
+ * rules, or a tool that reports none) count only towards
+ * `github<Id>OpenAlertCount`.
  */
 export function codeScanningFacts(
   id: string,
@@ -201,7 +203,7 @@ export function codeScannersSchema(tools: CodeScanningTool[]): FactSchemaField {
   const ids = tools.map(tool => tool.id).join(', ');
   return {
     type: 'set',
-    description: `The scanners that uploaded an analysis for the branch the component builds from (githubBranch), out of: ${ids}. A list, so use contains or doesNotContain. Empty when none ran; null when githubCodeScanningResolved is false`,
+    description: `The scanners that uploaded an analysis for the branch the component builds from (githubBranch), out of: ${ids}. A list, so use contains or doesNotContain. Empty when none ran; left out when githubCodeScanningResolved is false`,
   };
 }
 
@@ -226,7 +228,7 @@ export function codeScanningSchema(
     fact(
       'Scanned',
       'boolean',
-      `Whether ${label} has uploaded an analysis for the branch the component builds from (githubBranch). When false (it never ran there, or githubCodeScanningResolved is false), every other fact is null`,
+      `Whether ${label} has uploaded an analysis for the branch the component builds from (githubBranch). When false (it never ran there), every other fact of the scanner is null`,
     ),
     severityCount('OpenCriticalAlertCount', 'critical'),
     severityCount('OpenHighAlertCount', 'high'),

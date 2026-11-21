@@ -120,12 +120,8 @@ const scanRequests = () =>
 const alertRequests = () =>
   scanRequests().filter(path => path.startsWith('/code-scanning/alerts'));
 
-const unresolved = {
-  githubCodeScanningResolved: false,
-  githubCodeScanners: null,
-  ...codeScanningFacts('codeql', undefined),
-  ...codeScanningFacts('trivy', undefined),
-};
+// Only the resolved flag, so jsonfc skips the checks on the other facts.
+const unresolved = { githubCodeScanningResolved: false };
 
 describe('createGithubCodeScanningFactRetriever', () => {
   const retriever = (options = {}) =>
@@ -263,7 +259,7 @@ describe('createGithubCodeScanningFactRetriever', () => {
       ['does not exist', 404],
       ['is refused', 403],
     ])(
-      'reports the facts unresolved when the named branch %s',
+      'reports only the resolved flag when the named branch %s',
       async (_name, status) => {
         mockGetEntities.mockResolvedValue({
           items: [component('a', 'org/a', { 'openchoreo.io/branch': 'gone' })],
@@ -350,7 +346,7 @@ describe('createGithubCodeScanningFactRetriever', () => {
   });
 
   describe('entities whose scanners cannot be read', () => {
-    it('reports not scanned for a component with no repository', async () => {
+    it('reports only the resolved flag for a component with no repository', async () => {
       mockGetEntities.mockResolvedValue({ items: [component('a')] });
       const [{ facts }] = await run();
       expect(facts).toEqual(unresolved);
@@ -361,7 +357,7 @@ describe('createGithubCodeScanningFactRetriever', () => {
       ['cannot find', 404],
       ['refuses', 403],
     ])(
-      'reports the facts unresolved for a repository GitHub %s',
+      'reports only the resolved flag for a repository GitHub %s',
       async (_name, status) => {
         mockGetRepo.mockResolvedValue({ status });
         const [{ facts }] = await run();
@@ -373,7 +369,7 @@ describe('createGithubCodeScanningFactRetriever', () => {
       ['analyses', '/code-scanning/analyses'],
       ['alerts', '/code-scanning/alerts'],
     ])(
-      'reports the facts unresolved, not skipped, when %s answers 403',
+      'reports only the resolved flag, not skipped, when %s answers 403',
       async (_name, failing) => {
         githubWithUploads({ CodeQL: [], Trivy: [] });
         const answer = mockGetRepo.getMockImplementation()!;
@@ -390,7 +386,7 @@ describe('createGithubCodeScanningFactRetriever', () => {
       },
     );
 
-    it('reports every scanner unresolved when only the second one is refused', async () => {
+    it('reports only the resolved flag when only the second scanner is refused', async () => {
       githubWithUploads({ CodeQL: alerts('high', 1), Trivy: [] });
       const answer = mockGetRepo.getMockImplementation()!;
       mockGetRepo.mockImplementation(async (repository, path = '') =>
