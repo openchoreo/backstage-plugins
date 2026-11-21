@@ -14,8 +14,9 @@ import {
   TextField,
   Tooltip,
   Typography,
+  useMediaQuery,
 } from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
+import { makeStyles, useTheme } from '@material-ui/core/styles';
 import {
   Autocomplete,
   ToggleButton,
@@ -52,6 +53,10 @@ const useStyles = makeStyles(theme => ({
     alignItems: 'center',
     gap: theme.spacing(2),
     paddingRight: theme.spacing(1),
+    [theme.breakpoints.down('xs')]: {
+      flexWrap: 'wrap',
+      rowGap: theme.spacing(1),
+    },
   },
   titleText: {
     flexShrink: 0,
@@ -59,6 +64,12 @@ const useStyles = makeStyles(theme => ({
   searchField: {
     flexGrow: 1,
     maxWidth: 320,
+    // On a phone the search gets its own row under the title.
+    [theme.breakpoints.down('xs')]: {
+      order: 1,
+      flexBasis: '100%',
+      maxWidth: 'none',
+    },
   },
   closeBtn: {
     marginLeft: 'auto',
@@ -68,6 +79,14 @@ const useStyles = makeStyles(theme => ({
     padding: 0,
     height: '60vh',
     minHeight: 360,
+    // On a phone (full-screen dialog) the list sits above the details
+    // instead of beside them, so the details get the full width.
+    [theme.breakpoints.down('xs')]: {
+      flexDirection: 'column',
+      height: 'auto',
+      minHeight: 0,
+      flex: '1 1 auto',
+    },
   },
   listPane: {
     width: '38%',
@@ -76,6 +95,14 @@ const useStyles = makeStyles(theme => ({
     overflow: 'auto',
     display: 'flex',
     flexDirection: 'column',
+    [theme.breakpoints.down('xs')]: {
+      width: '100%',
+      minWidth: 0,
+      flex: '0 0 auto',
+      maxHeight: '32vh',
+      borderRight: 'none',
+      borderBottom: `1px solid ${theme.palette.divider}`,
+    },
   },
   countLine: {
     padding: theme.spacing(1, 2),
@@ -89,6 +116,18 @@ const useStyles = makeStyles(theme => ({
     display: 'flex',
     flexDirection: 'column',
     gap: theme.spacing(2),
+    minWidth: 0,
+    [theme.breakpoints.down('xs')]: {
+      flex: '1 1 auto',
+      minHeight: 0,
+      padding: theme.spacing(1.5),
+    },
+  },
+  actions: {
+    [theme.breakpoints.down('xs')]: {
+      flexWrap: 'wrap',
+      rowGap: theme.spacing(1),
+    },
   },
   listItem: {
     display: 'flex',
@@ -115,6 +154,12 @@ const useStyles = makeStyles(theme => ({
     display: 'flex',
     alignItems: 'center',
     gap: theme.spacing(1),
+    // On a phone, Delete and the history limit take their own row above
+    // Cancel and Roll back.
+    [theme.breakpoints.down('xs')]: {
+      flexBasis: '100%',
+      flexWrap: 'wrap',
+    },
   },
   // Same look as the "Remove deployment" button in the danger zone.
   deleteButton: {
@@ -321,6 +366,8 @@ export const RevisionBrowserDialog = ({
   historyLimitControl,
 }: RevisionBrowserDialogProps) => {
   const classes = useStyles();
+  const theme = useTheme();
+  const isPhone = useMediaQuery(theme.breakpoints.down('xs'));
   const [query, setQuery] = useState('');
   const [highlightedName, setHighlightedName] = useState<string | null>(null);
   const [mode, setMode] = useState<'view' | 'compare'>('view');
@@ -432,6 +479,7 @@ export const RevisionBrowserDialog = ({
       onClose={onClose}
       maxWidth="lg"
       fullWidth
+      fullScreen={isPhone}
       aria-labelledby="revision-browser-dialog-title"
     >
       <DialogTitle disableTypography id="revision-browser-dialog-title">
@@ -655,10 +703,14 @@ export const RevisionBrowserDialog = ({
                           </span>
                         </Tooltip>
                       </Box>
+                      {/* Long lines scroll instead of wrapping: wrapped
+                          continuations lose their line's indentation and
+                          split a key from its value. */}
                       <YamlViewer
                         value={highlightedYaml}
                         maxHeight="40vh"
                         showLineNumbers
+                        wrapLongLines={false}
                       />
                     </>
                   ) : (
@@ -751,7 +803,7 @@ export const RevisionBrowserDialog = ({
         )}
       </DialogContent>
 
-      <DialogActions>
+      <DialogActions className={classes.actions}>
         {((highlighted && onDelete) || historyLimitControl) && (
           <Box className={classes.footerStart}>
             {highlighted && onDelete && (

@@ -54,9 +54,17 @@ const useStyles = makeStyles(theme => ({
     fontSize: 12,
     marginBottom: theme.spacing(2),
     wordBreak: 'break-all',
+    // On a phone a long field name leaves its value a sliver of a column:
+    // put the value under its field instead.
+    [theme.breakpoints.down('xs')]: {
+      gridTemplateColumns: 'minmax(0, 1fr)',
+    },
   },
   field: {
     color: theme.palette.text.secondary,
+    [theme.breakpoints.down('xs')]: {
+      marginTop: theme.spacing(0.5),
+    },
   },
   warnings: {
     display: 'flex',
