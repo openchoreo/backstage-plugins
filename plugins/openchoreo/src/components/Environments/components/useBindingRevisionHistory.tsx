@@ -8,6 +8,7 @@ import type {
   RollbackResponse,
 } from '@openchoreo/backstage-plugin-common';
 import { useReleaseBindingRevisions } from '../hooks/useReleaseBindingRevisions';
+import { useActiveRevisionChange } from '../hooks/useActiveRevisionChange';
 import {
   type BindingKind,
   deleteBlockedReason,
@@ -45,7 +46,10 @@ export interface UseBindingRevisionHistoryOptions {
    */
   canUpdateBinding?: boolean;
   updateDeniedTooltip?: string;
-  /** Called after a rollback is applied, to refresh the environments. */
+  /**
+   * Called to refresh the environments: after a rollback is applied, and
+   * again when the active revision or its health changes.
+   */
   onRolledBack: () => void;
 }
 
@@ -114,6 +118,11 @@ export const useBindingRevisionHistory = ({
   });
 
   const active = revisions.find(isActive);
+
+  // Refresh the environment, whose "Deployed" time the controller updates
+  // after it has applied a new spec (see useActiveRevisionChange).
+  useActiveRevisionChange(active, onRolledBack);
+
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const [browserOpen, setBrowserOpen] = useState(false);
   const [manifestOpen, setManifestOpen] = useState(false);

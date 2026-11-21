@@ -26,6 +26,7 @@ jest.mock('@backstage/plugin-catalog-react', () => ({
 }));
 
 const mockRefetchEnvironments = jest.fn();
+const mockRefetchAutoDeploy = jest.fn();
 // The component's auto deploy setting, as the Set up pane shares it.
 const mockAutoDeploy = { value: true };
 const mockSetAutoDeployOptimistic = jest.fn((next: boolean) => {
@@ -37,6 +38,7 @@ jest.mock('../EnvironmentsContext', () => ({
     autoDeploy: mockAutoDeploy.value,
     autoDeployLoading: false,
     setAutoDeployOptimistic: mockSetAutoDeployOptimistic,
+    refetchAutoDeploy: mockRefetchAutoDeploy,
   }),
 }));
 
@@ -770,10 +772,12 @@ describe('RevisionHistorySection', () => {
     expect(
       within(dialog).getByRole('button', { name: 'Roll back' }),
     ).toBeDisabled();
-    // The Set up pane's switch is offered in place, still on.
+    // The Set up pane's switch is offered in place, still on, and the
+    // setting is read again so the switch cannot show a stale value.
     expect(
       within(dialog).getByRole('checkbox', { name: 'Auto Deploy' }),
     ).toBeChecked();
+    expect(mockRefetchAutoDeploy).toHaveBeenCalled();
     // Only the preview ran; nothing was applied.
     expect(rollbackReleaseBinding).toHaveBeenCalledTimes(1);
     expect(rollbackReleaseBinding).toHaveBeenLastCalledWith(

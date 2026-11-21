@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Box,
   CircularProgress,
@@ -34,12 +34,26 @@ export const RollbackAutoDeployToggle = ({
   onChanged,
 }: RollbackAutoDeployToggleProps) => {
   const { entity } = useEntity();
-  const { autoDeploy, autoDeployLoading, setAutoDeployOptimistic } =
-    useEnvironmentsContext();
+  const {
+    autoDeploy,
+    autoDeployLoading,
+    setAutoDeployOptimistic,
+    refetchAutoDeploy,
+  } = useEnvironmentsContext();
   const { updateAutoDeploy, isUpdating } = useAutoDeployUpdate(entity);
   const [showConfirm, setShowConfirm] = useState(false);
   const [pendingValue, setPendingValue] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // The switch is shown because the server refused the rollback with auto
+  // deploy on. The cached setting may predate a change made elsewhere, so
+  // read it again rather than show a switch that contradicts the refusal.
+  useEffect(() => {
+    refetchAutoDeploy();
+    // Once per appearance; refetchAutoDeploy's identity is not a reason to
+    // read the setting again.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleConfirm = useCallback(async () => {
     const next = pendingValue;
