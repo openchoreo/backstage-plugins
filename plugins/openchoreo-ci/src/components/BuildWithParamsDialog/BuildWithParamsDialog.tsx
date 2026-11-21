@@ -11,6 +11,7 @@ import {
   TextField,
   Grid,
 } from '@material-ui/core';
+import { Alert } from '@material-ui/lab';
 import Autocomplete from '@material-ui/lab/Autocomplete';
 import { RjsfForm } from '@openchoreo/backstage-design-system';
 import validator from '@rjsf/validator-ajv8';
@@ -124,6 +125,8 @@ interface BuildWithParamsDialogProps {
   onClose: () => void;
   onTrigger: (parameters: Record<string, unknown>) => Promise<void>;
   isLoading?: boolean;
+  submitDisabled?: boolean;
+  availabilityMessage?: string;
   workflowName: string;
   workflowKind?: 'Workflow' | 'ClusterWorkflow';
   currentParameters?: Record<string, unknown> | null;
@@ -134,6 +137,8 @@ export const BuildWithParamsDialog = ({
   onClose,
   onTrigger,
   isLoading = false,
+  submitDisabled = false,
+  availabilityMessage,
   workflowName,
   workflowKind,
   currentParameters,
@@ -555,6 +560,9 @@ export const BuildWithParamsDialog = ({
         {error && (
           <Typography className={classes.errorText}>{error}</Typography>
         )}
+        {availabilityMessage && (
+          <Alert severity="warning">{availabilityMessage}</Alert>
+        )}
       </DialogContent>
       <DialogActions>
         <Button onClick={handleClose} disabled={isLoading}>
@@ -564,7 +572,13 @@ export const BuildWithParamsDialog = ({
           onClick={handleTrigger}
           color="primary"
           variant="contained"
-          disabled={isLoading || schemaLoading || !!schemaError || !schema}
+          disabled={
+            isLoading ||
+            submitDisabled ||
+            schemaLoading ||
+            !!schemaError ||
+            !schema
+          }
           startIcon={isLoading ? <CircularProgress size={16} /> : null}
         >
           {isLoading ? 'Triggering...' : 'Trigger Build'}
