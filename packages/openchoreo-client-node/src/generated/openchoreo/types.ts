@@ -5412,7 +5412,7 @@ export interface components {
     /** @description Observed state of a ReleaseBinding */
     ReleaseBindingStatus: {
       /**
-       * @description Object name of the revision this binding currently applies. Use it as is rather than building it: it is usually {binding}-r{N}, but a name that would exceed the 253-character limit is shortened and given a hash. Updated whenever the active revision changes, including when a rollback makes an earlier revision active again.
+       * @description Object name of the binding's active revision, the one recording its current spec. Set before the rollout, so it does not confirm that a deploy or rollback succeeded; the revision's health reports that. Use it as is rather than building it: it is usually {binding}-r{N}, but a name that would exceed the 253-character limit is shortened and given a hash. Updated whenever the active revision changes, including when a rollback makes an earlier revision active again.
        * @example api-service-dev-r3
        */
       currentRevision?: string;
@@ -6188,7 +6188,7 @@ export interface components {
     /** @description Observed state of a ResourceReleaseBinding. */
     ResourceReleaseBindingStatus: {
       /**
-       * @description Object name of the revision this binding currently applies. Use it as is rather than building it: it is usually {binding}-r{N}, but a name that would exceed the 253-character limit is shortened and given a hash. Updated whenever the active revision changes, including when a rollback makes an earlier revision active again.
+       * @description Object name of the binding's active revision, the one recording its current spec. Set before the rollout, so it does not confirm that a deploy or rollback succeeded; the revision's health reports that. Use it as is rather than building it: it is usually {binding}-r{N}, but a name that would exceed the 253-character limit is shortened and given a hash. Updated whenever the active revision changes, including when a rollback makes an earlier revision active again.
        * @example postgres-dev-r3
        */
       currentRevision?: string;
