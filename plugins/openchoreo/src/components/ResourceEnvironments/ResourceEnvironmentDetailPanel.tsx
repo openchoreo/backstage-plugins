@@ -35,6 +35,7 @@ import { useResourceEnvironmentDetailPanelStyles } from './styles';
 import { useResourceEnvironmentsContext } from './ResourceEnvironmentsContext';
 import { ResourceOutputsDialog } from './ResourceOutputsDialog';
 import { ResourceRetainPolicySwitchDialog } from './ResourceRetainPolicySwitchDialog';
+import { ResourceRevisionHistorySection } from './ResourceRevisionHistorySection';
 import { deriveResourceEnvBadgeStatus } from './badgeStatus';
 
 interface ResourceEnvironmentDetailPanelProps {
@@ -299,6 +300,8 @@ function ResourceEnvironmentDetailContent({ env, onClose }: ContentProps) {
                 </Box>
               )}
             </Box>
+
+            <ResourceRevisionHistorySection env={env} />
 
             {hasOutputs && (
               <Box className={classes.section}>

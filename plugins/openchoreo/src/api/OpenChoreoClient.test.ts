@@ -670,3 +670,159 @@ describe('OpenChoreoClient — platform version', () => {
     await expect(client.getPlatformVersion()).rejects.toThrow();
   });
 });
+
+describe('OpenChoreoClient — resource release binding revisions', () => {
+  const fetchMock = jest.fn();
+  const discovery = { getBaseUrl: jest.fn().mockResolvedValue(BASE_URL) };
+  const fetchApi = { fetch: fetchMock };
+  let client: OpenChoreoClient;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    discovery.getBaseUrl.mockResolvedValue(BASE_URL);
+    client = new OpenChoreoClient(discovery as any, fetchApi as any);
+  });
+
+  it('GETs /resource-release-binding-revisions for the resource and environment', async () => {
+    const revisions = [{ metadata: { name: 'analytics-db-dev-r1' } }];
+    fetchMock.mockResolvedValueOnce(makeJsonResponse(revisions));
+
+    const result = await client.listResourceReleaseBindingRevisions(
+      RESOURCE_ENTITY as any,
+      'dev',
+    );
+
+    expect(result).toEqual(revisions);
+    const [calledUrl, opts] = fetchMock.mock.calls[0];
+    expect(calledUrl).toContain('/resource-release-binding-revisions');
+    expect(calledUrl).toContain('resourceName=analytics-db');
+    expect(calledUrl).toContain('namespaceName=test-ns');
+    expect(calledUrl).toContain('environment=dev');
+    expect(opts.method ?? 'GET').toBe('GET');
+  });
+
+  it('POSTs /rollback-resource-release-binding with the binding and revision', async () => {
+    const preview = { revision: 2, dryRun: true, changes: [], warnings: [] };
+    fetchMock.mockResolvedValueOnce(makeJsonResponse(preview));
+
+    const result = await client.rollbackResourceReleaseBinding(
+      RESOURCE_ENTITY as any,
+      'analytics-db-dev',
+      1,
+      true,
+    );
+
+    expect(result).toEqual(preview);
+    const [calledUrl, opts] = fetchMock.mock.calls[0];
+    expect(calledUrl).toContain('/rollback-resource-release-binding');
+    expect(opts.method).toBe('POST');
+    expect(JSON.parse(opts.body)).toEqual({
+      namespaceName: 'test-ns',
+      bindingName: 'analytics-db-dev',
+      revision: 1,
+      dryRun: true,
+    });
+  });
+
+  it('POSTs /delete-resource-release-binding-revision with the binding and revision name', async () => {
+    const result = {
+      revisionName: 'analytics-db-dev-r1',
+      revision: 1,
+      dryRun: false,
+    };
+    fetchMock.mockResolvedValueOnce(makeJsonResponse(result));
+
+    await expect(
+      client.deleteResourceReleaseBindingRevision(
+        RESOURCE_ENTITY as any,
+        'analytics-db-dev',
+        'analytics-db-dev-r1',
+        false,
+      ),
+    ).resolves.toEqual(result);
+    const [calledUrl, opts] = fetchMock.mock.calls[0];
+    expect(calledUrl).toContain('/delete-resource-release-binding-revision');
+    expect(opts.method).toBe('POST');
+    expect(JSON.parse(opts.body)).toEqual({
+      namespaceName: 'test-ns',
+      bindingName: 'analytics-db-dev',
+      revisionName: 'analytics-db-dev-r1',
+      dryRun: false,
+    });
+  });
+
+  it('POSTs /delete-release-binding-revision for a component binding', async () => {
+    fetchMock.mockResolvedValueOnce(makeJsonResponse({ revision: 2 }));
+
+    await client.deleteReleaseBindingRevision(
+      BASE_ENTITY as any,
+      'api-dev',
+      'api-dev-r2',
+      true,
+    );
+    const [calledUrl, opts] = fetchMock.mock.calls[0];
+    expect(calledUrl).toContain('/delete-release-binding-revision');
+    expect(JSON.parse(opts.body)).toEqual(
+      expect.objectContaining({
+        bindingName: 'api-dev',
+        revisionName: 'api-dev-r2',
+        dryRun: true,
+      }),
+    );
+  });
+
+  it.each([
+    ['component', BASE_ENTITY, 'api-dev'],
+    ['resource', RESOURCE_ENTITY, 'analytics-db-dev'],
+  ] as const)(
+    'GETs /binding-revision-history-limit for a %s binding',
+    async (kind, entity, bindingName) => {
+      const limit = { bindingLimit: 5, environmentLimit: 10 };
+      fetchMock.mockResolvedValueOnce(makeJsonResponse(limit));
+
+      await expect(
+        client.getBindingRevisionHistoryLimit(entity as any, kind, bindingName),
+      ).resolves.toEqual(limit);
+      const [calledUrl, opts] = fetchMock.mock.calls[0];
+      const url = new URL(calledUrl);
+      expect(url.pathname).toContain('/binding-revision-history-limit');
+      expect(Object.fromEntries(url.searchParams)).toEqual({
+        namespaceName: 'test-ns',
+        bindingName,
+        kind,
+      });
+      expect(opts.method).toBe('GET');
+    },
+  );
+
+  it.each([
+    ['component', BASE_ENTITY, 'api-dev', 7],
+    ['resource', RESOURCE_ENTITY, 'analytics-db-dev', 0],
+    ['component', BASE_ENTITY, 'api-dev', null],
+  ] as const)(
+    'PUTs /binding-revision-history-limit for a %s binding',
+    async (kind, entity, bindingName, limit) => {
+      const saved = { bindingLimit: limit, environmentLimit: null };
+      fetchMock.mockResolvedValueOnce(makeJsonResponse(saved));
+
+      await expect(
+        client.setBindingRevisionHistoryLimit(
+          entity as any,
+          kind,
+          bindingName,
+          limit,
+        ),
+      ).resolves.toEqual(saved);
+      const [calledUrl, opts] = fetchMock.mock.calls[0];
+      expect(calledUrl).toContain('/binding-revision-history-limit');
+      expect(opts.method).toBe('PUT');
+      // null is sent, not dropped: it clears the binding's own limit.
+      expect(JSON.parse(opts.body)).toEqual({
+        namespaceName: 'test-ns',
+        bindingName,
+        kind,
+        limit,
+      });
+    },
+  );
+});

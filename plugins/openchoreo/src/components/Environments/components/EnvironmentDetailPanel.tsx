@@ -52,6 +52,11 @@ import { ReleaseBrowserDialog } from './ReleaseBrowserDialog';
 import { ReleaseManifestDialog } from './ReleaseManifestDialog';
 import type { ReleaseDeployments } from './releaseFormatters';
 import { RemoveDeploymentConfirmationDialog } from './RemoveDeploymentConfirmationDialog';
+import {
+  RevisionHistoryProvider,
+  RevisionInfoRow,
+  RollbackAction,
+} from './RevisionHistorySection';
 import { SetupDetailPane } from './SetupDetailPane';
 import {
   attributeToProjectNotDeployed,
@@ -156,6 +161,7 @@ export const EnvironmentDetailPanel = ({
     releases,
     loading: releasesLoading,
     isRefetching: releasesRefetching,
+    error: releasesError,
   } = useReleases(entity);
   const deployments: ReleaseDeployments = useMemo(() => {
     const map: ReleaseDeployments = {};
@@ -392,7 +398,11 @@ export const EnvironmentDetailPanel = ({
             </Typography>
           </Box>
         ) : (
-          <>
+          <RevisionHistoryProvider
+            environment={environment}
+            releases={releases}
+            releasesKnown={!releasesLoading && !releasesError}
+          >
             {failureBanner && (
               <Box className={classes.section}>
                 <DeploymentFailureBanner
@@ -455,6 +465,7 @@ export const EnvironmentDetailPanel = ({
                     </Tooltip>
                   </Box>
                 )}
+                <RevisionInfoRow />
                 {environment.deployment.lastDeployed && (
                   <Box className={classes.deployedRow}>
                     <Typography
@@ -619,22 +630,25 @@ export const EnvironmentDetailPanel = ({
                 <Typography className={classes.sectionTitle}>
                   Actions
                 </Typography>
+                <Box className={classes.primaryActionsRow}>
+                  <RollbackAction />
+                  {showPromote && (
+                    <PromotePrimaryAction
+                      environmentName={environment.name}
+                      environmentResourceName={environment.resourceName}
+                      bindingName={environment.bindingName}
+                      deploymentStatus={environment.deployment.status}
+                      statusReason={environment.deployment.statusReason}
+                      promotionTargets={environment.promotionTargets}
+                      isAlreadyPromoted={isAlreadyPromoted}
+                      isTargetProjectBlocked={isTargetProjectBlocked}
+                      promotionTracker={actionTrackers.promotionTracker}
+                      onPromote={onPromote}
+                    />
+                  )}
+                </Box>
                 {showPromote && (
                   <>
-                    <Box display="flex" justifyContent="flex-end">
-                      <PromotePrimaryAction
-                        environmentName={environment.name}
-                        environmentResourceName={environment.resourceName}
-                        bindingName={environment.bindingName}
-                        deploymentStatus={environment.deployment.status}
-                        statusReason={environment.deployment.statusReason}
-                        promotionTargets={environment.promotionTargets}
-                        isAlreadyPromoted={isAlreadyPromoted}
-                        isTargetProjectBlocked={isTargetProjectBlocked}
-                        promotionTracker={actionTrackers.promotionTracker}
-                        onPromote={onPromote}
-                      />
-                    </Box>
                     {(() => {
                       // When a promote target's project isn't deployed there,
                       // the promote is disabled — surface the fix inline,
@@ -725,7 +739,7 @@ export const EnvironmentDetailPanel = ({
                 )}
               </Box>
             )}
-          </>
+          </RevisionHistoryProvider>
         )}
       </Box>
 

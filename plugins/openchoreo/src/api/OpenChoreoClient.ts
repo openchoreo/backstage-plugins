@@ -7,6 +7,11 @@ import {
   toStoredReleaseLine,
   type WorkloadResource,
   type ReleaseBindingCondition,
+  type ReleaseBindingRevision,
+  type ResourceReleaseBindingRevision,
+  type RollbackResponse,
+  type DeleteBindingRevisionResponse,
+  type BindingRevisionHistoryLimit,
   type ReleaseLineSummary,
   type ReleaseLineOverrides,
   type ReleaseLineResource,
@@ -86,6 +91,14 @@ const API_ENDPOINTS = {
   UPDATE_PROJECT_RELEASE_BINDING: '/update-project-release-binding',
   PROJECT_RELEASE_SCHEMA: '/project-release-schema',
   COMPONENT_RELEASES: '/component-releases',
+  RELEASE_BINDING_REVISIONS: '/release-binding-revisions',
+  ROLLBACK_RELEASE_BINDING: '/rollback-release-binding',
+  DELETE_RELEASE_BINDING_REVISION: '/delete-release-binding-revision',
+  RESOURCE_RELEASE_BINDING_REVISIONS: '/resource-release-binding-revisions',
+  ROLLBACK_RESOURCE_RELEASE_BINDING: '/rollback-resource-release-binding',
+  DELETE_RESOURCE_RELEASE_BINDING_REVISION:
+    '/delete-resource-release-binding-revision',
+  BINDING_REVISION_HISTORY_LIMIT: '/binding-revision-history-limit',
   UPDATE_RELEASE_BINDING: '/update-release-binding',
   PATCH_RELEASE_BINDING: '/patch-release-binding',
   RESOURCE_TREE: '/resourcetree',
@@ -817,6 +830,181 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         ),
       },
     };
+  }
+
+  async listReleaseBindingRevisions(
+    entity: Entity,
+    environment: string,
+    bindingName?: string,
+  ): Promise<ReleaseBindingRevision[]> {
+    const metadata = extractEntityMetadata(entity);
+
+    return this.apiFetch<ReleaseBindingRevision[]>(
+      API_ENDPOINTS.RELEASE_BINDING_REVISIONS,
+      {
+        params: {
+          namespaceName: metadata.namespace,
+          componentName: metadata.component,
+          environment,
+          ...(bindingName ? { bindingName } : {}),
+        },
+      },
+    );
+  }
+
+  async rollbackReleaseBinding(
+    entity: Entity,
+    bindingName: string,
+    revision: number,
+    dryRun: boolean,
+    message?: string,
+  ): Promise<RollbackResponse> {
+    const metadata = extractEntityMetadata(entity);
+
+    return this.apiFetch<RollbackResponse>(
+      API_ENDPOINTS.ROLLBACK_RELEASE_BINDING,
+      {
+        method: 'POST',
+        body: {
+          namespaceName: metadata.namespace,
+          bindingName,
+          revision,
+          dryRun,
+          ...(message ? { message } : {}),
+        },
+      },
+    );
+  }
+
+  async deleteReleaseBindingRevision(
+    entity: Entity,
+    bindingName: string,
+    revisionName: string,
+    dryRun: boolean,
+  ): Promise<DeleteBindingRevisionResponse> {
+    const metadata = extractEntityMetadata(entity);
+
+    return this.apiFetch<DeleteBindingRevisionResponse>(
+      API_ENDPOINTS.DELETE_RELEASE_BINDING_REVISION,
+      {
+        method: 'POST',
+        body: {
+          namespaceName: metadata.namespace,
+          bindingName,
+          revisionName,
+          dryRun,
+        },
+      },
+    );
+  }
+
+  async listResourceReleaseBindingRevisions(
+    entity: Entity,
+    environment: string,
+    bindingName?: string,
+  ): Promise<ResourceReleaseBindingRevision[]> {
+    const { resourceName, namespaceName } =
+      extractResourceEntityMetadata(entity);
+
+    return this.apiFetch<ResourceReleaseBindingRevision[]>(
+      API_ENDPOINTS.RESOURCE_RELEASE_BINDING_REVISIONS,
+      {
+        params: {
+          namespaceName,
+          resourceName,
+          environment,
+          ...(bindingName ? { bindingName } : {}),
+        },
+      },
+    );
+  }
+
+  async rollbackResourceReleaseBinding(
+    entity: Entity,
+    bindingName: string,
+    revision: number,
+    dryRun: boolean,
+    message?: string,
+  ): Promise<RollbackResponse> {
+    const { namespaceName } = extractResourceEntityMetadata(entity);
+
+    return this.apiFetch<RollbackResponse>(
+      API_ENDPOINTS.ROLLBACK_RESOURCE_RELEASE_BINDING,
+      {
+        method: 'POST',
+        body: {
+          namespaceName,
+          bindingName,
+          revision,
+          dryRun,
+          ...(message ? { message } : {}),
+        },
+      },
+    );
+  }
+
+  async deleteResourceReleaseBindingRevision(
+    entity: Entity,
+    bindingName: string,
+    revisionName: string,
+    dryRun: boolean,
+  ): Promise<DeleteBindingRevisionResponse> {
+    const { namespaceName } = extractResourceEntityMetadata(entity);
+
+    return this.apiFetch<DeleteBindingRevisionResponse>(
+      API_ENDPOINTS.DELETE_RESOURCE_RELEASE_BINDING_REVISION,
+      {
+        method: 'POST',
+        body: { namespaceName, bindingName, revisionName, dryRun },
+      },
+    );
+  }
+
+  /** The namespace of the entity a binding of the given kind belongs to. */
+  private bindingNamespace(
+    entity: Entity,
+    kind: 'component' | 'resource',
+  ): string {
+    return kind === 'resource'
+      ? extractResourceEntityMetadata(entity).namespaceName
+      : extractEntityMetadata(entity).namespace;
+  }
+
+  async getBindingRevisionHistoryLimit(
+    entity: Entity,
+    kind: 'component' | 'resource',
+    bindingName: string,
+  ): Promise<BindingRevisionHistoryLimit> {
+    return this.apiFetch<BindingRevisionHistoryLimit>(
+      API_ENDPOINTS.BINDING_REVISION_HISTORY_LIMIT,
+      {
+        params: {
+          namespaceName: this.bindingNamespace(entity, kind),
+          bindingName,
+          kind,
+        },
+      },
+    );
+  }
+
+  async setBindingRevisionHistoryLimit(
+    entity: Entity,
+    kind: 'component' | 'resource',
+    bindingName: string,
+    limit: number | null,
+  ): Promise<BindingRevisionHistoryLimit> {
+    return this.apiFetch<BindingRevisionHistoryLimit>(
+      API_ENDPOINTS.BINDING_REVISION_HISTORY_LIMIT,
+      {
+        method: 'PUT',
+        body: {
+          namespaceName: this.bindingNamespace(entity, kind),
+          bindingName,
+          kind,
+          limit,
+        },
+      },
+    );
   }
 
   async updateReleaseBinding(

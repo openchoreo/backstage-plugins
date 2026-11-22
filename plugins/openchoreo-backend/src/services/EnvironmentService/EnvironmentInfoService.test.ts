@@ -1,6 +1,7 @@
 import { mockServices } from '@backstage/backend-test-utils';
 import { EnvironmentInfoService } from './EnvironmentInfoService';
 import { createOkResponse, createErrorResponse } from '@openchoreo/test-utils';
+import { fetchAllPages } from '@openchoreo/openchoreo-client-node';
 
 // ---------------------------------------------------------------------------
 // Mock the client-node module
@@ -1949,6 +1950,156 @@ describe('EnvironmentInfoService', () => {
 
       expect(mockPUT).not.toHaveBeenCalled();
       expect(mockPOST).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('listComponentReleases', () => {
+    // The API serves at most 20 items per page, like its default page size.
+    const PAGE_SIZE = 20;
+
+    const makeReleases = (count: number) =>
+      Array.from({ length: count }, (_, i) => ({
+        metadata: {
+          name: `api-service-release-${String(i + 1).padStart(2, '0')}`,
+          namespace: 'test-ns',
+        },
+        spec: {
+          owner: { projectName: 'my-project', componentName: 'api-service' },
+        },
+      }));
+
+    // Serves releases page by page, using the item offset as the cursor.
+    const serveReleases = (releases: unknown[]) => {
+      mockGET.mockImplementation((_path: string, init: any) => {
+        const offset = Number(init.params.query.cursor ?? 0);
+        const next = offset + PAGE_SIZE;
+        return Promise.resolve(
+          createOkResponse({
+            items: releases.slice(offset, next),
+            pagination:
+              next < releases.length ? { nextCursor: String(next) } : {},
+          }),
+        );
+      });
+    };
+
+    const listReleases = () =>
+      createService().listComponentReleases(
+        { componentName: 'api-service', namespaceName: 'test-ns' },
+        'token-123',
+      );
+
+    // The module mock above only follows the first page; these tests need
+    // the real cursor loop.
+    let firstPageOnly: ((...args: any[]) => any) | undefined;
+
+    beforeEach(() => {
+      firstPageOnly = jest.mocked(fetchAllPages).getMockImplementation();
+      jest
+        .mocked(fetchAllPages)
+        .mockImplementation(
+          jest.requireActual('@openchoreo/openchoreo-client-node')
+            .fetchAllPages,
+        );
+    });
+
+    afterEach(() => {
+      jest.mocked(fetchAllPages).mockImplementation(firstPageOnly!);
+      mockGET.mockReset();
+    });
+
+    it('returns every release when they fit on one page', async () => {
+      const releases = makeReleases(5);
+      serveReleases(releases);
+
+      const result = await listReleases();
+
+      expect(result).toEqual({ items: releases });
+      expect(mockGET).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns exactly 20 releases from a single full page', async () => {
+      const releases = makeReleases(20);
+      serveReleases(releases);
+
+      const result = await listReleases();
+
+      expect(result.items).toHaveLength(20);
+      expect(result.items).toEqual(releases);
+      expect(mockGET).toHaveBeenCalledTimes(1);
+    });
+
+    it('includes the release on the second page when there are 21', async () => {
+      const releases = makeReleases(21);
+      serveReleases(releases);
+
+      const result = await listReleases();
+
+      expect(result.items).toHaveLength(21);
+      expect(result.items.map((r: any) => r.metadata.name)).toContain(
+        'api-service-release-21',
+      );
+      expect(mockGET).toHaveBeenCalledTimes(2);
+      expect(mockGET.mock.calls[1][1].params.query.cursor).toBe('20');
+    });
+
+    it('combines every page in order', async () => {
+      const releases = makeReleases(45);
+      serveReleases(releases);
+
+      const result = await listReleases();
+
+      expect(result.items).toEqual(releases);
+      expect(mockGET).toHaveBeenCalledTimes(3);
+      expect(
+        mockGET.mock.calls.map(([, init]) => init.params.query.cursor),
+      ).toEqual([undefined, '20', '40']);
+    });
+
+    it('returns an empty list when the component has no releases', async () => {
+      serveReleases([]);
+
+      const result = await listReleases();
+
+      expect(result).toEqual({ items: [] });
+      expect(mockGET).toHaveBeenCalledTimes(1);
+    });
+
+    it('filters by component and namespace on every page request', async () => {
+      serveReleases(makeReleases(25));
+
+      await listReleases();
+
+      for (const [path, init] of mockGET.mock.calls) {
+        expect(path).toBe(
+          '/api/v1/namespaces/{namespaceName}/componentreleases',
+        );
+        expect(init.params.path).toEqual({ namespaceName: 'test-ns' });
+        expect(init.params.query).toMatchObject({
+          component: 'api-service',
+          limit: 100,
+        });
+      }
+    });
+
+    it('throws when the first page request fails', async () => {
+      mockGET.mockResolvedValueOnce(createErrorResponse(500));
+
+      await expect(listReleases()).rejects.toThrow();
+    });
+
+    it('throws when a later page request fails', async () => {
+      mockGET
+        .mockResolvedValueOnce(
+          createOkResponse({
+            items: makeReleases(20),
+            pagination: { nextCursor: '20' },
+          }),
+        )
+        .mockResolvedValueOnce(createErrorResponse(500));
+
+      await expect(listReleases()).rejects.toThrow();
+      expect(mockGET).toHaveBeenCalledTimes(2);
     });
   });
 });

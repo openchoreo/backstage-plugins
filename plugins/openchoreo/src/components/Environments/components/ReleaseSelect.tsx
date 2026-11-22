@@ -24,11 +24,11 @@ import {
   type ReleaseDeployments,
 } from './releaseFormatters';
 
-const MAX_VISIBLE_RELEASES = 4;
+export const MAX_VISIBLE_RELEASES = 4;
 // Tall enough to fit 4 two-line option rows (~56px each) plus a bit of
 // breathing room, so the listbox itself never needs to scroll at the cap.
 // The hint row and footer render outside the listbox in PaperComponent.
-const LISTBOX_MAX_HEIGHT = 260;
+export const LISTBOX_MAX_HEIGHT = 260;
 
 /**
  * Force the Autocomplete popup to render below the input. Default MUI
@@ -36,7 +36,7 @@ const LISTBOX_MAX_HEIGHT = 260;
  * the setup card (the panel sits low in the viewport). We'd rather extend
  * past the fold and let the page scroll than have the menu jump.
  */
-const BottomPopper = (props: PopperProps) => (
+export const BottomPopper = (props: PopperProps) => (
   <Popper
     {...props}
     placement="bottom-start"
@@ -47,7 +47,8 @@ const BottomPopper = (props: PopperProps) => (
   />
 );
 
-const useStyles = makeStyles(theme => ({
+// Shared with RevisionSelect so both pickers look the same.
+export const useReleaseSelectStyles = makeStyles(theme => ({
   option: {
     display: 'flex',
     flexDirection: 'column',
@@ -141,7 +142,7 @@ interface CurrentEnvChipProps {
  * stays consistent with the Release Browser.
  */
 const CurrentEnvChip = ({ envName, className }: CurrentEnvChipProps) => {
-  const classes = useStyles();
+  const classes = useReleaseSelectStyles();
   return (
     <Chip
       label={envName}
@@ -174,7 +175,7 @@ export const ReleaseSelect = ({
   createDisabledReason,
   onOpenReleaseBrowser,
 }: ReleaseSelectProps) => {
-  const classes = useStyles();
+  const classes = useReleaseSelectStyles();
   const targetEnv = firstEnvironmentName.toLowerCase();
 
   const selected = useMemo(

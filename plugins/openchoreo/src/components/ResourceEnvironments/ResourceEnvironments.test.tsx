@@ -107,6 +107,11 @@ jest.mock('../Environments/components', () => ({
     ) : null,
 }));
 
+// Covered by ResourceRevisionHistorySection.test; it fetches on its own.
+jest.mock('./ResourceRevisionHistorySection', () => ({
+  ResourceRevisionHistorySection: () => null,
+}));
+
 jest.mock('../Environments/components/NoEnvironmentsEmptyState', () => ({
   NoEnvironmentsEmptyState: () => (
     <div>

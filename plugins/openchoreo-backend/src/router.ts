@@ -32,6 +32,7 @@ import {
   ProjectReleaseInfoService,
   type ProjectReleaseSchemaSection,
 } from './services/ProjectReleaseService/ProjectReleaseInfoService';
+import { ReleaseBindingRevisionService } from './services/ReleaseBindingRevisionService/ReleaseBindingRevisionService';
 import { PlatformResourceService } from './services/PlatformResourceService/PlatformResourceService';
 import { WirelogsInfoService } from './services/WirelogsService/WirelogsInfoService';
 import { VersionService } from './services/VersionService/VersionService';
@@ -103,6 +104,58 @@ const VALID_PLATFORM_RESOURCE_KINDS = [
 export type PlatformResourceKind =
   (typeof VALID_PLATFORM_RESOURCE_KINDS)[number];
 
+/** The longest rollback message the OpenChoreo API accepts, in characters. */
+const MAX_ROLLBACK_MESSAGE_LENGTH = 1024;
+
+/** The highest revision history limit accepted from the portal. */
+const MAX_REVISION_HISTORY_LIMIT = 1000;
+
+/**
+ * Validates a revision history limit: null clears the binding's own limit,
+ * otherwise a whole number of old revisions to keep.
+ */
+function parseHistoryLimit(limit: unknown): number | null {
+  if (limit === null) return null;
+  if (
+    typeof limit !== 'number' ||
+    !Number.isInteger(limit) ||
+    limit < 0 ||
+    limit > MAX_REVISION_HISTORY_LIMIT
+  ) {
+    throw new InputError(
+      `limit must be null or an integer from 0 to ${MAX_REVISION_HISTORY_LIMIT}`,
+    );
+  }
+  return limit;
+}
+
+/** Which binding a request is about; a Component's unless it says resource. */
+function parseBindingKind(kind: unknown): 'component' | 'resource' {
+  if (kind === undefined || kind === null || kind === 'component') {
+    return 'component';
+  }
+  if (kind === 'resource') return 'resource';
+  throw new InputError('kind must be component or resource');
+}
+
+/**
+ * Validates a rollback request's optional message. Returns it without
+ * surrounding whitespace, or undefined when none was given.
+ */
+function parseRollbackMessage(message: unknown): string | undefined {
+  if (message === undefined || message === null) return undefined;
+  if (typeof message !== 'string') {
+    throw new InputError('message must be a string');
+  }
+  const trimmed = message.trim();
+  if (Array.from(trimmed).length > MAX_ROLLBACK_MESSAGE_LENGTH) {
+    throw new InputError(
+      `message must be at most ${MAX_ROLLBACK_MESSAGE_LENGTH} characters`,
+    );
+  }
+  return trimmed || undefined;
+}
+
 /**
  * The release line a request names in its query or body. The main line, by
  * name or omitted, is undefined, so `main` is never written into a resource.
@@ -130,6 +183,7 @@ export async function createRouter({
   resourceReleaseInfoService,
   endpointInfoService,
   projectReleaseInfoService,
+  releaseBindingRevisionService,
   secretReferencesInfoService,
   secretsService,
   authzService,
@@ -163,6 +217,7 @@ export async function createRouter({
   resourceReleaseInfoService: ResourceReleaseInfoService;
   endpointInfoService: EndpointInfoService;
   projectReleaseInfoService: ProjectReleaseInfoService;
+  releaseBindingRevisionService: ReleaseBindingRevisionService;
   secretReferencesInfoService: SecretReferencesService;
   secretsService: SecretsService;
   authzService: AuthzService;
@@ -1766,6 +1821,257 @@ export async function createRouter({
       ),
     );
   });
+
+  router.get('/release-binding-revisions', async (req, res) => {
+    const { namespaceName, componentName, environment, bindingName } =
+      req.query;
+
+    if (!namespaceName || !componentName || !environment) {
+      throw new InputError(
+        'namespaceName, componentName and environment are required query parameters',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await releaseBindingRevisionService.listRevisions(
+        {
+          namespaceName: namespaceName as string,
+          componentName: componentName as string,
+          environment: environment as string,
+          ...(typeof bindingName === 'string' && bindingName
+            ? { bindingName }
+            : {}),
+        },
+        userToken,
+      ),
+    );
+  });
+
+  router.post('/rollback-release-binding', requireAuth, async (req, res) => {
+    const { namespaceName, bindingName, revision, dryRun, message } = req.body;
+
+    if (!namespaceName || !bindingName) {
+      throw new InputError(
+        'namespaceName and bindingName are required in request body',
+      );
+    }
+    if (!Number.isInteger(revision) || revision < 1) {
+      throw new InputError('revision must be a positive integer');
+    }
+    if (dryRun !== undefined && typeof dryRun !== 'boolean') {
+      throw new InputError('dryRun must be a boolean');
+    }
+    const rollbackMessage = parseRollbackMessage(message);
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await releaseBindingRevisionService.rollback(
+        {
+          namespaceName: namespaceName as string,
+          bindingName: bindingName as string,
+          revision,
+          dryRun: dryRun ?? false,
+          message: rollbackMessage,
+        },
+        userToken,
+      ),
+    );
+  });
+
+  router.post(
+    '/delete-release-binding-revision',
+    requireAuth,
+    async (req, res) => {
+      const { namespaceName, bindingName, revisionName, dryRun } = req.body;
+
+      if (!namespaceName || !bindingName || !revisionName) {
+        throw new InputError(
+          'namespaceName, bindingName and revisionName are required in request body',
+        );
+      }
+      if (dryRun !== undefined && typeof dryRun !== 'boolean') {
+        throw new InputError('dryRun must be a boolean');
+      }
+
+      const userToken = getUserTokenFromRequest(req);
+
+      res.json(
+        await releaseBindingRevisionService.deleteRevision(
+          {
+            namespaceName: namespaceName as string,
+            bindingName: bindingName as string,
+            revisionName: revisionName as string,
+            dryRun: dryRun ?? false,
+          },
+          userToken,
+        ),
+      );
+    },
+  );
+
+  router.get('/resource-release-binding-revisions', async (req, res) => {
+    const { namespaceName, resourceName, environment, bindingName } = req.query;
+
+    if (!namespaceName || !resourceName || !environment) {
+      throw new InputError(
+        'namespaceName, resourceName and environment are required query parameters',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await releaseBindingRevisionService.listResourceRevisions(
+        {
+          namespaceName: namespaceName as string,
+          resourceName: resourceName as string,
+          environment: environment as string,
+          ...(typeof bindingName === 'string' && bindingName
+            ? { bindingName }
+            : {}),
+        },
+        userToken,
+      ),
+    );
+  });
+
+  router.post(
+    '/rollback-resource-release-binding',
+    requireAuth,
+    async (req, res) => {
+      const { namespaceName, bindingName, revision, dryRun, message } =
+        req.body;
+
+      if (!namespaceName || !bindingName) {
+        throw new InputError(
+          'namespaceName and bindingName are required in request body',
+        );
+      }
+      if (!Number.isInteger(revision) || revision < 1) {
+        throw new InputError('revision must be a positive integer');
+      }
+      if (dryRun !== undefined && typeof dryRun !== 'boolean') {
+        throw new InputError('dryRun must be a boolean');
+      }
+      const rollbackMessage = parseRollbackMessage(message);
+
+      const userToken = getUserTokenFromRequest(req);
+
+      res.json(
+        await releaseBindingRevisionService.rollbackResource(
+          {
+            namespaceName: namespaceName as string,
+            bindingName: bindingName as string,
+            revision,
+            dryRun: dryRun ?? false,
+            message: rollbackMessage,
+          },
+          userToken,
+        ),
+      );
+    },
+  );
+
+  router.post(
+    '/delete-resource-release-binding-revision',
+    requireAuth,
+    async (req, res) => {
+      const { namespaceName, bindingName, revisionName, dryRun } = req.body;
+
+      if (!namespaceName || !bindingName || !revisionName) {
+        throw new InputError(
+          'namespaceName, bindingName and revisionName are required in request body',
+        );
+      }
+      if (dryRun !== undefined && typeof dryRun !== 'boolean') {
+        throw new InputError('dryRun must be a boolean');
+      }
+
+      const userToken = getUserTokenFromRequest(req);
+
+      res.json(
+        await releaseBindingRevisionService.deleteResourceRevision(
+          {
+            namespaceName: namespaceName as string,
+            bindingName: bindingName as string,
+            revisionName: revisionName as string,
+            dryRun: dryRun ?? false,
+          },
+          userToken,
+        ),
+      );
+    },
+  );
+
+  // The revision history limit of a binding: how many old revisions it
+  // keeps for rollback. kind selects a Component's ReleaseBinding (the
+  // default) or a Resource's.
+  router.get('/binding-revision-history-limit', async (req, res) => {
+    const { namespaceName, bindingName, kind } = req.query;
+
+    if (!namespaceName || !bindingName) {
+      throw new InputError(
+        'namespaceName and bindingName are required query parameters',
+      );
+    }
+    const request = {
+      namespaceName: namespaceName as string,
+      bindingName: bindingName as string,
+    };
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      parseBindingKind(kind) === 'resource'
+        ? await releaseBindingRevisionService.getResourceHistoryLimit(
+            request,
+            userToken,
+          )
+        : await releaseBindingRevisionService.getHistoryLimit(
+            request,
+            userToken,
+          ),
+    );
+  });
+
+  router.put(
+    '/binding-revision-history-limit',
+    requireAuth,
+    async (req, res) => {
+      const { namespaceName, bindingName, kind, limit } = req.body;
+
+      if (!namespaceName || !bindingName) {
+        throw new InputError(
+          'namespaceName and bindingName are required in request body',
+        );
+      }
+      if (limit === undefined) {
+        throw new InputError(
+          'limit is required in request body; send null to clear it',
+        );
+      }
+      const request = {
+        namespaceName: namespaceName as string,
+        bindingName: bindingName as string,
+        limit: parseHistoryLimit(limit),
+      };
+      const userToken = getUserTokenFromRequest(req);
+
+      res.json(
+        parseBindingKind(kind) === 'resource'
+          ? await releaseBindingRevisionService.setResourceHistoryLimit(
+              request,
+              userToken,
+            )
+          : await releaseBindingRevisionService.setHistoryLimit(
+              request,
+              userToken,
+            ),
+      );
+    },
+  );
 
   router.get('/component-releases', async (req, res) => {
     const { componentName, namespaceName } = req.query;
