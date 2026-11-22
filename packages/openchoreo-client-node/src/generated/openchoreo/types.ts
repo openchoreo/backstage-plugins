@@ -6966,13 +6966,13 @@ export interface components {
        * @enum {string}
        */
       health?: 'Progressing' | 'Healthy' | 'Degraded' | 'Failed' | 'Unknown';
-      /** @description True for the one revision the binding currently applies */
+      /** @description True for the revision recording the binding's current spec, the one it is rolling out or running. Set before the rollout; health reports whether the rollout succeeded. */
       active?: boolean;
-      /** @description True once the revision stayed Healthy for the controller's known-good window. Never reverts. */
+      /** @description True once the revision stayed Healthy for the controller's known-good window. Never reverts. Never true for a revision that undeploys its component. */
       knownGood?: boolean;
       /**
        * Format: date-time
-       * @description When health last changed
+       * @description When health was last set, on activation or when it changed
        */
       observedAt?: string;
       /**
