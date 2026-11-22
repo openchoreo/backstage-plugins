@@ -1860,7 +1860,7 @@ export interface paths {
      *
      *     If auto-deploy is enabled for the binding's line and the binding is in the first environment of its deployment pipeline, auto-deploy would move the binding back to the line's latest release right after the rollback, so the rollback (dry runs included) is refused with 409 AUTO_DEPLOY_ENABLED and nothing is changed. For the main line that is the component's autoDeploy; for a release line, the ReleaseLine's autoDeploy when set, otherwise the component's. Turn off auto-deploy for the component or release line to roll back that environment. Other environments are not affected.
      *
-     *     Without a revision, the target is the revision that was active immediately before the current one. With dryRun, every check runs and the response is the same, but nothing is written. Requires the releasebinding:rollback permission on the binding's component.
+     *     Without a revision, the target is the revision that was active immediately before the current one. With dryRun, the same checks run and the restored binding is submitted with Kubernetes dry-run, so admission and validation run on it too; the response is the same, but nothing is written. Requires the releasebinding:rollback permission on the binding's component.
      */
     post: operations['rollbackReleaseBinding'];
     delete?: never;
@@ -1878,7 +1878,7 @@ export interface paths {
     };
     /**
      * List component release binding revisions
-     * @description Returns the revision history of a component's release bindings, optionally for one environment, ordered by environment and then by revision number, newest first. Requires the releasebinding:view permission.
+     * @description Returns the revision history of a component's release bindings, optionally for one environment, ordered by environment and then by revision number, newest first. Pagination: the cursor is not a Kubernetes continue token. It records the last revision returned, and the next page resumes after it, so revisions recorded or deleted between pages are neither repeated nor skipped; a revision recorded meanwhile that sorts before the cursor is not returned until the list is read again from the start. Requires the releasebinding:view permission.
      */
     get: operations['listReleaseBindingRevisions'];
     put?: never;
@@ -2624,7 +2624,7 @@ export interface paths {
      *
      *     If a GitOps tool applies the binding from Git (it carries Flux's kustomize.toolkit.fluxcd.io or helm.toolkit.fluxcd.io name or namespace label, or Argo CD's argocd.argoproj.io/tracking-id annotation), the tool would restore the configuration in Git on its next sync, so the rollback (dry runs included) is refused with 409 GITOPS_MANAGED and nothing is changed. Revert the binding's configuration in Git instead.
      *
-     *     Without a revision, the target is the revision that was active immediately before the current one. With dryRun, every check runs and the response is the same, but nothing is written. Requires the resourcereleasebinding:rollback permission on the binding's resource.
+     *     Without a revision, the target is the revision that was active immediately before the current one. With dryRun, the same checks run and the restored binding is submitted with Kubernetes dry-run, so admission and validation run on it too; the response is the same, but nothing is written. Requires the resourcereleasebinding:rollback permission on the binding's resource.
      */
     post: operations['rollbackResourceReleaseBinding'];
     delete?: never;
@@ -2642,7 +2642,7 @@ export interface paths {
     };
     /**
      * List resource release binding revisions
-     * @description Returns the revision history of a resource's release bindings, optionally for one environment, ordered by environment and then by revision number, newest first. Requires the resourcereleasebinding:view permission.
+     * @description Returns the revision history of a resource's release bindings, optionally for one environment, ordered by environment and then by revision number, newest first. Pagination: the cursor is not a Kubernetes continue token. It records the last revision returned, and the next page resumes after it, so revisions recorded or deleted between pages are neither repeated nor skipped; a revision recorded meanwhile that sorts before the cursor is not returned until the list is read again from the start. Requires the resourcereleasebinding:view permission.
      */
     get: operations['listResourceReleaseBindingRevisions'];
     put?: never;
@@ -6966,7 +6966,7 @@ export interface components {
        * @enum {string}
        */
       health?: 'Progressing' | 'Healthy' | 'Degraded' | 'Failed' | 'Unknown';
-      /** @description True for the revision recording the binding's current spec, the one it is rolling out or running. Set before the rollout; health reports whether the rollout succeeded. */
+      /** @description True for the revision recording the spec the binding last recorded, the one it is rolling out or running. Set before the rollout; health reports whether the rollout succeeded. A spec the controller cannot record yet, such as one pinning a release that does not exist, leaves the previous revision active. */
       active?: boolean;
       /** @description True once the revision stayed Healthy for the controller's known-good window. Never reverts. Never true for a revision that undeploys its component. */
       knownGood?: boolean;
@@ -6986,7 +6986,7 @@ export interface components {
     RollbackRequest: {
       /**
        * Format: int64
-       * @description Number of the revision to roll back to. When omitted, the revision that was active immediately before the current one, by activation history rather than revision number (like kubectl rollout undo). If that revision was deleted, or the history cannot say which it was, the rollback is refused with 409 NO_PREVIOUS_REVISION and nothing is changed.
+       * @description Number of the revision to roll back to. When omitted, the revision that was active immediately before the current one, by activation history rather than revision number (like kubectl rollout undo). If the current revision records that revision and it was deleted, or the history cannot say which it was, the rollback is refused with 409 NO_PREVIOUS_REVISION and nothing is changed. A current revision recorded before activation history existed is followed by activation order instead: the rollback then goes ahead and returns the PreviousRevisionInferred warning, naming the inferred target.
        * @example 3
        */
       revision?: number;
@@ -7004,7 +7004,7 @@ export interface components {
     /** @description A revision deletion, applied or dry-run */
     DeleteBindingRevisionResponse: {
       /**
-       * @description The deleted revision's object name, {binding}-r{N}
+       * @description The deleted revision's object name. Usually {binding}-r{N}, but a long name is shortened and given a hash: use it as returned rather than building it.
        * @example api-service-dev-r2
        */
       revisionName: string;
@@ -7032,7 +7032,7 @@ export interface components {
     /** @description Result of a rollback, or of its dry run */
     RollbackResponse: {
       /**
-       * @description Object name of the revision active after the rollback ({binding}-r{N}). A rollback creates no revision, so this is always the target revision.
+       * @description Object name of the target revision: the one active after the rollback, or, for a dry run, the one that would be. A rollback creates no revision. Usually {binding}-r{N}, but a long name is shortened and given a hash: use it as returned rather than building it.
        * @example api-service-dev-r3
        */
       revisionName: string;
