@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { RollbackAutoDeployToggle } from './RollbackAutoDeployToggle';
 
 jest.mock('@backstage/plugin-catalog-react', () => ({
@@ -53,5 +53,41 @@ describe('RollbackAutoDeployToggle', () => {
     autoDeploy = true;
     render(<RollbackAutoDeployToggle onChanged={jest.fn()} />);
     expect(screen.getByRole('checkbox', { name: 'Auto Deploy' })).toBeChecked();
+  });
+
+  it('keeps the switch disabled until the read settles', async () => {
+    autoDeploy = true;
+    let settle: () => void = () => {};
+    refetchAutoDeploy.mockImplementationOnce(
+      () =>
+        new Promise<void>(resolve => {
+          settle = resolve;
+        }),
+    );
+    render(<RollbackAutoDeployToggle onChanged={jest.fn()} />);
+    const toggle = screen.getByRole('checkbox', { name: 'Auto Deploy' });
+    expect(toggle).toBeDisabled();
+    settle();
+    await waitFor(() => expect(toggle).toBeEnabled());
+  });
+
+  it('retries the preview when the read finds auto deploy already off', async () => {
+    autoDeploy = false;
+    refetchAutoDeploy.mockResolvedValueOnce(undefined);
+    const onChanged = jest.fn();
+    render(<RollbackAutoDeployToggle onChanged={onChanged} />);
+    await waitFor(() => expect(onChanged).toHaveBeenCalledWith(false));
+    expect(onChanged).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not retry when the read finds auto deploy still on', async () => {
+    autoDeploy = true;
+    refetchAutoDeploy.mockResolvedValueOnce(undefined);
+    const onChanged = jest.fn();
+    render(<RollbackAutoDeployToggle onChanged={onChanged} />);
+    await waitFor(() =>
+      expect(screen.getByRole('checkbox', { name: 'Auto Deploy' })).toBeEnabled(),
+    );
+    expect(onChanged).not.toHaveBeenCalled();
   });
 });

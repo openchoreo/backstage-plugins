@@ -475,7 +475,8 @@ describe('ResourceRevisionHistorySection', () => {
     });
     const rollbackResourceReleaseBinding = jest
       .fn()
-      .mockResolvedValueOnce(preview)
+      .mockResolvedValueOnce(preview) // the preview
+      .mockResolvedValueOnce(preview) // the check at Confirm
       .mockRejectedValueOnce(concurrent)
       .mockResolvedValueOnce(preview);
     const { alertApi } = setup({
@@ -495,9 +496,10 @@ describe('ResourceRevisionHistorySection', () => {
       'The deployment changed while you were reviewing the rollback.',
     );
     await waitFor(() =>
-      expect(rollbackResourceReleaseBinding).toHaveBeenCalledTimes(3),
+      expect(rollbackResourceReleaseBinding).toHaveBeenCalledTimes(4),
     );
     expect(rollbackResourceReleaseBinding.mock.calls.map(c => c[3])).toEqual([
+      true,
       true,
       false,
       true,

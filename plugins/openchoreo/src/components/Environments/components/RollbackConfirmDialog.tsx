@@ -106,6 +106,25 @@ export interface RollbackConfirmDialogProps {
   onTargetMissing?: () => void;
 }
 
+/**
+ * How a preview taken at Confirm differs from the one the user confirmed, in
+ * a way that needs a new confirmation, or null when it does not: another
+ * revision is active now, or a warning appeared that was not shown.
+ */
+export const changedSincePreview = (
+  previewed: RollbackResponse,
+  now: RollbackResponse,
+): string | null => {
+  if ((previewed.revertedFrom ?? null) !== (now.revertedFrom ?? null)) {
+    return `Another revision became active (${now.revertedFrom ?? 'none'}, was ${
+      previewed.revertedFrom ?? 'none'
+    })`;
+  }
+  const shown = new Set(previewed.warnings.map(w => w.code));
+  const added = now.warnings.find(w => !shown.has(w.code));
+  return added ? `A new warning appeared: ${added.message}` : null;
+};
+
 type Preview =
   | { state: 'loading' }
   | { state: 'ready'; result: RollbackResponse }
@@ -113,12 +132,12 @@ type Preview =
 
 /**
  * Confirms a rollback. Opening it runs the rollback as a dry run and shows
- * the spec changes and every warning; only Confirm applies it. The server
- * repeats every check on apply and refuses a binding that changes while the
- * rollback is being written, after which the preview is refreshed. Confirm
- * sends only the target revision, though, so a binding changed between the
- * preview and Confirm (by a new deploy, say) is not refused: the rollback is
- * applied to it as it is then.
+ * the spec changes and every warning; only Confirm applies it. Confirm first
+ * previews the rollback again: when the active revision or the warnings
+ * changed since the preview (a new deploy, say), it shows the new preview and
+ * asks for a fresh confirmation instead of applying. The server repeats every
+ * check on apply and refuses a binding that changes while the rollback is
+ * being written, after which the preview is refreshed too.
  */
 export const RollbackConfirmDialog = ({
   open,
@@ -213,9 +232,24 @@ export const RollbackConfirmDialog = ({
     // The dialog stays on screen while it fades out after closing, with no
     // target: a click then must not send a rollback.
     if (!open || !target) return;
+    const confirmed = result;
+    const request = previewRequest.current;
     setApplying(true);
     setApplyError(null);
     try {
+      if (confirmed) {
+        const now = await rollback(true);
+        // The dialog was closed, or its target changed, meanwhile.
+        if (request !== previewRequest.current) return;
+        const changed = changedSincePreview(confirmed, now);
+        if (changed) {
+          setPreview({ state: 'ready', result: now });
+          setApplyError(
+            `${changed} since the preview. Review what the rollback does now, then confirm again.`,
+          );
+          return;
+        }
+      }
       const applied = await rollback(false, message.trim() || undefined);
       onRolledBack(applied);
       onClose();

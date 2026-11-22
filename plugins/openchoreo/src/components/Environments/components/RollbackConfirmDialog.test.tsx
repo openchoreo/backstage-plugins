@@ -123,16 +123,63 @@ describe('RollbackConfirmDialog', () => {
     await act(async () => {
       fireEvent.click(rollBack());
     });
-    expect(client.rollbackReleaseBinding).toHaveBeenCalledTimes(2); // preview, apply
+    // The preview, the check at Confirm, then the apply.
+    expect(client.rollbackReleaseBinding).toHaveBeenCalledTimes(3);
 
     // Closed and fading out: still rendered, but it sends nothing.
     expect(rollBack()).toBeDisabled();
     await act(async () => {
       fireEvent.click(rollBack());
     });
-    expect(client.rollbackReleaseBinding).toHaveBeenCalledTimes(2);
+    expect(client.rollbackReleaseBinding).toHaveBeenCalledTimes(3);
     expect(
       client.rollbackReleaseBinding.mock.calls.map(c => c[2]),
     ).not.toContain(0);
+  });
+
+  it('asks again instead of applying when another revision became active since the preview', async () => {
+    let active = 3;
+    const client = {
+      rollbackReleaseBinding: jest.fn(
+        (_e: unknown, _b: string, target: number, dryRun: boolean) =>
+          Promise.resolve({ ...previewOf(target), revertedFrom: active, dryRun }),
+      ),
+    };
+    render(
+      <TestApiProvider apis={[[openChoreoClientApiRef, client]]}>
+        <RollbackConfirmDialog
+          open
+          onClose={jest.fn()}
+          bindingName="frontend-development"
+          environmentName="Development"
+          target={makeRevision(1)}
+          onRolledBack={jest.fn()}
+        />
+      </TestApiProvider>,
+    );
+    await screen.findByText(/frontend-r1 becomes active again/);
+
+    active = 5; // a deploy landed after the preview
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Roll back' }));
+    });
+    expect(
+      await screen.findByText(/Another revision became active \(5, was 3\)/),
+    ).toBeInTheDocument();
+    expect(client.rollbackReleaseBinding.mock.calls.map(c => c[3])).toEqual([
+      true,
+      true,
+    ]); // the preview and the check: nothing applied
+
+    // Confirming the new preview applies it.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Roll back' }));
+    });
+    expect(client.rollbackReleaseBinding.mock.calls.map(c => c[3])).toEqual([
+      true,
+      true,
+      true,
+      false,
+    ]);
   });
 });

@@ -67,7 +67,8 @@ interface EnvironmentsContextValue {
   /** Whether the auto-deploy value is still being fetched. */
   autoDeployLoading: boolean;
   /** Re-read the auto-deploy value from the server (e.g. after toggling it). */
-  refetchAutoDeploy: () => void;
+  /** Re-reads the auto deploy setting; resolves once the read settles. */
+  refetchAutoDeploy: () => Promise<void> | void;
   /**
    * Optimistic setter for the auto-deploy flag. The Setup card toggle
    * calls this on Confirm so the switch flips instantly; the PATCH runs

@@ -536,7 +536,8 @@ describe('RevisionHistorySection', () => {
     });
     const rollbackReleaseBinding = jest
       .fn()
-      .mockResolvedValueOnce(preview)
+      .mockResolvedValueOnce(preview) // the preview
+      .mockResolvedValueOnce(preview) // the check at Confirm
       .mockRejectedValueOnce(concurrent)
       .mockResolvedValueOnce(preview);
     setup({
@@ -554,9 +555,10 @@ describe('RevisionHistorySection', () => {
       'The deployment changed while you were reviewing the rollback.',
     );
     await waitFor(() =>
-      expect(rollbackReleaseBinding).toHaveBeenCalledTimes(3),
+      expect(rollbackReleaseBinding).toHaveBeenCalledTimes(4),
     );
     expect(rollbackReleaseBinding.mock.calls.map(c => c[3])).toEqual([
+      true,
       true,
       false,
       true,
@@ -915,18 +917,21 @@ describe('RevisionHistorySection', () => {
     await user.type(reason, '  Payments failing since r4  ');
     await user.click(within(dialog).getByRole('button', { name: 'Roll back' }));
 
+    // The preview and the check at Confirm send no reason; the apply does.
     await waitFor(() =>
-      expect(rollbackReleaseBinding).toHaveBeenCalledTimes(2),
+      expect(rollbackReleaseBinding).toHaveBeenCalledTimes(3),
     );
+    for (const call of [1, 2]) {
+      expect(rollbackReleaseBinding).toHaveBeenNthCalledWith(
+        call,
+        entity,
+        'frontend-development',
+        2,
+        true,
+      );
+    }
     expect(rollbackReleaseBinding).toHaveBeenNthCalledWith(
-      1,
-      entity,
-      'frontend-development',
-      2,
-      true,
-    );
-    expect(rollbackReleaseBinding).toHaveBeenNthCalledWith(
-      2,
+      3,
       entity,
       'frontend-development',
       2,

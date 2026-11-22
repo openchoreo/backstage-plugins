@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Box,
   CircularProgress,
@@ -44,16 +44,35 @@ export const RollbackAutoDeployToggle = ({
   const [showConfirm, setShowConfirm] = useState(false);
   const [pendingValue, setPendingValue] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(true);
+  const checked = useRef(false);
 
   // The switch is shown because the server refused the rollback with auto
   // deploy on. The cached setting may predate a change made elsewhere, so
   // read it again rather than show a switch that contradicts the refusal.
+  // The switch stays disabled until the read settles, so the read cannot
+  // land after a change made here and overwrite it.
   useEffect(() => {
-    refetchAutoDeploy();
+    let live = true;
+    Promise.resolve(refetchAutoDeploy()).finally(() => {
+      if (live) setRefreshing(false);
+    });
+    return () => {
+      live = false;
+    };
     // Once per appearance; refetchAutoDeploy's identity is not a reason to
     // read the setting again.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Once the read settles, and only then: when it finds auto deploy already
+  // off (turned off elsewhere after the refusal), retry the rollback preview
+  // as a change made here would. Later changes made here report themselves.
+  useEffect(() => {
+    if (refreshing || checked.current) return;
+    checked.current = true;
+    if (autoDeploy === false) onChanged(false);
+  }, [refreshing, autoDeploy, onChanged]);
 
   const handleConfirm = useCallback(async () => {
     const next = pendingValue;
@@ -93,7 +112,7 @@ export const RollbackAutoDeployToggle = ({
               }}
               name="autoDeploy"
               color="primary"
-              disabled={autoDeployLoading || isUpdating}
+              disabled={autoDeployLoading || refreshing || isUpdating}
             />
           }
           label={<Typography variant="body2">Auto Deploy</Typography>}
