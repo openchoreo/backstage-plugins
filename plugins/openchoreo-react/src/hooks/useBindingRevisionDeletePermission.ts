@@ -39,7 +39,9 @@ const useDeleteRevisionPermission = (
       : 'You do not have permission to delete revisions';
   }
 
-  return { canDeleteRevision: allowed, loading, deniedTooltip };
+  // While a new environment is checked, the previous environment's result may
+  // still be reported: allow deleting only once this one is known.
+  return { canDeleteRevision: allowed && !loading, loading, deniedTooltip };
 };
 
 /**

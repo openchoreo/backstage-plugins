@@ -40,7 +40,9 @@ export const useReleaseBindingRollbackPermission = (
   }
 
   return {
-    canRollback: allowed,
+    // While a new environment is checked, the previous environment's result
+    // may still be reported: roll back only once this one is known.
+    canRollback: allowed && !loading,
     loading,
     deniedTooltip,
   };

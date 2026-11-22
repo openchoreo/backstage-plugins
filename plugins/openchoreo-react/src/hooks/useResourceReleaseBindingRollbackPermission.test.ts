@@ -64,4 +64,15 @@ describe('useResourceReleaseBindingRollbackPermission', () => {
     expect(result.current.loading).toBe(true);
     expect(result.current.deniedTooltip).toBe('');
   });
+
+  it('does not allow a rollback while the check for the environment is loading', () => {
+    // The previous environment's allowed result is still reported meanwhile.
+    mockEnvScoped.mockReturnValue({ allowed: true, loading: true });
+
+    const { result } = renderHook(() =>
+      useResourceReleaseBindingRollbackPermission('production'),
+    );
+
+    expect(result.current.canRollback).toBe(false);
+  });
 });

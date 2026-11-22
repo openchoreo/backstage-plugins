@@ -32,8 +32,11 @@ export const ResourceRevisionHistorySection = ({
     useResourceReleaseBindingRollbackPermission(envResourceName);
   const { canDeleteRevision, deniedTooltip: deleteDeniedTooltip } =
     useResourceReleaseBindingDeleteRevisionPermission(envResourceName);
-  const { canUpdate, deniedTooltip: updateDeniedTooltip } =
-    useResourceReleaseBindingUpdatePermission(envResourceName);
+  const {
+    canUpdate,
+    loading: updateLoading,
+    deniedTooltip: updateDeniedTooltip,
+  } = useResourceReleaseBindingUpdatePermission(envResourceName);
 
   return (
     <BindingRevisionHistory
@@ -46,7 +49,7 @@ export const ResourceRevisionHistorySection = ({
       deniedTooltip={deniedTooltip}
       canDeleteRevision={canDeleteRevision}
       deleteDeniedTooltip={deleteDeniedTooltip}
-      canUpdateBinding={canUpdate}
+      canUpdateBinding={canUpdate && !updateLoading}
       updateDeniedTooltip={updateDeniedTooltip}
       onRolledBack={() => void refetch()}
       className={classes.section}

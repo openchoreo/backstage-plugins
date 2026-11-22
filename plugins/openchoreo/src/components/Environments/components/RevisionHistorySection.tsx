@@ -58,8 +58,11 @@ const BoundRevisionHistoryProvider = ({
     useReleaseBindingRollbackPermission(envResourceName);
   const { canDeleteRevision, deniedTooltip: deleteDeniedTooltip } =
     useReleaseBindingDeleteRevisionPermission(envResourceName);
-  const { canUpdate, deniedTooltip: updateDeniedTooltip } =
-    useReleaseBindingUpdatePermission(envResourceName);
+  const {
+    canUpdate,
+    loading: updateLoading,
+    deniedTooltip: updateDeniedTooltip,
+  } = useReleaseBindingUpdatePermission(envResourceName);
 
   const releaseNames = useMemo(
     () =>
@@ -81,7 +84,7 @@ const BoundRevisionHistoryProvider = ({
     deniedTooltip,
     canDeleteRevision,
     deleteDeniedTooltip,
-    canUpdateBinding: canUpdate,
+    canUpdateBinding: canUpdate && !updateLoading,
     updateDeniedTooltip,
     onRolledBack: () => refetchEnvironments(),
   });

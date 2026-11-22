@@ -77,3 +77,20 @@ describe('useResourceReleaseBindingDeleteRevisionPermission', () => {
     expect(result.current.deniedTooltip).toBe('');
   });
 });
+
+describe('revision delete permission while loading', () => {
+  it('does not allow a delete while the check for the environment is loading', () => {
+    // The previous environment's allowed result is still reported meanwhile.
+    mockEnvScoped.mockReturnValue({ allowed: true, loading: true });
+
+    expect(
+      renderHook(() => useReleaseBindingDeleteRevisionPermission('production'))
+        .result.current.canDeleteRevision,
+    ).toBe(false);
+    expect(
+      renderHook(() =>
+        useResourceReleaseBindingDeleteRevisionPermission('production'),
+      ).result.current.canDeleteRevision,
+    ).toBe(false);
+  });
+});
