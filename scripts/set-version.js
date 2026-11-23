@@ -68,20 +68,32 @@ function findPackageJsonFiles() {
 }
 
 /**
- * Replace the topmost `## ` heading of a changelog with `## <version>`.
+ * Rewrite the topmost changelog section to `<version>`: its `## ` heading and
+ * the `@openchoreo/*@x.y.z` lines under "Updated dependencies".
  * Returns the new content, or null if there is nothing to change.
  */
-function rewriteTopHeading(content, version) {
+function rewriteTopSection(content, version) {
   const match = /^## (.*)$/m.exec(content);
   if (!match) return null;
   // Only touch headings that look like a version, never e.g. "## Unreleased".
   if (!/^\d+\.\d+\.\d+/.test(match[1])) return null;
-  if (match[1] === version) return null; // idempotent
-  return (
+
+  const bodyStart = match.index + match[0].length;
+  const nextHeading = content.indexOf('\n## ', bodyStart);
+  const bodyEnd = nextHeading === -1 ? content.length : nextHeading;
+  const body = content
+    .slice(bodyStart, bodyEnd)
+    .replace(
+      /^([ \t]*- @openchoreo\/[^@\s]+@)\d+\.\d+\.\d+\S*$/gm,
+      `$1${version}`,
+    );
+
+  const next =
     content.slice(0, match.index) +
     `## ${version}` +
-    content.slice(match.index + match[0].length)
-  );
+    body +
+    content.slice(bodyEnd);
+  return next === content ? null : next; // idempotent
 }
 
 /**
@@ -107,19 +119,19 @@ function findTouchedChangelogs() {
     .filter(f => fs.existsSync(f)); // --modified also lists deleted files
 }
 
-function fixChangelogHeadings() {
+function fixChangelogs() {
   const files = findTouchedChangelogs();
   let changed = 0;
   for (const file of files) {
-    const next = rewriteTopHeading(fs.readFileSync(file, 'utf-8'), VERSION);
+    const next = rewriteTopSection(fs.readFileSync(file, 'utf-8'), VERSION);
     if (next === null) continue;
     fs.writeFileSync(file, next);
     changed++;
     console.log(
-      `   set heading ${path.relative(ROOT_DIR, file)} -> ${VERSION}`,
+      `   set changelog ${path.relative(ROOT_DIR, file)} -> ${VERSION}`,
     );
   }
-  console.log(`set-version: updated ${changed} CHANGELOG.md heading(s)`);
+  console.log(`set-version: updated ${changed} CHANGELOG.md file(s)`);
 }
 
 /**
@@ -172,7 +184,7 @@ function main() {
   console.log(
     `\nset-version: updated ${changed} package.json file(s) to ${VERSION}`,
   );
-  fixChangelogHeadings();
+  fixChangelogs();
 }
 
 main();

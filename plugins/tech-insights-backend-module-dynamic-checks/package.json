@@ -1,6 +1,6 @@
 {
   "name": "@openchoreo/backstage-plugin-tech-insights-backend-module-dynamic-checks",
-  "version": "1.4.0-m.2",
+  "version": "1.4.0-m.3",
   "license": "Apache-2.0",
   "description": "The dynamic-checks backend module for the tech-insights plugin.",
   "main": "src/index.ts",

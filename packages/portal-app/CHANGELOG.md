@@ -1,17 +1,113 @@
 # @openchoreo/backstage-portal-app
 
-## 1.4.0-next.2
+## 1.4.0-m.3
+
+### Minor Changes
+
+- bff9b10: Ingest OpenChoreo Endpoints into the catalog. Endpoints, EndpointTypes and
+  ClusterEndpointTypes become catalog entities, kept current by the periodic sync
+  and by `endpoint`, `endpointtype` and `clusterendpointtype` events.
+
+  An Endpoint entity belongs to its project, is an instance of its
+  (Cluster)EndpointType, and has a `routesTo` relation to each Component it sends
+  traffic to (`routedBy` on the Component). When the Endpoint declares a schema,
+  an API entity named `endpoint-<endpoint name>` carries it, and the Endpoint
+  `providesApi` that entity. Endpoints without a schema get no API entity, and the
+  API entities already created for workload endpoints are unchanged.
+
+  Catalog visibility follows the OpenChoreo `endpoint:view`, `endpointtype:view`
+  and `clusterendpointtype:view` actions. Endpoints are scoped at project level,
+  like Resources. The catalog lists the new kinds with their own names and icons.
+
+  The OpenChoreo API client is regenerated against an API spec that includes the
+  Endpoint family.
+
+- be71fce: Create Endpoints from a project. The project's Create button has a Create
+  Endpoint option, which opens a new Endpoints view on the create page. That view
+  lists one generated template per (Cluster)EndpointType, kept in sync with the
+  types by the catalog.
+
+  The wizard asks for:
+
+  - the Endpoint's name;
+  - the scopes it is exposed to;
+  - its backends, at most 16: components of the project, each with one of its
+    workload endpoints and a relative weight;
+  - the type's parameters.
+
+  The wizard can also add an API schema to the Endpoint. It is optional and off by
+  default; turned on, it starts from the first backend's workload endpoint schema
+  and can be edited. The new `openchoreo:endpoint:create` action
+  creates the Endpoint and adds it, with the API entity for its schema, to the
+  catalog straight away.
+
+  An Endpoint's API entity is named `endpoint-<name>`. When that would exceed the
+  catalog's 63-character limit, the name is cut and suffixed with a hash of the
+  Endpoint name, so long Endpoint names still get their API entity.
+
+  Creating Endpoints is gated by the new `openchoreo.endpoint.create` permission.
+
+- 858ed02: Publish `@openchoreo/backstage-portal-app`. The shell is fully on the new
+  frontend system and no longer depends on the private Portal Assistant, so it
+  now releases in lockstep with the other `@openchoreo/*` packages (it joins the
+  changeset linked group). The unused `@backstage/core-compat-api` dependency is
+  dropped.
+- 191f8f9: Add a Scorecards sidebar item, shown when the portal includes the Tech
+  Insights scorecards plugin and `techInsights.scorecards.enabled` isn't false.
+
+### Patch Changes
+
+- 48791fb: Render the Support button in the Catalog, APIs and Create page headers, so
+  `app.support` in `app-config` actually reaches users.
+
+  The portal replaces Backstage's own catalog, API explorer and template list
+  pages, and those replacements dropped the Support button that upstream puts in
+  each page header. Setting `app.support` therefore had no visible effect
+  anywhere except the Register-component page. The button still renders only when
+  `app.support` is configured, so portals that leave it unset are unchanged.
+
+- Updated dependencies [9e4993f]
+- Updated dependencies [6268316]
+- Updated dependencies [6268316]
+- Updated dependencies [0ab9c7d]
+- Updated dependencies [7deefba]
+- Updated dependencies [86d3c99]
+- Updated dependencies [bff9b10]
+- Updated dependencies [bff9b10]
+- Updated dependencies [be71fce]
+- Updated dependencies [be71fce]
+- Updated dependencies [bff9b10]
+- Updated dependencies [bff9b10]
+- Updated dependencies [8aa6389]
+- Updated dependencies [6268316]
+- Updated dependencies [2369911]
+- Updated dependencies [bcbd114]
+- Updated dependencies [6ac94f5]
+- Updated dependencies [3b1ea56]
+- Updated dependencies [c3b4e34]
+- Updated dependencies [02c5a87]
+- Updated dependencies [72a8302]
+- Updated dependencies [3f66cba]
+  - @openchoreo/backstage-plugin@1.4.0-m.3
+  - @openchoreo/backstage-plugin-common@1.4.0-m.3
+  - @openchoreo/backstage-plugin-react@1.4.0-m.3
+  - @openchoreo/backstage-plugin-openchoreo-observability@1.4.0-m.3
+  - @openchoreo/backstage-plugin-openchoreo-ci@1.4.0-m.3
+  - @openchoreo/backstage-plugin-openchoreo-workflows@1.4.0-m.3
+  - @openchoreo/backstage-plugin-platform-engineer-core@1.4.0-m.3
+
+## 1.4.0-m.2
 
 ### Patch Changes
 
 - Updated dependencies [1cec15b]
-  - @openchoreo/backstage-plugin@2.0.0-next.2
-  - @openchoreo/backstage-plugin-openchoreo-ci@2.0.0-next.2
-  - @openchoreo/backstage-plugin-openchoreo-observability@2.0.0-next.2
-  - @openchoreo/backstage-plugin-openchoreo-workflows@2.0.0-next.2
-  - @openchoreo/backstage-plugin-platform-engineer-core@2.0.0-next.2
-  - @openchoreo/backstage-plugin-common@2.0.0-next.2
-  - @openchoreo/backstage-plugin-react@2.0.0-next.2
+  - @openchoreo/backstage-plugin@1.4.0-m.2
+  - @openchoreo/backstage-plugin-openchoreo-ci@1.4.0-m.2
+  - @openchoreo/backstage-plugin-openchoreo-observability@1.4.0-m.2
+  - @openchoreo/backstage-plugin-openchoreo-workflows@1.4.0-m.2
+  - @openchoreo/backstage-plugin-platform-engineer-core@1.4.0-m.2
+  - @openchoreo/backstage-plugin-common@1.4.0-m.2
+  - @openchoreo/backstage-plugin-react@1.4.0-m.2
 
 ## 1.4.0-m.1
 
@@ -99,14 +195,14 @@
 - Updated dependencies [11907a6]
 - Updated dependencies [cdc4c6e]
 - Updated dependencies [3275f94]
-  - @openchoreo/backstage-plugin@2.0.0-next.0
-  - @openchoreo/backstage-plugin-openchoreo-observability@2.0.0-next.0
-  - @openchoreo/backstage-plugin-common@2.0.0-next.0
-  - @openchoreo/backstage-plugin-react@2.0.0-next.0
-  - @openchoreo/backstage-plugin-openchoreo-ci@2.0.0-next.0
-  - @openchoreo/backstage-plugin-platform-engineer-core@2.0.0-next.0
-  - @openchoreo/backstage-plugin-openchoreo-workflows@2.0.0-next.0
-  - @openchoreo/backstage-design-system@2.0.0-next.0
+  - @openchoreo/backstage-plugin@1.4.0-m.1
+  - @openchoreo/backstage-plugin-openchoreo-observability@1.4.0-m.1
+  - @openchoreo/backstage-plugin-common@1.4.0-m.1
+  - @openchoreo/backstage-plugin-react@1.4.0-m.1
+  - @openchoreo/backstage-plugin-openchoreo-ci@1.4.0-m.1
+  - @openchoreo/backstage-plugin-platform-engineer-core@1.4.0-m.1
+  - @openchoreo/backstage-plugin-openchoreo-workflows@1.4.0-m.1
+  - @openchoreo/backstage-design-system@1.4.0-m.1
 
 ## 1.3.0
 

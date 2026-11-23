@@ -1,18 +1,47 @@
 # @openchoreo/backstage-portal-backend
 
-## 2.0.0-next.2
+## 1.4.0-m.3
+
+### Patch Changes
+
+- Updated dependencies [11f6b1d]
+- Updated dependencies [6268316]
+- Updated dependencies [6268316]
+- Updated dependencies [86d3c99]
+- Updated dependencies [bff9b10]
+- Updated dependencies [bff9b10]
+- Updated dependencies [be71fce]
+- Updated dependencies [bff9b10]
+- Updated dependencies [8aa6389]
+- Updated dependencies [6268316]
+- Updated dependencies [6ac94f5]
+- Updated dependencies [597beb1]
+- Updated dependencies [4808a76]
+- Updated dependencies [02c5a87]
+- Updated dependencies [6268316]
+- Updated dependencies [72a8302]
+  - @openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy@1.4.0-m.3
+  - @openchoreo/backstage-plugin-backend@1.4.0-m.3
+  - @openchoreo/backstage-plugin-catalog-backend-module@1.4.0-m.3
+  - @openchoreo/backstage-plugin-scaffolder-backend-module@1.4.0-m.3
+  - @openchoreo/backstage-plugin-openchoreo-ci-backend@1.4.0-m.3
+  - @openchoreo/backstage-plugin-openchoreo-observability-backend@1.4.0-m.3
+  - @openchoreo/backstage-plugin-openchoreo-workflows-backend@1.4.0-m.3
+  - @openchoreo/backstage-plugin-platform-engineer-core-backend@1.4.0-m.3
+
+## 1.4.0-m.2
 
 ### Patch Changes
 
 - Updated dependencies [1cec15b]
-  - @openchoreo/backstage-plugin-catalog-backend-module@2.0.0-next.2
-  - @openchoreo/backstage-plugin-scaffolder-backend-module@2.0.0-next.2
-  - @openchoreo/backstage-plugin-backend@2.0.0-next.2
-  - @openchoreo/backstage-plugin-openchoreo-ci-backend@2.0.0-next.2
-  - @openchoreo/backstage-plugin-openchoreo-observability-backend@2.0.0-next.2
-  - @openchoreo/backstage-plugin-openchoreo-workflows-backend@2.0.0-next.2
-  - @openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy@2.0.0-next.2
-  - @openchoreo/backstage-plugin-platform-engineer-core-backend@2.0.0-next.2
+  - @openchoreo/backstage-plugin-catalog-backend-module@1.4.0-m.2
+  - @openchoreo/backstage-plugin-scaffolder-backend-module@1.4.0-m.2
+  - @openchoreo/backstage-plugin-backend@1.4.0-m.2
+  - @openchoreo/backstage-plugin-openchoreo-ci-backend@1.4.0-m.2
+  - @openchoreo/backstage-plugin-openchoreo-observability-backend@1.4.0-m.2
+  - @openchoreo/backstage-plugin-openchoreo-workflows-backend@1.4.0-m.2
+  - @openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy@1.4.0-m.2
+  - @openchoreo/backstage-plugin-platform-engineer-core-backend@1.4.0-m.2
 
 ## 1.4.0-m.1
 
@@ -22,17 +51,17 @@
 - Updated dependencies [f5ca212]
 - Updated dependencies [c67978a]
 - Updated dependencies [cdc4c6e]
-  - @openchoreo/backstage-plugin-auth-backend-module-openchoreo-auth@2.0.0-next.0
-  - @openchoreo/backstage-plugin-catalog-backend-module@2.0.0-next.0
-  - @openchoreo/backstage-plugin-backend@2.0.0-next.0
-  - @openchoreo/backstage-plugin-openchoreo-ci-backend@2.0.0-next.0
-  - @openchoreo/backstage-plugin-openchoreo-observability-backend@2.0.0-next.0
-  - @openchoreo/backstage-plugin-openchoreo-workflows-backend@2.0.0-next.0
-  - @openchoreo/backstage-plugin-platform-engineer-core-backend@2.0.0-next.0
-  - @openchoreo/backstage-plugin-catalog-backend-module-openchoreo-users@2.0.0-next.0
-  - @openchoreo/backstage-plugin-scaffolder-backend-module@2.0.0-next.0
-  - @openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy@2.0.0-next.0
-  - @openchoreo/openchoreo-auth@2.0.0-next.0
+  - @openchoreo/backstage-plugin-auth-backend-module-openchoreo-auth@1.4.0-m.1
+  - @openchoreo/backstage-plugin-catalog-backend-module@1.4.0-m.1
+  - @openchoreo/backstage-plugin-backend@1.4.0-m.1
+  - @openchoreo/backstage-plugin-openchoreo-ci-backend@1.4.0-m.1
+  - @openchoreo/backstage-plugin-openchoreo-observability-backend@1.4.0-m.1
+  - @openchoreo/backstage-plugin-openchoreo-workflows-backend@1.4.0-m.1
+  - @openchoreo/backstage-plugin-platform-engineer-core-backend@1.4.0-m.1
+  - @openchoreo/backstage-plugin-catalog-backend-module-openchoreo-users@1.4.0-m.1
+  - @openchoreo/backstage-plugin-scaffolder-backend-module@1.4.0-m.1
+  - @openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy@1.4.0-m.1
+  - @openchoreo/openchoreo-auth@1.4.0-m.1
 
 ## 1.3.0
 

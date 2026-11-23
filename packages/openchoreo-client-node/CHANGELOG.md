@@ -1,6 +1,91 @@
 # @openchoreo/openchoreo-client-node
 
-## 2.0.0-next.2
+## 1.4.0-m.3
+
+### Minor Changes
+
+- 86d3c99: Manage an Endpoint's backends and see its URLs on its Deploy tab.
+
+  The Set up pane on the Deploy tab lists the Endpoint's backends with the share
+  of traffic each receives, and adds, reweights and removes them:
+
+  - any workload endpoint in the project can be added;
+  - an Endpoint takes 1 to 16 backends, weights are whole numbers from 0 to
+    1,000,000, and at least one backend must take traffic;
+  - adding a backend on another component to a component-owned Endpoint moves
+    the Endpoint to its project, and the dialog says so first;
+  - changes need the `openchoreo.endpoint.update` permission.
+
+  Each change cuts a new release, which the pane offers to deploy. The Overview's
+  Routing card is read-only. The backend adds `POST`, `PATCH` and `DELETE
+/endpoint-backends`.
+
+  Each environment on the Deploy tab lists the URLs the Endpoint is invoked at
+  there, per visibility, with the security a caller must present. Its last deploy
+  time comes from the binding's `lastSpecUpdateTime`, so it moves on every
+  deploy. Refreshing an entity no longer swaps its page for a spinner, so open
+  panes stay open.
+
+  Endpoint entities carry their owning component in the
+  `openchoreo.io/endpoint-owner-component` annotation.
+
+  The OpenChoreo API client is synced to openchoreo `main`. Workload endpoints
+  have a `protocol` field, and the deprecated `type` is optional; read them
+  through the new `endpointProtocol()` helper.
+
+- bff9b10: Ingest OpenChoreo Endpoints into the catalog. Endpoints, EndpointTypes and
+  ClusterEndpointTypes become catalog entities, kept current by the periodic sync
+  and by `endpoint`, `endpointtype` and `clusterendpointtype` events.
+
+  An Endpoint entity belongs to its project, is an instance of its
+  (Cluster)EndpointType, and has a `routesTo` relation to each Component it sends
+  traffic to (`routedBy` on the Component). When the Endpoint declares a schema,
+  an API entity named `endpoint-<endpoint name>` carries it, and the Endpoint
+  `providesApi` that entity. Endpoints without a schema get no API entity, and the
+  API entities already created for workload endpoints are unchanged.
+
+  Catalog visibility follows the OpenChoreo `endpoint:view`, `endpointtype:view`
+  and `clusterendpointtype:view` actions. Endpoints are scoped at project level,
+  like Resources. The catalog lists the new kinds with their own names and icons.
+
+  The OpenChoreo API client is regenerated against an API spec that includes the
+  Endpoint family.
+
+- 8aa6389: Route an Endpoint's traffic to a component's release lines, for a canary.
+
+  The Add backend dialog on an Endpoint's Set up pane offers the workload
+  endpoints of each component's release lines next to its main line's, labelled
+  `component @ line / endpoint`. A backend on a release line is named
+  `<component>-<line>-<endpoint>`, and `POST /endpoint-backends` takes an
+  optional `releaseLine`. The backend lists on the Set up pane and the Overview
+  show each backend's line.
+
+  When a release line owns an Endpoint, the dialog warns that a backend on
+  another line moves the Endpoint to its component, and one on another component
+  moves it to the project.
+
+  Endpoint entities keep each backend's `releaseLine`, and carry the owning line
+  in the `openchoreo.io/endpoint-owner-release-line` annotation.
+
+  The OpenChoreo API client is synced to openchoreo `main`, which adds
+  `backendRefs[].component.releaseLine` and `spec.owner.releaseLineName` to
+  Endpoints.
+
+- bcbd114: The Logs tab adds a Release Line column when its logs cover more than one release line: All lines of a component with release lines, or a project with such a component. The column is shown by default and can be turned off under Selected Fields, which the project-level Logs tab now offers too, with Component Name and Log always shown. Each record's line comes from the `releaseLineName` that the Observer API now returns in log metadata, and a record without one belongs to the main line. The observability client types gain `releaseLineName` and `releaseLineUid` on log entry metadata.
+- 6ac94f5: Email notification channels can set a sender display name. The create form adds an optional
+  "Sender Name" field (`emailConfig.fromName`), the scaffolder action forwards it to the OpenChoreo
+  API, and the channel overview card shows the sender as `Name <address>`. The client is regenerated
+  for the new `NotificationEmailConfig.fromName` field.
+- 6268316: Sync the OpenChoreo API spec to openchoreo `12dce69e`.
+
+  - **Endpoints:** `spec.visibility` accepts `project`, alongside namespace,
+    internal and external (openchoreo#5491).
+  - **Notification channels:** a webhook's URL can come from a secret
+    (`webhookConfig.urlFrom`) instead of `webhookConfig.url`, so `url` is
+    optional (openchoreo#5472). The catalog's notification channel entity keeps
+    whichever one the channel has.
+
+## 1.4.0-m.2
 
 ### Minor Changes
 

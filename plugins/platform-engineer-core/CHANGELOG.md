@@ -1,13 +1,39 @@
 # @openchoreo/backstage-plugin-platform-engineer-core
 
-## 2.0.0-next.2
+## 1.4.0-m.3
+
+### Patch Changes
+
+- Updated dependencies [9e4993f]
+- Updated dependencies [6268316]
+- Updated dependencies [6268316]
+- Updated dependencies [0ab9c7d]
+- Updated dependencies [7deefba]
+- Updated dependencies [86d3c99]
+- Updated dependencies [bff9b10]
+- Updated dependencies [bff9b10]
+- Updated dependencies [be71fce]
+- Updated dependencies [be71fce]
+- Updated dependencies [bff9b10]
+- Updated dependencies [bff9b10]
+- Updated dependencies [8aa6389]
+- Updated dependencies [6268316]
+- Updated dependencies [6ac94f5]
+- Updated dependencies [3b1ea56]
+- Updated dependencies [c3b4e34]
+- Updated dependencies [02c5a87]
+  - @openchoreo/backstage-plugin@1.4.0-m.3
+  - @openchoreo/backstage-plugin-common@1.4.0-m.3
+  - @openchoreo/backstage-plugin-react@1.4.0-m.3
+
+## 1.4.0-m.2
 
 ### Patch Changes
 
 - Updated dependencies [1cec15b]
-  - @openchoreo/backstage-plugin@2.0.0-next.2
-  - @openchoreo/backstage-plugin-common@2.0.0-next.2
-  - @openchoreo/backstage-plugin-react@2.0.0-next.2
+  - @openchoreo/backstage-plugin@1.4.0-m.2
+  - @openchoreo/backstage-plugin-common@1.4.0-m.2
+  - @openchoreo/backstage-plugin-react@1.4.0-m.2
 
 ## 1.4.0-m.1
 
@@ -59,10 +85,10 @@
 - Updated dependencies [11907a6]
 - Updated dependencies [cdc4c6e]
 - Updated dependencies [3275f94]
-  - @openchoreo/backstage-plugin@2.0.0-next.0
-  - @openchoreo/backstage-plugin-common@2.0.0-next.0
-  - @openchoreo/backstage-plugin-react@2.0.0-next.0
-  - @openchoreo/backstage-design-system@2.0.0-next.0
+  - @openchoreo/backstage-plugin@1.4.0-m.1
+  - @openchoreo/backstage-plugin-common@1.4.0-m.1
+  - @openchoreo/backstage-plugin-react@1.4.0-m.1
+  - @openchoreo/backstage-design-system@1.4.0-m.1
 
 ## 1.3.0
 
