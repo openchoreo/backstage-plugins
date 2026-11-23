@@ -1,6 +1,6 @@
 {
   "name": "@openchoreo/backstage-plugin-tech-insights-backend-module-openchoreo",
-  "version": "1.4.0-m.2",
+  "version": "1.4.0-m.3",
   "license": "Apache-2.0",
   "description": "Tech Insights fact retrievers for OpenChoreo.",
   "main": "src/index.ts",

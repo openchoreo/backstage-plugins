@@ -1,5 +1,228 @@
 # @openchoreo/backstage-plugin-catalog-backend-module
 
+## 1.4.0-m.3
+
+### Minor Changes
+
+- 6268316: Expose a component's endpoints through Endpoints, from its configure page.
+
+  Component creation no longer asks for endpoints: the creation form drops its
+  Endpoints section, the scaffolder creates the workload without endpoints, and
+  the legacy `port` parameter no longer adds an `http` endpoint. A component's
+  endpoints are defined on its configure page after creation.
+
+  The component's ComponentType decides what the configure page's Endpoints tab
+  shows. Before upgrading, platform engineers annotate every
+  (Cluster)ComponentType that predates Endpoints with
+  `openchoreo.dev/legacy-endpoints: "true"`.
+
+  - An annotated type gets the legacy form: the workload endpoint editor, with
+    visibility on the workload (deprecated), served by the type's own templated
+    routes. No Endpoints are created.
+  - A type with `allowedEndpoints` gets the Endpoints form: one card per
+    endpoint. **Add Endpoint** first shows a card for each Endpoint type in
+    `allowedEndpoints`, with its title, description and protocols from the
+    catalog. Picking one opens the endpoint's form under that type's name and
+    description, with its name, protocol (limited to those the type serves),
+    port, visibility, schema and the type's parameters, in two halves split by
+    a line: the endpoint's own fields on the left and the type's parameters on
+    the right, which scroll within the left half's height. Project is a visibility like the others: the
+    Endpoint carries every visibility chosen, project included, so an endpoint
+    with only Project ticked gets an Endpoint with `project` visibility (this
+    needs an openchoreo that accepts it). Saving creates the Endpoint and
+    drops the visibility from the workload.
+    Workload endpoints without an Endpoint stay within the project, and those
+    from before Endpoints, which carry visibility beyond project but have no
+    Endpoint, get no card and stay on the workload as they are.
+  - A type with neither shows no form, and saving changes no Endpoints.
+
+  In YAML mode the configure page has a tab for the Workload and one for each
+  of the component's Endpoints, existing or to be created, showing the Endpoint
+  as saving will leave it. An existing Endpoint's tab edits its
+  `spec.visibility` and `spec.parameters`; one to be created can also change its
+  `spec.type` and the workload endpoint its backend routes to. **Add Endpoint**
+  opens a new Endpoint's YAML: write it, add the workload endpoint it routes to
+  in the Workload tab, and it joins the page's changes. Saving waits until every
+  new Endpoint is complete. A tab's ✕ removes the Endpoint and leaves its
+  workload endpoint within the project.
+
+  A card with an Endpoint shows its name, Ready state, type and parameters. It can
+  be edited or deleted, and changes are staged with the workload and saved after
+  it. A renamed workload endpoint keeps its Endpoints; one that's removed has
+  its Endpoints deleted on save. Renaming a new endpoint before saving it no
+  longer leaves an `endpoint-<n>` row behind, in either form. The endpoint
+  editor's Type field is now Protocol.
+
+  The component owns the Endpoints created here (`spec.owner.componentName`), so
+  deleting the component deletes them. A release line's configure page manages
+  the line's own Endpoints (`spec.owner.releaseLineName`) and offers the main
+  line's Endpoints as drafts to review and save for the line. When a backend
+  added elsewhere routes outside the owner, the API widens the owner, and the
+  Endpoint leaves the configure page.
+
+  The backend adds `/component-endpoints` (GET, POST, PUT, DELETE), which only
+  touches Endpoints the component's line owns and returns the ComponentType's
+  `allowedEndpoints` and legacy annotation, `/release-line-endpoint-drafts`,
+  and `/endpoint-type-schema` and `/cluster-endpoint-type-schema` for the
+  parameters form. Naming and building these Endpoints, and choosing their
+  EndpointType, live in `@openchoreo/backstage-plugin-common`.
+
+  Project contents no longer list Endpoints a component owns. Catalog Endpoint
+  entities carry an `openchoreo.io/endpoint-scope` label, `component` or
+  `project`, so views can filter on it.
+
+- 86d3c99: Manage an Endpoint's backends and see its URLs on its Deploy tab.
+
+  The Set up pane on the Deploy tab lists the Endpoint's backends with the share
+  of traffic each receives, and adds, reweights and removes them:
+
+  - any workload endpoint in the project can be added;
+  - an Endpoint takes 1 to 16 backends, weights are whole numbers from 0 to
+    1,000,000, and at least one backend must take traffic;
+  - adding a backend on another component to a component-owned Endpoint moves
+    the Endpoint to its project, and the dialog says so first;
+  - changes need the `openchoreo.endpoint.update` permission.
+
+  Each change cuts a new release, which the pane offers to deploy. The Overview's
+  Routing card is read-only. The backend adds `POST`, `PATCH` and `DELETE
+/endpoint-backends`.
+
+  Each environment on the Deploy tab lists the URLs the Endpoint is invoked at
+  there, per visibility, with the security a caller must present. Its last deploy
+  time comes from the binding's `lastSpecUpdateTime`, so it moves on every
+  deploy. Refreshing an entity no longer swaps its page for a spinner, so open
+  panes stay open.
+
+  Endpoint entities carry their owning component in the
+  `openchoreo.io/endpoint-owner-component` annotation.
+
+  The OpenChoreo API client is synced to openchoreo `main`. Workload endpoints
+  have a `protocol` field, and the deprecated `type` is optional; read them
+  through the new `endpointProtocol()` helper.
+
+- bff9b10: Ingest OpenChoreo Endpoints into the catalog. Endpoints, EndpointTypes and
+  ClusterEndpointTypes become catalog entities, kept current by the periodic sync
+  and by `endpoint`, `endpointtype` and `clusterendpointtype` events.
+
+  An Endpoint entity belongs to its project, is an instance of its
+  (Cluster)EndpointType, and has a `routesTo` relation to each Component it sends
+  traffic to (`routedBy` on the Component). When the Endpoint declares a schema,
+  an API entity named `endpoint-<endpoint name>` carries it, and the Endpoint
+  `providesApi` that entity. Endpoints without a schema get no API entity, and the
+  API entities already created for workload endpoints are unchanged.
+
+  Catalog visibility follows the OpenChoreo `endpoint:view`, `endpointtype:view`
+  and `clusterendpointtype:view` actions. Endpoints are scoped at project level,
+  like Resources. The catalog lists the new kinds with their own names and icons.
+
+  The OpenChoreo API client is regenerated against an API spec that includes the
+  Endpoint family.
+
+- be71fce: Create Endpoints from a project. The project's Create button has a Create
+  Endpoint option, which opens a new Endpoints view on the create page. That view
+  lists one generated template per (Cluster)EndpointType, kept in sync with the
+  types by the catalog.
+
+  The wizard asks for:
+
+  - the Endpoint's name;
+  - the scopes it is exposed to;
+  - its backends, at most 16: components of the project, each with one of its
+    workload endpoints and a relative weight;
+  - the type's parameters.
+
+  The wizard can also add an API schema to the Endpoint. It is optional and off by
+  default; turned on, it starts from the first backend's workload endpoint schema
+  and can be edited. The new `openchoreo:endpoint:create` action
+  creates the Endpoint and adds it, with the API entity for its schema, to the
+  catalog straight away.
+
+  An Endpoint's API entity is named `endpoint-<name>`. When that would exceed the
+  catalog's 63-character limit, the name is cut and suffixed with a hash of the
+  Endpoint name, so long Endpoint names still get their API entity.
+
+  Creating Endpoints is gated by the new `openchoreo.endpoint.create` permission.
+
+- 8aa6389: Route an Endpoint's traffic to a component's release lines, for a canary.
+
+  The Add backend dialog on an Endpoint's Set up pane offers the workload
+  endpoints of each component's release lines next to its main line's, labelled
+  `component @ line / endpoint`. A backend on a release line is named
+  `<component>-<line>-<endpoint>`, and `POST /endpoint-backends` takes an
+  optional `releaseLine`. The backend lists on the Set up pane and the Overview
+  show each backend's line.
+
+  When a release line owns an Endpoint, the dialog warns that a backend on
+  another line moves the Endpoint to its component, and one on another component
+  moves it to the project.
+
+  Endpoint entities keep each backend's `releaseLine`, and carry the owning line
+  in the `openchoreo.io/endpoint-owner-release-line` annotation.
+
+  The OpenChoreo API client is synced to openchoreo `main`, which adds
+  `backendRefs[].component.releaseLine` and `spec.owner.releaseLineName` to
+  Endpoints.
+
+- 6ac94f5: Email notification channels can set a sender display name. The create form adds an optional
+  "Sender Name" field (`emailConfig.fromName`), the scaffolder action forwards it to the OpenChoreo
+  API, and the channel overview card shows the sender as `Name <address>`. The client is regenerated
+  for the new `NotificationEmailConfig.fromName` field.
+- 597beb1: ReleaseLine entities carry `backstage.io/source-location` and `openchoreo.io/branch`, as components do. Both come from the component's workflow parameters with the line's override merged over them, so a line that overrides only its branch keeps the component's repository and app path. A line of a component built from an image gets neither. A line created or edited in the portal has them as soon as it reaches the catalog.
+
+### Patch Changes
+
+- 02c5a87: Synced Components hosted on GitHub or GitLab now carry
+  `backstage.io/source-location` in the form Backstage itself writes,
+  `url:<repo>/tree/<branch>/<appPath>/` (`/-/tree/` on GitLab), instead of the
+  bare repository URL. The trailing `/` marks it as a folder, which Backstage
+  needs to resolve relative paths against it. Tools that read the standard
+  annotation (the "View source" link, Tech Insights fact retrievers) get the
+  branch and the component's folder without an OpenChoreo-specific annotation.
+  Other hosts, such as Bitbucket and Azure DevOps, lay out these URLs
+  differently and keep the repository URL. `openchoreo.io/branch` is still
+  written, because a branch name containing `/` can't be told apart from the
+  folder after it in a URL.
+
+  `getRepositoryUrl()` changes to match:
+
+  - it no longer assumes `main` when the branch is unknown, and returns the
+    repository URL instead;
+  - with a branch but no app path it returns `<repo>/tree/<branch>` rather than
+    the bare repository URL;
+  - it returns the repository URL for hosts other than GitHub and GitLab, which
+    it recognises by `github.com`, `gitlab.com` or a host whose first label is
+    `github` or `gitlab`;
+  - it strips a trailing `.git` from the repository URL and a leading `./` or
+    `/` from the app path.
+
+- 6268316: Sync the OpenChoreo API spec to openchoreo `12dce69e`.
+
+  - **Endpoints:** `spec.visibility` accepts `project`, alongside namespace,
+    internal and external (openchoreo#5491).
+  - **Notification channels:** a webhook's URL can come from a secret
+    (`webhookConfig.urlFrom`) instead of `webhookConfig.url`, so `url` is
+    optional (openchoreo#5472). The catalog's notification channel entity keeps
+    whichever one the channel has.
+
+- Updated dependencies [11f6b1d]
+- Updated dependencies [6268316]
+- Updated dependencies [86d3c99]
+- Updated dependencies [bff9b10]
+- Updated dependencies [bff9b10]
+- Updated dependencies [be71fce]
+- Updated dependencies [bff9b10]
+- Updated dependencies [bff9b10]
+- Updated dependencies [8aa6389]
+- Updated dependencies [6268316]
+- Updated dependencies [bcbd114]
+- Updated dependencies [6ac94f5]
+- Updated dependencies [4808a76]
+- Updated dependencies [02c5a87]
+- Updated dependencies [6268316]
+  - @openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy@2.0.0-next.3
+  - @openchoreo/backstage-plugin-common@2.0.0-next.3
+  - @openchoreo/openchoreo-client-node@2.0.0-next.3
+
 ## 2.0.0-next.2
 
 ### Minor Changes

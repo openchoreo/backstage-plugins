@@ -1,6 +1,6 @@
 {
   "name": "@openchoreo/backstage-plugin-tech-insights-dynamic-checks-common",
-  "version": "1.4.0-m.2",
+  "version": "1.4.0-m.3",
   "license": "Apache-2.0",
   "description": "Permissions shared by the dynamic-checks backend module and the tech-insights scorecards frontend plugin.",
   "main": "src/index.ts",

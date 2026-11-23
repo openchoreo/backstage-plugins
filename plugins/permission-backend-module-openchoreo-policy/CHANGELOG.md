@@ -1,5 +1,116 @@
 # @openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy
 
+## 1.4.0-m.3
+
+### Minor Changes
+
+- bff9b10: Ingest OpenChoreo Endpoints into the catalog. Endpoints, EndpointTypes and
+  ClusterEndpointTypes become catalog entities, kept current by the periodic sync
+  and by `endpoint`, `endpointtype` and `clusterendpointtype` events.
+
+  An Endpoint entity belongs to its project, is an instance of its
+  (Cluster)EndpointType, and has a `routesTo` relation to each Component it sends
+  traffic to (`routedBy` on the Component). When the Endpoint declares a schema,
+  an API entity named `endpoint-<endpoint name>` carries it, and the Endpoint
+  `providesApi` that entity. Endpoints without a schema get no API entity, and the
+  API entities already created for workload endpoints are unchanged.
+
+  Catalog visibility follows the OpenChoreo `endpoint:view`, `endpointtype:view`
+  and `clusterendpointtype:view` actions. Endpoints are scoped at project level,
+  like Resources. The catalog lists the new kinds with their own names and icons.
+
+  The OpenChoreo API client is regenerated against an API spec that includes the
+  Endpoint family.
+
+- be71fce: Create Endpoints from a project. The project's Create button has a Create
+  Endpoint option, which opens a new Endpoints view on the create page. That view
+  lists one generated template per (Cluster)EndpointType, kept in sync with the
+  types by the catalog.
+
+  The wizard asks for:
+
+  - the Endpoint's name;
+  - the scopes it is exposed to;
+  - its backends, at most 16: components of the project, each with one of its
+    workload endpoints and a relative weight;
+  - the type's parameters.
+
+  The wizard can also add an API schema to the Endpoint. It is optional and off by
+  default; turned on, it starts from the first backend's workload endpoint schema
+  and can be edited. The new `openchoreo:endpoint:create` action
+  creates the Endpoint and adds it, with the API entity for its schema, to the
+  catalog straight away.
+
+  An Endpoint's API entity is named `endpoint-<name>`. When that would exceed the
+  catalog's 63-character limit, the name is cut and suffixed with a hash of the
+  Endpoint name, so long Endpoint names still get their API entity.
+
+  Creating Endpoints is gated by the new `openchoreo.endpoint.create` permission.
+
+- bff9b10: Add an Endpoint entity page. Its Overview shows:
+
+  - **Routing:** the (Cluster)EndpointType that renders it, the scopes it is
+    exposed to, and each backend component with its share of traffic.
+  - **Deployments:** the status in each environment, with a link to the Deploy
+    tab.
+  - **API:** a link to the API entity carrying its schema, when it has one.
+
+  The Definition tab and the delete action now cover Endpoints, EndpointTypes
+  and ClusterEndpointTypes, gated by new `openchoreo.endpoint.*`,
+  `openchoreo.endpointtype.*` and `openchoreo.clusterendpointtype.*` update and
+  delete permissions. The Developer Resources graph view includes Endpoints and
+  the components they route to.
+
+- 4808a76: Decide the Scorecards check read and manage permissions on the `scorecards:view`
+  and `scorecards:manage` actions. Needs a control plane that registers them;
+  against an older one, both permissions are denied.
+
+### Patch Changes
+
+- 11f6b1d: Shrink the catalog visibility condition so portal search stops failing for
+  users who belong to many projects.
+
+  `catalog.entity.read` resolves to a conditional decision carrying the user's
+  capability paths for every OpenChoreo-managed kind. The permission framework
+  repeats that payload once per authorized resource when it batches checks back
+  to the catalog, and the catalog parses the batch with a fixed 100 KB body
+  limit. A user holding a project-scoped role in each of their projects produced
+  a payload large enough that a single page of search hits overflowed the limit,
+  and the whole query failed with `There was a problem performing the search
+query` (a 413 behind the scenes). Narrow searches with few hits still worked,
+  which is what made it look like a search problem rather than an authorization
+  one.
+
+  Three changes keep the payload flat: paths already implied by a broader path
+  in the same list are dropped (a role bound per project collapses into the
+  namespace-wide grant that covers it), kinds that resolve to the same paths now
+  share one entry instead of repeating it, and the kind list and the unused
+  action name are no longer sent at all. The decisions themselves are unchanged
+  — only their wire size. For the reported case this is roughly a 7x reduction
+  per resource.
+
+  Conditions produced by an earlier version are still understood, so a
+  deployment that rolls the permission and catalog backends separately keeps
+  working during the rollout.
+
+- Updated dependencies [6268316]
+- Updated dependencies [86d3c99]
+- Updated dependencies [bff9b10]
+- Updated dependencies [bff9b10]
+- Updated dependencies [be71fce]
+- Updated dependencies [bff9b10]
+- Updated dependencies [bff9b10]
+- Updated dependencies [8aa6389]
+- Updated dependencies [6268316]
+- Updated dependencies [bcbd114]
+- Updated dependencies [6ac94f5]
+- Updated dependencies [145586f]
+- Updated dependencies [02c5a87]
+- Updated dependencies [6268316]
+  - @openchoreo/backstage-plugin-common@2.0.0-next.3
+  - @openchoreo/openchoreo-client-node@2.0.0-next.3
+  - @openchoreo/backstage-plugin-tech-insights-dynamic-checks-common@2.0.0-next.3
+
 ## 2.0.0-next.2
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@openchoreo/backstage-plugin-tech-insights-scorecards",
-  "version": "1.4.0-m.2",
+  "version": "1.4.0-m.3",
   "license": "Apache-2.0",
   "description": "Scorecards over Backstage Tech Insights: scores, a per-entity tab, and check management with dry-run and data sources.",
   "main": "src/index.ts",

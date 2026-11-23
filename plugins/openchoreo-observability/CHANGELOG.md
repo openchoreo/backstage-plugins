@@ -1,5 +1,46 @@
 # @openchoreo/backstage-plugin-openchoreo-observability
 
+## 1.4.0-m.3
+
+### Minor Changes
+
+- bcbd114: The Logs tab adds a Release Line column when its logs cover more than one release line: All lines of a component with release lines, or a project with such a component. The column is shown by default and can be turned off under Selected Fields, which the project-level Logs tab now offers too, with Component Name and Log always shown. Each record's line comes from the `releaseLineName` that the Observer API now returns in log metadata, and a record without one belongs to the main line. The observability client types gain `releaseLineName` and `releaseLineUid` on log entry metadata.
+- 72a8302: Wirelogs get a Release line filter of All lines, `main` or one line, shown for a component with release lines. A component's wirelogs stream its main line by default, and on a release line's page they are scoped to the line. In the All lines view, each of the component's pods is badged with its line, and the flow details show the release line of a line pod. The OpenChoreo API answers `501 Not Implemented` for one line when the data plane's cluster agent can't filter by line.
+
+### Patch Changes
+
+- 2369911: Show Acknowledge and Resolve in the Actions column of the project incidents
+  table for every incident, not only in the expanded details. Without AI RCA
+  enabled the column was empty, so acknowledging an incident meant expanding its
+  row first.
+
+  Link the component name on each incident, in the row and in the expanded
+  details. An incident raised by a release line links to that line's page, since
+  the incident belongs to the line; a main-line incident links to the
+  component's catalog page.
+
+- Updated dependencies [9e4993f]
+- Updated dependencies [6268316]
+- Updated dependencies [6268316]
+- Updated dependencies [0ab9c7d]
+- Updated dependencies [7deefba]
+- Updated dependencies [86d3c99]
+- Updated dependencies [bff9b10]
+- Updated dependencies [bff9b10]
+- Updated dependencies [be71fce]
+- Updated dependencies [be71fce]
+- Updated dependencies [bff9b10]
+- Updated dependencies [bff9b10]
+- Updated dependencies [8aa6389]
+- Updated dependencies [6268316]
+- Updated dependencies [6ac94f5]
+- Updated dependencies [3b1ea56]
+- Updated dependencies [c3b4e34]
+- Updated dependencies [02c5a87]
+  - @openchoreo/backstage-plugin@2.0.0-next.3
+  - @openchoreo/backstage-plugin-common@2.0.0-next.3
+  - @openchoreo/backstage-plugin-react@2.0.0-next.3
+
 ## 2.0.0-next.2
 
 ### Patch Changes
