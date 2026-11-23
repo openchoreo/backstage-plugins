@@ -26,22 +26,22 @@
 - Updated dependencies [02c5a87]
 - Updated dependencies [72a8302]
 - Updated dependencies [3f66cba]
-  - @openchoreo/backstage-plugin@2.0.0-next.3
-  - @openchoreo/backstage-plugin-common@2.0.0-next.3
-  - @openchoreo/backstage-plugin-react@2.0.0-next.3
-  - @openchoreo/backstage-plugin-openchoreo-observability@2.0.0-next.3
-  - @openchoreo/backstage-plugin-openchoreo-ci@2.0.0-next.3
+  - @openchoreo/backstage-plugin@1.4.0-m.3
+  - @openchoreo/backstage-plugin-common@1.4.0-m.3
+  - @openchoreo/backstage-plugin-react@1.4.0-m.3
+  - @openchoreo/backstage-plugin-openchoreo-observability@1.4.0-m.3
+  - @openchoreo/backstage-plugin-openchoreo-ci@1.4.0-m.3
 
 ## 1.4.0-m.2
 
 ### Patch Changes
 
 - Updated dependencies [1cec15b]
-  - @openchoreo/backstage-plugin@2.0.0-next.2
-  - @openchoreo/backstage-plugin-openchoreo-ci@2.0.0-next.2
-  - @openchoreo/backstage-plugin-openchoreo-observability@2.0.0-next.2
-  - @openchoreo/backstage-plugin-common@2.0.0-next.2
-  - @openchoreo/backstage-plugin-react@2.0.0-next.2
+  - @openchoreo/backstage-plugin@1.4.0-m.2
+  - @openchoreo/backstage-plugin-openchoreo-ci@1.4.0-m.2
+  - @openchoreo/backstage-plugin-openchoreo-observability@1.4.0-m.2
+  - @openchoreo/backstage-plugin-common@1.4.0-m.2
+  - @openchoreo/backstage-plugin-react@1.4.0-m.2
 
 ## 1.4.0-m.1
 
@@ -62,11 +62,11 @@
 - Updated dependencies [11907a6]
 - Updated dependencies [cdc4c6e]
 - Updated dependencies [3275f94]
-  - @openchoreo/backstage-plugin@2.0.0-next.0
-  - @openchoreo/backstage-plugin-openchoreo-observability@2.0.0-next.0
-  - @openchoreo/backstage-plugin-common@2.0.0-next.0
-  - @openchoreo/backstage-plugin-react@2.0.0-next.0
-  - @openchoreo/backstage-plugin-openchoreo-ci@2.0.0-next.0
+  - @openchoreo/backstage-plugin@1.4.0-m.1
+  - @openchoreo/backstage-plugin-openchoreo-observability@1.4.0-m.1
+  - @openchoreo/backstage-plugin-common@1.4.0-m.1
+  - @openchoreo/backstage-plugin-react@1.4.0-m.1
+  - @openchoreo/backstage-plugin-openchoreo-ci@1.4.0-m.1
 
 ## 1.3.0
 

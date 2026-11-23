@@ -107,17 +107,17 @@ query` (a 413 behind the scenes). Narrow searches with few hits still worked,
 - Updated dependencies [145586f]
 - Updated dependencies [02c5a87]
 - Updated dependencies [6268316]
-  - @openchoreo/backstage-plugin-common@2.0.0-next.3
-  - @openchoreo/openchoreo-client-node@2.0.0-next.3
-  - @openchoreo/backstage-plugin-tech-insights-dynamic-checks-common@2.0.0-next.3
+  - @openchoreo/backstage-plugin-common@1.4.0-m.3
+  - @openchoreo/openchoreo-client-node@1.4.0-m.3
+  - @openchoreo/backstage-plugin-tech-insights-dynamic-checks-common@1.4.0-m.3
 
 ## 1.4.0-m.2
 
 ### Patch Changes
 
 - Updated dependencies [1cec15b]
-  - @openchoreo/openchoreo-client-node@2.0.0-next.2
-  - @openchoreo/backstage-plugin-common@2.0.0-next.2
+  - @openchoreo/openchoreo-client-node@1.4.0-m.2
+  - @openchoreo/backstage-plugin-common@1.4.0-m.2
 
 ## 1.4.0-m.1
 
@@ -152,9 +152,9 @@ query` (a 413 behind the scenes). Narrow searches with few hits still worked,
 - Updated dependencies [44795b9]
 - Updated dependencies [c67978a]
 - Updated dependencies [cdc4c6e]
-  - @openchoreo/backstage-plugin-common@2.0.0-next.0
-  - @openchoreo/openchoreo-client-node@2.0.0-next.0
-  - @openchoreo/openchoreo-auth@2.0.0-next.0
+  - @openchoreo/backstage-plugin-common@1.4.0-m.1
+  - @openchoreo/openchoreo-client-node@1.4.0-m.1
+  - @openchoreo/openchoreo-auth@1.4.0-m.1
 
 ## 1.3.0
 

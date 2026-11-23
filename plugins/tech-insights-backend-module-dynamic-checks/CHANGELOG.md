@@ -21,4 +21,4 @@
 - 19fcb89: The OpenChoreo starter checks on components also name `ReleaseLine` in their filters, so each
   release line is held to the same checks as its component's main line, judged on its own facts.
 - Updated dependencies [145586f]
-  - @openchoreo/backstage-plugin-tech-insights-dynamic-checks-common@2.0.0-next.3
+  - @openchoreo/backstage-plugin-tech-insights-dynamic-checks-common@1.4.0-m.3

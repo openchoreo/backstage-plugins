@@ -26,4 +26,4 @@
 ### Patch Changes
 
 - Updated dependencies [145586f]
-  - @openchoreo/backstage-plugin-tech-insights-dynamic-checks-common@2.0.0-next.3
+  - @openchoreo/backstage-plugin-tech-insights-dynamic-checks-common@1.4.0-m.3

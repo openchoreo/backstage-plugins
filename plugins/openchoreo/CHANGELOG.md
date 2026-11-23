@@ -288,8 +288,8 @@
 - Updated dependencies [6268316]
 - Updated dependencies [c3b4e34]
 - Updated dependencies [02c5a87]
-  - @openchoreo/backstage-plugin-common@2.0.0-next.3
-  - @openchoreo/backstage-plugin-react@2.0.0-next.3
+  - @openchoreo/backstage-plugin-common@1.4.0-m.3
+  - @openchoreo/backstage-plugin-react@1.4.0-m.3
 
 ## 1.4.0-m.2
 
@@ -304,9 +304,9 @@
 
 - Updated dependencies [633aedd]
 - Updated dependencies [ae74877]
-  - @openchoreo/cell-diagram@2.0.0-next.2
-  - @openchoreo/backstage-plugin-common@2.0.0-next.2
-  - @openchoreo/backstage-plugin-react@2.0.0-next.2
+  - @openchoreo/cell-diagram@1.4.0-m.2
+  - @openchoreo/backstage-plugin-common@1.4.0-m.2
+  - @openchoreo/backstage-plugin-react@1.4.0-m.2
 
 ## 1.4.0-m.1
 
@@ -456,10 +456,10 @@
 - Updated dependencies [c67978a]
 - Updated dependencies [11907a6]
 - Updated dependencies [cdc4c6e]
-  - @openchoreo/backstage-plugin-common@2.0.0-next.0
-  - @openchoreo/backstage-plugin-react@2.0.0-next.0
-  - @openchoreo/backstage-design-system@2.0.0-next.0
-  - @openchoreo/cell-diagram@2.0.0-next.0
+  - @openchoreo/backstage-plugin-common@1.4.0-m.1
+  - @openchoreo/backstage-plugin-react@1.4.0-m.1
+  - @openchoreo/backstage-design-system@1.4.0-m.1
+  - @openchoreo/cell-diagram@1.4.0-m.1
 
 ## 1.3.0
 

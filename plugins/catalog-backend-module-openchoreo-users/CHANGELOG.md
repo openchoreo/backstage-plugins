@@ -8,7 +8,7 @@
   real ones, so the npm listings describe what each package does and point at the install
   guide. No code changes.
 - Updated dependencies [c67978a]
-  - @openchoreo/backstage-plugin-thunder-idp-client-node@2.0.0-next.0
+  - @openchoreo/backstage-plugin-thunder-idp-client-node@1.4.0-m.1
 
 ## 1.3.0
 

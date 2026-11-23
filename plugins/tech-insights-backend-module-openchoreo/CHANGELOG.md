@@ -33,5 +33,5 @@
 - Updated dependencies [6ac94f5]
 - Updated dependencies [02c5a87]
 - Updated dependencies [6268316]
-  - @openchoreo/backstage-plugin-common@2.0.0-next.3
-  - @openchoreo/openchoreo-client-node@2.0.0-next.3
+  - @openchoreo/backstage-plugin-common@1.4.0-m.3
+  - @openchoreo/openchoreo-client-node@1.4.0-m.3
