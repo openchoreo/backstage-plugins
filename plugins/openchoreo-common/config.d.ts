@@ -166,5 +166,27 @@ export interface Config {
        */
       timeout?: number;
     };
+
+    /**
+     * Home page configuration.
+     * @deepVisibility frontend
+     */
+    home?: {
+      /**
+       * Default home page layout for users who haven't customised theirs.
+       * Cards wrap like MUI Grid items: `width` is out of 12 columns and
+       * optional `height` is in 60px rows.
+       * @deepVisibility frontend
+       */
+      defaultLayout?: Array<{
+        /** Widget name, e.g. `OpenChoreoQuickActions`. */
+        widget: string;
+        width: number;
+        height?: number;
+        movable?: boolean;
+        deletable?: boolean;
+        resizable?: boolean;
+      }>;
+    };
   };
 }
