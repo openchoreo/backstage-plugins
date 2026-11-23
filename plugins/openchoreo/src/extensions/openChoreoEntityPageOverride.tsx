@@ -85,6 +85,10 @@ export const openChoreoEntityPageOverride = createFrontendModule({
 
         return originalFactory({
           params: {
+            // OpenChoreoEntityLayout renders its own header. Upstream's entity
+            // page set this itself until Backstage 1.53, so without it the app
+            // stacks a plugin header ("Catalog") on top of ours.
+            noHeader: true,
             loader: async () => {
               const { OpenChoreoCatalogEntityPageContent } = await import(
                 './OpenChoreoCatalogEntityPageContent'
