@@ -317,6 +317,10 @@ export const WorkloadConfigPage = ({
   // each row with the visibility its Endpoint carries.
   const endpointsPreparedRef = useRef(false);
   const { loading: endpointsLoading, prepare } = componentEndpoints;
+  // The editor waits for the component's Endpoints too: they decide the
+  // Endpoints tab's form and the rows' visibility, and the form's baseline is
+  // set once they're in, so an edit made before then would be taken as saved.
+  const pageLoading = isLoading || endpointsLoading;
   useEffect(() => {
     if (endpointsPreparedRef.current || endpointsLoading || isLoading) return;
     if (!workloadResource) return;
@@ -753,8 +757,8 @@ export const WorkloadConfigPage = ({
   };
 
   const enableNext = isFromSource
-    ? hasImage && !isLoading
-    : !isLoading && !!spec?.container?.image?.trim();
+    ? hasImage && !pageLoading
+    : !pageLoading && !!spec?.container?.image?.trim();
 
   const getAlertMessage = () => {
     if (isFromSource && !hasImage) {
@@ -813,14 +817,14 @@ export const WorkloadConfigPage = ({
     endpointChangeItems.length;
 
   // Header actions - Next/Save & Next button
-  const headerActions = !isLoading ? (
+  const headerActions = !pageLoading ? (
     <Button
       variant="contained"
       color="primary"
       onClick={handleButtonClick}
       disabled={
         isProcessing ||
-        isLoading ||
+        pageLoading ||
         autoDeployLoading ||
         !enableNext ||
         isEditing
@@ -887,7 +891,7 @@ export const WorkloadConfigPage = ({
       onBack={handleBackClick}
       actions={headerActions}
     >
-      {isLoading && (
+      {pageLoading && (
         <Box className={classes.loadingContainer}>
           <Skeleton variant="rect" width="100%" height={200} />
           <Skeleton variant="rect" width="100%" height={100} />
@@ -895,13 +899,13 @@ export const WorkloadConfigPage = ({
         </Box>
       )}
 
-      {loadError && !isLoading && (
+      {loadError && !pageLoading && (
         <Box className={classes.errorContainer}>
           <Typography variant="body1">{loadError}</Typography>
         </Box>
       )}
 
-      {saveError && !isLoading && (
+      {saveError && !pageLoading && (
         <Box mb={2}>
           <Alert severity="error" onClose={() => setSaveError(null)}>
             {saveError}
@@ -909,7 +913,7 @@ export const WorkloadConfigPage = ({
         </Box>
       )}
 
-      {!isLoading && !loadError && releaseLine && (
+      {!pageLoading && !loadError && releaseLine && (
         <Box mb={2}>
           <Alert severity="info">
             Showing the component's configuration with the {releaseLine} release
@@ -920,7 +924,7 @@ export const WorkloadConfigPage = ({
         </Box>
       )}
 
-      {!isLoading && !loadError && isNewWorkload && (
+      {!pageLoading && !loadError && isNewWorkload && (
         <Box mb={2}>
           <Alert severity="info">
             Configure your workload below to enable deployment.
@@ -928,7 +932,7 @@ export const WorkloadConfigPage = ({
         </Box>
       )}
 
-      {!isLoading && !loadError && !isNewWorkload && !enableNext && (
+      {!pageLoading && !loadError && !isNewWorkload && !enableNext && (
         <Box mb={2}>
           <Alert severity={isFromSource && !hasImage ? 'warning' : 'info'}>
             {getAlertMessage()}
@@ -936,12 +940,12 @@ export const WorkloadConfigPage = ({
         </Box>
       )}
 
-      {!isLoading && !loadError && (
+      {!pageLoading && !loadError && (
         <WorkloadProvider
           builds={EMPTY_BUILDS}
           workloadResource={workloadResource}
           setWorkloadResource={setWorkloadResource}
-          isDeploying={isProcessing || isLoading}
+          isDeploying={isProcessing || pageLoading}
           initialResource={initialResource}
           onEditingChange={setIsEditing}
         >

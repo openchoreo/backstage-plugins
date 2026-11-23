@@ -154,6 +154,21 @@ describe('NotificationChannelConfigCard', () => {
     expect(screen.getByText('secret: webhook-auth')).toBeInTheDocument();
   });
 
+  it('shows the secret that holds a webhook URL given by urlFrom', () => {
+    mockEntity = baseEntity({
+      environment: 'dev',
+      type: 'webhook',
+      webhookConfig: {
+        urlFrom: { secretKeyRef: { name: 'slack-webhook', key: 'url' } },
+      },
+    });
+
+    render(<NotificationChannelConfigCard />);
+
+    expect(screen.getByText('URL')).toBeInTheDocument();
+    expect(screen.getByText('secret: slack-webhook / url')).toBeInTheDocument();
+  });
+
   it('omits the headers row when webhook has no headers', () => {
     mockEntity = baseEntity({
       environment: 'dev',

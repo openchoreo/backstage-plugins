@@ -35,7 +35,9 @@ interface NotificationChannelSpec {
     };
   };
   webhookConfig?: {
-    url: string;
+    /** The URL inline; otherwise `urlFrom` names the secret that holds it. */
+    url?: string;
+    urlFrom?: { secretKeyRef?: SecretKeyRef };
     headers?: Record<
       string,
       { value?: string; valueFrom?: { secretKeyRef?: SecretKeyRef } }
@@ -223,9 +225,18 @@ export const NotificationChannelConfigCard = () => {
         <>
           <Box className={classes.infoRow}>
             <Typography className={classes.infoLabel}>URL</Typography>
-            <Typography className={classes.infoValue}>
-              {spec.webhookConfig.url}
-            </Typography>
+            {!spec.webhookConfig.url &&
+            spec.webhookConfig.urlFrom?.secretKeyRef ? (
+              <span className={classes.headerSourceBadge}>
+                {`secret: ${formatSecretKeyRef(
+                  spec.webhookConfig.urlFrom.secretKeyRef,
+                )}`}
+              </span>
+            ) : (
+              <Typography className={classes.infoValue}>
+                {spec.webhookConfig.url}
+              </Typography>
+            )}
           </Box>
           {spec.webhookConfig.headers &&
             Object.keys(spec.webhookConfig.headers).length > 0 && (
