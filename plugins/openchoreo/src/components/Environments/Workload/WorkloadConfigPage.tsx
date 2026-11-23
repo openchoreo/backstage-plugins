@@ -660,7 +660,15 @@ export const WorkloadConfigPage = ({
         serverResourceRef.current = JSON.parse(JSON.stringify(result));
         // The form keeps its rows (with Endpoint visibility) as the new
         // baseline, so a retry after an Endpoint failure plans the same calls.
-        setInitialResource(JSON.parse(JSON.stringify(workloadResource)));
+        // It takes the saved metadata, though: a release line's first
+        // workload gets its name from the server, and a later save updates
+        // it by that name.
+        const saved = {
+          ...workloadResource,
+          metadata: result.metadata ?? workloadResource.metadata,
+        } as WorkloadResource;
+        setWorkloadResource(saved);
+        setInitialResource(JSON.parse(JSON.stringify(saved)));
         setIsNewWorkload(false);
       }
 

@@ -246,18 +246,12 @@ const VISIBILITY_LABELS: Record<string, string> = {
 const VISIBILITY_OPTIONS: ReadonlyArray<{
   value: string;
   label: string;
-  disabled: boolean;
   alwaysSelected?: boolean;
 }> = [
-  {
-    value: 'project',
-    label: VISIBILITY_LABELS.project,
-    disabled: true,
-    alwaysSelected: true,
-  },
-  { value: 'namespace', label: VISIBILITY_LABELS.namespace, disabled: false },
-  { value: 'internal', label: VISIBILITY_LABELS.internal, disabled: false },
-  { value: 'external', label: VISIBILITY_LABELS.external, disabled: false },
+  { value: 'project', label: VISIBILITY_LABELS.project, alwaysSelected: true },
+  { value: 'namespace', label: VISIBILITY_LABELS.namespace },
+  { value: 'internal', label: VISIBILITY_LABELS.internal },
+  { value: 'external', label: VISIBILITY_LABELS.external },
 ];
 
 /** Dialog for editing schema content with syntax highlighting */

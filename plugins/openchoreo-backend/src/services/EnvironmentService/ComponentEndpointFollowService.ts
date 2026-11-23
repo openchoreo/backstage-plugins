@@ -60,9 +60,9 @@ function reasonOf(error: unknown): string {
 }
 
 /**
- * Takes a component's Endpoints with it when the component is deployed,
- * promoted, redeployed or undeployed, following the rules in
- * `planEndpointFollow`. Runs after the component's own binding has changed:
+ * Takes a component's Endpoints with it when the component is deployed or
+ * promoted, following the rules in `planEndpointFollow`, and removes them
+ * with the component's deployment. Runs after the component's own binding has changed:
  * an Endpoint that can't follow is reported, never undoing the component's
  * change, and is then put right from its own Deploy tab. Repeating the
  * action, where it's still offered, repeats every step safely. A promotion
@@ -177,7 +177,7 @@ export class ComponentEndpointFollowService {
 
   /**
    * Binds the Endpoints the component's line owns in the environment the
-   * component was just deployed, promoted or redeployed to.
+   * component was just deployed or promoted to.
    */
   async follow(
     request: ComponentRef & {
@@ -271,7 +271,7 @@ export class ComponentEndpointFollowService {
 
   /**
    * Deletes the bindings of the Endpoints the component's line owns in an
-   * environment the component was undeployed or removed from, so their
+   * environment the component's deployment is being removed from, so their
    * routes don't point at a workload that's gone. An Endpoint not bound
    * there needs nothing.
    */
@@ -301,22 +301,6 @@ export class ComponentEndpointFollowService {
     }
     this.logResult('removed', request, result);
     return result;
-  }
-
-  /** The environment a component's ReleaseBinding is for. */
-  async bindingEnvironment(
-    namespaceName: string,
-    bindingName: string,
-    token?: string,
-  ): Promise<string | undefined> {
-    const { data, error, response } = await this.client(token).GET(
-      '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}',
-      {
-        params: { path: { namespaceName, releaseBindingName: bindingName } },
-      },
-    );
-    assertApiResponse({ data, error, response }, 'fetch release binding');
-    return data?.spec?.environment;
   }
 
   private logResult(

@@ -1,4 +1,4 @@
-import { ConflictError } from '@backstage/errors';
+import { ConflictError, NotFoundError } from '@backstage/errors';
 import { mockErrorHandler } from '@backstage/backend-test-utils';
 import express from 'express';
 import request from 'supertest';
@@ -109,7 +109,6 @@ function createMockServices() {
       checkPromotion: jest.fn(),
       follow: jest.fn(),
       remove: jest.fn(),
-      bindingEnvironment: jest.fn(),
     },
     projectReleaseInfoService: {
       fetchProjectRelease: jest.fn(),
@@ -1099,74 +1098,43 @@ describe('createRouter', () => {
       ).not.toHaveBeenCalled();
     });
 
-    it('removes them where the component is undeployed', async () => {
-      services.environmentInfoService.updateComponentBinding.mockResolvedValue(
-        [],
-      );
-      services.componentEndpointFollowService.bindingEnvironment.mockResolvedValue(
-        'staging',
-      );
-      services.componentEndpointFollowService.remove.mockResolvedValue({
-        ...followed,
-        bound: [],
-        removed: ['orders-api'],
-      });
+    it.each(['Undeploy', 'Suspend', 'Active'])(
+      'leaves them as they are when the component is set to %s',
+      async releaseState => {
+        services.environmentInfoService.updateComponentBinding.mockResolvedValue(
+          [],
+        );
 
-      const response = await request(app)
-        .patch('/update-binding')
-        .send({
-          ...owner,
-          bindingName: 'orders-staging',
-          releaseState: 'Undeploy',
-        });
+        const response = await request(app)
+          .patch('/update-binding')
+          .send({ ...owner, bindingName: 'orders-staging', releaseState });
 
-      expect(response.status).toBe(200);
-      expect(
-        services.componentEndpointFollowService.remove,
-      ).toHaveBeenCalledWith(
-        { ...owner, releaseLine: undefined, environment: 'staging' },
-        'mock-user-token',
-      );
-      expect(response.body.endpoints.removed).toEqual(['orders-api']);
-      expect(response.body.environments).toEqual([]);
-      // The Endpoints go before the component, like a garbage collection.
-      expect(
-        services.componentEndpointFollowService.remove.mock
-          .invocationCallOrder[0],
-      ).toBeLessThan(
-        services.environmentInfoService.updateComponentBinding.mock
-          .invocationCallOrder[0],
-      );
-    });
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual([]);
+        expect(
+          services.componentEndpointFollowService.remove,
+        ).not.toHaveBeenCalled();
+        expect(
+          services.componentEndpointFollowService.follow,
+        ).not.toHaveBeenCalled();
+      },
+    );
 
-    it('brings them back on a redeploy', async () => {
-      services.environmentInfoService.updateComponentBinding.mockResolvedValue(
-        [],
+    // deleteReleaseBinding runs its beforeDelete step once the binding is found.
+    const deletesBinding = () =>
+      services.environmentInfoService.deleteReleaseBinding.mockImplementation(
+        async (
+          _request: unknown,
+          _token: unknown,
+          beforeDelete?: () => Promise<void>,
+        ) => {
+          await beforeDelete?.();
+          return [];
+        },
       );
-      services.componentEndpointFollowService.bindingEnvironment.mockResolvedValue(
-        'staging',
-      );
-      services.componentEndpointFollowService.follow.mockResolvedValue(
-        followed,
-      );
-
-      await request(app)
-        .patch('/update-binding')
-        .send({
-          ...owner,
-          bindingName: 'orders-staging',
-          releaseState: 'Active',
-        });
-
-      expect(
-        services.componentEndpointFollowService.follow.mock.calls[0][0],
-      ).toMatchObject({ environment: 'staging', action: 'redeploy' });
-    });
 
     it('removes them when the deployment is removed', async () => {
-      services.environmentInfoService.deleteReleaseBinding.mockResolvedValue(
-        [],
-      );
+      deletesBinding();
       services.componentEndpointFollowService.remove.mockResolvedValue(
         followed,
       );
@@ -1183,22 +1151,28 @@ describe('createRouter', () => {
         'mock-user-token',
       );
       expect(response.body).toEqual({ environments: [], endpoints: followed });
-      expect(
-        services.componentEndpointFollowService.remove.mock
-          .invocationCallOrder[0],
-      ).toBeLessThan(
-        services.environmentInfoService.deleteReleaseBinding.mock
-          .invocationCallOrder[0],
+    });
+
+    it('leaves them when the deployment to remove is missing', async () => {
+      services.environmentInfoService.deleteReleaseBinding.mockRejectedValue(
+        new NotFoundError('No release binding'),
       );
+
+      const response = await request(app)
+        .delete('/delete-release-binding')
+        .send({ ...owner, environment: 'staging' });
+
+      expect(response.status).toBe(404);
+      expect(
+        services.componentEndpointFollowService.remove,
+      ).not.toHaveBeenCalled();
     });
 
     it("still removes the deployment when the Endpoints can't be removed", async () => {
       services.componentEndpointFollowService.remove.mockRejectedValue(
         new Error('forbidden'),
       );
-      services.environmentInfoService.deleteReleaseBinding.mockResolvedValue(
-        [],
-      );
+      deletesBinding();
 
       const response = await request(app)
         .delete('/delete-release-binding')
@@ -1704,14 +1678,14 @@ describe('createRouter', () => {
 
         const response = await request(app)
           .get('/release-line-endpoint-drafts')
-          .query({ ...componentRef, releaseLine: 'next', autoDeploy: 'true' });
+          .query({ ...componentRef, releaseLine: 'next' });
 
         expect(response.status).toBe(200);
         expect(response.body).toEqual([{ name: 'orders-next-api' }]);
         expect(
           services.endpointInfoService.fetchReleaseLineEndpointDrafts,
         ).toHaveBeenCalledWith(
-          { ...componentRef, releaseLine: 'next', autoDeploy: true },
+          { ...componentRef, releaseLine: 'next' },
           'mock-user-token',
         );
       });

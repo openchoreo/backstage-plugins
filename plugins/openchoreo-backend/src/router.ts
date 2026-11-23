@@ -269,18 +269,22 @@ export async function createRouter({
       namespaceName: namespaceName as string,
       releaseLine: requestReleaseLine(req),
     };
-    // The line's own Endpoints go first, like a garbage collection, so their
-    // routes are gone before the workload they point at. One that can't be
-    // removed is reported; the component's deployment is removed regardless.
-    const endpoints = await followEndpoints(() =>
-      componentEndpointFollowService.remove(
-        { ...owner, environment: environment as string },
-        userToken,
-      ),
-    );
+    // Once the component's binding is found, the line's own Endpoints go
+    // first, like a garbage collection, so their routes are gone before the
+    // workload they point at. One that can't be removed is reported; the
+    // component's deployment is removed regardless.
+    let endpoints: EndpointFollowResult | undefined;
     const environments = await environmentInfoService.deleteReleaseBinding(
       { ...owner, environment: environment as string },
       userToken,
+      async () => {
+        endpoints = await followEndpoints(() =>
+          componentEndpointFollowService.remove(
+            { ...owner, environment: environment as string },
+            userToken,
+          ),
+        );
+      },
     );
     res.json({ environments, endpoints });
   });
@@ -314,56 +318,24 @@ export async function createRouter({
 
     const userToken = getUserTokenFromRequest(req);
 
-    const owner = {
-      componentName: componentName as string,
-      projectName: projectName as string,
-      namespaceName: namespaceName as string,
-      releaseLine: requestReleaseLine(req),
-    };
-    const updateComponent = () =>
-      environmentInfoService.updateComponentBinding(
+    // Suspending, undeploying and redeploying change only the component's
+    // binding. Its Endpoints' bindings stay as they are, keeping their release
+    // and environment settings: an Endpoint is its own resource, managed from
+    // its Deploy tab. Removing the deployment (delete-release-binding) is what
+    // takes them out.
+    res.json(
+      await environmentInfoService.updateComponentBinding(
         {
-          ...owner,
+          componentName: componentName as string,
+          projectName: projectName as string,
+          namespaceName: namespaceName as string,
+          releaseLine: requestReleaseLine(req),
           bindingName: bindingName as string,
           releaseState: releaseState as 'Active' | 'Suspend' | 'Undeploy',
         },
         userToken,
-      );
-    const environmentOfBinding = () =>
-      componentEndpointFollowService.bindingEnvironment(
-        owner.namespaceName,
-        bindingName as string,
-        userToken,
-      );
-
-    if (releaseState === 'Active') {
-      // Redeploying brings the line's own Endpoints back on their latest
-      // release, after the component.
-      const environments = await updateComponent();
-      const endpoints = await followEndpoints(async () => {
-        const environment = await environmentOfBinding();
-        if (!environment) return emptyEndpointFollowResult();
-        return componentEndpointFollowService.follow(
-          { ...owner, environment, action: 'redeploy' },
-          userToken,
-        );
-      });
-      res.json({ environments, endpoints });
-      return;
-    }
-
-    // Undeploying takes the line's own Endpoints out of the environment
-    // first, like a garbage collection, then the component.
-    const endpoints = await followEndpoints(async () => {
-      const environment = await environmentOfBinding();
-      if (!environment) return emptyEndpointFollowResult();
-      return componentEndpointFollowService.remove(
-        { ...owner, environment },
-        userToken,
-      );
-    });
-    const environments = await updateComponent();
-    res.json({ environments, endpoints });
+      ),
+    );
   });
 
   router.post('/rollout-restart-binding', requireAuth, async (req, res) => {
@@ -1697,11 +1669,7 @@ export async function createRouter({
     }
     res.json(
       await endpointInfoService.fetchReleaseLineEndpointDrafts(
-        {
-          ...ref,
-          releaseLine: ref.releaseLine,
-          autoDeploy: req.query.autoDeploy === 'true',
-        },
+        { ...ref, releaseLine: ref.releaseLine },
         getUserTokenFromRequest(req),
       ),
     );

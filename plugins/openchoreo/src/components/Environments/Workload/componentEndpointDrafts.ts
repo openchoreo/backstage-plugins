@@ -29,6 +29,23 @@ import {
 export type EndpointFormMode = 'endpoints' | 'legacy' | 'none';
 
 /**
+ * A name for a new workload endpoint: `endpoint-<n>`, counting on from the
+ * rows there are, skipping any name already in use. Taken names include rows
+ * the tab doesn't list (from before Endpoints) and the workload endpoints the
+ * component's Endpoints route to, so a new row never replaces a row or takes
+ * over another row's Endpoint.
+ */
+export function newWorkloadEndpointName(
+  endpoints: Record<string, unknown>,
+  taken: Iterable<string> = [],
+): string {
+  const used = new Set([...Object.keys(endpoints), ...taken]);
+  let n = Object.keys(endpoints).length + 1;
+  while (used.has(`endpoint-${n}`)) n += 1;
+  return `endpoint-${n}`;
+}
+
+/**
  * The endpoints the Endpoints tab lists, as the form decides: in the
  * Endpoints form one card per endpoint, except workload endpoints from
  * before Endpoints that are still as loaded (their visibility stays on the

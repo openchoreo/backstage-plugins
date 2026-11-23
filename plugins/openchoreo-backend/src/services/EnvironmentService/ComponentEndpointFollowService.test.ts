@@ -414,13 +414,4 @@ describe('ComponentEndpointFollowService', () => {
       ]);
     });
   });
-
-  it('reads the environment of a component binding', async () => {
-    serve([]);
-    const { service } = createService();
-
-    await expect(
-      service.bindingEnvironment('acme', 'orders-staging', 'token'),
-    ).resolves.toBe('staging');
-  });
 });

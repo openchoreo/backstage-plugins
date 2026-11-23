@@ -17,17 +17,15 @@ const endpoint = (
 
 describe('planEndpointFollow', () => {
   it.each`
-    action        | given                                            | step
-    ${'deploy'}   | ${{}}                                            | ${{ kind: 'bind', releaseName: 'api-r2' }}
-    ${'deploy'}   | ${{ autoDeploy: true }}                          | ${{ kind: 'skip', reason: 'autoDeploy' }}
-    ${'deploy'}   | ${{ latestRelease: undefined }}                  | ${{ kind: 'unreleased' }}
-    ${'promote'}  | ${{ sourceRelease: 'api-r1' }}                   | ${{ kind: 'bind', releaseName: 'api-r1' }}
-    ${'promote'}  | ${{}}                                            | ${{ kind: 'unboundInSource' }}
-    ${'promote'}  | ${{ autoDeploy: true, sourceRelease: 'api-r1' }} | ${{ kind: 'bind', releaseName: 'api-r1' }}
-    ${'promote'}  | ${{ autoDeploy: true }}                          | ${{ kind: 'unboundInSource' }}
-    ${'promote'}  | ${{ latestRelease: undefined }}                  | ${{ kind: 'unboundInSource' }}
-    ${'redeploy'} | ${{ autoDeploy: true, sourceRelease: 'api-r1' }} | ${{ kind: 'bind', releaseName: 'api-r2' }}
-    ${'redeploy'} | ${{ latestRelease: undefined }}                  | ${{ kind: 'unreleased' }}
+    action       | given                                            | step
+    ${'deploy'}  | ${{}}                                            | ${{ kind: 'bind', releaseName: 'api-r2' }}
+    ${'deploy'}  | ${{ autoDeploy: true }}                          | ${{ kind: 'skip', reason: 'autoDeploy' }}
+    ${'deploy'}  | ${{ latestRelease: undefined }}                  | ${{ kind: 'unreleased' }}
+    ${'promote'} | ${{ sourceRelease: 'api-r1' }}                   | ${{ kind: 'bind', releaseName: 'api-r1' }}
+    ${'promote'} | ${{}}                                            | ${{ kind: 'unboundInSource' }}
+    ${'promote'} | ${{ autoDeploy: true, sourceRelease: 'api-r1' }} | ${{ kind: 'bind', releaseName: 'api-r1' }}
+    ${'promote'} | ${{ autoDeploy: true }}                          | ${{ kind: 'unboundInSource' }}
+    ${'promote'} | ${{ latestRelease: undefined }}                  | ${{ kind: 'unboundInSource' }}
   `('$action with $given: $step', ({ action, given, step }) => {
     expect(planEndpointFollow(action, [endpoint('api', given)])).toEqual([
       { endpoint: 'api', ...step },

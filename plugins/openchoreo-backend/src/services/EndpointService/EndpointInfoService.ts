@@ -257,10 +257,11 @@ export class EndpointInfoService {
    * the component's main-line Endpoints for the line, less those the line
    * already has. Nothing is created: the line's configure page lets the user
    * adjust each draft, such as its parameters, and creates the ones kept
-   * through createComponentEndpoint.
+   * through createComponentEndpoint, which sets `autoDeploy` from the page's
+   * auto deploy setting, so the drafts leave it off.
    */
   async fetchReleaseLineEndpointDrafts(
-    request: ComponentRef & { releaseLine: string; autoDeploy: boolean },
+    request: ComponentRef & { releaseLine: string },
     token?: string,
   ): Promise<ComponentEndpointInput[]> {
     const releaseLine = toStoredReleaseLine(request.releaseLine);
@@ -277,7 +278,7 @@ export class EndpointInfoService {
       componentName: request.componentName,
       projectName: request.projectName,
       releaseLine,
-      autoDeploy: request.autoDeploy,
+      autoDeploy: false,
     }).filter(draft => !existing.has(draft.name));
   }
 

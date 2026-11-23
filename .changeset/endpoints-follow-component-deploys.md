@@ -6,10 +6,9 @@
 
 Deploy and promote a component's Endpoints with the component.
 
-When a component, or one of its release lines, is deployed, promoted,
-redeployed, undeployed or removed from an environment, the Endpoints that line
-owns follow it in the same step. Project-owned Endpoints, and those of other
-lines, are left alone.
+When a component, or one of its release lines, is deployed to, promoted to
+or removed from an environment, the Endpoints that line owns follow it in the
+same step. Project-owned Endpoints, and those of other lines, are left alone.
 
 - **Deploy:** each Endpoint is bound to its latest release in the
   environment. Endpoints with `autoDeploy` are left to the controller, which
@@ -19,9 +18,12 @@ lines, are left alone.
   Endpoint is bound, whatever its `autoDeploy`. If any of them isn't deployed
   in the source environment, the promotion is rejected (409) before anything
   changes, with a message naming them.
-- **Redeploy:** each Endpoint is bound to its latest release again.
-- **Undeploy and remove:** the Endpoints' bindings in that environment are
-  deleted, so their routes don't point at a workload that's gone.
+- **Suspend, undeploy and redeploy:** only the component's binding changes.
+  The Endpoints' bindings stay, with their release and environment settings;
+  an Endpoint is managed from its own Deploy tab.
+- **Remove:** once the component's deployment is found, the Endpoints'
+  bindings in that environment are deleted, then the component's, so their
+  routes don't point at a workload that's gone.
 
 An existing binding keeps its environment overrides; only its release
 changes. An Endpoint created just before a deploy gets a few seconds to have
@@ -31,6 +33,6 @@ Endpoint's Deploy tab to put it right.
 
 The backend's `PUT /update-release-binding` takes an optional
 `sourceEnvironment` (a promotion) and adds an `endpoints` result to its
-response. `PATCH /update-binding` and `DELETE /delete-release-binding` now
-respond with `{ environments, endpoints }`. The rules are
+response. `DELETE /delete-release-binding` now responds with
+`{ environments, endpoints }`. The rules are
 `planEndpointFollow` in `@openchoreo/backstage-plugin-common`.

@@ -1,6 +1,7 @@
 import type { ComponentEndpointSummary } from '@openchoreo/backstage-plugin-common';
 import {
   endpointCards,
+  newWorkloadEndpointName,
   endpointChangeList,
   exposedEndpointNames,
   planEndpointChanges,
@@ -266,6 +267,24 @@ describe('endpointChangeList', () => {
         newValue: 'external, internal',
       },
     ]);
+  });
+});
+
+describe('newWorkloadEndpointName', () => {
+  it('counts on from the rows there are', () => {
+    expect(newWorkloadEndpointName({})).toBe('endpoint-1');
+    expect(newWorkloadEndpointName({ api: {} })).toBe('endpoint-2');
+  });
+
+  it('skips a name a row already has', () => {
+    // endpoint-1 was removed, so the count lands on endpoint-2, still there.
+    expect(newWorkloadEndpointName({ 'endpoint-2': {} })).toBe('endpoint-3');
+  });
+
+  it("skips a name another row's Endpoint routes to", () => {
+    expect(newWorkloadEndpointName({ api: {} }, ['endpoint-2'])).toBe(
+      'endpoint-3',
+    );
   });
 });
 

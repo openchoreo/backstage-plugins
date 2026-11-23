@@ -54,11 +54,6 @@ export interface ComponentEndpointsState {
    * they are.
    */
   deprecatedRows: Record<string, ExposableEndpoint>;
-  /**
-   * Whether the ComponentType allows any Endpoint type. Without one the
-   * Endpoints form keeps every endpoint project-scoped.
-   */
-  canUseEndpoints: boolean;
   setChoice: (workloadEndpoint: string, choice: EndpointExposureChoice) => void;
   /** Puts back a row's earlier choice, or none, when its edit is cancelled. */
   restoreChoice: (
@@ -356,7 +351,6 @@ export function useComponentEndpoints(
       renames,
       mode,
       deprecatedRows,
-      canUseEndpoints: allowedEndpoints.length > 0,
       setChoice,
       restoreChoice,
       renameWorkloadEndpoint,

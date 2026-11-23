@@ -66,7 +66,8 @@ export function useEnvironmentActions(
 
   const handleUndeploy = useCallback(
     async (bindingName: string) => {
-      const result = await client.updateComponentBinding(
+      // Only the component's binding changes; its Endpoints stay as they are.
+      await client.updateComponentBinding(
         entity,
         bindingName,
         'Undeploy',
@@ -75,18 +76,15 @@ export function useEnvironmentActions(
       // Small delay to allow the server to reconcile the state change
       await new Promise(resolve => setTimeout(resolve, 1000));
       await refetch();
-      notify(
-        'Component undeployed successfully.',
-        result?.endpoints,
-        'undeployed',
-      );
+      notification.showSuccess('Component undeployed successfully.');
     },
-    [entity, client, refetch, notify, releaseLine],
+    [entity, client, refetch, notification, releaseLine],
   );
 
   const handleRedeploy = useCallback(
     async (bindingName: string) => {
-      const result = await client.updateComponentBinding(
+      // Only the component's binding changes; its Endpoints stay as they are.
+      await client.updateComponentBinding(
         entity,
         bindingName,
         'Active',
@@ -95,13 +93,9 @@ export function useEnvironmentActions(
       // Small delay to allow the server to reconcile the state change
       await new Promise(resolve => setTimeout(resolve, 1000));
       await refetch();
-      notify(
-        'Component redeployed successfully.',
-        result?.endpoints,
-        'redeployed',
-      );
+      notification.showSuccess('Component redeployed successfully.');
     },
-    [entity, client, refetch, notify, releaseLine],
+    [entity, client, refetch, notification, releaseLine],
   );
 
   // Rollout restart is declarative on the platform side: we stamp

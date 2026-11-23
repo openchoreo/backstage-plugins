@@ -827,6 +827,12 @@ export class EnvironmentInfoService implements EnvironmentService {
       environment: string;
     },
     token?: string,
+    /**
+     * Runs once the binding is known to exist, before it's deleted: the
+     * component's Endpoints are taken out here, so a request for a binding
+     * that isn't there changes nothing.
+     */
+    beforeDelete?: () => Promise<void>,
   ): Promise<Environment[]> {
     const startTime = Date.now();
     try {
@@ -849,6 +855,7 @@ export class EnvironmentInfoService implements EnvironmentService {
           )} in environment ${request.environment}`,
         );
       }
+      await beforeDelete?.();
 
       const { error, response } = await client.DELETE(
         '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}',

@@ -121,7 +121,6 @@ function state(
     renames: {},
     mode: 'endpoints',
     deprecatedRows: {},
-    canUseEndpoints: true,
     setChoice: jest.fn(),
     restoreChoice: jest.fn(),
     renameWorkloadEndpoint: jest.fn(),
@@ -237,9 +236,7 @@ describe('EndpointContent', () => {
   });
 
   it('shows no form when the ComponentType allows no Endpoints', () => {
-    renderContent(
-      state({ mode: 'none', allowedEndpoints: [], canUseEndpoints: false }),
-    );
+    renderContent(state({ mode: 'none', allowedEndpoints: [] }));
 
     expect(
       screen.getByText(/This component type doesn't allow Endpoints/),

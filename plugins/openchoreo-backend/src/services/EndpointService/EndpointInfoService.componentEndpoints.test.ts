@@ -222,7 +222,7 @@ describe('EndpointInfoService component Endpoints', () => {
   });
 
   describe('fetchReleaseLineEndpointDrafts', () => {
-    const lineRef = { ...ref, releaseLine: 'next', autoDeploy: true };
+    const lineRef = { ...ref, releaseLine: 'next' };
 
     it("drafts the line's copies of the main line's Endpoints", async () => {
       mockGET.mockResolvedValue(
@@ -242,7 +242,7 @@ describe('EndpointInfoService component Endpoints', () => {
           typeName: 'http-route',
           visibility: ['external'],
           parameters: { pathPrefix: '/x' },
-          autoDeploy: true,
+          autoDeploy: false,
         },
       ]);
       expect(mockPOST).not.toHaveBeenCalled();

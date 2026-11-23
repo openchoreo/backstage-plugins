@@ -1,8 +1,10 @@
 /**
  * The rules a client follows to take a component's Endpoints with it when it
- * deploys, promotes, redeploys or undeploys the component (openchoreo #4997,
- * "deploy and promote a component's Endpoints with the component"). occ and
- * MCP implement the same rules in Go.
+ * deploys or promotes the component (openchoreo #4997, "deploy and promote a
+ * component's Endpoints with the component"). Suspending, undeploying and
+ * redeploying leave the Endpoints' bindings as they are; removing the
+ * component's deployment from an environment removes them. The Backstage
+ * backend runs these rules; occ and MCP don't implement them yet.
  *
  * Only the Endpoints the deployed line of the component owns follow it:
  * `spec.owner.componentName` is the component and `spec.owner.releaseLineName`
@@ -14,9 +16,7 @@ export type EndpointFollowAction =
   /** Deployed to the pipeline's first environment. */
   | 'deploy'
   /** Promoted from a source environment to the target. */
-  | 'promote'
-  /** Deployed again where it was undeployed. */
-  | 'redeploy';
+  | 'promote';
 
 /** One owned Endpoint, as the rules need it. */
 export interface FollowingEndpoint {
@@ -48,8 +48,7 @@ export type EndpointFollowStep =
  *   no binding in the source never ran there, so it's reported
  *   unboundInSource rather than bound to its latest release: a promotion
  *   moves only what's verified (see `checkPromotion`, which clients run
- *   before promoting the component);
- * - redeploy: bind its latest release.
+ *   before promoting the component).
  * An Endpoint without a release to bind is reported unreleased.
  */
 export function planEndpointFollow(

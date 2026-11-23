@@ -428,7 +428,6 @@ describe('YAML tabs for the Endpoints', () => {
     renames: {},
     mode: 'endpoints' as const,
     deprecatedRows: {},
-    canUseEndpoints: true,
     setChoice,
     restoreChoice: jest.fn(),
     renameWorkloadEndpoint: jest.fn(),

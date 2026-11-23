@@ -1029,7 +1029,6 @@ export interface OpenChoreoClientApi {
     releaseLine?: string,
   ): Promise<ComponentReleasesResponse>;
 
-  /** Create or update a release binding for deploy/promote actions */
   /**
    * Deploys or promotes a component's release to an environment, creating or
    * updating its binding there. The Endpoints the component's line owns

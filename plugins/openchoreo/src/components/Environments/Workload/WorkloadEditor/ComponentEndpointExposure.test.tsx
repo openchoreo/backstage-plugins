@@ -27,7 +27,6 @@ function state(
     renames: {},
     mode: 'endpoints',
     deprecatedRows: {},
-    canUseEndpoints: true,
     setChoice: jest.fn(),
     restoreChoice: jest.fn(),
     renameWorkloadEndpoint: jest.fn(),
