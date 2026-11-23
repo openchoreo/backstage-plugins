@@ -111,7 +111,7 @@ query` (a 413 behind the scenes). Narrow searches with few hits still worked,
   - @openchoreo/openchoreo-client-node@2.0.0-next.3
   - @openchoreo/backstage-plugin-tech-insights-dynamic-checks-common@2.0.0-next.3
 
-## 2.0.0-next.2
+## 1.4.0-m.2
 
 ### Patch Changes
 

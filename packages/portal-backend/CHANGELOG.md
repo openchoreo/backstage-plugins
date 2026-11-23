@@ -29,7 +29,7 @@
   - @openchoreo/backstage-plugin-openchoreo-workflows-backend@2.0.0-next.3
   - @openchoreo/backstage-plugin-platform-engineer-core-backend@2.0.0-next.3
 
-## 2.0.0-next.2
+## 1.4.0-m.2
 
 ### Patch Changes
 

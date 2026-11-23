@@ -85,7 +85,7 @@
     optional (openchoreo#5472). The catalog's notification channel entity keeps
     whichever one the channel has.
 
-## 2.0.0-next.2
+## 1.4.0-m.2
 
 ### Minor Changes
 

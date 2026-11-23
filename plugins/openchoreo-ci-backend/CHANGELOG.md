@@ -20,7 +20,7 @@
   - @openchoreo/backstage-plugin-common@2.0.0-next.3
   - @openchoreo/openchoreo-client-node@2.0.0-next.3
 
-## 2.0.0-next.2
+## 1.4.0-m.2
 
 ### Patch Changes
 
