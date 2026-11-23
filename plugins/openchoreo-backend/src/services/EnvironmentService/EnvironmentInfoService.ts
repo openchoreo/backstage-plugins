@@ -2291,7 +2291,7 @@ export class EnvironmentInfoService implements EnvironmentService {
           ),
         })),
       );
-      return applyComponentEndpointUrls(environments, withBindings);
+      return applyComponentEndpointUrls(environments, withBindings, request);
     } catch (error) {
       const forbidden =
         error instanceof Error &&

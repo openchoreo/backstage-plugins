@@ -1,5 +1,6 @@
 import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
 import type { EndpointInfo, Environment } from '../../types';
+import { isLineBackend } from '../EndpointService/componentEndpoints';
 import { toEndpointURLDetails } from './endpointUrls';
 
 type Endpoint = OpenChoreoComponents['schemas']['Endpoint'];
@@ -21,9 +22,24 @@ function byScheme(url: ResolvedEndpointURL | undefined) {
   return { [details.scheme || 'url']: details };
 }
 
-/** The workload endpoints of the component an Endpoint routes to. */
-function workloadEndpointsOf(endpoint: Endpoint): string[] {
+/** The line of a component whose deploy page is shown. */
+export interface DeployPageLine {
+  componentName: string;
+  /** Omitted or '' for the main line. */
+  releaseLine?: string;
+}
+
+/**
+ * The workload endpoints an Endpoint routes to on this line of the
+ * component. Its backends on other lines, as a canary's, belong to those
+ * lines' deploy pages.
+ */
+function workloadEndpointsOf(
+  endpoint: Endpoint,
+  line: DeployPageLine,
+): string[] {
   const names = (endpoint.spec?.backendRefs ?? [])
+    .filter(ref => isLineBackend(ref, line.componentName, line.releaseLine))
     .map(ref => ref.component?.endpoint)
     .filter((name): name is string => !!name);
   return [...new Set(names)];
@@ -42,13 +58,17 @@ function workloadEndpointsOf(endpoint: Endpoint): string[] {
  * the Endpoint's name, which tells the two sources apart. The in-cluster
  * service URL stays, for an Endpoint that doesn't carry project visibility.
  * Everything else, including environments the Endpoint isn't deployed to,
- * keeps the ReleaseBinding's URLs.
+ * keeps the ReleaseBinding's URLs. Only backends on the page's line count,
+ * and when two Endpoints deployed in an environment expose the same workload
+ * endpoint, the first one listed shows there, as the configure page manages
+ * the first one.
  *
  * Returns new environment objects; the input isn't changed.
  */
 export function applyComponentEndpointUrls(
   environments: Environment[],
   componentEndpoints: ComponentEndpointBindings[],
+  line: DeployPageLine,
 ): Environment[] {
   if (componentEndpoints.length === 0) return environments;
 
@@ -58,6 +78,8 @@ export function applyComponentEndpointUrls(
       env.endpoints.map(ep => [ep.name, { ...ep }]),
     );
     let changed = false;
+    // Workload endpoints an Endpoint has already shown in this environment.
+    const shown = new Set<string>();
 
     for (const { endpoint, bindings } of componentEndpoints) {
       const binding = bindings.find(
@@ -66,7 +88,9 @@ export function applyComponentEndpointUrls(
       const urls = binding?.status?.urls;
       if (!urls) continue;
 
-      for (const workloadEndpoint of workloadEndpointsOf(endpoint)) {
+      for (const workloadEndpoint of workloadEndpointsOf(endpoint, line)) {
+        if (shown.has(workloadEndpoint)) continue;
+        shown.add(workloadEndpoint);
         const entry: EndpointInfo = entries.get(workloadEndpoint) ?? {
           name: workloadEndpoint,
         };

@@ -1,6 +1,8 @@
 import { applyComponentEndpointUrls } from './componentEndpointUrls';
 import type { Environment } from '../../types';
 
+const main = { componentName: 'greeter' };
+
 const env = (
   name: string,
   endpoints: Environment['endpoints'],
@@ -38,7 +40,9 @@ const binding = (environment: string, urls: Record<string, unknown>) =>
 describe('applyComponentEndpointUrls', () => {
   it('leaves environments untouched when the component has no Endpoints', () => {
     const environments = [env('development', [releaseBindingEntry])];
-    expect(applyComponentEndpointUrls(environments, [])).toBe(environments);
+    expect(applyComponentEndpointUrls(environments, [], main)).toBe(
+      environments,
+    );
   });
 
   it("takes a workload endpoint's URLs from its Endpoint where it is deployed", () => {
@@ -64,6 +68,7 @@ describe('applyComponentEndpointUrls', () => {
           ],
         },
       ],
+      main,
     );
 
     expect(dev.endpoints).toEqual([
@@ -108,6 +113,7 @@ describe('applyComponentEndpointUrls', () => {
           ],
         },
       ],
+      main,
     );
     expect(staging.endpoints).toEqual([releaseBindingEntry]);
   });
@@ -129,6 +135,7 @@ describe('applyComponentEndpointUrls', () => {
           ],
         },
       ],
+      main,
     );
     expect(dev.endpoints.find(e => e.name === 'admin')).toEqual(admin);
     expect(dev.endpoints.find(e => e.name === 'http')).toMatchObject({
@@ -152,6 +159,7 @@ describe('applyComponentEndpointUrls', () => {
           ],
         },
       ],
+      main,
     );
     expect(dev.endpoints[0].projectURL).toEqual({
       scheme: 'http',
@@ -178,6 +186,7 @@ describe('applyComponentEndpointUrls', () => {
           ],
         },
       ],
+      main,
     );
     expect(dev.endpoints).toEqual([
       {
@@ -203,6 +212,7 @@ describe('applyComponentEndpointUrls', () => {
           ],
         },
       ],
+      main,
     );
     expect(dev.endpoints[0].endpointName).toBe('greeter-http');
   });
@@ -225,6 +235,7 @@ describe('applyComponentEndpointUrls', () => {
           ],
         },
       ],
+      main,
     );
 
     expect(dev.endpoints[0]).toMatchObject({
@@ -239,5 +250,61 @@ describe('applyComponentEndpointUrls', () => {
     });
     // The Endpoint resolved no external URL, so the ReleaseBinding's is gone.
     expect(dev.endpoints[0].externalURLs).toBeUndefined();
+  });
+
+  it("leaves out another line's backend of a canary Endpoint", () => {
+    const canary = endpoint('greeter-http', ['http']);
+    canary.spec.backendRefs.push({
+      name: 'greeter-next-v2',
+      component: { name: 'greeter', endpoint: 'v2', releaseLine: 'next' },
+    });
+
+    const [dev] = applyComponentEndpointUrls(
+      [env('development', [releaseBindingEntry])],
+      [
+        {
+          endpoint: canary,
+          bindings: [
+            binding('development', {
+              external: { scheme: 'https', host: 'canary.example.com' },
+            }),
+          ],
+        },
+      ],
+      main,
+    );
+
+    expect(dev.endpoints.map(e => e.name)).toEqual(['http']);
+  });
+
+  it('shows the first Endpoint deployed there when two expose one workload endpoint', () => {
+    const [dev] = applyComponentEndpointUrls(
+      [env('development', [releaseBindingEntry])],
+      [
+        {
+          endpoint: endpoint('greeter-http', ['http']),
+          bindings: [
+            binding('development', {
+              external: { scheme: 'https', host: 'first.example.com' },
+            }),
+          ],
+        },
+        {
+          endpoint: endpoint('greeter-http-extra', ['http']),
+          bindings: [
+            binding('development', {
+              external: { scheme: 'https', host: 'second.example.com' },
+            }),
+          ],
+        },
+      ],
+      main,
+    );
+
+    expect(dev.endpoints).toHaveLength(1);
+    expect(dev.endpoints[0]).toMatchObject({
+      endpointName: 'greeter-http',
+      externalURLs: { https: { host: 'first.example.com' } },
+    });
   });
 });
