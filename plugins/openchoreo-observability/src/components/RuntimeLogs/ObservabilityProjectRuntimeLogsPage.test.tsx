@@ -55,6 +55,9 @@ jest.mock('./LogsTable', () => ({
       <span data-testid="component-logs-url">
         {getComponentLogsUrl?.('svc-a')}
       </span>
+      <span data-testid="release-line-logs-url">
+        {getComponentLogsUrl?.('svc-a', 'next')}
+      </span>
       <span data-testid="log-count">{logs.length}</span>
       <span data-testid="table-loading">{String(loading)}</span>
       <span data-testid="field-count">{selectedFields.length}</span>
@@ -231,6 +234,17 @@ describe('ObservabilityProjectRuntimeLogsPage', () => {
 
     expect(screen.getByTestId('component-logs-url')).toHaveTextContent(
       '/catalog/default/component/svc-a/runtime-logs?env=development&timeRange=1h&logLevel=ERROR',
+    );
+  });
+
+  it("scopes component links to each entry's release line", async () => {
+    await renderPage('/?env=development&releaseLine=canary&components=svc-a');
+
+    expect(screen.getByTestId('release-line-logs-url')).toHaveTextContent(
+      '/catalog/default/component/svc-a/runtime-logs?env=development&releaseLine=next',
+    );
+    expect(screen.getByTestId('component-logs-url')).toHaveTextContent(
+      /^\/catalog\/default\/component\/svc-a\/runtime-logs\?env=development$/,
     );
   });
 

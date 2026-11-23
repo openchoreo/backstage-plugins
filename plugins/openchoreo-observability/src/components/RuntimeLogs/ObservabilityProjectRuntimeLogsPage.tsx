@@ -67,10 +67,11 @@ const ObservabilityProjectRuntimeLogsContent = ({
   const selectedComponents = parseComponentsParam(searchParams);
 
   // Each entry's component name links to that component's logs, keeping the
-  // current environment, time range and filters.
+  // current environment, time range and filters, scoped to the entry's line.
   const catalogNamespace = entity.metadata.namespace || 'default';
   const getComponentLogsUrl = useCallback(
-    (name: string) => componentLogsUrl(catalogNamespace, name, searchParams),
+    (name: string, releaseLineName?: string) =>
+      componentLogsUrl(catalogNamespace, name, searchParams, releaseLineName),
     [catalogNamespace, searchParams],
   );
   const releaseLineColumn =

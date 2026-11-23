@@ -22,8 +22,14 @@ interface LogsTableProps {
   projectName?: string;
   componentName?: string;
   renderRowAction?: RenderLogRowAction;
-  /** Links each entry's component name to that component's logs page. */
-  getComponentLogsUrl?: (componentName: string) => string;
+  /**
+   * Links each entry's component name to that component's logs page, scoped
+   * to the entry's release line.
+   */
+  getComponentLogsUrl?: (
+    componentName: string,
+    releaseLineName?: string,
+  ) => string;
 }
 
 // Matches the height the table scroll area used to have (full viewport minus

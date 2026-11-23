@@ -125,6 +125,56 @@ describe('LogEntry', () => {
     );
   });
 
+  it("scopes the component link to the entry's release line", async () => {
+    const getComponentLogsUrl = jest.fn(
+      (name: string, releaseLineName?: string) =>
+        `/catalog/default/component/${name}/runtime-logs${
+          releaseLineName ? `?releaseLine=${releaseLineName}` : ''
+        }`,
+    );
+    await renderInTestApp(
+      <LogEntry
+        log={{
+          ...sampleLog,
+          metadata: { ...sampleLog.metadata, releaseLineName: 'next' },
+        }}
+        selectedFields={[...allFields, LogEntryField.ComponentName]}
+        expanded={false}
+        onToggleExpand={() => {}}
+        getComponentLogsUrl={getComponentLogsUrl}
+      />,
+    );
+
+    const link = screen.getByRole('link', { name: 'api-service' });
+    expect(getComponentLogsUrl).toHaveBeenCalledWith('api-service', 'next');
+    expect(link).toHaveAttribute(
+      'href',
+      '/catalog/default/component/api-service/runtime-logs?releaseLine=next',
+    );
+    expect(link).toHaveAttribute('title', 'View logs for api-service (next)');
+  });
+
+  it('passes no release line for a main-line entry', async () => {
+    const getComponentLogsUrl = jest.fn(
+      (name: string) => `/catalog/default/component/${name}/runtime-logs`,
+    );
+    await renderInTestApp(
+      <LogEntry
+        log={sampleLog}
+        selectedFields={[...allFields, LogEntryField.ComponentName]}
+        expanded={false}
+        onToggleExpand={() => {}}
+        getComponentLogsUrl={getComponentLogsUrl}
+      />,
+    );
+
+    expect(getComponentLogsUrl).toHaveBeenCalledWith('api-service', undefined);
+    expect(screen.getByRole('link', { name: 'api-service' })).toHaveAttribute(
+      'title',
+      'View logs for api-service',
+    );
+  });
+
   it('does not expand the row when the component link is clicked', async () => {
     const user = userEvent.setup();
     const onToggleExpand = jest.fn();

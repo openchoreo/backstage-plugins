@@ -72,4 +72,51 @@ describe('componentLogsUrl', () => {
       '/catalog/my%20ns/component/a%2Fb/runtime-logs',
     );
   });
+
+  describe('release lines', () => {
+    it("selects the entry's release line", () => {
+      expect(
+        componentLogsUrl('default', 'hello', params('env=development'), 'next'),
+      ).toBe(
+        '/catalog/default/component/hello/runtime-logs?env=development&releaseLine=next',
+      );
+    });
+
+    it("replaces the project's line filter with the entry's line", () => {
+      const url = componentLogsUrl(
+        'default',
+        'hello',
+        params('releaseLine=canary&timeRange=1h'),
+        'next',
+      );
+      const query = new URLSearchParams(url.split('?')[1]);
+
+      expect(query.getAll('releaseLine')).toEqual(['next']);
+      expect(query.get('timeRange')).toBe('1h');
+    });
+
+    it.each([
+      ['no line', undefined],
+      ['an empty line', ''],
+      ['the main line by name', 'main'],
+    ])(
+      "leaves a main-line entry on the component's default line (%s)",
+      (_label, releaseLineName) => {
+        expect(
+          componentLogsUrl(
+            'default',
+            'hello',
+            params('env=development&releaseLine=next'),
+            releaseLineName,
+          ),
+        ).toBe('/catalog/default/component/hello/runtime-logs?env=development');
+      },
+    );
+
+    it("does not carry the project's all-lines filter", () => {
+      expect(
+        componentLogsUrl('default', 'hello', params('releaseLine=*')),
+      ).toBe('/catalog/default/component/hello/runtime-logs');
+    });
+  });
 });

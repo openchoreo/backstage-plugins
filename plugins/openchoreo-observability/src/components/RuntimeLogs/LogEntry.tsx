@@ -9,7 +9,10 @@ import {
 } from '@material-ui/core';
 import FileCopyOutlined from '@material-ui/icons/FileCopyOutlined';
 import { Link } from '@backstage/core-components';
-import { MAIN_RELEASE_LINE } from '@openchoreo/backstage-plugin-common';
+import {
+  MAIN_RELEASE_LINE,
+  toStoredReleaseLine,
+} from '@openchoreo/backstage-plugin-common';
 import { LogEntry as LogEntryType, LogEntryField } from './types';
 import { useLogEntryStyles } from './styles';
 import { getColumnStyle } from './columns';
@@ -50,10 +53,14 @@ interface LogEntryProps {
   getLogsSnapshot?: () => LogEntryType[];
   renderRowAction?: RenderLogRowAction;
   /**
-   * Builds the link to a component's logs page. When set, the component
-   * name column links there; project-level logs supply it.
+   * Builds the link to a component's logs page, scoped to the release line
+   * that wrote the entry (undefined for the main line). When set, the
+   * component name column links there; project-level logs supply it.
    */
-  getComponentLogsUrl?: (componentName: string) => string;
+  getComponentLogsUrl?: (
+    componentName: string,
+    releaseLineName?: string,
+  ) => string;
 }
 
 export const LogEntry: FC<LogEntryProps> = ({
@@ -150,6 +157,9 @@ export const LogEntry: FC<LogEntryProps> = ({
 
           if (field === LogEntryField.ComponentName) {
             const name = log.metadata?.componentName ?? componentName ?? '';
+            const releaseLine = toStoredReleaseLine(
+              log.metadata?.releaseLineName,
+            );
             return (
               <Box
                 key={field}
@@ -158,8 +168,12 @@ export const LogEntry: FC<LogEntryProps> = ({
               >
                 {name && getComponentLogsUrl ? (
                   <Link
-                    to={getComponentLogsUrl(name)}
-                    title={`View logs for ${name}`}
+                    to={getComponentLogsUrl(name, releaseLine)}
+                    title={
+                      releaseLine
+                        ? `View logs for ${name} (${releaseLine})`
+                        : `View logs for ${name}`
+                    }
                     // Follow the link without also expanding the row.
                     onClick={event => event.stopPropagation()}
                   >
