@@ -1,9 +1,9 @@
-import type { FC } from 'react';
+import type { FC, ReactNode } from 'react';
 import { Box, Button } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
 import type { WorkloadEndpoint } from '@openchoreo/backstage-plugin-common';
-import { EndpointEditor } from '../EndpointEditor';
+import { EndpointEditor, type EndpointEditorProps } from '../EndpointEditor';
 import type { UseEndpointEditBufferResult } from '../../hooks/useEndpointEditBuffer';
 
 const useStyles = makeStyles(theme => ({
@@ -26,7 +26,49 @@ export interface EndpointListProps {
   onRemoveEndpoint: (endpointName: string) => void;
   /** Callback to add new endpoint (returns the new endpoint name) */
   onAddEndpoint: () => string;
+  /**
+   * Replaces what the Add button does, e.g. to ask how the endpoint is
+   * exposed first. The caller then adds the row and starts editing it.
+   */
+  onAddRequest?: () => void;
+  /** Leaves the Add button out, e.g. while something else takes its place. */
+  hideAddButton?: boolean;
+  /**
+   * Extra content shown inside an endpoint's row (for example how it is
+   * exposed). For the row being edited it receives the edited name and
+   * values, so it follows the form as the developer types, and as
+   * `savedName` the name the row is saved under. `isEditing` tells whether
+   * the row is open for editing, so details can be read-only otherwise.
+   */
+  renderDetails?: (
+    endpointName: string,
+    endpoint: WorkloadEndpoint,
+    savedName: string,
+    isEditing: boolean,
+  ) => ReactNode;
+  /**
+   * Further editor settings for a row, such as a header above its fields,
+   * the protocols it can take and what its visibility field says. Receives
+   * the row's saved name and its values (the edited ones while editing), so
+   * the settings follow the form as the developer types.
+   */
+  rowEditorProps?: (
+    savedName: string,
+    endpoint: WorkloadEndpoint,
+    isEditing: boolean,
+  ) => RowEditorProps | undefined;
 }
+
+/** The editor settings a list can set per row. */
+export type RowEditorProps = Pick<
+  EndpointEditorProps,
+  | 'header'
+  | 'protocolOptions'
+  | 'projectVisibilitySelectable'
+  | 'detailsBeside'
+  | 'visibilityDisabledReason'
+  | 'visibilityError'
+>;
 
 /**
  * Endpoint list with inline editing support.
@@ -38,10 +80,18 @@ export const EndpointList: FC<EndpointListProps> = ({
   editBuffer,
   onRemoveEndpoint,
   onAddEndpoint,
+  renderDetails,
+  rowEditorProps,
+  onAddRequest,
+  hideAddButton,
 }) => {
   const classes = useStyles();
 
   const handleAddEndpoint = () => {
+    if (onAddRequest) {
+      onAddRequest();
+      return;
+    }
     const newEndpointName = onAddEndpoint();
     editBuffer.startNew(newEndpointName);
   };
@@ -60,6 +110,10 @@ export const EndpointList: FC<EndpointListProps> = ({
     <Box>
       {endpointEntries.map(([endpointName, endpoint]) => {
         const isCurrentlyEditing = editBuffer.isRowEditing(endpointName);
+        const shown =
+          isCurrentlyEditing && editBuffer.editBuffer
+            ? editBuffer.editBuffer
+            : endpoint;
 
         return (
           <Box key={endpointName} className={classes.rowWrapper}>
@@ -69,11 +123,8 @@ export const EndpointList: FC<EndpointListProps> = ({
                   ? editBuffer.editBufferName
                   : endpointName
               }
-              endpoint={
-                isCurrentlyEditing && editBuffer.editBuffer
-                  ? editBuffer.editBuffer
-                  : endpoint
-              }
+              {...rowEditorProps?.(endpointName, shown, isCurrentlyEditing)}
+              endpoint={shown}
               disabled={disabled}
               isEditing={isCurrentlyEditing}
               onEdit={() => editBuffer.startEdit(endpointName)}
@@ -85,21 +136,33 @@ export const EndpointList: FC<EndpointListProps> = ({
               onChange={editBuffer.updateBuffer}
               onNameChange={editBuffer.updateBufferName}
               onRemove={() => handleRemoveEndpoint(endpointName)}
+              details={
+                isCurrentlyEditing
+                  ? renderDetails?.(
+                      editBuffer.editBufferName ?? endpointName,
+                      editBuffer.editBuffer ?? endpoint,
+                      endpointName,
+                      true,
+                    )
+                  : renderDetails?.(endpointName, endpoint, endpointName, false)
+              }
             />
           </Box>
         );
       })}
-      <Button
-        startIcon={<AddIcon />}
-        onClick={handleAddEndpoint}
-        variant="outlined"
-        size="small"
-        className={classes.addButton}
-        disabled={disabled || editBuffer.isAnyRowEditing}
-        color="primary"
-      >
-        Add Endpoint
-      </Button>
+      {!hideAddButton && (
+        <Button
+          startIcon={<AddIcon />}
+          onClick={handleAddEndpoint}
+          variant="outlined"
+          size="small"
+          className={classes.addButton}
+          disabled={disabled || editBuffer.isAnyRowEditing}
+          color="primary"
+        >
+          Add Endpoint
+        </Button>
+      )}
     </Box>
   );
 };

@@ -103,10 +103,13 @@ export interface NotificationWebhookHeaderValue {
 }
 
 /**
- * Configuration for the "webhook" notification channel type.
+ * Configuration for the "webhook" notification channel type. Exactly one of
+ * `url` and `urlFrom` is set: an inline URL, or a secret holding it (for a URL
+ * that carries a credential, such as a Slack incoming webhook).
  */
 export interface NotificationWebhookConfig {
-  url: string;
+  url?: string;
+  urlFrom?: NotificationSecretValueFrom;
   headers?: Record<string, NotificationWebhookHeaderValue>;
   payloadTemplate?: string;
   /**

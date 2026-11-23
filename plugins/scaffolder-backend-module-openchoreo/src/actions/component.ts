@@ -157,7 +157,7 @@ export const createComponentAction = (
           z
             .record(z.unknown(), {
               description:
-                'Workload details (CTD parameters, endpoints, env vars, file mounts, traits) collected by WorkloadDetailsField',
+                'Workload details (CTD parameters, env vars, file mounts, traits) collected by WorkloadDetailsField',
             })
             .optional(),
         repo_url: z =>
@@ -327,8 +327,8 @@ export const createComponentAction = (
           config: trait.config,
         }));
 
-        // Extract workload data from workloadDetails
-        const workloadEndpoints = workloadDetails?.endpoints;
+        // Extract workload data from workloadDetails. Endpoints are not
+        // collected at creation; they are defined on the configure page.
         const workloadEnvVars = workloadDetails?.envVars;
         const workloadFileMounts = workloadDetails?.fileMounts;
 
@@ -530,19 +530,13 @@ export const createComponentAction = (
         //
         // The Workload CRD requires `image` (Required, MinLength=1) on Container,
         // so env vars and file mounts can only be included when there's an image.
-        // Endpoints live at the spec level and don't require a container.
         const containerImage = (ctx.input as any).containerImage;
-        const hasEndpoints =
-          workloadEndpoints && Object.keys(workloadEndpoints).length > 0;
         const hasEnvVars = workloadEnvVars && workloadEnvVars.length > 0;
         const hasFileMounts =
           workloadFileMounts && workloadFileMounts.length > 0;
-        const hasWorkloadData = hasEndpoints || hasEnvVars || hasFileMounts;
+        const hasWorkloadData = hasEnvVars || hasFileMounts;
 
         if ((isFromImage && containerImage) || hasWorkloadData) {
-          // Extract port from CTD parameters if available (legacy fallback)
-          const port = ctdParameters.port as number | undefined;
-
           // For non-image deployments, only pass env vars and file mounts if
           // there's also an image, since the CRD requires image on Container.
           const effectiveContainerImage = isFromImage
@@ -553,8 +547,6 @@ export const createComponentAction = (
             namespaceName: namespaceName,
             projectName: projectName,
             containerImage: effectiveContainerImage,
-            port: port,
-            endpoints: workloadEndpoints,
             envVars: effectiveContainerImage ? workloadEnvVars : undefined,
             fileMounts: effectiveContainerImage
               ? workloadFileMounts

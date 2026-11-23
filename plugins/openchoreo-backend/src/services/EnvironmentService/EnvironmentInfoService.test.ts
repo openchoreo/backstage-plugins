@@ -447,12 +447,19 @@ describe('EnvironmentInfoService', () => {
         createOkResponse({ items: [otherComponentBinding] }),
       );
 
+      const beforeDelete = jest.fn();
       await expect(
-        createService().deleteReleaseBinding(lineRequest, 'token'),
+        createService().deleteReleaseBinding(
+          lineRequest,
+          'token',
+          beforeDelete,
+        ),
       ).rejects.toThrow(
         'No release binding of release line b-c of component a in environment staging',
       );
       expect(mockDELETE).not.toHaveBeenCalled();
+      // The component's Endpoints stay when there's no deployment to remove.
+      expect(beforeDelete).not.toHaveBeenCalled();
     });
 
     it('promotes into the line binding by its own name', async () => {

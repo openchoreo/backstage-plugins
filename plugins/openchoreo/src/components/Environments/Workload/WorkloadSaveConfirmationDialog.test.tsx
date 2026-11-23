@@ -78,4 +78,20 @@ describe('WorkloadSaveConfirmationDialog', () => {
       'the lowest environment',
     );
   });
+
+  it('lists Endpoint changes in their own section', () => {
+    render(
+      <WorkloadSaveConfirmationDialog
+        {...baseProps}
+        endpointChanges={[
+          {
+            path: 'new Endpoint for api',
+            type: 'new',
+            newValue: 'unmanaged-http, external',
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByText('Endpoint resources')).toBeInTheDocument();
+  });
 });

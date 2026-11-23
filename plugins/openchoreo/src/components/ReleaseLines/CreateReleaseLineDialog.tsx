@@ -113,7 +113,8 @@ export function CreateReleaseLineDialog({
         <Alert severity="info">
           Overrides of the component's parameters, traits, build parameters and
           auto deploy are made once the release line is created, from within the
-          release line.
+          release line. The release line starts without Endpoints: its configure
+          page offers the component's Endpoints to review and save for it.
         </Alert>
       </DialogContent>
       <DialogActions>

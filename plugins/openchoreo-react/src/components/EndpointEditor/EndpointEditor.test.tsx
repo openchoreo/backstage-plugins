@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import type { WorkloadEndpoint } from '@openchoreo/backstage-plugin-common';
 import { EndpointEditor } from './EndpointEditor';
@@ -10,6 +11,13 @@ function renderEditor(
     editDisabled: boolean;
     deleteDisabled: boolean;
     applyDisabled: boolean;
+    details: ReactNode;
+    visibilityDisabledReason: string;
+    visibilityError: string;
+    header: ReactNode;
+    protocolOptions: string[];
+    projectVisibilitySelectable: boolean;
+    detailsBeside: boolean;
   }> = {},
 ) {
   const handlers = {
@@ -34,6 +42,13 @@ function renderEditor(
       editDisabled={overrides.editDisabled}
       deleteDisabled={overrides.deleteDisabled}
       applyDisabled={overrides.applyDisabled}
+      details={overrides.details}
+      visibilityDisabledReason={overrides.visibilityDisabledReason}
+      visibilityError={overrides.visibilityError}
+      header={overrides.header}
+      protocolOptions={overrides.protocolOptions}
+      projectVisibilitySelectable={overrides.projectVisibilitySelectable}
+      detailsBeside={overrides.detailsBeside}
       {...handlers}
     />,
   );
@@ -108,6 +123,189 @@ describe('EndpointEditor', () => {
       expect(
         screen.getByRole('button', { name: /save changes/i }),
       ).toBeDisabled();
+    });
+  });
+  describe('details', () => {
+    it('shows the details under the read-only summary', () => {
+      renderEditor({ details: <span>exposed via http-route</span> });
+      expect(screen.getByText('exposed via http-route')).toBeInTheDocument();
+      expect(screen.getByText('http')).toBeInTheDocument();
+    });
+
+    it('shows the details in the edit form too', () => {
+      renderEditor({
+        isEditing: true,
+        details: <span>exposed via http-route</span>,
+      });
+      expect(screen.getByText('exposed via http-route')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /save changes/i }),
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe('visibilityDisabledReason', () => {
+    it('blocks adding visibility beyond project but allows clearing it', () => {
+      renderEditor({
+        isEditing: true,
+        endpoint: { type: 'TCP', port: 9000, visibility: ['external'] },
+        visibilityDisabledReason: 'No endpoint type is allowed for TCP.',
+      });
+
+      expect(
+        screen.getByText('No endpoint type is allowed for TCP.'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('checkbox', { name: 'Namespace' }),
+      ).toBeDisabled();
+      expect(screen.getByRole('checkbox', { name: 'Internal' })).toBeDisabled();
+      expect(screen.getByRole('checkbox', { name: 'External' })).toBeEnabled();
+    });
+  });
+
+  describe('header', () => {
+    it('shows the header above the name while editing only', () => {
+      renderEditor({ isEditing: true, header: <span>exposed as</span> });
+      const header = screen.getByText('exposed as');
+      const name = screen.getByDisplayValue('http');
+      expect(
+        // eslint-disable-next-line no-bitwise
+        header.compareDocumentPosition(name) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    it('leaves the header out of the read-only summary', () => {
+      renderEditor({ header: <span>exposed as</span> });
+      expect(screen.queryByText('exposed as')).toBeNull();
+    });
+  });
+
+  describe('protocolOptions', () => {
+    it('offers only the given protocols', async () => {
+      renderEditor({
+        isEditing: true,
+        endpoint: { type: 'HTTP', port: 8080 },
+        protocolOptions: ['HTTP', 'GraphQL'],
+      });
+      fireEvent.mouseDown(screen.getByRole('button', { name: /Protocol/ }));
+      const options = await screen.findAllByRole('option');
+      expect(options.map(o => o.textContent)).toEqual(['HTTP', 'GraphQL']);
+    });
+
+    it('fixes the protocol when only one is allowed', () => {
+      renderEditor({
+        isEditing: true,
+        endpoint: { type: 'gRPC', port: 9090 },
+        protocolOptions: ['gRPC'],
+      });
+      expect(screen.getByRole('button', { name: /Protocol/ })).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
+    });
+  });
+
+  describe('visibilityError', () => {
+    it('shows the error under the visibility field', () => {
+      renderEditor({
+        isEditing: true,
+        visibilityError: 'Select a visibility beyond Project.',
+      });
+      expect(
+        screen.getByText('Select a visibility beyond Project.'),
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe('project visibility', () => {
+    it('is fixed and always on by default', () => {
+      renderEditor({
+        isEditing: true,
+        endpoint: { type: 'HTTP', port: 8080, visibility: ['external'] },
+      });
+      const project = screen.getByRole('checkbox', { name: 'Project' });
+      expect(project).toBeChecked();
+      expect(project).toBeDisabled();
+    });
+
+    it('can be chosen like the others when selectable', () => {
+      const { onChange } = renderEditor({
+        isEditing: true,
+        endpoint: { type: 'HTTP', port: 8080, visibility: ['external'] },
+        projectVisibilitySelectable: true,
+      });
+      const project = screen.getByRole('checkbox', { name: 'Project' });
+      expect(project).not.toBeChecked();
+      expect(project).toBeEnabled();
+
+      fireEvent.click(project);
+      expect(onChange).toHaveBeenCalledWith('visibility', [
+        'external',
+        'project',
+      ]);
+    });
+
+    it('shows only the chosen visibilities in the summary when selectable', () => {
+      renderEditor({
+        endpoint: { type: 'HTTP', port: 8080, visibility: ['external'] },
+        projectVisibilitySelectable: true,
+      });
+      expect(screen.getByText(/HTTP : 8080/)).toHaveTextContent(/· External$/);
+    });
+  });
+
+  describe('schema field', () => {
+    it('says the schema is optional when there is none', () => {
+      renderEditor({ isEditing: true });
+      expect(screen.getByPlaceholderText('OpenAPI (optional)')).toHaveValue('');
+      expect(screen.getByLabelText('Edit schema')).toBeInTheDocument();
+    });
+
+    it('marks a missing gRPC schema as required', () => {
+      renderEditor({ isEditing: true, endpoint: { type: 'gRPC', port: 9090 } });
+      expect(
+        screen.getByPlaceholderText('Protobuf (required)'),
+      ).toBeInTheDocument();
+      expect(screen.getByText('Required')).toBeInTheDocument();
+    });
+
+    it('sums up a schema that is set', () => {
+      renderEditor({
+        isEditing: true,
+        endpoint: {
+          type: 'HTTP',
+          port: 8080,
+          schema: { type: 'openapi', content: 'openapi: 3.0.0\ninfo: {}' },
+        },
+      });
+      expect(screen.getByDisplayValue('OpenAPI · 2 lines')).toBeInTheDocument();
+    });
+  });
+
+  describe('details beside the fields', () => {
+    it('puts the details in a half of their own while editing', () => {
+      renderEditor({
+        isEditing: true,
+        details: <span>parameters here</span>,
+        detailsBeside: true,
+      });
+      const details = screen.getByText('parameters here');
+      const name = screen.getByLabelText('Name');
+      // The details aren't inside the fields' half.
+      const fieldsHalf = name.closest('[class*="splitMain"]');
+      expect(fieldsHalf).not.toBeNull();
+      expect(fieldsHalf).not.toContainElement(details);
+      expect(details.closest('[class*="splitSide"]')).not.toBeNull();
+    });
+
+    it('keeps the details under the fields otherwise', () => {
+      renderEditor({
+        isEditing: true,
+        details: <span>parameters here</span>,
+      });
+      expect(
+        screen.getByText('parameters here').closest('[class*="splitSide"]'),
+      ).toBeNull();
     });
   });
 });

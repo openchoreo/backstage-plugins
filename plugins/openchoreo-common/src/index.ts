@@ -25,6 +25,7 @@ export {
 export {
   CHOREO_ANNOTATIONS,
   CHOREO_LABELS,
+  ENDPOINT_SCOPE,
   GENERIC_SECRET_TYPE_VALUE,
   GIT_SECRET_TYPE_VALUE,
   RELATION_DEPLOYS_TO,
@@ -204,9 +205,53 @@ export {
   isEndpointBackendWeight,
 } from './utils/endpointBackends';
 export {
+  NO_ENDPOINT,
+  LEGACY_ENDPOINTS_ANNOTATION,
+  isLegacyEndpointsComponentType,
   endpointProtocol,
+  endpointTypeKey,
+  parseEndpointTypeKey,
+  exposableVisibilities,
+  endpointVisibilities,
+  endpointTypeCandidates,
+  endpointTypeOptions,
+  endpointTypeProtocols,
+  protocolForEndpointType,
+  defaultEndpointType,
+  resolveEndpointType,
+  workloadEndpointsForSave,
+  type AllowedEndpointTypeEntry,
+  type EndpointTypeKind,
+  type EndpointTypeOption,
   type ExposableEndpoint,
+  type EndpointExposureChoice,
+  type EndpointExposures,
 } from './utils/endpointExposure';
+export {
+  endpointManagingComponent,
+  endpointManagingReleaseLine,
+  type EndpointOwner,
+} from './utils/endpointOwnership';
+export {
+  toDnsLabel,
+  componentEndpointName,
+  buildComponentEndpoint,
+  releaseLineEndpointInputs,
+  type ComponentEndpointInput,
+  type ComponentEndpointSummary,
+  type ReleaseLineEndpointTarget,
+} from './utils/componentEndpoint';
+export {
+  planEndpointFollow,
+  emptyEndpointFollowResult,
+  checkPromotion,
+  promotionBlockedMessage,
+  type PromotionBlocker,
+  type EndpointFollowAction,
+  type EndpointFollowResult,
+  type EndpointFollowStep,
+  type FollowingEndpoint,
+} from './utils/endpointFollow';
 
 // Feature flags types
 export type { OpenChoreoFeatures, FeatureName } from './types/features';

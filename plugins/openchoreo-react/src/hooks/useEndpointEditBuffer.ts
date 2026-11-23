@@ -187,10 +187,11 @@ export function useEndpointEditBuffer(
       return;
     }
 
-    // If name changed and this is not a new endpoint, we need to handle rename
+    // A renamed row drops its old key. A new row's key is in the parent's
+    // endpoints too (the list adds it before editing starts, and cancelling
+    // removes it), so it's dropped the same way.
     const nameChanged = endpointName !== editBufferName;
-    const oldNameToRemove =
-      nameChanged && !editingRow.isNew ? endpointName : undefined;
+    const oldNameToRemove = nameChanged ? endpointName : undefined;
 
     if (onEndpointReplace) {
       onEndpointReplace(editBufferName, editBuffer, oldNameToRemove);

@@ -1,8 +1,14 @@
-import { useEffect, useMemo, useState, type FC } from 'react';
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useState,
+  type FC,
+  type ReactNode,
+} from 'react';
 import {
   TextField,
   IconButton,
-  Grid,
   Box,
   Typography,
   Button,
@@ -14,6 +20,7 @@ import {
   FormControlLabel,
   Checkbox,
   InputLabel,
+  InputAdornment,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -57,6 +64,16 @@ const useStyles = makeStyles((theme: Theme) => ({
     backgroundColor: theme.palette.background.default,
     boxShadow: `0 0 0 1px ${theme.palette.primary.main}`,
   },
+  header: {
+    marginBottom: theme.spacing(1.5),
+    paddingBottom: theme.spacing(1.5),
+    borderBottom: `1px dashed ${theme.palette.divider}`,
+  },
+  details: {
+    marginTop: theme.spacing(1),
+    paddingTop: theme.spacing(1),
+    borderTop: `1px dashed ${theme.palette.divider}`,
+  },
   readOnlyName: {
     fontWeight: 600,
     fontSize: '0.875rem',
@@ -73,8 +90,76 @@ const useStyles = makeStyles((theme: Theme) => ({
     alignItems: 'center',
     padding: theme.spacing(0.5, 0),
   },
-  nameField: {
+  fieldRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'flex-start',
+    gap: theme.spacing(1.5),
     marginBottom: theme.spacing(1.5),
+  },
+  nameInput: {
+    flex: '1 1 200px',
+    minWidth: 160,
+  },
+  protocolInput: {
+    width: 140,
+  },
+  portInput: {
+    width: 110,
+  },
+  schemaInput: {
+    flex: '0 1 240px',
+    minWidth: 200,
+  },
+  split: {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
+    [theme.breakpoints.down('sm')]: {
+      gridTemplateColumns: 'minmax(0, 1fr)',
+    },
+  },
+  splitMain: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: theme.spacing(1.5),
+    paddingRight: theme.spacing(3),
+    [theme.breakpoints.down('sm')]: {
+      paddingRight: 0,
+    },
+  },
+  pair: {
+    display: 'flex',
+    gap: theme.spacing(1.5),
+  },
+  grow: {
+    flex: 1,
+    minWidth: 0,
+  },
+  // The details take the fields' height and scroll within it.
+  splitSide: {
+    position: 'relative',
+    minHeight: 240,
+    borderLeft: `1px solid ${theme.palette.divider}`,
+    [theme.breakpoints.down('sm')]: {
+      borderLeft: 'none',
+      borderTop: `1px solid ${theme.palette.divider}`,
+      marginTop: theme.spacing(2),
+      minHeight: 0,
+    },
+  },
+  splitSideScroll: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    overflowY: 'auto',
+    padding: theme.spacing(0, 1, 0, 3),
+    [theme.breakpoints.down('sm')]: {
+      position: 'static',
+      maxHeight: 400,
+      padding: theme.spacing(2, 0, 0),
+    },
   },
   visibilityFieldset: {
     border: `1px solid ${theme.palette.divider}`,
@@ -82,11 +167,6 @@ const useStyles = makeStyles((theme: Theme) => ({
     padding: theme.spacing(0.5, 1),
     margin: 0,
     marginBottom: theme.spacing(0.5),
-  },
-  schemaContentField: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: theme.spacing(0.5),
   },
   schemaEditor: {
     border: `1px solid ${theme.palette.divider}`,
@@ -122,6 +202,26 @@ const ENDPOINT_TYPE_TO_SCHEMA_TYPE: Record<string, string> = {
 
 const SCHEMA_REQUIRED_TYPES = new Set(['gRPC']);
 
+/**
+ * The field changes that set a workload endpoint's protocol: the deprecated
+ * type written alongside, so readers of either field agree (the API keeps
+ * the two equal), and the protocol's schema format when it has one.
+ */
+export function endpointProtocolChanges(
+  endpoint: WorkloadEndpoint,
+  protocol: string,
+): Array<[keyof WorkloadEndpoint, unknown]> {
+  const changes: Array<[keyof WorkloadEndpoint, unknown]> = [
+    ['protocol', protocol],
+    ['type', protocol],
+  ];
+  const schemaType = ENDPOINT_TYPE_TO_SCHEMA_TYPE[protocol];
+  if (schemaType) {
+    changes.push(['schema', { ...endpoint.schema, type: schemaType }]);
+  }
+  return changes;
+}
+
 const SCHEMA_TYPE_DISPLAY_NAMES: Record<string, string> = {
   openapi: 'OpenAPI',
   asyncapi: 'AsyncAPI',
@@ -146,18 +246,12 @@ const VISIBILITY_LABELS: Record<string, string> = {
 const VISIBILITY_OPTIONS: ReadonlyArray<{
   value: string;
   label: string;
-  disabled: boolean;
   alwaysSelected?: boolean;
 }> = [
-  {
-    value: 'project',
-    label: VISIBILITY_LABELS.project,
-    disabled: true,
-    alwaysSelected: true,
-  },
-  { value: 'namespace', label: VISIBILITY_LABELS.namespace, disabled: false },
-  { value: 'internal', label: VISIBILITY_LABELS.internal, disabled: false },
-  { value: 'external', label: VISIBILITY_LABELS.external, disabled: false },
+  { value: 'project', label: VISIBILITY_LABELS.project, alwaysSelected: true },
+  { value: 'namespace', label: VISIBILITY_LABELS.namespace },
+  { value: 'internal', label: VISIBILITY_LABELS.internal },
+  { value: 'external', label: VISIBILITY_LABELS.external },
 ];
 
 /** Dialog for editing schema content with syntax highlighting */
@@ -259,6 +353,37 @@ export interface EndpointEditorProps {
   onNameChange: (name: string) => void;
   /** Callback when the endpoint should be removed */
   onRemove: () => void;
+  /**
+   * Extra content shown inside the endpoint's card (for example how the
+   * endpoint is exposed): under the summary in read-only mode, and under the
+   * schema content field while editing.
+   */
+  details?: ReactNode;
+  /**
+   * When set, visibilities beyond project cannot be added and this reason is
+   * shown under the visibility field; ones already selected can still be
+   * cleared.
+   */
+  visibilityDisabledReason?: string;
+  /** Shown as an error under the visibility field, e.g. a missing choice. */
+  visibilityError?: string;
+  /**
+   * Content shown at the top of the edit form, above the name (for example
+   * how the endpoint is exposed, which decides the fields below it).
+   */
+  header?: ReactNode;
+  /** The protocols the endpoint can take; every protocol when unset. */
+  protocolOptions?: readonly string[];
+  /**
+   * Lets project visibility be chosen like the others instead of being fixed
+   * and always on.
+   */
+  projectVisibilitySelectable?: boolean;
+  /**
+   * Shows the details beside the fields while editing, in a half of their
+   * own that scrolls, instead of under them.
+   */
+  detailsBeside?: boolean;
 }
 
 /**
@@ -280,8 +405,16 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
   onChange,
   onNameChange,
   onRemove,
+  details,
+  visibilityDisabledReason,
+  visibilityError,
+  header,
+  protocolOptions,
+  projectVisibilitySelectable,
+  detailsBeside,
 }) => {
   const classes = useStyles();
+  const fieldId = `endpoint-${useId().replace(/:/g, '')}`;
   const [schemaDialogOpen, setSchemaDialogOpen] = useState(false);
 
   const protocol = endpointProtocol(endpoint) || 'HTTP';
@@ -291,19 +424,14 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
     ? SCHEMA_TYPE_DISPLAY_NAMES[schemaType]
     : undefined;
 
-  let schemaHelperText = 'Optional';
-  if (isSchemaRequired) {
-    schemaHelperText = `Required - ${schemaDisplayName} schema`;
-  } else if (schemaDisplayName) {
-    schemaHelperText = `${schemaDisplayName} schema (optional)`;
-  }
-
   // Read-only display
   if (!isEditing) {
-    return (
+    const row = (
       <Box
         className={
-          className || `${classes.container} ${classes.readOnlyContainer}`
+          details
+            ? classes.readOnlyContainer
+            : className || `${classes.container} ${classes.readOnlyContainer}`
         }
       >
         <Box flex={1} className={classes.readOnlyContent}>
@@ -314,9 +442,10 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
             {protocol} : {endpoint.port}
             {(() => {
               const vis = endpoint.visibility ?? [];
-              const displayVis = vis.includes('project')
-                ? vis
-                : ['project', ...vis];
+              const displayVis =
+                vis.includes('project') || projectVisibilitySelectable
+                  ? vis
+                  : ['project', ...vis];
               return displayVis.length > 0 ? (
                 <>
                   {' '}
@@ -340,172 +469,248 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
         />
       </Box>
     );
+    if (!details) {
+      return row;
+    }
+    return (
+      <Box className={className || classes.container}>
+        {row}
+        <Box className={classes.details}>{details}</Box>
+      </Box>
+    );
   }
 
-  // Edit mode
-  return (
-    <Box className={className || classes.containerEditing}>
-      <TextField
-        label="Endpoint Name"
-        value={endpointName || ''}
-        onChange={e => onNameChange(e.target.value)}
-        fullWidth
-        variant="outlined"
-        size="small"
-        disabled={disabled}
-        className={classes.nameField}
-      />
-      <Grid container spacing={1} alignItems="center">
-        <Grid item xs={6}>
-          <FormControl fullWidth variant="outlined" size="small">
-            <InputLabel>Type</InputLabel>
-            <Select
-              value={protocol}
-              onChange={e => {
-                const newType = e.target.value as string;
-                // The deprecated type is written alongside so readers of
-                // either field agree; the API keeps the two equal.
-                onChange('protocol', newType);
-                onChange('type', newType);
-                const suggestedSchemaType =
-                  ENDPOINT_TYPE_TO_SCHEMA_TYPE[newType];
-                if (suggestedSchemaType) {
-                  onChange('schema', {
-                    ...endpoint.schema,
-                    type: suggestedSchemaType,
-                  });
-                }
-              }}
-              label="Type"
-              disabled={disabled}
-            >
-              {PROTOCOL_TYPES.map(type => (
-                <MenuItem key={type} value={type}>
-                  {type}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-        <Grid item xs={6}>
-          <TextField
-            label="Port"
-            type="number"
-            value={endpoint.port || ''}
-            onChange={e => onChange('port', parseInt(e.target.value, 10) || 0)}
-            fullWidth
-            variant="outlined"
-            size="small"
-            disabled={disabled}
-          />
-        </Grid>
-        <Grid item xs={12}>
-          <FormControl
-            component="fieldset"
-            size="small"
-            fullWidth
-            disabled={disabled}
-            className={classes.visibilityFieldset}
-          >
-            <FormLabel
-              component="legend"
-              style={{ fontSize: '0.75rem', padding: '0 4px' }}
-            >
-              Visibility
-            </FormLabel>
-            <FormGroup row>
-              {VISIBILITY_OPTIONS.map(opt => {
-                const currentVisibility = endpoint.visibility ?? [];
-                const isChecked =
-                  opt.alwaysSelected ||
-                  (currentVisibility as string[]).includes(opt.value);
-                return (
-                  <FormControlLabel
-                    key={opt.value}
-                    control={
-                      <Checkbox
-                        checked={isChecked}
-                        onChange={() => {
-                          if (opt.alwaysSelected || opt.disabled) return;
-                          const next = isChecked
-                            ? currentVisibility.filter(v => v !== opt.value)
-                            : [...currentVisibility, opt.value];
-                          onChange('visibility', next);
-                        }}
-                        size="small"
-                        color="primary"
-                      />
-                    }
-                    label={opt.label}
-                    disabled={disabled || opt.disabled}
-                  />
-                );
-              })}
-            </FormGroup>
-          </FormControl>
-        </Grid>
-        <Grid item xs={12}>
-          <Box className={classes.schemaContentField}>
-            <TextField
-              label="Schema Content"
-              value={
-                endpoint.schema?.content
-                  ? `${endpoint.schema.content.substring(0, 60)}${
-                      endpoint.schema.content.length > 60 ? '...' : ''
-                    }`
-                  : ''
-              }
-              fullWidth
-              variant="outlined"
-              size="small"
-              disabled
-              placeholder={
-                schemaDisplayName
-                  ? `Paste your ${schemaDisplayName} schema`
-                  : 'Optional - click to add'
-              }
-              error={isSchemaRequired && !endpoint.schema?.content?.trim()}
-              helperText={schemaHelperText}
-              InputProps={{
-                readOnly: true,
-              }}
-            />
+  // Edit mode: name, protocol, port and schema on one row, each sized to
+  // what it holds, then visibility.
+  const protocols: readonly string[] = protocolOptions ?? PROTOCOL_TYPES;
+  const schemaContent = endpoint.schema?.content?.trim() ?? '';
+  const schemaLines = schemaContent ? schemaContent.split('\n').length : 0;
+  const schemaMissing = isSchemaRequired && !schemaContent;
+  const schemaSummary = schemaContent
+    ? `${schemaDisplayName ?? 'Schema'} · ${schemaLines} ${
+        schemaLines === 1 ? 'line' : 'lines'
+      }`
+    : '';
+  const schemaPlaceholder = `${schemaDisplayName ?? 'Schema'} (${
+    isSchemaRequired ? 'required' : 'optional'
+  })`;
+  // Beside its details (e.g. an Endpoint type's parameters), the form is two
+  // halves split by a line: the endpoint's own fields stacked on the left,
+  // the details on the right, scrolling within the left half's height.
+  const besideDetails = !!detailsBeside && !!details;
+  const nameField = (
+    <TextField
+      id={`${fieldId}-name`}
+      label="Name"
+      value={endpointName || ''}
+      onChange={e => onNameChange(e.target.value)}
+      variant="outlined"
+      size="small"
+      disabled={disabled}
+      className={besideDetails ? undefined : classes.nameInput}
+      fullWidth={besideDetails}
+    />
+  );
+  const protocolField = (
+    <FormControl
+      variant="outlined"
+      size="small"
+      className={besideDetails ? classes.grow : classes.protocolInput}
+    >
+      <InputLabel id={`${fieldId}-protocol`}>Protocol</InputLabel>
+      <Select
+        labelId={`${fieldId}-protocol`}
+        value={protocol}
+        onChange={e => {
+          for (const [field, value] of endpointProtocolChanges(
+            endpoint,
+            e.target.value as string,
+          )) {
+            onChange(field, value);
+          }
+        }}
+        label="Protocol"
+        // One protocol leaves nothing to choose.
+        disabled={disabled || protocols.length <= 1}
+      >
+        {protocols.map(type => (
+          <MenuItem key={type} value={type}>
+            {type}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+  );
+  const portField = (
+    <TextField
+      id={`${fieldId}-port`}
+      label="Port"
+      type="number"
+      value={endpoint.port || ''}
+      onChange={e => onChange('port', parseInt(e.target.value, 10) || 0)}
+      variant="outlined"
+      size="small"
+      disabled={disabled}
+      inputProps={{ min: 1, max: 65535 }}
+      className={besideDetails ? classes.grow : classes.portInput}
+    />
+  );
+  const schemaField = (
+    <TextField
+      id={`${fieldId}-schema`}
+      label="Schema"
+      value={schemaSummary}
+      placeholder={schemaPlaceholder}
+      variant="outlined"
+      size="small"
+      error={schemaMissing}
+      helperText={schemaMissing ? 'Required' : undefined}
+      className={besideDetails ? undefined : classes.schemaInput}
+      fullWidth={besideDetails}
+      InputLabelProps={{ shrink: true }}
+      InputProps={{
+        readOnly: true,
+        endAdornment: (
+          <InputAdornment position="end">
             <IconButton
               size="small"
+              edge="end"
               onClick={() => setSchemaDialogOpen(true)}
               disabled={disabled}
               aria-label="Edit schema"
             >
               <EditIcon fontSize="small" />
             </IconButton>
+          </InputAdornment>
+        ),
+      }}
+    />
+  );
+  const visibilityField = (
+    <FormControl
+      component="fieldset"
+      size="small"
+      fullWidth
+      disabled={disabled}
+      className={classes.visibilityFieldset}
+    >
+      <FormLabel
+        component="legend"
+        style={{ fontSize: '0.75rem', padding: '0 4px' }}
+      >
+        Visibility
+      </FormLabel>
+      <FormGroup row>
+        {VISIBILITY_OPTIONS.map(opt => {
+          const currentVisibility = endpoint.visibility ?? [];
+          // Project is fixed and always on, unless the endpoint lets
+          // it be chosen like the others.
+          const fixed = !!opt.alwaysSelected && !projectVisibilitySelectable;
+          const isChecked =
+            fixed || (currentVisibility as string[]).includes(opt.value);
+          const blocked = !!visibilityDisabledReason && !isChecked;
+          return (
+            <FormControlLabel
+              key={opt.value}
+              control={
+                <Checkbox
+                  checked={isChecked}
+                  onChange={() => {
+                    if (fixed) return;
+                    const next = isChecked
+                      ? currentVisibility.filter(v => v !== opt.value)
+                      : [...currentVisibility, opt.value];
+                    onChange('visibility', next);
+                  }}
+                  size="small"
+                  color="primary"
+                />
+              }
+              label={opt.label}
+              disabled={disabled || fixed || blocked}
+            />
+          );
+        })}
+      </FormGroup>
+      {visibilityDisabledReason && (
+        <Typography variant="caption" color="textSecondary">
+          {visibilityDisabledReason}
+        </Typography>
+      )}
+      {visibilityError && (
+        <Typography variant="caption" color="error">
+          {visibilityError}
+        </Typography>
+      )}
+    </FormControl>
+  );
+  const schemaDialog = (
+    <SchemaContentDialog
+      open={schemaDialogOpen}
+      content={endpoint.schema?.content || ''}
+      schemaType={endpoint.schema?.type}
+      required={isSchemaRequired}
+      onApply={content => {
+        onChange('schema', {
+          ...endpoint.schema,
+          content,
+        });
+        setSchemaDialogOpen(false);
+      }}
+      onClose={() => setSchemaDialogOpen(false)}
+    />
+  );
+  const actions = (
+    <EditRowActions
+      isEditing
+      itemLabel="endpoint"
+      onEdit={onEdit}
+      onApply={onApply}
+      onCancel={onCancel ?? (() => {})}
+      onRemove={onRemove}
+      disabled={disabled}
+      applyDisabled={applyDisabled}
+      hideCancel={!onCancel}
+    />
+  );
+
+  if (besideDetails) {
+    return (
+      <Box className={className || classes.containerEditing}>
+        {header && <Box className={classes.header}>{header}</Box>}
+        <Box className={classes.split}>
+          <Box className={classes.splitMain}>
+            {nameField}
+            <Box className={classes.pair}>
+              {protocolField}
+              {portField}
+            </Box>
+            {schemaField}
+            {visibilityField}
           </Box>
-          <SchemaContentDialog
-            open={schemaDialogOpen}
-            content={endpoint.schema?.content || ''}
-            schemaType={endpoint.schema?.type}
-            required={isSchemaRequired}
-            onApply={content => {
-              onChange('schema', {
-                ...endpoint.schema,
-                content,
-              });
-              setSchemaDialogOpen(false);
-            }}
-            onClose={() => setSchemaDialogOpen(false)}
-          />
-        </Grid>
-      </Grid>
-      <EditRowActions
-        isEditing
-        itemLabel="endpoint"
-        onEdit={onEdit}
-        onApply={onApply}
-        onCancel={onCancel ?? (() => {})}
-        onRemove={onRemove}
-        disabled={disabled}
-        applyDisabled={applyDisabled}
-        hideCancel={!onCancel}
-      />
+          <Box className={classes.splitSide}>
+            <Box className={classes.splitSideScroll}>{details}</Box>
+          </Box>
+        </Box>
+        {schemaDialog}
+        {actions}
+      </Box>
+    );
+  }
+
+  return (
+    <Box className={className || classes.containerEditing}>
+      {header && <Box className={classes.header}>{header}</Box>}
+      <Box className={classes.fieldRow}>
+        {nameField}
+        {protocolField}
+        {portField}
+        {schemaField}
+      </Box>
+      {visibilityField}
+      {schemaDialog}
+      {details && <Box className={classes.details}>{details}</Box>}
+      {actions}
     </Box>
   );
 };

@@ -86,7 +86,10 @@ describe('useProjectContentFacets', () => {
     );
     expect(mockCatalogApi.getEntityFacets).toHaveBeenCalledWith(
       expect.objectContaining({
-        filter: expect.objectContaining({ kind: 'Endpoint' }),
+        filter: expect.objectContaining({
+          kind: 'Endpoint',
+          'metadata.labels.openchoreo.io/endpoint-scope': 'project',
+        }),
         facets: ['spec.type'],
       }),
     );

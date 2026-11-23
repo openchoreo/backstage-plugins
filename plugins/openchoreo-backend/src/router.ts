@@ -8,6 +8,7 @@ import {
 import express from 'express';
 import Router from 'express-promise-router';
 import { EnvironmentInfoService } from './services/EnvironmentService/EnvironmentInfoService';
+import { ComponentEndpointFollowService } from './services/EnvironmentService/ComponentEndpointFollowService';
 import { BuildInfoService } from './services/BuildService/BuildInfoService';
 import {
   CellDiagramService,
@@ -54,6 +55,8 @@ import {
   reservedReleaseLineNameError,
   toStoredReleaseLine,
   type ReleaseLineResource,
+  emptyEndpointFollowResult,
+  type EndpointFollowResult,
 } from '@openchoreo/backstage-plugin-common';
 import {
   translateReleaseLineToEntity,
@@ -129,6 +132,7 @@ export async function createRouter({
   clusterResourceTypeInfoService,
   resourceReleaseInfoService,
   endpointInfoService,
+  componentEndpointFollowService,
   projectReleaseInfoService,
   secretReferencesInfoService,
   secretsService,
@@ -162,6 +166,7 @@ export async function createRouter({
   clusterResourceTypeInfoService: ClusterResourceTypeInfoService;
   resourceReleaseInfoService: ResourceReleaseInfoService;
   endpointInfoService: EndpointInfoService;
+  componentEndpointFollowService: ComponentEndpointFollowService;
   projectReleaseInfoService: ProjectReleaseInfoService;
   secretReferencesInfoService: SecretReferencesService;
   secretsService: SecretsService;
@@ -182,6 +187,31 @@ export async function createRouter({
   wirelogsStreamTimeoutMs: number;
   logger: LoggerService;
 }): Promise<express.Router> {
+  /**
+   * Runs the step that takes a component's Endpoints with it. The component's
+   * own change has already been made, so a failure here is reported with the
+   * result rather than failing the request.
+   */
+  const followEndpoints = async (
+    step: () => Promise<EndpointFollowResult>,
+  ): Promise<EndpointFollowResult> => {
+    try {
+      return await step();
+    } catch (error) {
+      logger.warn(
+        `The component's Endpoints couldn't follow it: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      const result = emptyEndpointFollowResult();
+      result.failed.push({
+        endpoint: '',
+        reason: error instanceof Error ? error.message : String(error),
+      });
+      return result;
+    }
+  };
+
   const router = Router();
   router.use(express.json());
 
@@ -233,18 +263,30 @@ export async function createRouter({
 
     const userToken = getUserTokenFromRequest(req);
 
-    res.json(
-      await environmentInfoService.deleteReleaseBinding(
-        {
-          componentName: componentName as string,
-          projectName: projectName as string,
-          namespaceName: namespaceName as string,
-          releaseLine: requestReleaseLine(req),
-          environment: environment as string,
-        },
-        userToken,
-      ),
+    const owner = {
+      componentName: componentName as string,
+      projectName: projectName as string,
+      namespaceName: namespaceName as string,
+      releaseLine: requestReleaseLine(req),
+    };
+    // Once the component's binding is found, the line's own Endpoints go
+    // first, like a garbage collection, so their routes are gone before the
+    // workload they point at. One that can't be removed is reported; the
+    // component's deployment is removed regardless.
+    let endpoints: EndpointFollowResult | undefined;
+    const environments = await environmentInfoService.deleteReleaseBinding(
+      { ...owner, environment: environment as string },
+      userToken,
+      async () => {
+        endpoints = await followEndpoints(() =>
+          componentEndpointFollowService.remove(
+            { ...owner, environment: environment as string },
+            userToken,
+          ),
+        );
+      },
     );
+    res.json({ environments, endpoints });
   });
 
   router.patch('/update-binding', requireAuth, async (req, res) => {
@@ -276,6 +318,11 @@ export async function createRouter({
 
     const userToken = getUserTokenFromRequest(req);
 
+    // Suspending, undeploying and redeploying change only the component's
+    // binding. Its Endpoints' bindings stay as they are, keeping their release
+    // and environment settings: an Endpoint is its own resource, managed from
+    // its Deploy tab. Removing the deployment (delete-release-binding) is what
+    // takes them out.
     res.json(
       await environmentInfoService.updateComponentBinding(
         {
@@ -1589,6 +1636,157 @@ export async function createRouter({
     );
   });
 
+  // The parameters schema of an (Cluster)EndpointType, for the configure
+  // page's Endpoint parameters form.
+  router.get('/endpoint-type-schema', async (req, res) => {
+    const { namespaceName, etName } = req.query;
+    if (!namespaceName || !etName) {
+      throw new InputError(
+        'namespaceName and etName are required query parameters',
+      );
+    }
+    res.json(
+      await endpointInfoService.fetchEndpointTypeSchema(
+        namespaceName as string,
+        etName as string,
+        getUserTokenFromRequest(req),
+      ),
+    );
+  });
+
+  router.get('/cluster-endpoint-type-schema', async (req, res) => {
+    const { cetName } = req.query;
+    if (!cetName) {
+      throw new InputError('cetName is a required query parameter');
+    }
+    res.json(
+      await endpointInfoService.fetchClusterEndpointTypeSchema(
+        cetName as string,
+        getUserTokenFromRequest(req),
+      ),
+    );
+  });
+
+  // The Endpoints a component owns, managed from its configure page: those of
+  // its main line, or of the release line named by releaseLine.
+  const requireComponentRef = (source: Record<string, unknown>) => {
+    const { componentName, projectName, namespaceName, releaseLine } = source;
+    if (!componentName || !projectName || !namespaceName) {
+      throw new InputError(
+        'componentName, projectName and namespaceName are required',
+      );
+    }
+    return {
+      componentName: componentName as string,
+      projectName: projectName as string,
+      namespaceName: namespaceName as string,
+      releaseLine:
+        typeof releaseLine === 'string'
+          ? toStoredReleaseLine(releaseLine)
+          : undefined,
+    };
+  };
+
+  router.get('/release-line-endpoint-drafts', async (req, res) => {
+    const ref = requireComponentRef(req.query);
+    if (!ref.releaseLine) {
+      throw new InputError('releaseLine must name a release line');
+    }
+    res.json(
+      await endpointInfoService.fetchReleaseLineEndpointDrafts(
+        { ...ref, releaseLine: ref.releaseLine },
+        getUserTokenFromRequest(req),
+      ),
+    );
+  });
+
+  router.get('/component-endpoints', async (req, res) => {
+    const { componentTypeKind, componentTypeName } = req.query;
+    if (!componentTypeName) {
+      throw new InputError('componentTypeName is a required query parameter');
+    }
+    res.json(
+      await endpointInfoService.fetchComponentEndpoints(
+        {
+          ...requireComponentRef(req.query),
+          componentTypeKind:
+            componentTypeKind === 'ClusterComponentType'
+              ? 'ClusterComponentType'
+              : 'ComponentType',
+          componentTypeName: componentTypeName as string,
+        },
+        getUserTokenFromRequest(req),
+      ),
+    );
+  });
+
+  router.post('/component-endpoints', requireAuth, async (req, res) => {
+    const {
+      workloadEndpoint,
+      typeKind,
+      typeName,
+      visibility,
+      parameters,
+      autoDeploy,
+    } = req.body;
+    if (!workloadEndpoint || !typeName || !Array.isArray(visibility)) {
+      throw new InputError(
+        'workloadEndpoint, typeName and visibility are required in request body',
+      );
+    }
+    res.json(
+      await endpointInfoService.createComponentEndpoint(
+        {
+          ...requireComponentRef(req.body),
+          workloadEndpoint,
+          typeKind:
+            typeKind === 'ClusterEndpointType'
+              ? 'ClusterEndpointType'
+              : 'EndpointType',
+          typeName,
+          visibility,
+          parameters,
+          autoDeploy: autoDeploy === true,
+        },
+        getUserTokenFromRequest(req),
+      ),
+    );
+  });
+
+  router.put('/component-endpoints', requireAuth, async (req, res) => {
+    const { endpointName, visibility, parameters, workloadEndpoint } = req.body;
+    if (!endpointName || !Array.isArray(visibility)) {
+      throw new InputError(
+        'endpointName and visibility are required in request body',
+      );
+    }
+    res.json(
+      await endpointInfoService.updateComponentEndpoint(
+        {
+          ...requireComponentRef(req.body),
+          endpointName,
+          visibility,
+          parameters,
+          workloadEndpoint,
+        },
+        getUserTokenFromRequest(req),
+      ),
+    );
+  });
+
+  router.delete('/component-endpoints', requireAuth, async (req, res) => {
+    const { endpointName } = req.body;
+    if (!endpointName) {
+      throw new InputError('endpointName is required in request body');
+    }
+    res.json(
+      await endpointInfoService.deleteComponentEndpoint(
+        { ...requireComponentRef(req.body), endpointName },
+        getUserTokenFromRequest(req),
+      ),
+    );
+  });
+
   router.post('/endpoint-backends', requireAuth, async (req, res) => {
     const { namespaceName, endpointName, component, workloadEndpoint, weight } =
       req.body;
@@ -1799,6 +1997,7 @@ export async function createRouter({
       traitEnvironmentConfigs,
       workloadOverrides,
       releaseName,
+      sourceEnvironment,
     } = req.body;
 
     if (
@@ -1812,25 +2011,62 @@ export async function createRouter({
         'componentName, projectName, namespaceName, environment and releaseName are required in request body',
       );
     }
+    if (
+      sourceEnvironment !== undefined &&
+      typeof sourceEnvironment !== 'string'
+    ) {
+      throw new InputError('sourceEnvironment must be a string');
+    }
 
     const userToken = getUserTokenFromRequest(req);
+    const owner = {
+      componentName: componentName as string,
+      projectName: projectName as string,
+      namespaceName: namespaceName as string,
+      releaseLine: requestReleaseLine(req),
+    };
 
-    res.json(
-      await environmentInfoService.updateReleaseBinding(
+    // A promotion takes the line's Endpoints along with the release each has
+    // in the source environment, so every one must be deployed there. Check
+    // before the component moves: a rejected promotion (409) changes nothing,
+    // and one that can't be checked doesn't go ahead either.
+    if (sourceEnvironment) {
+      await componentEndpointFollowService.checkPromotion(
         {
-          componentName: componentName as string,
-          projectName: projectName as string,
-          namespaceName: namespaceName as string,
-          releaseLine: requestReleaseLine(req),
+          ...owner,
           environment: environment as string,
-          componentTypeEnvironmentConfigs,
-          traitEnvironmentConfigs,
-          workloadOverrides,
-          releaseName: releaseName as string,
+          sourceEnvironment,
+        },
+        userToken,
+      );
+    }
+
+    const binding = await environmentInfoService.updateReleaseBinding(
+      {
+        ...owner,
+        environment: environment as string,
+        componentTypeEnvironmentConfigs,
+        traitEnvironmentConfigs,
+        workloadOverrides,
+        releaseName: releaseName as string,
+      },
+      userToken,
+    );
+    // The component's Endpoints follow it: a promotion (from
+    // sourceEnvironment) moves the release each has there, and a deploy
+    // binds each one's latest release.
+    const endpoints = await followEndpoints(() =>
+      componentEndpointFollowService.follow(
+        {
+          ...owner,
+          environment: environment as string,
+          action: sourceEnvironment ? 'promote' : 'deploy',
+          sourceEnvironment,
         },
         userToken,
       ),
     );
+    res.json({ ...binding, endpoints });
   });
 
   router.patch('/patch-release-binding', requireAuth, async (req, res) => {

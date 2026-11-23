@@ -34,6 +34,9 @@ import {
 import { scopedName } from '../releaseLineNames';
 import { toEndpointInvokeURLs } from './endpointUrls';
 
+import { applyComponentEndpointUrls } from './componentEndpointUrls';
+import { listComponentEndpoints } from '../EndpointService/componentEndpoints';
+
 type ModelsEnvironment = EnvironmentResponse;
 
 type NewReleaseBinding = OpenChoreoComponents['schemas']['ReleaseBinding'];
@@ -361,13 +364,21 @@ export class EnvironmentInfoService implements EnvironmentService {
 
       // Transform environment data with bindings and promotion information
       const transformStart = Date.now();
-      const result = this.transformEnvironmentDataWithBindings(
+      const transformed = this.transformEnvironmentDataWithBindings(
         environments,
         bindings,
         deploymentPipeline,
         projectBindings,
       );
       const transformEnd = Date.now();
+
+      // Workload endpoints the line's own Endpoints expose take their URLs
+      // from those Endpoints; everything else keeps the ReleaseBinding's.
+      const result = await this.overlayComponentEndpointUrls(
+        client,
+        request,
+        transformed,
+      );
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
@@ -816,6 +827,12 @@ export class EnvironmentInfoService implements EnvironmentService {
       environment: string;
     },
     token?: string,
+    /**
+     * Runs once the binding is known to exist, before it's deleted: the
+     * component's Endpoints are taken out here, so a request for a binding
+     * that isn't there changes nothing.
+     */
+    beforeDelete?: () => Promise<void>,
   ): Promise<Environment[]> {
     const startTime = Date.now();
     try {
@@ -838,6 +855,7 @@ export class EnvironmentInfoService implements EnvironmentService {
           )} in environment ${request.environment}`,
         );
       }
+      await beforeDelete?.();
 
       const { error, response } = await client.DELETE(
         '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}',
@@ -2240,6 +2258,50 @@ export class EnvironmentInfoService implements EnvironmentService {
         }),
     );
     return items.filter(b => b.spec?.owner?.projectName === projectName);
+  }
+
+  /**
+   * Puts the URLs of the component line's own Endpoints over the deploy
+   * page's ReleaseBinding URLs; see applyComponentEndpointUrls. Never throws:
+   * any failure leaves the ReleaseBinding URLs, which is all a component
+   * without Endpoints ever shows.
+   */
+  private async overlayComponentEndpointUrls(
+    client: OpenChoreoApiClient,
+    request: {
+      componentName: string;
+      projectName: string;
+      namespaceName: string;
+      releaseLine?: string;
+    },
+    environments: Environment[],
+  ): Promise<Environment[]> {
+    if (environments.length === 0) return environments;
+    try {
+      const endpoints = await listComponentEndpoints(client, request);
+      if (endpoints.length === 0) return environments;
+      const withBindings = await Promise.all(
+        endpoints.map(async endpoint => ({
+          endpoint,
+          bindings: await this.listEndpointBindings(
+            client,
+            request.namespaceName,
+            endpoint.metadata.name,
+            request.projectName,
+          ),
+        })),
+      );
+      return applyComponentEndpointUrls(environments, withBindings, request);
+    } catch (error) {
+      const forbidden =
+        error instanceof Error &&
+        (error.name === 'NotAllowedError' ||
+          error.name === 'AuthenticationError');
+      const message = `Could not read the Endpoints of component ${request.componentName}; showing ReleaseBinding URLs: ${error}`;
+      if (forbidden) this.logger.debug(message);
+      else this.logger.warn(message);
+      return environments;
+    }
   }
 
   /**

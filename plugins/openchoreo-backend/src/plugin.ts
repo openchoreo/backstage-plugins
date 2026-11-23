@@ -19,6 +19,7 @@ import { ClusterComponentTypeInfoService } from './services/ClusterComponentType
 import { ResourceTypeInfoService } from './services/ResourceTypeService/ResourceTypeInfoService';
 import { ClusterResourceTypeInfoService } from './services/ClusterResourceTypeService/ClusterResourceTypeInfoService';
 import { ResourceReleaseInfoService } from './services/ResourceReleaseService/ResourceReleaseInfoService';
+import { ComponentEndpointFollowService } from './services/EnvironmentService/ComponentEndpointFollowService';
 import { EndpointInfoService } from './services/EndpointService/EndpointInfoService';
 import { ProjectReleaseInfoService } from './services/ProjectReleaseService/ProjectReleaseInfoService';
 import { SecretReferencesService } from './services/SecretReferencesService/SecretReferencesService';
@@ -150,6 +151,14 @@ export const choreoPlugin = createBackendPlugin({
         );
 
         const endpointInfoService = new EndpointInfoService(logger, baseUrl);
+        // Takes a component's Endpoints with it on deploy, promote, redeploy
+        // and undeploy, writing their bindings through the environment service.
+        const componentEndpointFollowService =
+          new ComponentEndpointFollowService(
+            logger,
+            baseUrl,
+            environmentInfoService,
+          );
 
         const projectReleaseInfoService = new ProjectReleaseInfoService(
           logger,
@@ -248,6 +257,7 @@ export const choreoPlugin = createBackendPlugin({
             clusterResourceTypeInfoService,
             resourceReleaseInfoService,
             endpointInfoService,
+            componentEndpointFollowService,
             projectReleaseInfoService,
             secretReferencesInfoService,
             secretsService,
