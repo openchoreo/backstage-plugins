@@ -40,7 +40,10 @@ describe('QuickActionsSection', () => {
   it('renders Create Component as a link when the user can create', async () => {
     await renderInTestApp(<QuickActionsSection />);
 
-    expect(screen.getByText('Create Component').closest('a')).not.toBeNull();
+    expect(screen.getByText('Create Component').closest('a')).toHaveAttribute(
+      'href',
+      '/create?view=components',
+    );
   });
 
   it('disables the Create Component link when the user lacks permission', async () => {
