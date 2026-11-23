@@ -698,6 +698,13 @@ export const WorkloadConfigPage = ({
           workloadResource.spec?.endpoints ?? {},
           !!autoDeployEnabled,
         );
+        // A visibility change shows on the workload rows but is saved on the
+        // Endpoint, so the workload wasn't saved above. The form is now saved
+        // as it is: make it the baseline, or the page would still report
+        // unsaved changes.
+        if (!workloadDirty) {
+          setInitialResource(JSON.parse(JSON.stringify(workloadResource)));
+        }
       }
 
       setIsProcessing(false);
