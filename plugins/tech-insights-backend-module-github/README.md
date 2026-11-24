@@ -53,7 +53,9 @@ share its requests within a run, and a request that takes longer than 30 seconds
 
 When a run hits the rate limit, it stops and the next run starts at the entity where it stopped.
 That position is kept in the plugin cache, so with the default in-memory store it's per replica
-and lost on restart, and the next run then starts from the first entity.
+and lost on restart, and the next run then starts from the first entity. If the cache can't be read
+the run starts from the first entity too, and if it can't be written the previous position can stay,
+so the next run may start there again.
 
 ## Configuration
 
@@ -71,3 +73,82 @@ techInsights:
   github:
     branchAnnotations: []
 ```
+
+## GitHub Code Scanning
+
+A second retriever, `githubCodeScanningFactRetriever`, reads GitHub Code Scanning for every
+configured scanner: any tool whose SARIF results are uploaded to GitHub, such as CodeQL, Trivy or
+Semgrep. It reads the same branch as `githubRepositoryFactRetriever`, chosen as described above, so
+both describe the code the component builds from. A scan counts only when the scanner ran on that
+branch, so a component that builds from a branch the scan workflow doesn't cover reports the
+scanner as not run.
+
+Each scanner adds six facts, named after its `id`. For `codeql`:
+
+| Fact                                                                     | Type    | Meaning                                              |
+| ------------------------------------------------------------------------ | ------- | ---------------------------------------------------- |
+| `githubCodeqlScanned`                                                    | boolean | Whether CodeQL uploaded an analysis for the branch   |
+| `githubCodeqlOpenCriticalAlertCount` ... `githubCodeqlOpenLowAlertCount` | integer | Open alerts with each security severity              |
+| `githubCodeqlOpenAlertCount`                                             | integer | All open alerts, with or without a security severity |
+
+`githubCodeScanners` lists the ids of the scanners that ran. It's a list, so rules test it with
+`contains` or `doesNotContain`, for example `githubCodeScanners contains codeql`.
+`githubCodeScanningResolved`, like `githubRepositoryResolved`, says whether code scanning could be
+read for the component at all.
+
+A scanner that never ran on the branch reports its `Scanned` fact false and null counts, while one
+that ran and found nothing reports real zeros. A check that needs the scanner to have run should
+read `Scanned`, for example `githubCodeqlScanned equal true`: a `notEqual` on a count passes when
+the count is null.
+
+When code scanning can't be read for a component, only `githubCodeScanningResolved` is reported, as
+false, and every other code scanning fact is left out, so jsonfc skips the checks on them instead of
+failing the component. A check that should fail such a component reads `githubCodeScanningResolved`.
+That covers a component that names no GitHub repository and branch the portal can read, and a
+repository for which GitHub answers HTTP 403: code scanning is off (a private repository without
+GitHub Code Security) or the credentials lack access to it. The two causes aren't told apart. Any
+other error, such as a rate limit or a server error, skips the component, which keeps its previous
+facts until they expire.
+
+```yaml
+techInsights:
+  factRetrievers:
+    githubCodeScanningFactRetriever:
+      cadence: '0 */6 * * *'
+      lifecycle: { timeToLive: { days: 3 } }
+```
+
+A component costs a request for the repository, one or more to find its branch, one per scanner to
+ask whether it ran, and for each scanner that did, one per hundred open alerts (at least one).
+
+The credentials need read access to code scanning alerts: the **Code scanning alerts** read
+permission for a GitHub App or a fine-grained token, or the `security_events` scope for a classic
+token (`public_repo` covers public repositories only). GitHub refuses code scanning requests without
+credentials even for a public repository, answering HTTP 401, so every component is then skipped.
+
+Only CodeQL is read by default. To add scanners, list every scanner, CodeQL included, and set
+`schemaVersion` to 2 or more (1 is the schema of the default, so the backend fails to start on 1).
+Trivy scanning the repository and Semgrep are examples of what can be added:
+
+```yaml
+techInsights:
+  github:
+    codeScanning:
+      # Increase whenever `tools` changes, and never lower it. Tech Insights keeps the schema it
+      # already has for a version, so otherwise the change has no effect.
+      schemaVersion: 2
+      tools:
+        - { id: codeql, toolName: CodeQL, label: CodeQL }
+        - { id: trivy, toolName: Trivy, label: Trivy }
+        - { id: semgrep, toolName: Semgrep OSS, label: Semgrep }
+```
+
+Trivy also scans container images, and those uploads are named `Trivy` too, so only add it if the
+repository's workflows upload no image scans: otherwise their alerts are counted as findings in the
+code.
+
+`id` names the facts (`semgrep` gives `githubSemgrepOpenAlertCount`) and must start with a
+lowercase letter and contain only letters and digits. `dependabot` and `secretScanning` are reserved
+for the facts of GitHub's other security features. `toolName` is the tool's name as GitHub's code
+scanning page shows it, and `label` is used in fact descriptions. The backend fails to start on an
+invalid or reserved `id`, or on an `id` or `toolName` listed twice.
