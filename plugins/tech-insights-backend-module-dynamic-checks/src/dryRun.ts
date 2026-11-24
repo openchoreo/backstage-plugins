@@ -32,7 +32,8 @@ export type DryRunReasonCode =
   | 'retriever-not-covering'
   | 'no-facts'
   | 'missing-fact-values'
-  | 'no-result';
+  | 'no-result'
+  | 'empty-selection';
 
 export interface DryRunReason {
   code: DryRunReasonCode;
@@ -44,7 +45,11 @@ export interface DryRunResponse {
   status: DryRunStatus;
   entityRef: string;
   reasons: DryRunReason[];
-  /** The rule's conditions with each leaf's `factResult` and `result`. */
+  /**
+   * The rule's conditions with each leaf's `factResult` and `result`. A leaf
+   * with a `path` has the value the path selected as `factResult`, the whole
+   * fact as `factValue`, and `selectedNothing` when the path matched nothing.
+   */
   conditions?: unknown;
   /** Latest collection time per selected fact retriever, ISO 8601. */
   collectedAt: Record<string, string>;
@@ -194,6 +199,63 @@ async function explainEmptyResult(
       ];
 }
 
+const LIST_DECORATORS = ['everyFact', 'someFact'];
+
+/**
+ * Adds the whole fact to every evaluated leaf with a `path`, beside the value
+ * json-rules-engine selected with it (`factResult`), and reports the paths
+ * that selected nothing. The engine leaves `factResult` out when the path
+ * matched nothing, as JSONPath without wrapping returns undefined then.
+ */
+function explainPaths(
+  node: unknown,
+  factValues: Record<string, unknown>,
+  entityRef: string,
+  reasons: DryRunReason[],
+): unknown {
+  if (!node || typeof node !== 'object') return node;
+  const n = node as Record<string, unknown>;
+  if (Array.isArray(n.all)) {
+    return {
+      ...n,
+      all: n.all.map(c => explainPaths(c, factValues, entityRef, reasons)),
+    };
+  }
+  if (Array.isArray(n.any)) {
+    return {
+      ...n,
+      any: n.any.map(c => explainPaths(c, factValues, entityRef, reasons)),
+    };
+  }
+  if ('not' in n) {
+    return { ...n, not: explainPaths(n.not, factValues, entityRef, reasons) };
+  }
+  if (typeof n.fact !== 'string' || typeof n.path !== 'string') return n;
+  const factValue = factValues[n.fact];
+  const selectedNothing =
+    typeof n.result === 'boolean' &&
+    !('factResult' in n) &&
+    factValue !== null &&
+    typeof factValue === 'object';
+  if (selectedNothing) {
+    const listOperator = String(n.operator)
+      .split(':')
+      .slice(0, -1)
+      .some(part => LIST_DECORATORS.includes(part));
+    let consequence = '.';
+    if (listOperator) {
+      consequence = n.result
+        ? ' and passed only because nothing was selected.'
+        : ' and failed because nothing was selected.';
+    }
+    reasons.push({
+      code: 'empty-selection',
+      message: `The path "${n.path}" selected nothing from ${n.fact} for ${entityRef}, so its condition had no value to compare${consequence}`,
+    });
+  }
+  return { ...n, factValue, ...(selectedNothing && { selectedNothing }) };
+}
+
 /**
  * Validates the draft, runs it through a checker built like the one that
  * evaluates published checks but holding only the draft, and explains an
@@ -250,11 +312,18 @@ export async function dryRunCheck(options: {
 
   const [result] = results;
   if (result) {
-    return respond(
-      result.result ? 'passed' : 'failed',
-      [],
-      result.check.rule?.conditions,
+    const factValues = Object.values(facts).reduce<Record<string, unknown>>(
+      (values, collected) => ({ ...values, ...collected.facts }),
+      {},
     );
+    const reasons: DryRunReason[] = [];
+    const conditions = explainPaths(
+      result.check.rule?.conditions,
+      factValues,
+      entityRef,
+      reasons,
+    );
+    return respond(result.result ? 'passed' : 'failed', reasons, conditions);
   }
   return respond(
     'not-applicable',

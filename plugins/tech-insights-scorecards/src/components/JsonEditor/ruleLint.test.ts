@@ -3,7 +3,13 @@ import { json } from '@codemirror/lang-json';
 import { EditorState } from '@codemirror/state';
 import type { EditorView } from '@codemirror/view';
 import type { CheckProblem } from '../../api/types';
-import { problemDiagnostics, serverRuleLinter } from './ruleLint';
+import type { FactOption } from './ruleCompletions';
+import {
+  entryFieldsIn,
+  problemDiagnostics,
+  ruleFactLinter,
+  serverRuleLinter,
+} from './ruleLint';
 
 const RULE = `{
   "conditions": {
@@ -103,5 +109,152 @@ describe('serverRuleLinter', () => {
     resolvers[0]([]);
     await expect(newer).resolves.toHaveLength(1);
     await expect(older).resolves.toHaveLength(1);
+  });
+});
+
+describe('entryFieldsIn', () => {
+  it.each([
+    ['$[*].healthy', ['healthy']],
+    ['$[?(@.primary)].healthy', ['primary', 'healthy']],
+    [
+      "$[?(@.name=='a' && @.replicas > 1)].healthy",
+      ['name', 'replicas', 'healthy'],
+    ],
+    ["$[?(@['zone-id']=='x')]['zone-id']", ['zone-id', 'zone-id']],
+    ["$[?(@.name=='@.other')].healthy", ['name', 'healthy']],
+    ['$[0].labels.team', ['labels']],
+    ['$[*]', []],
+    ['$..healthy', []],
+    ['$.length', []],
+    ['healthy', []],
+  ])('reads %s', (path, fields) => {
+    expect(entryFieldsIn(path)).toEqual(fields);
+  });
+});
+
+describe('ruleFactLinter', () => {
+  const facts: FactOption[] = [
+    {
+      name: 'shards',
+      type: 'set',
+      retriever: 'storageFactRetriever',
+      entries: {
+        name: { type: 'string' },
+        primary: { type: 'boolean' },
+        healthy: { type: 'boolean' },
+      },
+    },
+    { name: 'tags', type: 'set', retriever: 'storageFactRetriever' },
+    { name: 'openIssues', type: 'integer', retriever: 'repoFactRetriever' },
+  ];
+  const lint = (conditions: unknown[]) => {
+    const doc = JSON.stringify({ conditions: { all: conditions } }, null, 2);
+    const view = {
+      state: EditorState.create({ doc, extensions: [json()] }),
+    } as unknown as EditorView;
+    const diagnostics = ruleFactLinter(() => facts)(view) as Diagnostic[];
+    return diagnostics.map(d => ({
+      at: view.state.sliceDoc(d.from, d.to),
+      severity: d.severity,
+      message: d.message,
+    }));
+  };
+
+  it('warns about a path naming a field the entries do not have', () => {
+    expect(
+      lint([
+        {
+          fact: 'shards',
+          path: '$[?(@.primery)].healthy',
+          operator: 'everyFact:equal',
+          value: true,
+        },
+      ]),
+    ).toEqual([
+      {
+        at: '"$[?(@.primery)].healthy"',
+        severity: 'warning',
+        message:
+          'shards entries have no field "primery". Their fields: name, primary, healthy.',
+      },
+    ]);
+  });
+
+  it.each([
+    [
+      'a path over known fields',
+      {
+        fact: 'shards',
+        path: '$[?(@.primary)].healthy',
+        operator: 'everyFact:equal',
+        value: true,
+      },
+    ],
+    [
+      'a list fact without declared entries',
+      {
+        fact: 'tags',
+        path: '$[*].anything',
+        operator: 'someFact:equal',
+        value: 'x',
+      },
+    ],
+    [
+      'everyFact on a list fact',
+      { fact: 'tags', operator: 'everyFact:notEqual', value: '' },
+    ],
+    [
+      'everyFact with a path',
+      {
+        fact: 'openIssues',
+        path: '$.items',
+        operator: 'everyFact:equal',
+        value: 1,
+      },
+    ],
+    [
+      'a fact no chosen retriever has',
+      { fact: 'unknown', operator: 'everyFact:equal', value: 1 },
+    ],
+    ['a plain operator', { fact: 'openIssues', operator: 'equal', value: 0 }],
+  ])('does not warn about %s', (_label, condition) => {
+    expect(lint([condition])).toEqual([]);
+  });
+
+  it.each(['everyFact:equal', 'not:someFact:equal'])(
+    'warns about %s on a fact that is not a list',
+    operator => {
+      expect(lint([{ fact: 'openIssues', operator, value: 0 }])).toEqual([
+        expect.objectContaining({
+          at: JSON.stringify(operator),
+          severity: 'warning',
+          message: expect.stringContaining('openIssues is of type integer'),
+        }),
+      ]);
+    },
+  );
+
+  it('checks conditions inside nested groups only', () => {
+    expect(
+      lint([
+        {
+          any: [
+            {
+              not: {
+                fact: 'shards',
+                path: '$[*].helthy',
+                operator: 'everyFact:equal',
+                value: true,
+              },
+            },
+          ],
+        },
+        {
+          fact: 'openIssues',
+          operator: 'equal',
+          value: { fact: 'shards', path: '$[*].nope' },
+        },
+      ]).map(d => d.at),
+    ).toEqual(['"$[*].helthy"']);
   });
 });

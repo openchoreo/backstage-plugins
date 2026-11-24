@@ -26,6 +26,7 @@ const schemas = [
     version: '0.1.0',
     entityFilter: [{ kind: 'component' }],
     githubIsArchived: { type: 'boolean', description: '' },
+    shards: { type: 'set', description: '' },
   },
 ] as unknown as Array<Record<string, unknown> & { id: string }>;
 
@@ -339,6 +340,156 @@ describe('dryRunCheck', () => {
         evaluation,
       }),
     ).resolves.toEqual(expect.objectContaining({ status: 'failed' }));
+  });
+
+  describe('with a path into a list fact', () => {
+    const pathCheck = (operator: string): TechInsightJsonRuleCheck => ({
+      ...check('ignored', 'shards'),
+      rule: {
+        conditions: {
+          all: [
+            {
+              fact: 'shards',
+              path: '$[?(@.primary)].healthy',
+              operator,
+              value: true,
+            },
+          ],
+        },
+      },
+    });
+
+    it('shows what the path selected beside the whole fact', async () => {
+      const shards = [
+        { name: 'a', primary: true, healthy: true },
+        { name: 'b', primary: true, healthy: false },
+        { name: 'c', primary: false, healthy: true },
+      ];
+      const { evaluation } = createEvaluation(createStore({ shards }));
+
+      const response = await dryRunCheck({
+        check: pathCheck('everyFact:equal'),
+        entity,
+        entityRef: ENTITY_REF,
+        evaluation,
+      });
+
+      expect(response).toMatchObject({ status: 'failed', reasons: [] });
+      const [leaf] = (response.conditions as { all: unknown[] }).all;
+      expect(leaf).toEqual(
+        expect.objectContaining({
+          path: '$[?(@.primary)].healthy',
+          factResult: [true, false],
+          factValue: shards,
+          result: false,
+        }),
+      );
+      expect(leaf).not.toHaveProperty('selectedNothing');
+    });
+
+    it('says when the path selected nothing', async () => {
+      const shards = [{ name: 'c', primary: false, healthy: true }];
+      const { evaluation } = createEvaluation(createStore({ shards }));
+
+      const response = await dryRunCheck({
+        check: pathCheck('everyFact:equal'),
+        entity,
+        entityRef: ENTITY_REF,
+        evaluation,
+      });
+
+      expect(response).toMatchObject({
+        status: 'failed',
+        reasons: [
+          {
+            code: 'empty-selection',
+            message: `The path "$[?(@.primary)].healthy" selected nothing from shards for ${ENTITY_REF}, so its condition had no value to compare and failed because nothing was selected.`,
+          },
+        ],
+      });
+      const [leaf] = (response.conditions as { all: unknown[] }).all;
+      expect(leaf).toEqual(
+        expect.objectContaining({ selectedNothing: true, factValue: shards }),
+      );
+      expect(leaf).not.toHaveProperty('factResult');
+    });
+
+    it('says a negated list operator passed only because nothing was selected', async () => {
+      const shards = [{ name: 'c', primary: false, healthy: true }];
+      const { evaluation } = createEvaluation(createStore({ shards }));
+
+      const response = await dryRunCheck({
+        check: pathCheck('not:everyFact:equal'),
+        entity,
+        entityRef: ENTITY_REF,
+        evaluation,
+      });
+
+      expect(response).toMatchObject({
+        status: 'passed',
+        reasons: [
+          {
+            code: 'empty-selection',
+            message: `The path "$[?(@.primary)].healthy" selected nothing from shards for ${ENTITY_REF}, so its condition had no value to compare and passed only because nothing was selected.`,
+          },
+        ],
+      });
+    });
+
+    it('explains a path condition nested in any and not', async () => {
+      const shards = [
+        { name: 'a', primary: true, healthy: false },
+        { name: 'c', primary: false, healthy: true },
+      ];
+      const { evaluation } = createEvaluation(createStore({ shards }));
+      const leaf = {
+        fact: 'shards',
+        path: '$[?(@.primary)].healthy',
+        operator: 'someFact:equal',
+        value: false,
+      };
+
+      const response = await dryRunCheck({
+        check: {
+          ...check('ignored', 'shards'),
+          rule: { conditions: { any: [{ not: leaf }] } },
+        },
+        entity,
+        entityRef: ENTITY_REF,
+        evaluation,
+      });
+
+      expect(response).toMatchObject({ status: 'failed', reasons: [] });
+      const nested = response.conditions as {
+        any: Array<{ not: Record<string, unknown> }>;
+      };
+      expect(nested.any[0].not).toEqual(
+        expect.objectContaining({
+          ...leaf,
+          factResult: [false],
+          factValue: shards,
+          result: true,
+        }),
+      );
+    });
+
+    it('names no outcome for an operator that does not need a list', async () => {
+      const { evaluation } = createEvaluation(createStore({ shards: [] }));
+
+      const response = await dryRunCheck({
+        check: pathCheck('notEqual'),
+        entity,
+        entityRef: ENTITY_REF,
+        evaluation,
+      });
+
+      expect(response.reasons).toEqual([
+        expect.objectContaining({
+          code: 'empty-selection',
+          message: expect.stringMatching(/had no value to compare\.$/),
+        }),
+      ]);
+    });
   });
 
   it('reports a draft that cannot be evaluated as invalid', async () => {

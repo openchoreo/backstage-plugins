@@ -49,6 +49,42 @@ export interface DynamicCheck extends DynamicCheckInput {
 export interface FactSchemaField {
   type: string;
   description?: string;
+  /**
+   * Retriever-defined details. A `set` fact whose items are objects lists
+   * their fields in `entries`, keyed by field name.
+   */
+  metadata?: Record<string, unknown>;
+}
+
+/** A field of the objects a `set` fact holds. */
+export interface FactEntryField {
+  type: string;
+  description?: string;
+}
+
+/**
+ * The entry fields a fact's schema declares in `metadata.entries`, or
+ * undefined when it declares none. Fields without a string `type` are left
+ * out, since the schema comes from whichever retrievers are installed.
+ */
+export function factEntryFieldsOf(
+  field: FactSchemaField,
+): Record<string, FactEntryField> | undefined {
+  const entries = field.metadata?.entries;
+  if (!entries || typeof entries !== 'object' || Array.isArray(entries)) {
+    return undefined;
+  }
+  const fields: Record<string, FactEntryField> = {};
+  for (const [name, value] of Object.entries(entries)) {
+    if (!value || typeof value !== 'object') continue;
+    const { type, description } = value as Record<string, unknown>;
+    if (typeof type !== 'string') continue;
+    fields[name] = {
+      type,
+      ...(typeof description === 'string' && { description }),
+    };
+  }
+  return Object.keys(fields).length > 0 ? fields : undefined;
 }
 
 /**
@@ -110,7 +146,8 @@ export interface DryRunReason {
     | 'retriever-not-covering'
     | 'no-facts'
     | 'missing-fact-values'
-    | 'no-result';
+    | 'no-result'
+    | 'empty-selection';
   message: string;
   factRetrieverId?: string;
 }
@@ -121,7 +158,9 @@ export interface DryRunResult {
   reasons: DryRunReason[];
   /**
    * The rule's conditions as evaluated: `all`/`any`/`not` nodes, with each
-   * leaf condition carrying its `factResult` and `result`.
+   * leaf condition carrying its `factResult` and `result`. A leaf with a
+   * `path` has the value the path selected as `factResult`, the whole fact as
+   * `factValue`, and `selectedNothing` when the path matched nothing.
    */
   conditions?: unknown;
   /** Latest collection time per selected fact retriever, ISO 8601. */

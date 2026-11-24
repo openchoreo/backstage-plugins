@@ -1,4 +1,5 @@
 import {
+  snippetCompletion,
   startCompletion,
   type Completion,
   type CompletionContext,
@@ -9,6 +10,7 @@ import { syntaxTree } from '@codemirror/language';
 import type { EditorState } from '@codemirror/state';
 import type { EditorView } from '@codemirror/view';
 import type { SyntaxNode } from '@lezer/common';
+import type { FactEntryField } from '../../api/types';
 import { propertyKey, siblingString, valueContextAt } from './jsonTree';
 import { RULE_OPERATORS, RULE_OPERATOR_DECORATORS } from './operators';
 
@@ -18,7 +20,12 @@ export interface FactOption {
   type: string;
   description?: string;
   retriever: string;
+  /** The fields of a `set` fact's entries, from its schema's metadata. */
+  entries?: Record<string, FactEntryField>;
 }
+
+/** The Tech Insights fact type of a list, which a condition's `path` selects from. */
+export const LIST_FACT_TYPE = 'set';
 
 /**
  * Where a completion goes inside a string value: between its quotes, or at
@@ -105,6 +112,66 @@ function operatorCompletions(
   };
 }
 
+function entryInfo(field: FactEntryField, selects: string): string {
+  return [selects, field.description].filter(Boolean).join('\n\n');
+}
+
+/** A JSONPath member access: `.name`, or `['name']` when it isn't a plain name. */
+function member(name: string): string {
+  return /^[A-Za-z_$][\w$]*$/.test(name)
+    ? `.${name}`
+    : `['${name.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}']`;
+}
+
+/**
+ * JSONPath selections over a list fact's entries: each field of every entry,
+ * each field of the entries where a boolean field is true, and a snippet for
+ * filtering on a field's value.
+ */
+function pathCompletions(
+  context: CompletionContext,
+  value: SyntaxNode | undefined,
+  fact: FactOption | undefined,
+): CompletionResult | null {
+  if (!fact?.entries || fact.type !== LIST_FACT_TYPE) return null;
+  const target = stringTarget(context, value);
+  if (!target) return null;
+  const wrap = (text: string) => (target.quote ? JSON.stringify(text) : text);
+  const fields = Object.entries(fact.entries);
+  const flags = fields.filter(([, field]) => field.type === 'boolean');
+  const option = (path: string, field: FactEntryField, selects: string) => ({
+    label: path,
+    detail: field.type,
+    info: entryInfo(field, selects),
+    type: 'property',
+    apply: wrap(path),
+  });
+  const options: Completion[] = [
+    ...fields.map(([name, field]) =>
+      option(`$[*]${member(name)}`, field, `${name} of every entry.`),
+    ),
+    ...flags.flatMap(([flag]) =>
+      fields
+        .filter(([name]) => name !== flag)
+        .map(([name, field]) => ({
+          ...option(
+            `$[?(@${member(flag)})]${member(name)}`,
+            field,
+            `${name} of the entries where ${flag} is true.`,
+          ),
+          boost: -1,
+        })),
+    ),
+    snippetCompletion(wrap("$[?(@.${1:field}=='${2:value}')].${3:field}"), {
+      label: "$[?(@.field=='value')].field",
+      info: 'A field of the entries where another field has a given value.',
+      type: 'text',
+      boost: -2,
+    }),
+  ];
+  return { from: target.from, to: target.to, options };
+}
+
 function valueCompletions(
   context: CompletionContext,
   value: SyntaxNode | undefined,
@@ -160,6 +227,14 @@ const CONDITION_KEYS: ReadonlyArray<{
   },
   { key: 'not', info: 'the item must fail', template: '{}', cursor: 1 },
 ];
+/** Offered only once the condition names a list fact. */
+const PATH_KEY = {
+  key: 'path',
+  info: 'which entries of the list to compare, and which of their fields (JSONPath)',
+  template: '""',
+  cursor: 1,
+  reopen: true,
+};
 const RULE_KEYS = [
   {
     key: 'conditions',
@@ -168,7 +243,7 @@ const RULE_KEYS = [
     cursor: 1,
   },
 ];
-const LEAF_KEYS = new Set(['fact', 'operator', 'value']);
+const LEAF_KEYS = new Set(['fact', 'operator', 'value', 'path']);
 const GROUP_KEYS = new Set(['all', 'any', 'not']);
 
 /** The property holding `object`, and the object that property is in. */
@@ -182,7 +257,7 @@ function holderOf(object: SyntaxNode) {
 }
 
 /** Whether `object` is the rule itself, a condition, or neither. */
-function objectRole(
+export function objectRole(
   state: EditorState,
   object: SyntaxNode | null,
 ): 'rule' | 'condition' | undefined {
@@ -265,7 +340,10 @@ function applyKey(entry: {
   };
 }
 
-function keyCompletions(context: CompletionContext): CompletionResult | null {
+function keyCompletions(
+  context: CompletionContext,
+  facts: FactOption[],
+): CompletionResult | null {
   const target = keyTarget(context);
   if (!target) return null;
   const { state } = context;
@@ -282,7 +360,11 @@ function keyCompletions(context: CompletionContext): CompletionResult | null {
   } else if ([...present].some(key => key && GROUP_KEYS.has(key))) {
     entries = [];
   } else if ([...present].some(key => key && LEAF_KEYS.has(key))) {
-    entries = CONDITION_KEYS.filter(
+    const fact = siblingString(state, target.object ?? null, 'fact');
+    const onList = facts.some(
+      f => f.name === fact && f.type === LIST_FACT_TYPE,
+    );
+    entries = [...CONDITION_KEYS, ...(onList ? [PATH_KEY] : [])].filter(
       e => LEAF_KEYS.has(e.key) && !present.has(e.key),
     );
   } else {
@@ -306,14 +388,16 @@ function keyCompletions(context: CompletionContext): CompletionResult | null {
  * Suggests the keys a condition can hold, then the chosen retrievers' facts
  * inside `"fact"`, operators inside
  * `"operator"`, and `true`/`false` inside `"value"` when the condition's
- * fact is a boolean. `getFacts` is read on every request, so the source can
- * be created once while the chosen retrievers change.
+ * fact is a boolean. A condition on a list fact also gets `path`, with
+ * selections over the entry fields its schema declares. `getFacts` is read
+ * on every request, so the source can be created once while the chosen
+ * retrievers change.
  */
 export function ruleCompletionSource(
   getFacts: () => FactOption[],
 ): CompletionSource {
   return context => {
-    const keys = keyCompletions(context);
+    const keys = keyCompletions(context, getFacts());
     if (keys) return keys;
     const at = valueContextAt(context.state, context.pos);
     if (!at) return null;
@@ -322,6 +406,14 @@ export function ruleCompletionSource(
         return factCompletions(context, at.value, getFacts());
       case 'operator':
         return operatorCompletions(context, at.value);
+      case 'path': {
+        const fact = siblingString(context.state, at.object, 'fact');
+        return pathCompletions(
+          context,
+          at.value,
+          getFacts().find(f => f.name === fact),
+        );
+      }
       case 'value': {
         const fact = siblingString(context.state, at.object, 'fact');
         const type = getFacts().find(f => f.name === fact)?.type;

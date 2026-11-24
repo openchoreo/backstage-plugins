@@ -89,6 +89,57 @@ describe('DryRunResultView', () => {
     ).toEqual(['hasReadme', 'true', 'not equal true', 'Failed']);
   });
 
+  it('shows what a path selected beside the whole fact', async () => {
+    const shards = [
+      { name: 'a', primary: true, healthy: true },
+      { name: 'b', primary: true, healthy: false },
+    ];
+    await renderWithApis(
+      <DryRunResultView
+        result={{
+          ...result,
+          reasons: [],
+          conditions: {
+            all: [
+              {
+                fact: 'shards',
+                path: '$[?(@.primary)].healthy',
+                operator: 'everyFact:equal',
+                value: true,
+                factResult: [true, false],
+                factValue: shards,
+                result: false,
+              },
+              {
+                fact: 'shards',
+                path: '$[?(@.replicas)].healthy',
+                operator: 'someFact:equal',
+                value: true,
+                factValue: shards,
+                selectedNothing: true,
+                result: false,
+              },
+            ],
+          },
+        }}
+      />,
+    );
+    const [, selected, empty] = screen.getAllByRole('row');
+    expect(
+      within(selected)
+        .getAllByRole('cell')
+        .map(cell => cell.textContent),
+    ).toEqual([
+      'shards$[?(@.primary)].healthy',
+      `[true,false]from ${JSON.stringify(shards)}`,
+      'everyFact:equal true',
+      'Failed',
+    ]);
+    expect(within(empty).getAllByRole('cell')[1].textContent).toBe(
+      `Nothing selectedfrom ${JSON.stringify(shards)}`,
+    );
+  });
+
   it('shows a status it does not recognise', async () => {
     await renderWithApis(
       <DryRunResultView

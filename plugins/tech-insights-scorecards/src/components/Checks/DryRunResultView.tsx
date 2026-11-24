@@ -35,6 +35,10 @@ interface EvaluatedCondition {
   factResult: unknown;
   result?: boolean;
   negated: boolean;
+  path?: string;
+  /** The whole fact, when `factResult` is what `path` selected from it. */
+  factValue?: unknown;
+  selectedNothing: boolean;
 }
 
 function evaluatedConditions(
@@ -61,6 +65,9 @@ function evaluatedConditions(
       factResult: n.factResult,
       result,
       negated,
+      path: typeof n.path === 'string' ? n.path : undefined,
+      factValue: n.factValue,
+      selectedNothing: n.selectedNothing === true,
     },
   ];
 }
@@ -166,9 +173,27 @@ export function DryRunResultView({ result }: { result: DryRunResult }) {
           <TableBody>
             {conditions.map((c, i) => (
               <TableRow key={i}>
-                <TableCell className={codeClasses.code}>{c.fact}</TableCell>
                 <TableCell className={codeClasses.code}>
-                  {displayActual(c.factResult)}
+                  {c.fact}
+                  {c.path !== undefined && (
+                    <Typography variant="caption" component="div">
+                      {c.path}
+                    </Typography>
+                  )}
+                </TableCell>
+                <TableCell className={codeClasses.code}>
+                  {c.selectedNothing
+                    ? 'Nothing selected'
+                    : displayActual(c.factResult)}
+                  {c.path !== undefined && c.factValue !== undefined && (
+                    <Typography
+                      variant="caption"
+                      color="textSecondary"
+                      component="div"
+                    >
+                      from {displayActual(c.factValue)}
+                    </Typography>
+                  )}
                 </TableCell>
                 <TableCell className={codeClasses.code}>
                   {c.negated ? 'not ' : ''}

@@ -12,7 +12,8 @@ const VALUE_NODES = new Set([
   'Null',
 ]);
 
-function treeOf(state: EditorState) {
+/** The document's syntax tree, parsed to the end unless that takes over a second. */
+export function treeOf(state: EditorState) {
   return ensureSyntaxTree(state, state.doc.length, 1000) ?? syntaxTree(state);
 }
 

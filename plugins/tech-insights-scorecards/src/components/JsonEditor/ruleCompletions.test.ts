@@ -4,7 +4,7 @@ import {
 } from '@codemirror/autocomplete';
 import { json } from '@codemirror/lang-json';
 import { EditorState, type TransactionSpec } from '@codemirror/state';
-import type { EditorView } from '@codemirror/view';
+import { EditorView } from '@codemirror/view';
 import { ruleCompletionSource, type FactOption } from './ruleCompletions';
 
 const FACTS: FactOption[] = [
@@ -21,10 +21,30 @@ const FACTS: FactOption[] = [
   },
 ];
 
+const SHARDS: FactOption = {
+  name: 'shards',
+  type: 'set',
+  description: 'One entry per shard.',
+  retriever: 'storageFactRetriever',
+  entries: {
+    name: { type: 'string', description: 'The shard name.' },
+    primary: { type: 'boolean' },
+    healthy: { type: 'boolean', description: 'Whether the shard is healthy.' },
+    replicas: { type: 'integer', description: 'Running replicas.' },
+  },
+};
+
+const TAGS: FactOption = {
+  name: 'tags',
+  type: 'set',
+  retriever: 'storageFactRetriever',
+};
+
 const source = ruleCompletionSource(() => FACTS);
+const listSource = ruleCompletionSource(() => [...FACTS, SHARDS, TAGS]);
 
 /** Completes at the `|` in `doc`. */
-function complete(docWithCursor: string, explicit = true) {
+function complete(docWithCursor: string, explicit = true, from = source) {
   const pos = docWithCursor.indexOf('|');
   const doc = docWithCursor.replace('|', '');
   const state = EditorState.create({
@@ -32,15 +52,15 @@ function complete(docWithCursor: string, explicit = true) {
     selection: { anchor: pos },
     extensions: [json()],
   });
-  const result = source(
+  const result = from(
     new CompletionContext(state, pos, explicit),
   ) as CompletionResult | null;
   return { state, result, doc, labels: result?.options.map(o => o.label) };
 }
 
 /** Applies the option labelled `label` and returns the text with a `|` cursor. */
-function pick(docWithCursor: string, label: string) {
-  const { state, result } = complete(docWithCursor);
+function pick(docWithCursor: string, label: string, from = source) {
+  const { state, result } = complete(docWithCursor, true, from);
   const option = result!.options.find(o => o.label === label)!;
   const view = {
     state,
@@ -111,6 +131,30 @@ describe('ruleCompletionSource keys', () => {
     );
   });
 
+  it('suggests path beside a list fact', () => {
+    expect(
+      complete(inAll('{ "fact": "shards", "|" }'), true, listSource).labels,
+    ).toEqual(['operator', 'value', 'path']);
+    expect(pick(inAll('{ "fact": "shards", "pa|" }'), 'path', listSource)).toBe(
+      inAll('{ "fact": "shards", "path": "|" }'),
+    );
+  });
+
+  it.each([
+    ['a fact that is not a list', '{ "fact": "githubOpenIssues", "|" }'],
+    ['a condition that has one', '{ "fact": "shards", "path": "$", "|" }'],
+  ])('does not suggest path beside %s', (_label, condition) => {
+    expect(complete(inAll(condition), true, listSource).labels).not.toContain(
+      'path',
+    );
+  });
+
+  it('treats path as part of a fact condition', () => {
+    expect(
+      complete(inAll('{ "path": "$", "|" }'), true, listSource).labels,
+    ).toEqual(['fact', 'operator', 'value']);
+  });
+
   it('suggests keys in an empty object only when asked', () => {
     expect(complete(inAll('{ | }')).labels).toContain('fact');
     expect(complete(inAll('{ | }'), false).result).toBeNull();
@@ -163,5 +207,106 @@ describe('ruleCompletionSource', () => {
     ['in another property', '{ "name": "|" }'],
   ])('suggests nothing %s', (_label, doc) => {
     expect(complete(doc).result).toBeNull();
+  });
+});
+
+describe('ruleCompletionSource path', () => {
+  it('suggests every field and the fields of entries a boolean field selects', () => {
+    const { labels } = complete(
+      '{ "fact": "shards", "path": "|" }',
+      true,
+      listSource,
+    );
+    expect(labels).toEqual([
+      '$[*].name',
+      '$[*].primary',
+      '$[*].healthy',
+      '$[*].replicas',
+      '$[?(@.primary)].name',
+      '$[?(@.primary)].healthy',
+      '$[?(@.primary)].replicas',
+      '$[?(@.healthy)].name',
+      '$[?(@.healthy)].primary',
+      '$[?(@.healthy)].replicas',
+      "$[?(@.field=='value')].field",
+    ]);
+  });
+
+  it("shows the field's type and description", () => {
+    const { result } = complete(
+      '{ "fact": "shards", "path": "|" }',
+      true,
+      listSource,
+    );
+    const option = (label: string) =>
+      result!.options.find(o => o.label === label);
+    expect(option('$[*].replicas')).toMatchObject({
+      detail: 'integer',
+      info: 'replicas of every entry.\n\nRunning replicas.',
+    });
+    expect(option('$[?(@.primary)].healthy')).toMatchObject({
+      detail: 'boolean',
+      info: 'healthy of the entries where primary is true.\n\nWhether the shard is healthy.',
+    });
+  });
+
+  it('replaces the whole path, adding quotes when there is no value yet', () => {
+    const { result, doc } = complete(
+      '{ "fact": "shards", "path": "$[*].na|me" }',
+      true,
+      listSource,
+    );
+    expect(doc.slice(result!.from, result!.to)).toBe('$[*].name');
+    const unquoted = complete(
+      '{ "fact": "shards", "path": | }',
+      true,
+      listSource,
+    );
+    expect(unquoted.result!.options[0].apply).toBe('"$[*].name"');
+  });
+
+  it('inserts the filter snippet with its fields to fill in', () => {
+    const { state, result } = complete(
+      '{ "fact": "shards", "path": "|" }',
+      true,
+      listSource,
+    );
+    const option = result!.options.find(o => o.label.includes("=='value'"))!;
+    const view = new EditorView({ state, parent: document.body });
+    (option.apply as Function)(view, option, result!.from, result!.to);
+    expect(view.state.doc.toString()).toBe(
+      `{ "fact": "shards", "path": "$[?(@.field=='value')].field" }`,
+    );
+    const { from, to } = view.state.selection.main;
+    expect(view.state.sliceDoc(from, to)).toBe('field');
+    view.destroy();
+  });
+
+  it('uses bracket notation for a field that is not a plain name', () => {
+    const zones = ruleCompletionSource(() => [
+      {
+        ...SHARDS,
+        entries: {
+          'zone-id': { type: 'string' },
+          primary: { type: 'boolean' },
+        },
+      },
+    ]);
+    expect(
+      complete('{ "fact": "shards", "path": "|" }', true, zones).labels,
+    ).toEqual(
+      expect.arrayContaining(["$[*]['zone-id']", "$[?(@.primary)]['zone-id']"]),
+    );
+  });
+
+  it.each([
+    ['a list fact without declared entries', '{ "fact": "tags", "path": "|" }'],
+    [
+      'a fact that is not a list',
+      '{ "fact": "githubOpenIssues", "path": "|" }',
+    ],
+    ['a condition without a fact', '{ "path": "|" }'],
+  ])('suggests nothing for %s', (_label, doc) => {
+    expect(complete(doc, true, listSource).result).toBeNull();
   });
 });
