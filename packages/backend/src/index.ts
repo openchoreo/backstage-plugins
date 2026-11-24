@@ -77,4 +77,8 @@ backend.add(
   }),
 );
 
+// Serves Actions Registry actions (e.g. tech-insights:list_checks) as MCP
+// tools at /api/mcp-actions/v1. See mcpActions in app-config.
+backend.add(import('@backstage/plugin-mcp-actions-backend'));
+
 backend.start();

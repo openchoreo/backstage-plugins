@@ -166,6 +166,91 @@ async function ruleProblems(rule: unknown): Promise<CheckProblem[]> {
   return problems;
 }
 
+/** json-rules-engine's operators that only compare numbers. */
+const NUMBER_OPERATORS = new Set([
+  'lessThan',
+  'lessThanInclusive',
+  'greaterThan',
+  'greaterThanInclusive',
+]);
+
+/** Fact schema types whose values are numbers. */
+const NUMBER_FACT_TYPES = new Set(['integer', 'float']);
+
+/** The plain operators that look inside a list fact. */
+const LIST_FACT_OPERATORS = new Set(['contains', 'doesNotContain']);
+
+/**
+ * Number operators on a fact that isn't a number. json-rules-engine doesn't
+ * throw for these: the condition is just false for every entity, so a rule
+ * like `githubVisibility greaterThan 5` builds and evaluates but can never
+ * pass. The same goes for `equal` with a list, which compares with `===`: it
+ * never passes, and `notEqual` with a list never fails.
+ *
+ * Other plain operators on a list fact compare the whole list too: `equal` and
+ * `in` never pass, while `notEqual` and `notIn` always do. A `path` reads one
+ * item and a decorator like `someFact:equal` tests each item, so those are fine.
+ */
+function typeProblems(
+  conditions: unknown,
+  factTypes: Map<string, unknown>,
+): CheckProblem[] {
+  return leavesOf({ node: conditions, path: '/conditions' }).flatMap(leaf => {
+    const {
+      fact,
+      operator,
+      path: factPath,
+      value,
+    } = leaf.node as Record<string, unknown>;
+    if (
+      typeof fact === 'string' &&
+      typeof operator === 'string' &&
+      factTypes.get(fact) === 'set' &&
+      factPath === undefined &&
+      !operator.includes(':') &&
+      !LIST_FACT_OPERATORS.has(operator)
+    ) {
+      return [
+        {
+          code: 'invalid-rule' as const,
+          path: `${leaf.path}/operator`,
+          fact,
+          message: `${fact} is a list, so ${operator} can't test what it holds; use contains or doesNotContain.`,
+        },
+      ];
+    }
+    if (
+      typeof fact === 'string' &&
+      Array.isArray(value) &&
+      (operator === 'equal' || operator === 'notEqual')
+    ) {
+      return [
+        {
+          code: 'invalid-rule' as const,
+          path: `${leaf.path}/operator`,
+          fact,
+          message: `${operator} compares one value, so it can't match a list; use ${
+            operator === 'equal' ? 'in' : 'notIn'
+          }.`,
+        },
+      ];
+    }
+    if (typeof fact !== 'string' || !NUMBER_OPERATORS.has(String(operator))) {
+      return [];
+    }
+    const type = factTypes.get(fact);
+    if (typeof type !== 'string' || NUMBER_FACT_TYPES.has(type)) return [];
+    return [
+      {
+        code: 'invalid-rule' as const,
+        path: `${leaf.path}/operator`,
+        fact,
+        message: `${operator} compares numbers, but ${fact} is a ${type}; use equal, notEqual, in or notIn.`,
+      },
+    ];
+  });
+}
+
 /**
  * Decides whether a check can be evaluated against the facts tech-insights
  * currently has schemas for.
@@ -178,7 +263,9 @@ async function ruleProblems(rule: unknown): Promise<CheckProblem[]> {
 export class CheckValidator {
   private readonly ruleResults = new Map<string, CheckProblem[]>();
 
-  constructor(private readonly store: TechInsightsStore) {}
+  constructor(
+    private readonly store: Pick<TechInsightsStore, 'getLatestSchemas'>,
+  ) {}
 
   async problemsOf(check: CheckDefinition): Promise<CheckProblem[]> {
     const [problems] = await this.problemsOfEach([check]);
@@ -239,6 +326,17 @@ export class CheckValidator {
     const unknownFacts = [
       ...new Set(factNamesIn(check.rule.conditions)),
     ].filter(name => !provided.has(name));
+    if (unknownFacts.length === 0) {
+      const factTypes = new Map<string, unknown>();
+      for (const schema of schemas) {
+        for (const [name, field] of Object.entries(schema)) {
+          if (!SCHEMA_METADATA_KEYS.has(name)) {
+            factTypes.set(name, (field as { type?: unknown } | null)?.type);
+          }
+        }
+      }
+      return typeProblems(check.rule.conditions, factTypes);
+    }
     return unknownFacts.map(name => {
       const owner = allSchemas.find(
         schema => name in schema && !SCHEMA_METADATA_KEYS.has(name),

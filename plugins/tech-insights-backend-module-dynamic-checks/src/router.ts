@@ -167,6 +167,13 @@ export async function createDynamicChecksRouter(
     );
   });
 
+  // tech-insights' own /fact-schemas also returns retrievers that no longer
+  // run, so check authoring reads the schemas from here.
+  router.get('/dynamic-checks/fact-schemas', async (req, res) => {
+    await authorize(req, dynamicCheckReadPermission);
+    res.json(await requireEvaluation().store.getLatestSchemas());
+  });
+
   router.post('/dynamic-checks', async (req, res) => {
     await authorize(req, dynamicCheckManagePermission);
     const check: TechInsightJsonRuleCheck = {

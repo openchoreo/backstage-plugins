@@ -4,6 +4,7 @@ import type {
   JsonRulesEngineFactChecker,
   TechInsightJsonRuleCheck,
 } from '@backstage-community/plugin-tech-insights-backend-module-jsonfc';
+import type { CheckFactStore } from './registeredFactStore';
 import {
   factNamesIn,
   SCHEMA_METADATA_KEYS,
@@ -16,7 +17,7 @@ import {
  * to build a checker over other checks with the same store and options.
  */
 export interface CheckEvaluation {
-  store: TechInsightsStore;
+  store: CheckFactStore;
   validator: CheckValidator;
   checkerFor(checks: TechInsightJsonRuleCheck[]): JsonRulesEngineFactChecker;
 }

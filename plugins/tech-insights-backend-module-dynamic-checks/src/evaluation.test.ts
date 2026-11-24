@@ -26,6 +26,9 @@ const schemas = [
     version: '0.1.0',
     entityFilter: [{ kind: 'component' }],
     githubIsArchived: { type: 'boolean', description: '' },
+    githubVisibility: { type: 'string', description: '' },
+    githubDaysSinceLastPush: { type: 'integer', description: '' },
+    githubTopics: { type: 'set', description: '' },
   },
 ] as unknown as Array<Record<string, unknown> & { id: string }>;
 
@@ -219,6 +222,115 @@ describe('CheckValidator', () => {
     expect(problems.map(p => [p.code, p.path])).toEqual(
       paths.map(path => ['invalid-rule', path]),
     );
+  });
+
+  it('points at a number operator on a fact that is not a number', async () => {
+    const problems = await validator.problemsOf({
+      ...check('x', 'githubIsArchived'),
+      rule: {
+        conditions: {
+          all: [
+            {
+              fact: 'githubDaysSinceLastPush',
+              operator: 'lessThan',
+              value: 90,
+            },
+            { fact: 'githubVisibility', operator: 'greaterThan', value: 5 },
+          ],
+        },
+      },
+    });
+    expect(problems).toEqual([
+      expect.objectContaining({
+        code: 'invalid-rule',
+        path: '/conditions/all/1/operator',
+        fact: 'githubVisibility',
+      }),
+    ]);
+  });
+
+  it.each([
+    ['equal', 'in'],
+    ['notEqual', 'notIn'],
+  ])('points %s with a list at %s', async (operator, suggested) => {
+    const problems = await validator.problemsOf({
+      ...check('x', 'githubIsArchived'),
+      rule: {
+        conditions: {
+          any: [{ fact: 'githubVisibility', operator, value: ['private'] }],
+        },
+      },
+    });
+    expect(problems).toEqual([
+      expect.objectContaining({
+        code: 'invalid-rule',
+        path: '/conditions/any/0/operator',
+        fact: 'githubVisibility',
+        message: expect.stringContaining(`use ${suggested}`),
+      }),
+    ]);
+  });
+
+  it('accepts in and notIn with a list', async () => {
+    await expect(
+      validator.problemsOf({
+        ...check('x', 'githubIsArchived'),
+        rule: {
+          conditions: {
+            all: [
+              { fact: 'githubVisibility', operator: 'in', value: ['private'] },
+              {
+                fact: 'githubVisibility',
+                operator: 'notIn',
+                value: ['public'],
+              },
+            ],
+          },
+        },
+      }),
+    ).resolves.toEqual([]);
+  });
+
+  describe('list facts', () => {
+    const problemsOfCondition = (condition: {
+      operator: string;
+      value: string | number | string[];
+      path?: string;
+    }) =>
+      validator.problemsOf({
+        ...check('x', 'githubIsArchived'),
+        rule: {
+          conditions: { all: [{ fact: 'githubTopics', ...condition }] },
+        },
+      });
+
+    it.each([
+      ['equal', 'security'],
+      ['notEqual', 'security'],
+      ['equal', ['security']],
+      ['in', ['security']],
+      ['notIn', ['security']],
+      ['greaterThan', 1],
+    ])('rejects %s with %j', async (operator, value) => {
+      await expect(problemsOfCondition({ operator, value })).resolves.toEqual([
+        expect.objectContaining({
+          code: 'invalid-rule',
+          path: '/conditions/all/0/operator',
+          fact: 'githubTopics',
+          message: expect.stringContaining('use contains or doesNotContain'),
+        }),
+      ]);
+    });
+
+    it.each([
+      [{ operator: 'contains', value: 'security' }],
+      [{ operator: 'doesNotContain', value: 'security' }],
+      [{ operator: 'someFact:equal', value: 'security' }],
+      [{ operator: 'everyFact:notEqual', value: 'security' }],
+      [{ path: '$[0]', operator: 'equal', value: 'security' }],
+    ])('accepts %j', async condition => {
+      await expect(problemsOfCondition(condition)).resolves.toEqual([]);
+    });
   });
 
   it('names the unknown fact', async () => {
