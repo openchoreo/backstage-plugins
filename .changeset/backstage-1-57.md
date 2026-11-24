@@ -38,3 +38,7 @@ Node 24.15+ or 26.13+, TypeScript 5.9 and React 18: the plugins now depend on
 `@backstage/frontend-plugin-api` 1.x and `@backstage/plugin-catalog-react` 4.x,
 which apps on older Backstage releases cannot share. Hosts that cannot
 upgrade yet should stay on 1.3.x. The legacy frontend exports are unchanged.
+
+`useUrlSyncedTab` no longer updates the URL again when the tab it last
+requested is requested again. Under Backstage 1.57 the environment overrides
+page otherwise looped on its default tab and crashed with React error #185.
