@@ -67,6 +67,25 @@ export const useStyles = makeStyles(theme => ({
     alignSelf: 'flex-start',
     backgroundColor: theme.palette.background.default,
   },
+  // The live progress card's reply box: as wide as a reply with a card,
+  // so the box doesn't change width when the reply takes its place.
+  liveProgress: { width: '90%' },
+  // A check authoring reply taking the live progress card's place: the
+  // card folds away (a grid row from 1fr to 0fr, so its own height needn't
+  // be known) and fades, while the reply fades in and rises where it was.
+  // Timings match READY_MS / LEAVE_MS in AssistantChatDrawer.
+  handoff: {
+    display: 'grid',
+    gridTemplateRows: '1fr',
+    transition: 'grid-template-rows 280ms ease-out, opacity 150ms ease-out',
+  },
+  handoffLeaving: { gridTemplateRows: '0fr', opacity: 0 },
+  handoffInner: { minHeight: 0, overflow: 'hidden' },
+  handedOff: { animation: '$replyIn 220ms ease-out 80ms both' },
+  '@keyframes replyIn': {
+    from: { opacity: 0, transform: 'translateY(4px)' },
+    to: { opacity: 1, transform: 'none' },
+  },
   toolStatus: {
     alignSelf: 'flex-start',
     fontSize: 12,
@@ -119,7 +138,8 @@ export const useStyles = makeStyles(theme => ({
   },
   composer: {
     display: 'flex',
-    alignItems: 'center',
+    flexDirection: 'column',
+    alignItems: 'stretch',
     gap: theme.spacing(1),
     padding: theme.spacing(1.5, 2),
     borderTop: `1px solid ${theme.palette.divider}`,

@@ -24,6 +24,7 @@ describe('assistant alpha module', () => {
     const client = new PortalAssistantClient({
       discoveryApi: { getBaseUrl: async () => 'http://localhost' } as any,
       fetchApi: { fetch: (() => undefined) as any } as any,
+      identityApi: { getCredentials: async () => ({}) } as any,
     });
     expect(client).toBeInstanceOf(PortalAssistantClient);
     expect(portalAssistantApiRef.id).toBeTruthy();

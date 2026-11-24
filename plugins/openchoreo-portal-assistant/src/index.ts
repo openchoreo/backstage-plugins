@@ -10,6 +10,8 @@ export {
   type ChatCaseType,
   type ChatMessage,
   type ChatScope,
+  type FactRetriever,
+  type FactRetrieverField,
   type StreamEvent,
 } from './api/PortalAssistantApi';
 
