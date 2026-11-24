@@ -220,8 +220,9 @@ export async function checkYarnTask() {
   await Task.forItem('checking', 'yarn', async () => {
     await exec('yarn --version').catch(() => {
       throw new Error(
-        'Yarn is not available. Run `corepack enable` (bundled with Node.js) ' +
-          'or install Yarn, or pass --skip-install to install later.',
+        'Yarn is not available. Run `corepack enable` (on Node 26, run ' +
+          '`npm install -g corepack` first) or install Yarn, or pass ' +
+          '--skip-install to install later.',
       );
     });
   });

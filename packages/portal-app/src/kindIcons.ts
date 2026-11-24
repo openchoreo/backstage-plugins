@@ -1,4 +1,6 @@
+import { createElement } from 'react';
 import type { IconComponent } from '@backstage/core-plugin-api';
+import type { IconElement } from '@backstage/frontend-plugin-api';
 import CloudIcon from '@material-ui/icons/Cloud';
 import NotificationsIcon from '@material-ui/icons/Notifications';
 import DnsIcon from '@material-ui/icons/Dns';
@@ -46,7 +48,14 @@ export const KIND_ICONS: Record<string, IconComponent> = {
   componentworkflow: SettingsApplicationsIcon,
 };
 
-/** kind:x-keyed shape consumed by IconBundleBlueprint (see portalPlugin.tsx). */
-export const LEGACY_KIND_ICONS = Object.fromEntries(
-  Object.entries(KIND_ICONS).map(([k, v]) => [`kind:${k}`, v]),
-);
+/**
+ * kind:x-keyed shape consumed by IconBundleBlueprint (see appModule.tsx).
+ * Icon bundles take elements, not components.
+ */
+export const LEGACY_KIND_ICONS: Record<string, IconElement> =
+  Object.fromEntries(
+    Object.entries(KIND_ICONS).map(([k, v]) => [
+      `kind:${k}`,
+      createElement(v, { fontSize: 'inherit' }),
+    ]),
+  );
