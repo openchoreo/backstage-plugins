@@ -16,7 +16,7 @@ import {
 import { WaterfallView } from './WaterfallView';
 import { useTracesTableStyles } from './styles';
 import { Trace, Span, SpanDetails } from '../../types';
-import { formatDuration } from './utils';
+import { formatDuration, formatTimestamp } from './utils';
 import { getColumnStyle, TracesColumn } from './columns';
 
 interface TraceSpansHook {
@@ -149,7 +149,7 @@ export const TracesTable: FC<TracesTableProps> = ({
             style={getColumnStyle('startTime')}
             className={`${classes.cell} ${classes.traceCell}`}
           >
-            {trace.startTime}
+            {formatTimestamp(trace.startTime)}
           </Box>
           <Box
             style={getColumnStyle('duration')}
