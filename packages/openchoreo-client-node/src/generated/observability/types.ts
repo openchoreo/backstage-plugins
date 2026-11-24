@@ -316,8 +316,10 @@ export interface components {
       project?: string;
       component?: string;
       environment?: string;
-      /** @description Restricts the result to one release line of the component, and main to its main line. Omitted covers every line of the component. Requires component. Logs, events, metrics and traces also require environment. */
+      /** @description Restricts the result to one release line of the component, and main to its main line. Omitted covers the component's main line, unless allReleaseLines is set. Requires component. Logs, events, metrics and traces also require environment. */
       releaseLine?: string;
+      /** @description Covers every line of the component, its main line and its release lines. Can't be combined with releaseLine. Has no effect without component, since a project or environment scope already covers every line. */
+      allReleaseLines?: boolean;
     };
     WorkflowSearchScope: {
       namespace: string;

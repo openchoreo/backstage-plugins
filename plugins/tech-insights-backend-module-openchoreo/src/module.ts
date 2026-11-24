@@ -2,6 +2,10 @@ import { createBackendModule } from '@backstage/backend-plugin-api';
 import { techInsightsFactRetrieversExtensionPoint } from '@backstage-community/plugin-tech-insights-node';
 import { openChoreoTokenServiceRef } from '@openchoreo/openchoreo-auth';
 import {
+  createOpenChoreoAlertingFactRetriever,
+  OPENCHOREO_ALERTING_FACT_RETRIEVER_ID,
+} from './openchoreoAlertingFactRetriever';
+import {
   createOpenChoreoBuildFactRetriever,
   OPENCHOREO_BUILD_FACT_RETRIEVER_ID,
 } from './openchoreoBuildFactRetriever';
@@ -31,6 +35,8 @@ export const techInsightsModuleOpenChoreo = createBackendModule({
             createOpenChoreoDeploymentFactRetriever(tokenService),
           [OPENCHOREO_BUILD_FACT_RETRIEVER_ID]:
             createOpenChoreoBuildFactRetriever(tokenService),
+          [OPENCHOREO_ALERTING_FACT_RETRIEVER_ID]:
+            createOpenChoreoAlertingFactRetriever(tokenService),
         });
       },
     });
