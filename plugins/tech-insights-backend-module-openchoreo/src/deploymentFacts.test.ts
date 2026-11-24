@@ -1,10 +1,14 @@
 import {
+  activeBindings,
+  endpointsPerEnvironment,
+  environmentDeployment,
   isSecretLikeKey,
   lineBindings,
+  lineExternalEndpoints,
   parseImage,
   plainTextSecretEnvCount,
-  releaseBindingFacts,
-  workloadFacts,
+  type Endpoint,
+  type ReleaseBinding,
 } from './deploymentFacts';
 
 describe('parseImage', () => {
@@ -71,34 +75,6 @@ describe('plainTextSecretEnvCount', () => {
   });
 });
 
-describe('workloadFacts', () => {
-  it('counts external endpoints and secret-like plain values', () => {
-    expect(
-      workloadFacts({
-        container: {
-          image: 'cr.openchoreo.dev/samples/greeter:latest',
-          env: [
-            { key: 'LOG_LEVEL', value: 'debug' },
-            { key: 'GITHUB_TOKEN', valueFrom: { secretKeyRef: {} } },
-            { key: 'DB_PASSWORD', value: 'hunter2' },
-            { key: 'STRIPE_API_KEY', value: 'sk_live' },
-          ],
-        },
-        endpoints: {
-          http: { visibility: ['external'] },
-          admin: { visibility: ['internal'] },
-          grpc: {},
-        },
-      }),
-    ).toEqual({
-      openchoreoImageRegistry: 'cr.openchoreo.dev',
-      openchoreoImagePinned: false,
-      openchoreoExternalEndpointCount: 1,
-      openchoreoPlainTextSecretEnvCount: 2,
-    });
-  });
-});
-
 describe('lineBindings', () => {
   const main = { spec: { environment: 'development' } };
   const unnamed = {
@@ -123,137 +99,265 @@ describe('lineBindings', () => {
   });
 });
 
-describe('releaseBindingFacts', () => {
+describe('activeBindings', () => {
+  it('leaves out bindings that undeploy their release', () => {
+    const deployed = { spec: { environment: 'development' } };
+    const explicit = { spec: { environment: 'staging', state: 'Active' } };
+    const undeployed = { spec: { environment: 'qa', state: 'Undeploy' } };
+    expect(activeBindings([deployed, explicit, undeployed])).toEqual([
+      deployed,
+      explicit,
+    ]);
+  });
+});
+
+describe('environmentDeployment', () => {
   const synced = { type: 'ReleaseSynced', status: 'True' };
   const ready = { conditions: [synced, { type: 'Ready', status: 'True' }] };
-  const notReady = {
-    conditions: [synced, { type: 'Ready', status: 'False' }],
+  const production = new Set(['production']);
+  const release = {
+    container: {
+      image: 'ghcr.io/acme/api:1.2.0',
+      env: [
+        { key: 'LOG_LEVEL', value: 'debug' },
+        { key: 'GITHUB_TOKEN', valueFrom: { secretKeyRef: {} } },
+        { key: 'DB_PASSWORD', value: 'hunter2' },
+      ],
+    },
   };
+  const binding = (
+    spec: Partial<NonNullable<ReleaseBinding['spec']>>,
+    status: ReleaseBinding['status'] = ready,
+  ): ReleaseBinding => ({
+    spec: { environment: 'production', releaseName: 'r2', ...spec },
+    status,
+  });
 
-  it('reports a component deployed to development only', () => {
+  it('describes a synced, ready binding on the latest release', () => {
     expect(
-      releaseBindingFacts({
-        bindings: [
-          {
-            spec: { environment: 'development', releaseName: 'r2' },
-            status: ready,
-          },
-        ],
-        productionEnvironments: new Set(['production']),
+      environmentDeployment({
+        binding: binding({}),
+        productionEnvironments: production,
         latestRelease: 'r2',
+        release,
+        externalEndpoints: new Map([['production', 2]]),
       }),
     ).toEqual({
-      openchoreoDeployedEnvironments: ['development'],
-      openchoreoDeployedToProduction: false,
-      openchoreoReadyInAllEnvironments: true,
-      openchoreoRunsLatestRelease: true,
+      environment: 'production',
+      isProduction: true,
+      isReleaseSynced: true,
+      isReady: true,
+      isOnLatestRelease: true,
+      plainTextSecretEnvVarCount: 1,
+      isImagePinned: true,
+      imageRegistry: 'ghcr.io',
+      externalEndpointCount: 2,
     });
   });
 
-  it('ignores undeployed bindings and flags stale or unready environments', () => {
+  it('flags an unsynced, unready binding on an older release', () => {
     expect(
-      releaseBindingFacts({
-        bindings: [
+      environmentDeployment({
+        binding: binding(
+          { environment: 'development', releaseName: 'r1' },
           {
-            spec: { environment: 'development', releaseName: 'r2' },
-            status: ready,
+            conditions: [
+              { type: 'ReleaseSynced', status: 'False' },
+              { type: 'Ready', status: 'False' },
+            ],
           },
-          {
-            spec: { environment: 'production', releaseName: 'r1' },
-            status: notReady,
-          },
-          {
-            spec: {
-              environment: 'staging',
-              releaseName: 'r2',
-              state: 'Undeploy',
-            },
-            status: ready,
-          },
-        ],
-        productionEnvironments: new Set(['production']),
+        ),
+        productionEnvironments: production,
         latestRelease: 'r2',
       }),
     ).toEqual({
-      openchoreoDeployedEnvironments: ['development', 'production'],
-      openchoreoDeployedToProduction: true,
-      openchoreoReadyInAllEnvironments: false,
-      openchoreoRunsLatestRelease: false,
+      environment: 'development',
+      isProduction: false,
+      isReleaseSynced: false,
+      isReady: false,
+      isOnLatestRelease: false,
     });
   });
 
-  it('does not count an environment whose release has not synced', () => {
+  it('reports readiness apart from the latest release', () => {
     expect(
-      releaseBindingFacts({
-        bindings: [
-          {
-            spec: { environment: 'development', releaseName: 'r2' },
-            status: ready,
-          },
-          {
-            spec: { environment: 'production', releaseName: 'missing' },
-            status: {
-              conditions: [
-                { type: 'ReleaseSynced', status: 'False' },
-                { type: 'Ready', status: 'False' },
+      environmentDeployment({
+        binding: binding(
+          {},
+          { conditions: [synced, { type: 'Ready', status: 'False' }] },
+        ),
+        productionEnvironments: production,
+        latestRelease: 'r2',
+      }),
+    ).toMatchObject({ isReleaseSynced: true, isReady: false });
+  });
+
+  it('leaves out isOnLatestRelease without a recorded latest release', () => {
+    expect(
+      environmentDeployment({
+        binding: binding({}),
+        productionEnvironments: production,
+      }),
+    ).not.toHaveProperty('isOnLatestRelease');
+  });
+
+  it("counts the release's plain secrets with this binding's own overrides", () => {
+    expect(
+      environmentDeployment({
+        binding: binding({
+          workloadOverrides: {
+            container: {
+              env: [
+                { key: 'DB_PASSWORD', value: 'other' },
+                { key: 'API_TOKEN', value: 'plain' },
+                { key: 'SIGNING_SECRET', valueFrom: { secretKeyRef: {} } },
               ],
             },
           },
-          { spec: { environment: 'staging' } },
-        ],
-        productionEnvironments: new Set(['production']),
+        }),
+        productionEnvironments: production,
+        release,
       }),
-    ).toEqual({
-      openchoreoDeployedEnvironments: ['development'],
-      openchoreoDeployedToProduction: false,
-      openchoreoReadyInAllEnvironments: false,
-    });
+    ).toHaveProperty('plainTextSecretEnvVarCount', 2);
   });
 
-  it('reports the latest release apart from readiness', () => {
+  it('reads the image from the release, not the current Workload', () => {
     expect(
-      releaseBindingFacts({
-        bindings: [
-          {
-            spec: { environment: 'production', releaseName: 'r2' },
-            status: notReady,
-          },
-        ],
-        productionEnvironments: new Set(['production']),
-        latestRelease: 'r2',
+      environmentDeployment({
+        binding: binding({}),
+        productionEnvironments: production,
+        release: { container: { image: 'nginx:latest' } },
       }),
     ).toMatchObject({
-      openchoreoReadyInAllEnvironments: false,
-      openchoreoRunsLatestRelease: true,
+      isImagePinned: false,
+      imageRegistry: 'docker.io',
+      plainTextSecretEnvVarCount: 0,
     });
   });
 
-  it('leaves out the latest-release fact without a recorded latest release', () => {
-    expect(
-      releaseBindingFacts({
-        bindings: [
-          {
-            spec: { environment: 'development', releaseName: 'r2' },
-            status: ready,
-          },
-        ],
-        productionEnvironments: new Set(),
-      }),
-    ).not.toHaveProperty('openchoreoRunsLatestRelease');
+  it('leaves out the image and secret fields when the release is unknown', () => {
+    const entry = environmentDeployment({
+      binding: binding({}),
+      productionEnvironments: production,
+      latestRelease: 'r2',
+    });
+    expect(entry).not.toHaveProperty('isImagePinned');
+    expect(entry).not.toHaveProperty('imageRegistry');
+    expect(entry).not.toHaveProperty('plainTextSecretEnvVarCount');
+    expect(entry).toHaveProperty('isOnLatestRelease', true);
   });
 
-  it('reports a component with no bindings as not ready and not current', () => {
+  it('counts no external endpoints for an environment none is bound to', () => {
     expect(
-      releaseBindingFacts({
-        bindings: [],
-        productionEnvironments: new Set(),
-        latestRelease: 'r1',
+      environmentDeployment({
+        binding: binding({ environment: 'staging' }),
+        productionEnvironments: production,
+        externalEndpoints: new Map([['production', 1]]),
+      }),
+    ).toHaveProperty('externalEndpointCount', 0);
+  });
+
+  it('leaves out externalEndpointCount when Endpoints are unknown', () => {
+    expect(
+      environmentDeployment({
+        binding: binding({}),
+        productionEnvironments: production,
+      }),
+    ).not.toHaveProperty('externalEndpointCount');
+  });
+
+  it('describes a Manage binding from its release without naming the mode', () => {
+    const entry = environmentDeployment({
+      binding: binding({ mode: 'Manage' }),
+      productionEnvironments: production,
+      release,
+    });
+    expect(entry).not.toHaveProperty('mode');
+    expect(entry).toHaveProperty('isImagePinned', true);
+  });
+
+  it('leaves out the fields an Observe binding does not render', () => {
+    expect(
+      environmentDeployment({
+        binding: binding({ mode: 'Observe' }),
+        productionEnvironments: production,
+        latestRelease: 'r2',
+        release,
+        externalEndpoints: new Map([['production', 1]]),
       }),
     ).toEqual({
-      openchoreoDeployedEnvironments: [],
-      openchoreoDeployedToProduction: false,
-      openchoreoReadyInAllEnvironments: false,
-      openchoreoRunsLatestRelease: false,
+      environment: 'production',
+      isProduction: true,
+      isReleaseSynced: true,
+      isReady: true,
+      externalEndpointCount: 1,
     });
+  });
+});
+
+describe('lineExternalEndpoints', () => {
+  const endpoint = (
+    name: string,
+    owner: NonNullable<Endpoint['spec']>['owner'],
+    visibility = ['external'],
+  ): Endpoint => ({ metadata: { name }, spec: { owner, visibility } });
+  const endpoints = [
+    endpoint('api-public', { projectName: 'shop', componentName: 'api' }),
+    endpoint('api-internal', { projectName: 'shop', componentName: 'api' }, [
+      'project',
+      'internal',
+    ]),
+    endpoint('api-next-public', {
+      projectName: 'shop',
+      componentName: 'api',
+      releaseLineName: 'next',
+    }),
+    endpoint('web-public', { projectName: 'shop', componentName: 'web' }),
+    endpoint('shared', { projectName: 'shop' }),
+  ];
+  const names = (list: Endpoint[]) => list.map(e => e.metadata.name);
+
+  it("keeps the main line's external Endpoints", () => {
+    expect(names(lineExternalEndpoints(endpoints, 'api'))).toEqual([
+      'api-public',
+    ]);
+  });
+
+  it("keeps a release line's own external Endpoints", () => {
+    expect(names(lineExternalEndpoints(endpoints, 'api', 'next'))).toEqual([
+      'api-next-public',
+    ]);
+  });
+});
+
+describe('endpointsPerEnvironment', () => {
+  it('counts each Endpoint once per environment it is bound in', () => {
+    const erb = (
+      endpointName: string,
+      environment: string,
+      project = 'shop',
+    ) => ({
+      spec: { owner: { projectName: project, endpointName }, environment },
+    });
+    expect(
+      endpointsPerEnvironment(
+        'shop',
+        ['api-public', 'api-admin', 'api-docs'],
+        [
+          erb('api-public', 'development'),
+          erb('api-public', 'production'),
+          erb('api-admin', 'development'),
+          erb('api-admin', 'development'),
+          erb('api-admin', 'production', 'other'),
+          erb('web-public', 'production'),
+          { spec: { owner: { projectName: 'shop' }, environment: 'qa' } },
+        ],
+      ),
+    ).toEqual(
+      new Map([
+        ['development', 2],
+        ['production', 1],
+      ]),
+    );
   });
 });

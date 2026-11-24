@@ -22,8 +22,9 @@ under a starter check's id is kept as it is. With an in-memory database, or SQLi
 doesn't survive a restart, the starter checks come back after every restart, along with losing
 every other change.
 
-New starter checks ship as new seed files in `starter-checks/openchoreo/`, which keep their own
-migration ledger (`dynamic_checks_openchoreo_starter_migrations`). Turning the option on later
-still adds them. Nothing is seeded when `backend.database.migrations.skip` is set. Never edit,
-rename or delete a seed file once it has shipped. Databases that already ran it won't pick up the
-edit, and knex refuses to migrate when its ledger names a file that's gone.
+The starter checks are seed files in `starter-checks/openchoreo/`, which keep their own migration
+ledger (`dynamic_checks_openchoreo_starter_migrations`). Turning the option on later still adds
+them. Nothing is seeded when `backend.database.migrations.skip` is set. A database runs each seed
+file once, so a starter check changed in a later release reaches only databases that haven't been
+seeded yet; one seeded earlier keeps the version it got. Never rename or delete a seed file once it
+has shipped, since knex refuses to migrate when its ledger names a file that's gone.
