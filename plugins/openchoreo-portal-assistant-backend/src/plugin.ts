@@ -30,8 +30,9 @@ export const openchoreoPortalAssistantBackendPlugin = createBackendPlugin({
         httpRouter: coreServices.httpRouter,
         logger: coreServices.logger,
         config: coreServices.rootConfig,
+        auth: coreServices.auth,
       },
-      async init({ httpRouter, logger, config }) {
+      async init({ httpRouter, logger, config, auth }) {
         const targetUrl = config.getOptionalString(
           'openchoreo.portalAssistantUrl',
         );
@@ -55,6 +56,7 @@ export const openchoreoPortalAssistantBackendPlugin = createBackendPlugin({
         httpRouter.use(
           await createRouter({
             logger,
+            auth,
             targetUrl,
           }),
         );
@@ -64,7 +66,8 @@ export const openchoreoPortalAssistantBackendPlugin = createBackendPlugin({
         // Thunder JWKS) and runs its own authz check
         // (``assistant:invoke`` plus per-tool actions). Adding a second
         // gate here would be redundant AND would break service-account
-        // tokens that don't carry a Backstage identity.
+        // tokens that don't carry a Backstage identity. The optional
+        // x-backstage-identity header is verified by the chat route itself.
         httpRouter.addAuthPolicy({
           path: '/',
           allow: 'unauthenticated',

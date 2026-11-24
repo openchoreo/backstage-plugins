@@ -1,4 +1,4 @@
-import { LoggerService } from '@backstage/backend-plugin-api';
+import { AuthService, LoggerService } from '@backstage/backend-plugin-api';
 import express from 'express';
 import Router from 'express-promise-router';
 import { Readable } from 'node:stream';
@@ -39,6 +39,13 @@ const upstreamDispatcher = new Agent({
 export interface RouterOptions {
   logger: LoggerService;
   /**
+   * Verifies the user's Backstage token sent with each chat and issues the
+   * token the portal-assistant uses to call Backstage MCP actions on the
+   * user's behalf. Without it, chats are forwarded with no user token and
+   * the assistant stays read-only.
+   */
+  auth?: AuthService;
+  /**
    * Base URL of the upstream portal-assistant service, e.g.
    * ``http://portal-assistant.openchoreo-control-plane.svc.cluster.local:8080``.
    * The trailing ``/api/v1alpha1/portal-assistant/...`` path segments are
@@ -66,8 +73,19 @@ export interface RouterOptions {
 const DEFAULT_UPSTREAM_TIMEOUT_MS = 30_000;
 const DEFAULT_STREAM_TIMEOUT_MS = 600_000;
 
+/** The user's Backstage token, sent by the frontend. Never forwarded. */
+const BACKSTAGE_IDENTITY_HEADER = 'x-backstage-identity';
+/**
+ * The token this plugin issues on the user's behalf and forwards upstream.
+ * Only this plugin sets it; a value sent by the browser is not forwarded.
+ */
+export const BACKSTAGE_USER_TOKEN_HEADER = 'x-backstage-user-token';
+/** The only plugin the forwarded user token is valid for. */
+const MCP_ACTIONS_PLUGIN_ID = 'mcp-actions';
+
 interface ForwardCtx {
   logger: LoggerService;
+  auth?: AuthService;
   targetUrl: string;
   upstreamTimeoutMs: number;
   streamTimeoutMs: number;
@@ -78,6 +96,7 @@ interface ForwardCtx {
  *
  *   POST  /api/v1alpha1/portal-assistant/chat       (streaming ndjson)
  *   POST  /api/v1alpha1/portal-assistant/warmup     (small JSON, 202)
+ *   POST  /api/v1alpha1/portal-assistant/chat/confirm  (small JSON)
  *
  * The frontend's ``PortalAssistantClient`` calls
  * ``discoveryApi.getBaseUrl('openchoreo-portal-assistant-backend') + '/api/v1alpha1/portal-assistant/...'``;
@@ -89,6 +108,7 @@ export async function createRouter(
 ): Promise<express.Router> {
   const ctx: ForwardCtx = {
     logger: options.logger,
+    auth: options.auth,
     targetUrl: options.targetUrl,
     upstreamTimeoutMs: options.upstreamTimeoutMs ?? DEFAULT_UPSTREAM_TIMEOUT_MS,
     streamTimeoutMs: options.streamTimeoutMs ?? DEFAULT_STREAM_TIMEOUT_MS,
@@ -96,14 +116,21 @@ export async function createRouter(
   const router = Router();
   router.use(express.json({ limit: '128kb' }));
 
-  // Forwarders: streaming /chat and JSON /warmup. The agent is read-only —
-  // there is no /execute route to proxy.
+  // Forwarders: streaming /chat and JSON /warmup and /chat/confirm. The
+  // agent itself never writes; /chat/confirm saves the check change on a
+  // confirm card the user clicked, through Backstage as that user.
   router.post('/api/v1alpha1/portal-assistant/chat', async (req, res) => {
     await forwardStream(req, res, '/chat', ctx);
   });
   router.post('/api/v1alpha1/portal-assistant/warmup', async (req, res) => {
     await forwardJson(req, res, '/warmup', ctx);
   });
+  router.post(
+    '/api/v1alpha1/portal-assistant/chat/confirm',
+    async (req, res) => {
+      await forwardJson(req, res, '/chat/confirm', ctx, { actAsUser: true });
+    },
+  );
 
   return router;
 }
@@ -166,7 +193,9 @@ const STRIP_RESPONSE_HEADERS = new Set([
  * Specifically excluded by being absent from this list: ``cookie``
  * (session bleed), every ``x-forwarded-*`` (path leakage), Backstage's
  * internal correlation headers, browser hint headers (``sec-*``,
- * ``referer``), proxy-control headers (``via``, ``forwarded``).
+ * ``referer``), proxy-control headers (``via``, ``forwarded``), the
+ * user's Backstage token (``x-backstage-identity``) and any
+ * ``x-backstage-user-token`` a browser sends (see userTokenHeaders).
  */
 const FORWARD_HEADER_ALLOWLIST = new Set([
   'authorization',
@@ -222,6 +251,41 @@ function applyResponseHeaders(
 }
 
 /**
+ * The token the portal-assistant uses to call Backstage MCP actions as the
+ * signed-in user, as a header to forward; empty when there is no valid user.
+ *
+ * ``getPluginRequestToken`` wraps a limited copy of the user's identity in a
+ * short-lived token only ``mcp-actions`` accepts, so the portal-assistant
+ * never holds the user's own Backstage token. Any failure leaves the chat
+ * read-only instead of failing it.
+ */
+async function userTokenHeaders(
+  req: express.Request,
+  ctx: ForwardCtx,
+  requestId: string,
+): Promise<Record<string, string>> {
+  const identity = req.headers[BACKSTAGE_IDENTITY_HEADER];
+  if (!ctx.auth || typeof identity !== 'string' || !identity) return {};
+  try {
+    const credentials = await ctx.auth.authenticate(identity);
+    if (!ctx.auth.isPrincipal(credentials, 'user')) return {};
+    const { token } = await ctx.auth.getPluginRequestToken({
+      onBehalfOf: credentials,
+      targetPluginId: MCP_ACTIONS_PLUGIN_ID,
+    });
+    return { [BACKSTAGE_USER_TOKEN_HEADER]: token };
+  } catch (err) {
+    // The error name only: never log anything derived from the token.
+    ctx.logger.warn(
+      `portal-assistant-backend: ignoring an invalid Backstage identity rid=${requestId} (${
+        (err as Error)?.name ?? 'Error'
+      })`,
+    );
+    return {};
+  }
+}
+
+/**
  * Streaming forwarder for the ndjson ``/chat`` endpoint. Pipes the
  * upstream body byte-for-byte; never buffers. Cancels the upstream
  * fetch if the client disconnects mid-stream so we don't leak a
@@ -244,6 +308,7 @@ async function forwardStream(
   // log fallback diverged from the upstream id when the caller didn't
   // send X-Request-ID.
   const { headers: forwardHeaders, requestId } = buildForwardHeaders(req);
+  Object.assign(forwardHeaders, await userTokenHeaders(req, ctx, requestId));
 
   // AbortController to tear down the upstream fetch when the client
   // disconnects mid-stream. We wire it to ``res.on('close')`` (NOT
@@ -406,6 +471,7 @@ async function forwardJson(
   res: express.Response,
   upstreamPath: string,
   ctx: ForwardCtx,
+  { actAsUser = false }: { actAsUser?: boolean } = {},
 ): Promise<void> {
   const { logger, targetUrl, upstreamTimeoutMs } = ctx;
   const url = `${targetUrl.replace(
@@ -415,6 +481,9 @@ async function forwardJson(
   // Single source of truth for the request id — forwarded to upstream
   // AND echoed in any error envelope below.
   const { headers: forwardHeaders, requestId } = buildForwardHeaders(req);
+  if (actAsUser) {
+    Object.assign(forwardHeaders, await userTokenHeaders(req, ctx, requestId));
+  }
 
   let upstream: Response;
   try {
