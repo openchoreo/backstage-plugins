@@ -81,9 +81,13 @@ export function useUrlSyncedTab<T extends string = string>({
   // again with the old activeTab and asks for the same tab, and navigating
   // again would loop until React gives up (error #185). So a repeated request
   // for the tab already requested does not touch the URL. onTabChange is read
-  // through a ref because callers derive it from the current location.
+  // through a ref because callers derive it from the current location. The ref
+  // is updated in an effect so a render React discards cannot leave its
+  // callback behind; this effect runs before the caller's own effects.
   const onTabChangeRef = useRef(onTabChange);
-  onTabChangeRef.current = onTabChange;
+  useEffect(() => {
+    onTabChangeRef.current = onTabChange;
+  });
 
   // Wrapper to update both local state and URL
   const setActiveTab = useCallback((tab: T, replace?: boolean) => {
