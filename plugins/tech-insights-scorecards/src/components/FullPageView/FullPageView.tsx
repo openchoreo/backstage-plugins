@@ -38,6 +38,10 @@ const useStyles = makeStyles(theme => ({
   title: {
     fontWeight: 600,
   },
+  actions: {
+    marginLeft: 'auto',
+    flexShrink: 0,
+  },
 }));
 
 const OVERLAY_SELECTOR =
@@ -46,6 +50,8 @@ const OVERLAY_SELECTOR =
 interface FullPageViewProps {
   title: ReactNode;
   subtitle?: ReactNode;
+  /** Shown at the right of the header. */
+  actions?: ReactNode;
   onBack: () => void;
   children: ReactNode;
 }
@@ -58,6 +64,7 @@ interface FullPageViewProps {
 export function FullPageView({
   title,
   subtitle,
+  actions,
   onBack,
   children,
 }: FullPageViewProps) {
@@ -103,6 +110,7 @@ export function FullPageView({
             </Typography>
           )}
         </Box>
+        {actions && <Box className={classes.actions}>{actions}</Box>}
       </Box>
       {children}
     </Box>

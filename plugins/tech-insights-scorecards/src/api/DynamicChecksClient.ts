@@ -161,7 +161,7 @@ export class DynamicChecksClient implements DynamicChecksApi {
   }
 
   async listFactSchemas(): Promise<FactSchema[]> {
-    return this.apiFetch<FactSchema[]>('/fact-schemas');
+    return this.apiFetch<FactSchema[]>('/dynamic-checks/fact-schemas');
   }
 
   async listFactCollectors(): Promise<FactCollector[]> {

@@ -48,7 +48,7 @@ describe('CheckPolicyTable', () => {
   it('says when there are no checks yet', async () => {
     await renderWithApis(<CheckPolicyTable />);
     expect(
-      await screen.findByText('No checks yet. Create one with "New check".'),
+      await screen.findByText('No checks yet. Create one with "Create check".'),
     ).toBeInTheDocument();
   });
 
@@ -156,7 +156,7 @@ describe('CheckPolicyTable', () => {
       ['Documentation', 'Ownership'],
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'New check' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Create check' }));
     expect(onNewCheck).toHaveBeenCalledWith(
       [repoSchema],
       ['Documentation', 'Ownership'],
@@ -176,7 +176,7 @@ describe('CheckPolicyTable', () => {
       api,
     });
 
-    const newCheck = screen.getByRole('button', { name: 'New check' });
+    const newCheck = screen.getByRole('button', { name: 'Create check' });
     expect(newCheck).toBeDisabled();
     loadSchemas([repoSchema]);
     await waitFor(() => expect(newCheck).toBeEnabled());
@@ -208,7 +208,7 @@ describe('CheckPolicyTable', () => {
 
     await userEvent.click(await screen.findByText('Has a README'));
     expect(onEditCheck).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: 'New check' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Create check' })).toBeDisabled();
     expect(screen.getByLabelText('Publish check Has a README')).toBeDisabled();
     expect(screen.getByLabelText('Edit check Has a README')).toBeDisabled();
     expect(screen.getByLabelText('Delete check Has a README')).toBeDisabled();

@@ -52,8 +52,8 @@ export interface FactSchemaField {
 }
 
 /**
- * One registered fact retriever's schema, as returned by the host
- * tech-insights plugin's own `/fact-schemas` endpoint. Fact names are
+ * One registered fact retriever's schema, as returned by the dynamic-checks
+ * `/dynamic-checks/fact-schemas` endpoint. Fact names are
  * dynamic keys alongside the fixed `id`/`version`/`entityFilter` fields —
  * see `factFieldsOf` for how callers pull just the fact names back out.
  */

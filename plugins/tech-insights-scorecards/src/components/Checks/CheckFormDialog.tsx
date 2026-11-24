@@ -2,7 +2,9 @@ import Dialog from '@material-ui/core/Dialog';
 import DialogContent from '@material-ui/core/DialogContent';
 import IconButton from '@material-ui/core/IconButton';
 import CloseIcon from '@material-ui/icons/Close';
+import { useApiHolder } from '@backstage/core-plugin-api';
 import { CheckForm } from './CheckForm';
+import { checkAuthoringAssistantApiRef } from '../../api/CheckAuthoringAssistantApi';
 import type { DynamicCheck, FactSchema } from '../../api/types';
 
 interface CheckFormDialogProps {
@@ -17,7 +19,7 @@ interface CheckFormDialogProps {
 
 /**
  * Modal wrapper around `CheckForm` for table-style callers (CheckPolicyTable)
- * that trigger create/edit via a "New check"/edit action rather than an
+ * that trigger create/edit via a "Create check"/edit action rather than an
  * inline side-panel. `CheckForm` keeps its own title/InfoCard chrome, so this
  * only adds a close button, not a second title.
  */
@@ -31,6 +33,9 @@ export function CheckFormDialog(props: CheckFormDialogProps) {
     onSaved,
     onPublished,
   } = props;
+
+  // Optional: only present when a host app installs a check-authoring assistant.
+  const assistant = useApiHolder().get(checkAuthoringAssistantApiRef);
 
   return (
     <Dialog
@@ -49,6 +54,18 @@ export function CheckFormDialog(props: CheckFormDialogProps) {
         <CloseIcon />
       </IconButton>
       <DialogContent style={{ paddingTop: 24 }}>
+        {assistant && check && (
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              marginRight: 32,
+              marginBottom: 8,
+            }}
+          >
+            <assistant.LaunchButton factSchemas={factSchemas} check={check} />
+          </div>
+        )}
         <CheckForm
           key={check?.id ?? 'new'}
           check={check}
