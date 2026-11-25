@@ -45,14 +45,14 @@ function quotedName(text: string): string | undefined {
 /** The entry fields a filter expression tests with `@.name` or `@['name']`. */
 function filterFields(filter: string): string[] {
   const names: string[] = [];
-  const bracketed = /@\[\s*('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*")\s*\]/g;
-  for (const match of filter.matchAll(bracketed)) {
-    const name = quotedName(match[1]);
+  // One left-to-right scan, so a quoted literal hides any `@['…']` inside it.
+  const tokens =
+    /@\[\s*('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*")\s*\]|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"/g;
+  const unquoted = filter.replace(tokens, (_token, reference?: string) => {
+    const name = reference === undefined ? undefined : quotedName(reference);
     if (name !== undefined) names.push(name);
-  }
-  const unquoted = filter
-    .replace(bracketed, '')
-    .replace(/'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"/g, "''");
+    return "''";
+  });
   for (const match of unquoted.matchAll(/@\.([A-Za-z_$][\w$]*)/g)) {
     names.push(match[1]);
   }

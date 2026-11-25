@@ -122,6 +122,8 @@ describe('entryFieldsIn', () => {
     ],
     ["$[?(@['zone-id']=='x')]['zone-id']", ['zone-id', 'zone-id']],
     ["$[?(@.name=='@.other')].healthy", ['name', 'healthy']],
+    [`$[?(@.name == "@['ghost']")].healthy`, ['name', 'healthy']],
+    [`$[?(@['zone-id'] == "@['ghost']")].healthy`, ['zone-id', 'healthy']],
     ['$[0].labels.team', ['labels']],
     ['$[*]', []],
     ['$..healthy', []],

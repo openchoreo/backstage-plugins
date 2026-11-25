@@ -136,7 +136,8 @@ function pathCompletions(
   if (!fact?.entries || fact.type !== LIST_FACT_TYPE) return null;
   const target = stringTarget(context, value);
   if (!target) return null;
-  const wrap = (text: string) => (target.quote ? JSON.stringify(text) : text);
+  const wrap = (text: string) =>
+    target.quote ? JSON.stringify(text) : JSON.stringify(text).slice(1, -1);
   const fields = Object.entries(fact.entries);
   const flags = fields.filter(([, field]) => field.type === 'boolean');
   const option = (path: string, field: FactEntryField, selects: string) => ({

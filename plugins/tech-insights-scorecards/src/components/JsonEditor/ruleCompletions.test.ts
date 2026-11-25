@@ -299,6 +299,21 @@ describe('ruleCompletionSource path', () => {
     );
   });
 
+  it('escapes a field name for the JSON string it goes into', () => {
+    const quoted = ruleCompletionSource(() => [
+      { ...SHARDS, entries: { 'display"name': { type: 'string' } } },
+    ]);
+    const label = `$[*]['display"name']`;
+    const inString = complete(
+      '{ "fact": "shards", "path": "|" }',
+      true,
+      quoted,
+    );
+    expect(inString.result!.options[0].apply).toBe(`$[*]['display\\"name']`);
+    const unquoted = complete('{ "fact": "shards", "path": | }', true, quoted);
+    expect(unquoted.result!.options[0].apply).toBe(JSON.stringify(label));
+  });
+
   it.each([
     ['a list fact without declared entries', '{ "fact": "tags", "path": "|" }'],
     [

@@ -100,9 +100,10 @@ export function RuleEditor(props: RuleEditorProps) {
 
   const viewRef = useRef<EditorView>();
   const retrieverKey = factIds.join('\n');
+  const factsKey = JSON.stringify(facts);
   useEffect(() => {
     viewRef.current?.dispatch({ effects: relint.of(null) });
-  }, [retrieverKey, canValidate]);
+  }, [retrieverKey, factsKey, canValidate]);
 
   return (
     <JsonEditor
