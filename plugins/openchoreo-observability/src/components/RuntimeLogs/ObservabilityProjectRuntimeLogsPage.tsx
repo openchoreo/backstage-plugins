@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { PageLoader } from '@openchoreo/backstage-design-system';
 import { Box, Typography, Button } from '@material-ui/core';
@@ -24,6 +24,7 @@ import { EnvironmentsStatusNotice, ReleaseLineFilter } from '../common';
 import { useProjectReleaseLineComponents } from '../../hooks/useComponentReleaseLines';
 import { useSelectedReleaseLine } from '../../hooks/useSelectedReleaseLine';
 import { parseComponentsParam } from '../../utils/urlComponents';
+import { componentLogsUrl } from '../../utils/componentLogsUrl';
 import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { useRuntimeLogsStyles } from './styles';
 import type { RenderLogRowAction } from './LogEntry';
@@ -64,6 +65,15 @@ const ObservabilityProjectRuntimeLogsContent = ({
   const selectedReleaseLine = useSelectedReleaseLine();
   const [searchParams] = useSearchParams();
   const selectedComponents = parseComponentsParam(searchParams);
+
+  // Each entry's component name links to that component's logs, keeping the
+  // current environment, time range and filters, scoped to the entry's line.
+  const catalogNamespace = entity.metadata.namespace || 'default';
+  const getComponentLogsUrl = useCallback(
+    (name: string, releaseLineName?: string) =>
+      componentLogsUrl(catalogNamespace, name, searchParams, releaseLineName),
+    [catalogNamespace, searchParams],
+  );
   const releaseLineColumn =
     (selectedComponents.length > 0
       ? selectedComponents.some(c => lineComponents.includes(c))
@@ -265,6 +275,7 @@ const ObservabilityProjectRuntimeLogsContent = ({
             }
             projectName={projectName}
             renderRowAction={renderRowAction}
+            getComponentLogsUrl={getComponentLogsUrl}
           />
         </>
       )}
