@@ -31,6 +31,16 @@ export const useStyles = makeStyles(theme => ({
     width: '100%',
     padding: theme.spacing(3),
   },
+  // Two rows of tiles fit a default-height (4-row) home widget.
+  quickActionCardContentCompact: {
+    padding: theme.spacing(1.5, 2),
+    '&:last-child': {
+      paddingBottom: theme.spacing(1.5),
+    },
+  },
+  quickActionHeaderCompact: {
+    marginBottom: theme.spacing(0.5),
+  },
   quickActionHeader: {
     display: 'flex',
     alignItems: 'center',
