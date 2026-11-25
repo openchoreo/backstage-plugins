@@ -5,8 +5,8 @@
 The deployment retriever reports `openchoreoEnvironmentDeployments`, a list with one entry per
 environment a component's main line or a release line is bound to. Each entry says whether the
 environment is production, whether the binding is synced, ready and on the latest release, and the
-image registry, image pinning, plain secret-like env values and external Endpoints of what runs
-there. Checks select entries by path, e.g.
+image registry, image pinning, plain secret-like env values and external Endpoints of the release
+deployed there. Checks select entries by path, e.g.
 `$[?(@.isProduction)].isReady` with `everyFact:equal`. The image and env values now come from each
 binding's ComponentRelease, and external endpoints from Endpoint resources, which need
 `endpoint:view` and `endpointreleasebinding:view` on the project.

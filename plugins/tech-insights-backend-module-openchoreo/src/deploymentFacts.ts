@@ -203,7 +203,8 @@ export type EnvironmentDeployment = {
  * - `isOnLatestRelease` when OpenChoreo records no latest release, which it
  *   does only for lines that deploy automatically
  * - the image and secret fields when the binding's ComponentRelease
- *   (`release`) couldn't be read
+ *   (`release`) couldn't be read, and `imageRegistry` also when the release
+ *   names no image
  * - `externalEndpointCount` when the line's Endpoints (`externalEndpoints`)
  *   couldn't be read
  *
@@ -242,7 +243,7 @@ export function environmentDeployment(input: {
           spec.workloadOverrides?.container?.env ?? [],
         ]),
         isImagePinned: image !== '' && pinned,
-        imageRegistry: registry,
+        ...(image !== '' && { imageRegistry: registry }),
       }),
     ...(externalEndpoints && {
       externalEndpointCount: externalEndpoints.get(spec.environment) ?? 0,

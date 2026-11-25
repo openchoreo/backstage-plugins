@@ -347,7 +347,7 @@ const ENVIRONMENT_DEPLOYMENT_ENTRIES = {
   imageRegistry: {
     type: 'string',
     description:
-      "Registry host of the container image of the binding's ComponentRelease, docker.io when the image names none. Left out as plainTextSecretEnvVarCount is.",
+      "Registry host of the container image of the binding's ComponentRelease, docker.io when the image names none. Left out as plainTextSecretEnvVarCount is, and when the release names no image.",
   },
   externalEndpointCount: {
     type: 'integer',
@@ -365,7 +365,7 @@ const schema: FactRetriever['schema'] = {
   openchoreoEnvironmentDeployments: {
     type: 'set',
     description:
-      "One entry per active release binding of the line, the main line's for a component, describing the environment and what runs there. Select entries with a condition's path and the everyFact: or someFact: operators, e.g. path $[?(@.isProduction)].isReady with everyFact:equal true. Reported only when the portal service credentials can read every binding of the component and every environment in its namespace, and left out for a line with no active binding, so its checks show no result. A field whose source can't be read is left out of its entry. A binding the OpenChoreo API reports in Observe mode renders nothing from its release, so its entry leaves out isOnLatestRelease, plainTextSecretEnvVarCount, isImagePinned and imageRegistry.",
+      "One entry per active release binding of the line, the main line's for a component, describing the environment and the release deployed there. Select entries with a condition's path and the everyFact: or someFact: operators, e.g. path $[?(@.isProduction)].isReady with everyFact:equal true. Reported only when the portal service credentials can read every binding of the component and every environment in its namespace, and left out for a line with no active binding, so its checks show no result. A field whose source can't be read is left out of its entry. A binding the OpenChoreo API reports in Observe mode renders nothing from its release, so its entry leaves out isOnLatestRelease, plainTextSecretEnvVarCount, isImagePinned and imageRegistry.",
     metadata: { entries: ENVIRONMENT_DEPLOYMENT_ENTRIES },
   },
 };

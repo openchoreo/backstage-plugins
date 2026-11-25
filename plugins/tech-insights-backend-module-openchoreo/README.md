@@ -66,8 +66,12 @@ null:
 
 - `plainTextSecretEnvVarCount`, `isImagePinned` and `imageRegistry` come from the ComponentRelease
   the binding points at (`spec.releaseName`), whose `spec.workload` is the Workload frozen with the
-  image built for that release. An environment that lags behind therefore reports the image it
-  actually runs. They are left out when the ComponentRelease can't be read.
+  image built for that release. An environment that lags behind therefore reports the image of the
+  release it's bound to, though nothing confirms that image is running, for example when
+  `isReleaseSynced` is false. They are left out when the ComponentRelease can't be read, and
+  `imageRegistry` also when the release names no image. A path such as `$[*].isImagePinned`
+  selects nothing for an environment that leaves a field out, so a check on it covers only the
+  environments that report it.
 - `isOnLatestRelease` is left out when OpenChoreo records no latest release, which it does for a
   component or release line only when `autoDeploy` is on for it.
 - `externalEndpointCount` is left out when the line's Endpoints or their bindings can't be read.
@@ -80,8 +84,9 @@ null:
 An image counts as pinned when it names a digest, or a tag other than one that conventionally
 moves (`latest`, `main`, `master`, `dev`, `develop`, `edge`, `nightly`, `stable`, `staging`). The
 secret count looks at the parts of each env var name between underscores, so `DB_PASS` counts and
-`TOKEN_URL` or `PASSWORD_FILE` don't, and counts each name once. A binding whose release is
-missing, failed to render or has nowhere to go never reports `isReleaseSynced`.
+`TOKEN_URL` or `PASSWORD_FILE` don't, and counts each name once. `isReleaseSynced` is always
+present, and is false for a binding whose release is missing, failed to render or has nowhere to
+go.
 `isOnLatestRelease` doesn't consider readiness, which `isReady` reports.
 
 A run counts toward the build facts once it has finished, and one that failed validation before its

@@ -235,6 +235,19 @@ describe('environmentDeployment', () => {
     });
   });
 
+  it('leaves out the registry when the release names no image', () => {
+    const entry = environmentDeployment({
+      binding: binding({}),
+      productionEnvironments: production,
+      release: { container: {} },
+    });
+    expect(entry).toMatchObject({
+      isImagePinned: false,
+      plainTextSecretEnvVarCount: 0,
+    });
+    expect(entry).not.toHaveProperty('imageRegistry');
+  });
+
   it('leaves out the image and secret fields when the release is unknown', () => {
     const entry = environmentDeployment({
       binding: binding({}),
