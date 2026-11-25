@@ -16,6 +16,7 @@ import {
   isRenderInsideCell,
   animateProjectDiagram,
 } from '../utils';
+import { routeMarks as getRouteMarks } from '../utils/routeUtils';
 import {
   DiagramControls,
   OverlayLayerModel,
@@ -55,6 +56,8 @@ export interface ProjectDiagramProps {
   customTooltips?: CustomTooltips;
   modelVersion?: string;
   onComponentDoubleClick?: (componentId: string) => void;
+  /** Called with a route's id when its split point is clicked. */
+  onRouteClick?: (routeId: string) => void;
   previewMode?: boolean;
 }
 
@@ -68,6 +71,7 @@ export function ProjectDiagram(props: ProjectDiagramProps) {
     customTooltips,
     modelVersion,
     onComponentDoubleClick,
+    onRouteClick,
     previewMode = false,
   } = props;
 
@@ -177,6 +181,7 @@ export function ProjectDiagram(props: ProjectDiagramProps) {
       ...diagramData.nodes.connectorNodes.values(),
       ...diagramData.nodes.emptyNodes.values(),
       ...diagramData.nodes.externalNodes.values(),
+      ...diagramData.nodes.splitNodes.values(),
       // links
       ...diagramData.links.connectionLinks.values(),
       ...diagramData.links.connectorLinks.values(),
@@ -184,6 +189,7 @@ export function ProjectDiagram(props: ProjectDiagramProps) {
       ...diagramData.links.componentLinks.values(),
       ...diagramData.links.cellLinks.values(),
       ...diagramData.links.externalConnectionLinks.values(),
+      ...diagramData.links.routeLinks.values(),
     );
 
     models.forEach(item => {
@@ -212,9 +218,8 @@ export function ProjectDiagram(props: ProjectDiagramProps) {
     // update observability summary
     observationSummary.current = diagramData.observationSummary;
 
-    setTimeout(() => {
-      // manual distribute - update empty node, external node and connector node position based on cell node position
-      manualDistribute(model);
+    // zoom to fit, drop the preloader and show the diagram
+    const finishLoading = () => {
       if (diagramEngine.getCanvas()?.getBoundingClientRect !== undefined) {
         // zoom to fit nodes and center diagram
         diagramEngine.zoomToFitNodes({
@@ -235,6 +240,29 @@ export function ProjectDiagram(props: ProjectDiagramProps) {
       diagramEngine.repaintCanvas();
       // After all diagram setup is complete
       setIsDiagramLoaded(true);
+    };
+
+    setTimeout(() => {
+      // manual distribute - update empty node, external node and connector node position based on cell node position
+      manualDistribute(model);
+      // The width above was worked out without Endpoints' points; size the
+      // cell again now that they stand where they will be drawn. Its ports
+      // move once it repaints, so the gateways are placed again after that,
+      // as refreshDiagram does.
+      const placed = model.getNode(MAIN_CELL);
+      const width = calculateCellWidth(model);
+      if (!placed || width <= placed.width) {
+        finishLoading();
+        return;
+      }
+      placed.width = width;
+      placed.updateDimensions({ width, height: width });
+      cellNodeWidth.current = width;
+      diagramEngine.repaintCanvas();
+      setTimeout(() => {
+        manualDistribute(model);
+        finishLoading();
+      }, 8);
     }, 1000);
   };
 
@@ -270,6 +298,8 @@ export function ProjectDiagram(props: ProjectDiagramProps) {
       !previewMode) ||
     false;
 
+  const routeMarks = getRouteMarks(project);
+
   const ctx = {
     selectedNodeId,
     focusedNodeId,
@@ -281,6 +311,8 @@ export function ProjectDiagram(props: ProjectDiagramProps) {
     setSelectedNodeId,
     setFocusedNodeId,
     onComponentDoubleClick,
+    onRouteClick,
+    routeMarks,
     previewMode,
   };
 
@@ -315,7 +347,13 @@ export function ProjectDiagram(props: ProjectDiagramProps) {
             tooltips={customTooltips?.diagramLayers}
           />
         )}
-        {showDiagramLayers && <DiagramLegend animation={animation} />}
+        {(showDiagramLayers ||
+          (showControls && routeMarks.split && !previewMode)) && (
+          <DiagramLegend
+            animation={animation}
+            showLayerRows={showDiagramLayers}
+          />
+        )}
       </>
     );
   } else if (userMessage) {

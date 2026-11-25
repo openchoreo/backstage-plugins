@@ -36,6 +36,8 @@ export interface CellDiagramProps {
   modelVersion?: string;
   previewMode?: boolean;
   onComponentDoubleClick?: (componentId: string) => void;
+  /** Called with a route's id when its split point is clicked. */
+  onRouteClick?: (routeId: string) => void;
   /**
    * Color scheme to render the diagram in. Defaults to `'light'` so
    * existing callers see no visual change.

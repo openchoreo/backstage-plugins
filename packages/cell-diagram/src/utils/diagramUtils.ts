@@ -16,6 +16,7 @@ import {
   ProjectPortFactory,
   ProjectFactory,
   DefaultLinkFactory,
+  SplitFactory,
 } from '../components';
 import {
   CELL_LINK,
@@ -25,6 +26,7 @@ import {
   EXTERNAL_LINK,
   MAIN_CELL,
   PROJECT_NODE,
+  SPLIT_NODE,
 } from '../resources';
 import { ZoomCanvasAction } from '@projectstorm/react-canvas-core';
 import { REVEAL_DURATION, RevealClass } from './animations';
@@ -56,6 +58,8 @@ export function generateEngine(previewMode?: boolean): DiagramEngine {
   engine.getNodeFactories().registerFactory(new ExternalFactory());
 
   engine.getNodeFactories().registerFactory(new EmptyFactory());
+
+  engine.getNodeFactories().registerFactory(new SplitFactory());
 
   engine.getLayerFactories().registerFactory(new OverlayLayerFactory());
 
@@ -114,6 +118,7 @@ export function animateProjectDiagram(root: ParentNode = document) {
     `g[data-linkid^="${EXTERNAL_LINK}|"]`,
     `div[data-nodeid^="${COMPONENT_NODE}|"]`,
     `div[data-nodeid^="${CONNECTION_NODE}|"]`,
+    `div[data-nodeid^="${SPLIT_NODE}|"]`,
     `g[data-linkid^="${COMPONENT_LINK}|"]`,
     `g[data-linkid^="${CELL_LINK}|"]`,
   ].forEach(selector => {

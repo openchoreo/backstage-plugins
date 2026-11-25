@@ -8,6 +8,11 @@ interface LinkOrigins {
 export class ComponentLinkModel extends SharedLinkModel {
   sourceNode!: LinkOrigins;
   targetNode!: LinkOrigins;
+  /** A route branch's share or condition, drawn on the line. */
+  label?: string;
+  faded?: boolean;
+  copy?: boolean;
+  hideArrow?: boolean;
 
   constructor(id: string) {
     super(id, COMPONENT_LINK);

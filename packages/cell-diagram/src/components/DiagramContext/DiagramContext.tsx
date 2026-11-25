@@ -14,6 +14,9 @@ interface IDiagramContext {
   setSelectedNodeId: (id: string) => void;
   setFocusedNodeId?: (id: string) => void;
   onComponentDoubleClick?: (componentId: string) => void;
+  onRouteClick?: (routeId: string) => void;
+  /** Which route marks the diagram draws, for the legend. */
+  routeMarks?: { split: boolean; copy: boolean };
   diagramLayers: {
     activeLayers: DiagramLayer[];
     setLayer: (layer: DiagramLayer) => void;
@@ -46,6 +49,8 @@ export function CellDiagramContext(props: DiagramContextProps) {
     setSelectedNodeId,
     setFocusedNodeId,
     onComponentDoubleClick,
+    onRouteClick,
+    routeMarks,
   } = props;
 
   const { activeLayers, addLayer, removeLayer, setLayer, hasLayer } =
@@ -62,6 +67,8 @@ export function CellDiagramContext(props: DiagramContextProps) {
     setSelectedNodeId,
     setFocusedNodeId,
     onComponentDoubleClick,
+    onRouteClick,
+    routeMarks,
     diagramLayers: {
       activeLayers,
       setLayer,
