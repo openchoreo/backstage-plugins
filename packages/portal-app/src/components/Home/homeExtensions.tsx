@@ -28,16 +28,17 @@ const recentlyVisitedWidget = HomePageWidgetBlueprint.make({
   },
 });
 
-const myProjectsWidget = HomePageWidgetBlueprint.make({
-  name: 'oc-my-projects',
+const overviewWidget = HomePageWidgetBlueprint.make({
+  name: 'oc-overview',
   params: {
-    name: 'OpenChoreoMyProjects',
-    title: 'My Projects',
-    description: 'Project, component and deployment counts at a glance.',
+    name: 'OpenChoreoOverview',
+    title: 'Overview',
+    description:
+      'Project, component, deployment, environment, API and resource counts at a glance.',
     layout: defaultWidgetLayout,
     components: async () => {
-      const { MyProjectsWidget } = await import('@openchoreo/backstage-plugin');
-      return { Content: () => <MyProjectsWidget disableCard /> };
+      const { OverviewWidget } = await import('@openchoreo/backstage-plugin');
+      return { Content: () => <OverviewWidget disableCard /> };
     },
   },
 });
@@ -90,7 +91,7 @@ export const homeModule = createFrontendModule({
   extensions: [
     homeLayout,
     recentlyVisitedWidget,
-    myProjectsWidget,
+    overviewWidget,
     quickActionsWidget,
     recentDeploymentsWidget,
   ],
