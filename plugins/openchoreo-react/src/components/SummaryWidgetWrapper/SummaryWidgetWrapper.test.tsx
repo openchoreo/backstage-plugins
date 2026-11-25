@@ -146,4 +146,33 @@ describe('SummaryWidgetWrapper', () => {
     expect(screen.getByText('Failed')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();
   });
+
+  it('lays the cards variant out in a fixed number of columns', () => {
+    render(
+      <SummaryWidgetWrapper
+        icon={<span />}
+        title="Deployments"
+        metrics={metrics}
+        variant="cards"
+        columns={3}
+      />,
+    );
+
+    const grid = screen.getByText('Running').parentElement?.parentElement;
+    expect(grid).toHaveStyle({ gridTemplateColumns: 'repeat(3, 1fr)' });
+  });
+
+  it('auto-fills the cards variant when no column count is given', () => {
+    render(
+      <SummaryWidgetWrapper
+        icon={<span />}
+        title="Deployments"
+        metrics={metrics}
+        variant="cards"
+      />,
+    );
+
+    const grid = screen.getByText('Running').parentElement?.parentElement;
+    expect(grid?.style.gridTemplateColumns).toBe('');
+  });
 });
