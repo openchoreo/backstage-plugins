@@ -49,7 +49,11 @@ const quickActionsWidget = HomePageWidgetBlueprint.make({
     name: 'OpenChoreoQuickActions',
     title: 'Quick Actions',
     description: 'Shortcuts to common tasks like creating a component.',
-    layout: defaultWidgetLayout,
+    // Fits both rows of tiles without scrolling.
+    layout: {
+      ...defaultWidgetLayout,
+      height: { ...defaultWidgetLayout.height, defaultRows: 5 },
+    },
     components: async () => {
       const { QuickActionsSection } = await import(
         '@openchoreo/backstage-plugin'

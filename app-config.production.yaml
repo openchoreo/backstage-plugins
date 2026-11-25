@@ -368,6 +368,12 @@ openchoreo:
     wirelogs:
       streamTimeoutSeconds: ${OPENCHOREO_OBSERVABILITY_WIRELOGS_STREAM_TIMEOUT_SECONDS}
 
+  # home:
+  #   defaultLayout:
+  #     - { widget: OpenChoreoMyProjects, width: 6 }
+  #     - { widget: OpenChoreoQuickActions, width: 6 }
+  #     - { widget: OpenChoreoRecentDeployments, width: 12 }
+
   # Feature flags for enabling/disabling OpenChoreo functionality
   # Environment variables: OPENCHOREO_FEATURES_WORKFLOWS_ENABLED, OPENCHOREO_FEATURES_OBSERVABILITY_ENABLED, OPENCHOREO_FEATURES_AUTH_ENABLED, OPENCHOREO_FEATURES_AUTHZ_ENABLED, OPENCHOREO_FEATURES_ASSISTANT_ENABLED, OPENCHOREO_FEATURES_COST_INSIGHTS_ENABLED
   features:

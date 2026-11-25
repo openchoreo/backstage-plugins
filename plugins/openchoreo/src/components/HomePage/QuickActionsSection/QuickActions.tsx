@@ -28,7 +28,7 @@ export const QuickActionsSection = ({
     {
       title: 'Create Component',
       description: 'Start a new service',
-      link: '/create/templates/default/create-openchoreo-component',
+      link: '/create?view=components',
       disabled: !canCreate && !createPermLoading,
       tooltip:
         !canCreate && !createPermLoading
@@ -53,9 +53,13 @@ export const QuickActionsSection = ({
   ];
 
   return (
-    <Box className={classes.overviewSection}>
+    <Box className={hideTitle ? undefined : classes.overviewSection}>
       {!hideTitle && <Typography variant="h3">Quick Actions</Typography>}
-      <Grid container spacing={2} className={classes.quickActionsContainer}>
+      <Grid
+        container
+        spacing={2}
+        className={hideTitle ? undefined : classes.quickActionsContainer}
+      >
         {quickActions.map((action, index) => (
           <Grid item xs={12} sm={6} md={6} key={index}>
             <Tooltip title={action.tooltip ?? ''}>
