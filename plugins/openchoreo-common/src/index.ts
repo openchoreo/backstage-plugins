@@ -257,6 +257,7 @@ export {
   describeMatch,
   effectiveBackends,
   backendLabel,
+  flowLabel,
   capabilityProblems,
   heededOverrides,
   inMatchOrder,

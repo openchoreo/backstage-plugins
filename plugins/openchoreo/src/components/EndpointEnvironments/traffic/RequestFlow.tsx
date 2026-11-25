@@ -2,7 +2,7 @@ import { useId, useLayoutEffect, useRef, useState } from 'react';
 import { alpha, useTheme } from '@material-ui/core/styles';
 import { WebAppIcon } from '@openchoreo/cell-diagram';
 import {
-  describeMatch,
+  flowLabel,
   inMatchOrder,
   isMirror,
   splitPercents,
@@ -25,17 +25,6 @@ const PILL_PAD = 8;
 
 const clip = (text: string, max: number) =>
   text.length > max ? `${text.slice(0, max - 1)}…` : text;
-
-/** The label on the arrow to a backend: its share, its condition, or its copy. */
-export function flowLabel(
-  backend: EndpointTrafficBackend,
-  share: number | undefined,
-): string {
-  if (backend.mirror) return `copy ${backend.mirror.percent}%`;
-  const rule = backend.match ? `if ${describeMatch(backend.match)}` : '';
-  const part = share !== undefined && share > 0 ? `${share}%` : '';
-  return [part, rule].filter(Boolean).join(' · ') || '0%';
-}
 
 /** A lane's share, condition or copy, as a pill that ends at `right`. */
 const LanePill = ({

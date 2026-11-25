@@ -565,3 +565,14 @@ export function capabilityProblems(
   }
   return problems;
 }
+
+/** The label on the arrow to a backend: its share, its condition, or its copy. */
+export function flowLabel(
+  backend: EndpointTrafficBackend,
+  share: number | undefined,
+): string {
+  if (backend.mirror) return `copy ${backend.mirror.percent}%`;
+  const rule = backend.match ? `if ${describeMatch(backend.match)}` : '';
+  const part = share !== undefined && share > 0 ? `${share}%` : '';
+  return [part, rule].filter(Boolean).join(' · ') || '0%';
+}

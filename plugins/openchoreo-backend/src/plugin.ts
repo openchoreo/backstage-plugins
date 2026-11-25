@@ -112,12 +112,6 @@ export const choreoPlugin = createBackendPlugin({
           baseUrl,
         );
 
-        const cellDiagramInfoService = new CellDiagramInfoService(
-          logger,
-          baseUrl,
-          config,
-        );
-
         const buildInfoService = new BuildInfoService(logger, baseUrl);
 
         const componentInfoService = new ComponentInfoService(logger, baseUrl);
@@ -163,6 +157,13 @@ export const choreoPlugin = createBackendPlugin({
         const endpointTrafficService = new EndpointTrafficService(
           logger,
           baseUrl,
+        );
+
+        const cellDiagramInfoService = new CellDiagramInfoService(
+          logger,
+          baseUrl,
+          config,
+          endpointTrafficService,
         );
 
         const projectReleaseInfoService = new ProjectReleaseInfoService(

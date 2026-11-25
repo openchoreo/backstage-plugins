@@ -850,6 +850,289 @@ describe('CellDiagramInfoService', () => {
         );
       });
     });
+
+    describe('Endpoint routes', () => {
+      const lineWorkload = (
+        componentName: string,
+        releaseLine: string,
+        opts?: { dependencies?: any },
+      ) => {
+        const workload = k8sWorkload(componentName, opts);
+        return {
+          ...workload,
+          metadata: {
+            ...workload.metadata,
+            name: `${componentName}-${releaseLine}-workload`,
+          },
+          spec: {
+            ...workload.spec,
+            owner: { ...workload.spec.owner, releaseLine },
+          },
+        };
+      };
+      const callsReviews = {
+        endpoints: [
+          {
+            component: 'reviews',
+            name: 'http',
+            visibility: 'project',
+            envBindings: {},
+          },
+        ],
+      };
+      const backend = (
+        name: string,
+        component: string,
+        extra: Record<string, any> = {},
+      ) => ({
+        name,
+        kind: 'Component',
+        component: { name: component, endpoint: 'http', ...extra.component },
+        ...(extra.weight !== undefined && { weight: extra.weight }),
+        ...(extra.mirror && { mirror: extra.mirror }),
+        ...(extra.match && { match: extra.match }),
+      });
+      const endpoint = (
+        name: string,
+        visibility: string[],
+        backendRefs: any[],
+      ) => ({
+        metadata: {
+          name,
+          namespace: 'test-ns',
+          annotations: { 'openchoreo.dev/display-name': `${name} display` },
+        },
+        spec: { visibility, backendRefs },
+      });
+
+      const mockProject = (endpoints: any[] | Error) => {
+        mockGET
+          .mockResolvedValueOnce(
+            createOkResponse({
+              items: [
+                k8sComponent('storefront', 'deployment/web-app'),
+                k8sComponent('reviews', 'deployment/service'),
+              ],
+              pagination: {},
+            }),
+          )
+          .mockResolvedValueOnce(
+            createOkResponse({
+              items: [
+                k8sWorkload('storefront', { dependencies: callsReviews }),
+                k8sWorkload('reviews'),
+                lineWorkload('reviews', 'star-ratings'),
+              ],
+              pagination: {},
+            }),
+          );
+        if (endpoints instanceof Error) {
+          mockGET.mockRejectedValueOnce(endpoints);
+        } else {
+          mockGET.mockResolvedValueOnce(
+            createOkResponse({ items: endpoints, pagination: {} }),
+          );
+        }
+      };
+
+      const fetchProject = (service = createService()) =>
+        service.fetchProjectInfo(
+          { projectName: 'my-project', namespaceName: 'test-ns' },
+          'token',
+        );
+
+      it('splits an external Endpoint at the north gateway', async () => {
+        mockProject([
+          endpoint(
+            'shop',
+            ['external'],
+            [
+              backend('reviews', 'reviews', { weight: 0 }),
+              backend('reviews-star-ratings', 'reviews', {
+                component: { releaseLine: 'star-ratings' },
+                weight: 100,
+              }),
+            ],
+          ),
+        ]);
+
+        const result = await fetchProject();
+
+        expect(result!.routes).toEqual([
+          expect.objectContaining({
+            id: 'test-ns/shop',
+            name: 'shop display',
+            from: { boundary: 'nb' },
+            branches: [
+              { componentId: 'reviews', label: '0%', faded: true },
+              { componentId: 'reviews@star-ratings', label: '100%' },
+            ],
+          }),
+        ]);
+        expect(result!.routes![0].details!.subtitle).toBe(
+          'external · default split',
+        );
+      });
+
+      it('splits a namespace Endpoint on each caller’s line', async () => {
+        mockProject([
+          endpoint(
+            'reviews-api',
+            ['namespace'],
+            [
+              backend('reviews', 'reviews', { weight: 90 }),
+              backend('reviews-star-ratings', 'reviews', {
+                component: { releaseLine: 'star-ratings' },
+                weight: 10,
+              }),
+            ],
+          ),
+        ]);
+
+        const result = await fetchProject();
+
+        expect(result!.routes).toHaveLength(1);
+        expect(result!.routes![0].from).toEqual({ componentId: 'storefront' });
+        expect(result!.routes![0].branches.map(b => b.label)).toEqual([
+          '90%',
+          '10%',
+        ]);
+        expect(result!.routes![0].details!.rows).toEqual([
+          { label: 'reviews / http', value: '90%' },
+          { label: 'reviews @ star-ratings / http', value: '10%' },
+        ]);
+      });
+
+      it('brings a namespace Endpoint nothing in the project calls in from the west', async () => {
+        mockProject([
+          endpoint(
+            'reviews-admin',
+            ['namespace'],
+            [
+              backend('reviews-star-ratings', 'reviews', {
+                component: { releaseLine: 'star-ratings' },
+                weight: 100,
+              }),
+            ],
+          ),
+        ]);
+
+        const result = await fetchProject();
+
+        expect(result!.routes!.map(r => r.from)).toEqual([{ boundary: 'wb' }]);
+      });
+
+      it('stands a project Endpoint nothing calls on its own', async () => {
+        mockProject([
+          endpoint(
+            'reviews-admin',
+            ['project'],
+            [
+              backend('reviews-star-ratings', 'reviews', {
+                component: { releaseLine: 'star-ratings' },
+                weight: 100,
+              }),
+            ],
+          ),
+        ]);
+
+        const result = await fetchProject();
+
+        expect(result!.routes).toHaveLength(1);
+        expect(result!.routes![0].from).toBeUndefined();
+      });
+
+      it('labels a mirror as a copy', async () => {
+        mockProject([
+          endpoint(
+            'reviews-api',
+            ['namespace'],
+            [
+              backend('reviews', 'reviews', { weight: 100 }),
+              backend('reviews-star-ratings', 'reviews', {
+                component: { releaseLine: 'star-ratings' },
+                weight: 0,
+                mirror: { percent: 10 },
+              }),
+            ],
+          ),
+        ]);
+
+        const result = await fetchProject();
+
+        expect(result!.routes![0].branches[1]).toEqual({
+          componentId: 'reviews@star-ratings',
+          label: 'copy 10%',
+          copy: true,
+        });
+      });
+
+      it('draws the default split and names environments with their own', async () => {
+        mockProject([
+          endpoint(
+            'reviews-api',
+            ['namespace'],
+            [
+              backend('reviews', 'reviews', { weight: 100 }),
+              backend('reviews-star-ratings', 'reviews', {
+                component: { releaseLine: 'star-ratings' },
+                weight: 0,
+              }),
+            ],
+          ),
+        ]);
+        const fetchTraffic = jest.fn().mockResolvedValue({
+          backends: [],
+          environments: [
+            {
+              environment: 'development',
+              bindingName: 'reviews-api-development',
+              release: [],
+              overrides: [
+                { name: 'reviews', weight: 90 },
+                { name: 'reviews-star-ratings', weight: 10 },
+              ],
+            },
+            {
+              environment: 'staging',
+              bindingName: 'reviews-api-staging',
+              release: [],
+              overrides: [],
+            },
+          ],
+        });
+        const service = new CellDiagramInfoService(
+          mockLogger,
+          'http://test:8080',
+          config,
+          { fetchTraffic } as any,
+        );
+
+        const result = await fetchProject(service);
+
+        expect(fetchTraffic).toHaveBeenCalledWith(
+          'test-ns',
+          'reviews-api',
+          'token',
+        );
+        expect(result!.routes![0].branches).toEqual([
+          { componentId: 'reviews', label: '100%' },
+          { componentId: 'reviews@star-ratings', label: '0%', faded: true },
+        ]);
+        expect(result!.routes![0].details!.subtitle).toBe(
+          'namespace · default split · own split in development',
+        );
+      });
+
+      it('draws the diagram without routes when Endpoints cannot be read', async () => {
+        mockProject(new Error('boom'));
+
+        const result = await fetchProject();
+
+        expect(result!.components).toHaveLength(3);
+        expect(result!.routes).toEqual([]);
+      });
+    });
   });
 
   describe('fetchNamespaceInfo', () => {
