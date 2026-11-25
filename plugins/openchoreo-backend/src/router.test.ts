@@ -105,6 +105,8 @@ function createMockServices() {
       createComponentEndpoint: jest.fn(),
       updateComponentEndpoint: jest.fn(),
       deleteComponentEndpoint: jest.fn(),
+      fetchEndpointResourceTree: jest.fn(),
+      fetchEndpointResourceEvents: jest.fn(),
     },
     componentEndpointFollowService: {
       checkPromotion: jest.fn(),
@@ -203,6 +205,49 @@ describe('createRouter', () => {
     app = express();
     app.use(router);
     app.use(mockErrorHandler());
+  });
+
+  describe('Endpoint K8s artifact routes', () => {
+    it('reads the resource tree of an endpoint release binding', async () => {
+      services.endpointInfoService.fetchEndpointResourceTree.mockResolvedValue({
+        renderedReleases: [],
+      });
+      const response = await request(app)
+        .get('/endpoint-resourcetree')
+        .query({ namespaceName: 'acme', bindingName: 'trips-development' });
+      expect(response.status).toBe(200);
+      expect(
+        services.endpointInfoService.fetchEndpointResourceTree,
+      ).toHaveBeenCalledWith('acme', 'trips-development', 'mock-user-token');
+    });
+
+    it('needs the binding to read its tree', async () => {
+      const response = await request(app)
+        .get('/endpoint-resourcetree')
+        .query({ namespaceName: 'acme' });
+      expect(response.status).toBe(400);
+    });
+
+    it('reads the events of one resource', async () => {
+      services.endpointInfoService.fetchEndpointResourceEvents.mockResolvedValue(
+        { events: [] },
+      );
+      const query = {
+        namespaceName: 'acme',
+        bindingName: 'trips-development',
+        group: 'gateway.networking.k8s.io',
+        version: 'v1',
+        kind: 'HTTPRoute',
+        name: 'trips',
+      };
+      const response = await request(app)
+        .get('/endpoint-resource-events')
+        .query(query);
+      expect(response.status).toBe(200);
+      expect(
+        services.endpointInfoService.fetchEndpointResourceEvents,
+      ).toHaveBeenCalledWith(query, 'mock-user-token');
+    });
   });
 
   describe('Endpoint traffic routes', () => {

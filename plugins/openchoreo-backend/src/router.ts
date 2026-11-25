@@ -1634,6 +1634,52 @@ export async function createRouter({
     },
   );
 
+  router.get('/endpoint-resourcetree', async (req, res) => {
+    const { namespaceName, bindingName } = req.query;
+    if (!namespaceName || !bindingName) {
+      throw new InputError(
+        'namespaceName and bindingName are required query parameters',
+      );
+    }
+    res.json(
+      await endpointInfoService.fetchEndpointResourceTree(
+        namespaceName as string,
+        bindingName as string,
+        getUserTokenFromRequest(req),
+      ),
+    );
+  });
+
+  router.get('/endpoint-resource-events', requireAuth, async (req, res) => {
+    const { namespaceName, bindingName, group, version, kind, name } =
+      req.query;
+    if (
+      !namespaceName ||
+      !bindingName ||
+      group === undefined ||
+      !version ||
+      !kind ||
+      !name
+    ) {
+      throw new InputError(
+        'namespaceName, bindingName, group, version, kind and name are required query parameters',
+      );
+    }
+    res.json(
+      await endpointInfoService.fetchEndpointResourceEvents(
+        {
+          namespaceName: namespaceName as string,
+          bindingName: bindingName as string,
+          group: group as string,
+          version: version as string,
+          kind: kind as string,
+          name: name as string,
+        },
+        getUserTokenFromRequest(req),
+      ),
+    );
+  });
+
   router.get('/endpoint-release', async (req, res) => {
     const { namespaceName, releaseName } = req.query;
     if (!namespaceName || !releaseName) {

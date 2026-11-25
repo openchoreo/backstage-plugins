@@ -212,6 +212,16 @@ describe('EndpointEnvironmentDetailPanel', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('offers the K8s artifacts of an environment with a release', () => {
+    renderWithCtx(
+      <EndpointEnvironmentDetailPanel env={dev} onClose={() => {}} />,
+      { environments: [dev, prod] },
+    );
+    expect(
+      screen.getByRole('button', { name: 'View K8s Artifacts' }),
+    ).toBeInTheDocument();
+  });
+
   it('shows no URLs before the binding resolves any', () => {
     renderWithCtx(
       <EndpointEnvironmentDetailPanel env={dev} onClose={() => {}} />,

@@ -1126,6 +1126,24 @@ export interface OpenChoreoClientApi {
     },
   ): Promise<ResourceEventsResponse>;
 
+  /** Fetch the resource tree of an Endpoint's release binding */
+  fetchEndpointResourceTree(
+    namespaceName: string,
+    bindingName: string,
+  ): Promise<any>;
+
+  /** Fetch Kubernetes events for a resource of an Endpoint's release binding */
+  fetchEndpointResourceEvents(
+    namespaceName: string,
+    bindingName: string,
+    resourceParams: {
+      group: string;
+      version: string;
+      kind: string;
+      name: string;
+    },
+  ): Promise<ResourceEventsResponse>;
+
   /** Fetch pod logs for a specific pod resource */
   fetchPodLogs(
     namespaceName: string,

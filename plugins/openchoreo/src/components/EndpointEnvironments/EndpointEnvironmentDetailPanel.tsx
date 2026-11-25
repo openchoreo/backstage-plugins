@@ -11,13 +11,14 @@ import {
   Tooltip,
   Typography,
 } from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
+import { makeStyles, useTheme } from '@material-ui/core/styles';
 import AllInboxOutlinedIcon from '@material-ui/icons/AllInboxOutlined';
 import CheckCircleOutlineIcon from '@material-ui/icons/CheckCircleOutline';
 import CloseIcon from '@material-ui/icons/Close';
 import CloudIcon from '@material-ui/icons/Cloud';
 import CodeOutlinedIcon from '@material-ui/icons/CodeOutlined';
 import DeleteOutlineIcon from '@material-ui/icons/DeleteOutline';
+import DescriptionOutlinedIcon from '@material-ui/icons/DescriptionOutlined';
 import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
@@ -120,6 +121,12 @@ function EndpointEnvironmentDetailContent({
   const envName = envResourceName(env);
   const hasBinding = Boolean(env.bindingName);
   const badgeStatus = deriveEndpointEnvBadgeStatus(env);
+  const theme = useTheme();
+  // As on a component's panel, the artifacts button takes the badge's
+  // colour, and stays enabled: a failure is when they're needed most.
+  let artifactsColor = theme.palette.primary.main;
+  if (badgeStatus === 'failed') artifactsColor = theme.palette.error.main;
+  if (badgeStatus === 'pending') artifactsColor = theme.palette.warning.main;
   const updatePerm = useEndpointReleaseBindingUpdatePermission(envName);
   const deletePerm = useEndpointReleaseBindingDeletePermission(envName);
 
@@ -286,6 +293,25 @@ function EndpointEnvironmentDetailContent({
                     >
                       {env.statusMessage}
                     </Typography>
+                  </Tooltip>
+                </Box>
+              )}
+              {env.endpointRelease && (
+                <Box>
+                  <Tooltip title="View Kubernetes artifacts">
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<DescriptionOutlinedIcon fontSize="small" />}
+                      onClick={() => navigate(`artifacts/${envName}`)}
+                      style={{
+                        textTransform: 'none',
+                        color: artifactsColor,
+                        borderColor: artifactsColor,
+                      }}
+                    >
+                      View K8s Artifacts
+                    </Button>
                   </Tooltip>
                 </Box>
               )}

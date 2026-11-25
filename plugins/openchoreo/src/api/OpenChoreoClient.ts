@@ -117,6 +117,8 @@ const API_ENDPOINTS = {
   UPDATE_ENDPOINT_RELEASE_BINDING: '/update-endpoint-release-binding',
   DELETE_ENDPOINT_RELEASE_BINDING: '/delete-endpoint-release-binding',
   ENDPOINT_RELEASE: '/endpoint-release',
+  ENDPOINT_RESOURCE_TREE: '/endpoint-resourcetree',
+  ENDPOINT_RESOURCE_EVENTS: '/endpoint-resource-events',
   ENDPOINT_RELEASE_SCHEMA: '/endpoint-release-schema',
   ENDPOINT_BACKENDS: '/endpoint-backends',
   ENDPOINT_TYPE_SCHEMA: '/endpoint-type-schema',
@@ -1143,6 +1145,31 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
           name: resourceParams.name,
         },
       },
+    );
+  }
+
+  async fetchEndpointResourceTree(
+    namespaceName: string,
+    bindingName: string,
+  ): Promise<any> {
+    return this.apiFetch(API_ENDPOINTS.ENDPOINT_RESOURCE_TREE, {
+      params: { namespaceName, bindingName },
+    });
+  }
+
+  async fetchEndpointResourceEvents(
+    namespaceName: string,
+    bindingName: string,
+    resourceParams: {
+      group: string;
+      version: string;
+      kind: string;
+      name: string;
+    },
+  ): Promise<ResourceEventsResponse> {
+    return this.apiFetch<ResourceEventsResponse>(
+      API_ENDPOINTS.ENDPOINT_RESOURCE_EVENTS,
+      { params: { namespaceName, bindingName, ...resourceParams } },
     );
   }
 
