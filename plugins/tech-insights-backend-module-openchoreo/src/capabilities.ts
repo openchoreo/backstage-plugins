@@ -72,11 +72,48 @@ export function grantsUnconditionally(
 }
 
 /**
+ * Whether a profile may grant `action` on the one resource at
+ * `resourcePath`: a grant covers it, possibly under CEL constraints the
+ * profile can't evaluate, and no unconditional denial does. Suits a single
+ * read, whose response settles what the constraints allow; a list needs
+ * `grantsUnconditionally`.
+ */
+export function mayGrant(
+  capabilities: Record<string, ActionCapability>,
+  action: string,
+  resourcePath: string,
+): boolean {
+  const entries = entriesFor(capabilities, action);
+  const allowed = entries.some(entry =>
+    (entry.allowed ?? []).some(resource => covers(resource.path, resourcePath)),
+  );
+  const denied = entries.some(entry =>
+    (entry.denied ?? []).some(
+      resource =>
+        covers(resource.path, resourcePath) &&
+        !resource.constraints?.expressions?.length,
+    ),
+  );
+  return allowed && !denied;
+}
+
+/**
  * The authz path of a namespace. OpenChoreo authorizes namespace-scoped
  * resources such as environments against this path, not one per resource.
  */
 export function namespacePath(namespaceName: string): string {
   return `ns/${namespaceName}`;
+}
+
+/**
+ * The authz path of a project. OpenChoreo authorizes Endpoints and their
+ * release bindings against this path, not one per component.
+ */
+export function projectPath(
+  namespaceName: string,
+  projectName: string,
+): string {
+  return `${namespacePath(namespaceName)}/project/${projectName}`;
 }
 
 /**

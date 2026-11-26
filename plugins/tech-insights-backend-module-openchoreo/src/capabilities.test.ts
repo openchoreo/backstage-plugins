@@ -1,7 +1,9 @@
 import {
   componentPath,
   grantsUnconditionally,
+  mayGrant,
   namespacePath,
+  projectPath,
 } from './capabilities';
 
 const path = componentPath('acme', 'payments', 'api');
@@ -10,6 +12,7 @@ const action = 'releasebinding:view';
 describe('authz paths', () => {
   it('builds them the way OpenChoreo does', () => {
     expect(namespacePath('acme')).toBe('ns/acme');
+    expect(projectPath('acme', 'payments')).toBe('ns/acme/project/payments');
     expect(path).toBe('ns/acme/project/payments/component/api');
   });
 });
@@ -100,5 +103,59 @@ describe('grantsUnconditionally', () => {
         namespacePath('acme'),
       ),
     ).toBe(false);
+  });
+});
+
+describe('mayGrant', () => {
+  const cel = { expressions: ['resource.releaseLine == "main"'] };
+
+  it.each([
+    ['a cluster-wide grant', { [action]: { allowed: [{ path: '*' }] } }],
+    [
+      'a grant limited by a CEL condition',
+      { [action]: { allowed: [{ path: '*', constraints: cel }] } },
+    ],
+    [
+      'a denial below the component',
+      {
+        [action]: {
+          allowed: [{ path: '*' }],
+          denied: [{ path: `${path}/something` }],
+        },
+      },
+    ],
+    [
+      'a denial limited by a CEL condition',
+      {
+        [action]: {
+          allowed: [{ path: '*' }],
+          denied: [{ path: 'ns/acme', constraints: cel }],
+        },
+      },
+    ],
+  ])('accepts %s', (_label, capabilities) => {
+    expect(mayGrant(capabilities, action, path)).toBe(true);
+  });
+
+  it.each([
+    [
+      'no entry for the action',
+      { 'component:view': { allowed: [{ path: '*' }] } },
+    ],
+    [
+      'a grant on another project',
+      { [action]: { allowed: [{ path: 'ns/acme/project/billing' }] } },
+    ],
+    [
+      'a denial above the component',
+      {
+        [action]: {
+          allowed: [{ path: '*' }],
+          denied: [{ path: 'ns/acme/project/payments' }],
+        },
+      },
+    ],
+  ])('refuses %s', (_label, capabilities) => {
+    expect(mayGrant(capabilities, action, path)).toBe(false);
   });
 });

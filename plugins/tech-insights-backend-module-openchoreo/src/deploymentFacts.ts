@@ -1,3 +1,9 @@
+import {
+  endpointManagingComponent,
+  endpointManagingReleaseLine,
+  type EndpointOwner,
+} from '@openchoreo/backstage-plugin-common';
+
 /** An environment variable of a Workload or a release binding override. */
 export interface EnvVar {
   key: string;
@@ -5,14 +11,15 @@ export interface EnvVar {
   valueFrom?: unknown;
 }
 
-/** The subset of a Workload spec read here. */
-export interface WorkloadSpec {
-  owner?: { releaseLine?: string };
+/**
+ * The subset of the Workload a ComponentRelease freezes (`spec.workload`)
+ * read here.
+ */
+export interface ReleasedWorkload {
   container?: {
     image?: string;
     env?: EnvVar[];
   };
-  endpoints?: Record<string, { visibility?: string[] }>;
 }
 
 /** The subset of a ReleaseBinding read here. */
@@ -22,6 +29,11 @@ export interface ReleaseBinding {
     environment: string;
     releaseName?: string;
     state?: string;
+    /**
+     * `Manage` or `Observe`. The API client's types don't declare it, so it's
+     * read as whatever the response carries.
+     */
+    mode?: string;
     workloadOverrides?: { container?: { env?: EnvVar[] } };
   };
   status?: {
@@ -135,23 +147,6 @@ export function parseImage(image: string): {
   };
 }
 
-/** Facts read from a component's Workload. */
-export function workloadFacts(workload: WorkloadSpec) {
-  const image = workload.container?.image ?? '';
-  const { registry, pinned } = parseImage(image);
-  const endpoints = Object.values(workload.endpoints ?? {});
-  return {
-    openchoreoImageRegistry: registry,
-    openchoreoImagePinned: image !== '' && pinned,
-    openchoreoExternalEndpointCount: endpoints.filter(endpoint =>
-      endpoint.visibility?.includes('external'),
-    ).length,
-    openchoreoPlainTextSecretEnvCount: plainTextSecretEnvCount([
-      workload.container?.env ?? [],
-    ]),
-  };
-}
-
 /**
  * The bindings of `releaseLine`, or of the main line when it's undefined.
  * OpenChoreo leaves a main-line binding's `owner.releaseLine` unset.
@@ -180,44 +175,167 @@ function hasCondition(binding: ReleaseBinding, type: string): boolean {
   );
 }
 
+/** Whether a binding reads objects its component already runs. */
+export function isObserveBinding(binding: ReleaseBinding): boolean {
+  return binding.spec?.mode === 'Observe';
+}
+
 /**
- * Facts read from the release bindings of one line. An environment counts as
- * deployed to once its active binding's release has been synced to the data
- * plane (`ReleaseSynced`); a binding whose release is missing, can't be
- * rendered or has nowhere to go deploys nothing. A line with no active
- * binding is not ready in every environment and does not run its latest
- * release. Whether it runs its latest release is left out when OpenChoreo
- * hasn't recorded one, which it does only for lines that deploy
- * automatically.
+ * Whether `releases` holds the ComponentRelease of every binding that renders
+ * one, with at least one such binding. A binding that names no release, or
+ * whose release couldn't be read, makes it false.
  */
-export function releaseBindingFacts(input: {
-  bindings: ReleaseBinding[];
+export function everyReleaseRead(
+  bindings: ReleaseBinding[],
+  releases: Map<string, ReleasedWorkload | undefined>,
+): boolean {
+  const rendering = bindings.filter(binding => !isObserveBinding(binding));
+  return (
+    rendering.length > 0 &&
+    rendering.every(binding => {
+      const releaseName = binding.spec?.releaseName;
+      return Boolean(releaseName) && releases.get(releaseName!) !== undefined;
+    })
+  );
+}
+
+/**
+ * One entry of `openchoreoEnvironmentDeployments`. A type alias rather than
+ * an interface, so it's assignable to the JSON values a fact holds.
+ */
+export type EnvironmentDeployment = {
+  environment: string;
+  isProduction: boolean;
+  isReleaseSynced: boolean;
+  isReady: boolean;
+  isOnLatestRelease?: boolean;
+  plainTextSecretEnvVarCount?: number;
+  isImagePinned?: boolean;
+  imageRegistry?: string;
+  externalEndpointCount?: number;
+};
+
+/**
+ * The entry for one active release binding. A field whose source is unknown
+ * is left out rather than guessed:
+ *
+ * - `isOnLatestRelease` when OpenChoreo records no latest release, which it
+ *   does only for lines that deploy automatically
+ * - the image and secret fields when the binding's ComponentRelease
+ *   (`release`) couldn't be read, and `imageRegistry` also when the release
+ *   names no image
+ * - `externalEndpointCount` when the line's Endpoints (`externalEndpoints`)
+ *   couldn't be read
+ *
+ * An Observe binding renders nothing from its release, so the fields that
+ * describe the release are left out for it too.
+ */
+export function environmentDeployment(input: {
+  binding: ReleaseBinding;
   productionEnvironments: Set<string>;
   latestRelease?: string;
-}) {
-  const active = activeBindings(input.bindings);
-  const environments = [
-    ...new Set(
-      active
-        .filter(binding => hasCondition(binding, 'ReleaseSynced'))
-        .map(binding => binding.spec!.environment),
-    ),
-  ];
-  const isReady = (binding: ReleaseBinding) => hasCondition(binding, 'Ready');
-
+  release?: ReleasedWorkload;
+  externalEndpoints?: Map<string, number>;
+}): EnvironmentDeployment {
+  const { binding, release, externalEndpoints } = input;
+  const spec = binding.spec!;
+  const rendersRelease = !isObserveBinding(binding);
+  const image = release?.container?.image ?? '';
+  const { registry, pinned } = parseImage(image);
   return {
-    openchoreoDeployedEnvironments: environments,
-    openchoreoDeployedToProduction: environments.some(environment =>
-      input.productionEnvironments.has(environment),
-    ),
-    openchoreoReadyInAllEnvironments:
-      active.length > 0 && active.every(isReady),
-    ...(input.latestRelease && {
-      openchoreoRunsLatestRelease:
-        active.length > 0 &&
-        active.every(
-          binding => binding.spec!.releaseName === input.latestRelease,
-        ),
+    environment: spec.environment,
+    isProduction: input.productionEnvironments.has(spec.environment),
+    // A binding whose release is missing, can't be rendered or has nowhere
+    // to go never syncs.
+    isReleaseSynced: hasCondition(binding, 'ReleaseSynced'),
+    isReady: hasCondition(binding, 'Ready'),
+    ...(rendersRelease &&
+      input.latestRelease && {
+        isOnLatestRelease: spec.releaseName === input.latestRelease,
+      }),
+    ...(rendersRelease &&
+      release && {
+        // Overrides set for the environment are what it runs, so they
+        // count along with the released Workload's own values.
+        plainTextSecretEnvVarCount: plainTextSecretEnvCount([
+          release.container?.env ?? [],
+          spec.workloadOverrides?.container?.env ?? [],
+        ]),
+        isImagePinned: image !== '' && pinned,
+        ...(image !== '' && { imageRegistry: registry }),
+      }),
+    ...(externalEndpoints && {
+      externalEndpointCount: externalEndpoints.get(spec.environment) ?? 0,
     }),
   };
+}
+
+/** The subset of an Endpoint read here. */
+export interface Endpoint {
+  metadata: { name: string };
+  spec?: { owner?: EndpointOwner; visibility?: string[] };
+}
+
+/** The subset of an EndpointReleaseBinding read here. */
+export interface EndpointReleaseBinding {
+  spec?: {
+    owner?: { projectName?: string; endpointName?: string };
+    environment?: string;
+  };
+}
+
+/**
+ * The external Endpoints a line owns: the main line's when `releaseLine` is
+ * undefined. An Endpoint whose backends reach beyond the line belongs to its
+ * component or project instead, so it isn't counted for the line.
+ */
+export function lineExternalEndpoints(
+  endpoints: Endpoint[],
+  componentName: string,
+  releaseLine?: string,
+): Endpoint[] {
+  return endpoints.filter(
+    endpoint =>
+      endpointManagingComponent(endpoint.spec?.owner) === componentName &&
+      endpointManagingReleaseLine(endpoint.spec?.owner) ===
+        (releaseLine ?? '') &&
+      (endpoint.spec?.visibility ?? []).includes('external'),
+  );
+}
+
+/**
+ * How many of the Endpoints named `endpointNames` have a binding in each
+ * environment, among the bindings of a namespace. Only bindings in
+ * `projectName` count, and an Endpoint counts once per environment.
+ */
+export function endpointsPerEnvironment(
+  projectName: string,
+  endpointNames: string[],
+  bindings: EndpointReleaseBinding[],
+): Map<string, number> {
+  const names = new Set(endpointNames);
+  const environmentsByEndpoint = new Map<string, Set<string>>();
+  for (const binding of bindings) {
+    const owner = binding.spec?.owner;
+    const environment = binding.spec?.environment;
+    if (
+      owner?.projectName !== projectName ||
+      !owner.endpointName ||
+      !names.has(owner.endpointName) ||
+      !environment
+    ) {
+      continue;
+    }
+    const environments =
+      environmentsByEndpoint.get(owner.endpointName) ?? new Set<string>();
+    environments.add(environment);
+    environmentsByEndpoint.set(owner.endpointName, environments);
+  }
+  const counts = new Map<string, number>();
+  for (const environments of environmentsByEndpoint.values()) {
+    for (const environment of environments) {
+      counts.set(environment, (counts.get(environment) ?? 0) + 1);
+    }
+  }
+  return counts;
 }
