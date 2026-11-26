@@ -2,12 +2,12 @@
 
 // Starter checks for an OpenChoreo portal. Each is inserted once, published,
 // and never updated again, so platform engineers can edit, unpublish or
-// delete them. New defaults ship as new files in this directory. The data is
-// written out here rather than imported, so this file seeds the same checks
-// however the code around it changes.
+// delete them. The data is written out here rather than imported, so this
+// file seeds the same checks however the code around it changes.
 //
-// Never edit, rename or delete a file here once it has shipped. Databases that
-// already ran it won't run it again, and knex refuses to migrate when its
+// Databases that already ran this file won't run it again, so editing a check
+// here only changes what databases that haven't run it get. Never rename or
+// delete a file here once it has shipped: knex refuses to migrate when its
 // ledger names a file that's gone.
 
 // A release line is held to the same checks as its component's main line,
@@ -42,7 +42,7 @@ const checks = [
     id: 'openchoreo-starter-no-plaintext-secrets',
     name: 'No plain-text secrets in env',
     description:
-      'No environment variable whose name looks like a secret holds a plain value, in the Workload or in a release binding override.',
+      "In every environment the line is bound to, no environment variable whose name looks like a secret holds a plain value, in the released Workload or in that environment's overrides.",
     factIds: [DEPLOYMENT],
     filter: COMPONENT,
     metadata: {
@@ -51,13 +51,29 @@ const checks = [
       solution:
         'Read the value from a secret reference instead of setting it in the env.',
     },
-    rule: rule('openchoreoPlainTextSecretEnvCount', 'equal', 0),
+    rule: {
+      conditions: {
+        all: [
+          {
+            fact: 'openchoreoEnvironmentDeployments',
+            path: '$[*].plainTextSecretEnvVarCount',
+            operator: 'everyFact:equal',
+            value: 0,
+          },
+          {
+            fact: 'openchoreoReleasesResolved',
+            operator: 'equal',
+            value: true,
+          },
+        ],
+      },
+    },
   },
   {
     id: 'openchoreo-starter-image-pinned',
     name: 'Image is pinned to a version',
     description:
-      'The container image names a digest, or a tag other than a moving one such as latest, main or dev.',
+      'In every environment the line is bound to, the released container image names a digest, or a tag other than a moving one such as latest, main or dev.',
     factIds: [DEPLOYMENT],
     filter: COMPONENT,
     metadata: {
@@ -65,7 +81,23 @@ const checks = [
       category: 'Security',
       solution: 'Reference the image by a version tag or a digest.',
     },
-    rule: rule('openchoreoImagePinned', 'equal', true),
+    rule: {
+      conditions: {
+        all: [
+          {
+            fact: 'openchoreoEnvironmentDeployments',
+            path: '$[*].isImagePinned',
+            operator: 'everyFact:equal',
+            value: true,
+          },
+          {
+            fact: 'openchoreoReleasesResolved',
+            operator: 'equal',
+            value: true,
+          },
+        ],
+      },
+    },
   },
   {
     id: 'openchoreo-starter-ct-resource-limits',

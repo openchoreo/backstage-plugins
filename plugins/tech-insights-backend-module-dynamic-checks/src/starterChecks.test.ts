@@ -2,11 +2,17 @@ import {
   createServiceFactory,
   resolvePackagePath,
 } from '@backstage/backend-plugin-api';
-import { startTestBackend, TestDatabases } from '@backstage/backend-test-utils';
+import {
+  mockServices,
+  startTestBackend,
+  TestDatabases,
+} from '@backstage/backend-test-utils';
 import {
   FactRetriever,
   techInsightsFactRetrieversExtensionPoint,
+  type TechInsightsStore,
 } from '@backstage-community/plugin-tech-insights-node';
+import { JsonRulesEngineFactCheckerFactory } from '@backstage-community/plugin-tech-insights-backend-module-jsonfc';
 import githubFacts from '@openchoreo/backstage-plugin-tech-insights-backend-module-github';
 import openChoreoFacts from '@openchoreo/backstage-plugin-tech-insights-backend-module-openchoreo';
 import {
@@ -14,6 +20,7 @@ import {
   openChoreoTokenServiceRef,
 } from '@openchoreo/openchoreo-auth';
 import { DynamicCheckRegistry } from './DynamicCheckRegistry';
+import { StaticCheckRegistry } from './EvaluableCheckRegistry';
 import { seedOpenChoreoStarterChecks } from './starterChecks';
 import { CheckValidator } from './validation';
 
@@ -65,6 +72,21 @@ async function retrieverSchemas() {
 }
 
 const SAMPLE_ID = 'openchoreo-starter-image-pinned';
+const SECRETS_ID = 'openchoreo-starter-no-plaintext-secrets';
+
+const everyEnvironment = (field: string, value: unknown) => ({
+  conditions: {
+    all: [
+      {
+        fact: 'openchoreoEnvironmentDeployments',
+        path: `$[*].${field}`,
+        operator: 'everyFact:equal',
+        value,
+      },
+      { fact: 'openchoreoReleasesResolved', operator: 'equal', value: true },
+    ],
+  },
+});
 
 describe('seedOpenChoreoStarterChecks', () => {
   it('adds the starter checks, published', async () => {
@@ -157,5 +179,152 @@ describe('seedOpenChoreoStarterChecks', () => {
     expect((await registry.get(SAMPLE_ID)).name).toBe('Their own check');
     expect(await registry.getStatus(SAMPLE_ID)).toBe('draft');
     expect(await registry.listAll()).toHaveLength(9);
+  });
+
+  it('judges plain secrets and image pinning in every environment', async () => {
+    const { knex, registry } = await createDatabase();
+    await seedOpenChoreoStarterChecks(knex);
+
+    expect((await registry.get(SECRETS_ID)).rule).toEqual(
+      everyEnvironment('plainTextSecretEnvVarCount', 0),
+    );
+    expect((await registry.get(SAMPLE_ID)).rule).toEqual(
+      everyEnvironment('isImagePinned', true),
+    );
+  });
+});
+
+describe('evaluating the environment starter checks with jsonfc', () => {
+  const ENTITY_REF = 'component:default/greeter';
+  const DEPLOYMENT = 'openchoreoDeploymentFactRetriever';
+
+  async function evaluate(facts: Record<string, unknown>) {
+    const { knex, registry } = await createDatabase();
+    await seedOpenChoreoStarterChecks(knex);
+    const checks = await registry.getAllPublished([SECRETS_ID, SAMPLE_ID]);
+    const schemas = (await retrieverSchemas()).filter(s => s.id === DEPLOYMENT);
+    const store = {
+      getLatestSchemas: async () => schemas,
+      getLatestFactsByIds: async () => ({
+        [DEPLOYMENT]: {
+          id: DEPLOYMENT,
+          entity: { namespace: 'default', kind: 'Component', name: 'greeter' },
+          timestamp: { toISO: () => '2026-11-24T00:00:00.000Z' },
+          version: '0.3.0',
+          facts,
+        },
+      }),
+    } as unknown as TechInsightsStore;
+    const checker = new JsonRulesEngineFactCheckerFactory({
+      checks: [],
+      logger: mockServices.logger.mock(),
+      checkRegistry: new StaticCheckRegistry(checks),
+    }).construct(store);
+    const results = await checker.runChecks(ENTITY_REF);
+    return Object.fromEntries(results.map(r => [r.check.id, r.result]));
+  }
+
+  const entry = (fields: Record<string, unknown>) => ({
+    environment: 'development',
+    isProduction: false,
+    isReleaseSynced: true,
+    isReady: true,
+    ...fields,
+  });
+
+  // An undefined releasesResolved leaves the fact out.
+  it.each([
+    [
+      'every environment clean and pinned',
+      [
+        entry({ plainTextSecretEnvVarCount: 0, isImagePinned: true }),
+        entry({
+          environment: 'production',
+          isProduction: true,
+          plainTextSecretEnvVarCount: 0,
+          isImagePinned: true,
+        }),
+      ],
+      true,
+      { [SECRETS_ID]: true, [SAMPLE_ID]: true },
+    ],
+    [
+      'one environment with a plain secret on a moving tag',
+      [
+        entry({ plainTextSecretEnvVarCount: 0, isImagePinned: true }),
+        entry({
+          environment: 'production',
+          isProduction: true,
+          plainTextSecretEnvVarCount: 1,
+          isImagePinned: false,
+        }),
+      ],
+      true,
+      { [SECRETS_ID]: false, [SAMPLE_ID]: false },
+    ],
+    [
+      'a single passing environment',
+      [entry({ plainTextSecretEnvVarCount: 0, isImagePinned: true })],
+      true,
+      { [SECRETS_ID]: true, [SAMPLE_ID]: true },
+    ],
+    [
+      'a single failing environment',
+      [entry({ plainTextSecretEnvVarCount: 2, isImagePinned: false })],
+      true,
+      { [SECRETS_ID]: false, [SAMPLE_ID]: false },
+    ],
+    [
+      'an environment whose release could not be read beside a passing one',
+      [
+        entry({ plainTextSecretEnvVarCount: 0, isImagePinned: true }),
+        entry({ environment: 'production', isProduction: true }),
+      ],
+      undefined,
+      {},
+    ],
+    [
+      'an environment whose release could not be read beside a failing one',
+      [
+        entry({ plainTextSecretEnvVarCount: 1, isImagePinned: false }),
+        entry({ environment: 'production', isProduction: true }),
+      ],
+      undefined,
+      {},
+    ],
+    [
+      'no environment whose release could be read',
+      [entry({}), entry({ environment: 'production', isProduction: true })],
+      undefined,
+      {},
+    ],
+    [
+      'an empty list, which everyFact fails',
+      [],
+      true,
+      { [SECRETS_ID]: false, [SAMPLE_ID]: false },
+    ],
+    [
+      'null, the value of an unresolved component',
+      null,
+      null,
+      { [SECRETS_ID]: false, [SAMPLE_ID]: false },
+    ],
+  ])('judges %s', async (_label, deployments, releasesResolved, expected) => {
+    await expect(
+      evaluate({
+        openchoreoComponentResolved: deployments !== null,
+        openchoreoEnvironmentDeployments: deployments,
+        ...(releasesResolved !== undefined && {
+          openchoreoReleasesResolved: releasesResolved,
+        }),
+      }),
+    ).resolves.toEqual(expected);
+  });
+
+  it('skips both checks for a line that reports no list', async () => {
+    await expect(
+      evaluate({ openchoreoComponentResolved: true }),
+    ).resolves.toEqual({});
   });
 });
