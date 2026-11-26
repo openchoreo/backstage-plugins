@@ -8,7 +8,7 @@ portal's service credentials (`openchoreo.auth`).
 | `openchoreoComponentTypeFactRetriever` | `ClusterComponentType`, `ComponentType` | Workload type, allowed and embedded traits, allowed workflows, validation rules, whether templates set limits, run as non-root or allow privileged containers                     |
 | `openchoreoDeploymentFactRetriever`    | `Component`, `ReleaseLine`              | One entry per environment the line is bound to: production, synced, ready and latest-release status, image registry and pinning, secret-like plain env values, external endpoints |
 | `openchoreoBuildFactRetriever`         | `Component`, `ReleaseLine`              | Whether the last finished build succeeded, and the share of the last 20 that did                                                                                                  |
-| `openchoreoAlertingFactRetriever`      | `Component`, `ReleaseLine`              | Configured alert rules, and per bound environment: production, observability, alerts and incidents of the last 30 days                                                            |
+| `openchoreoAlertingFactRetriever`      | `Component`, `ReleaseLine`              | Configured alert rules, per bound environment: production, observability, alerts and incidents of the last 30 days, and whether every count was read                              |
 
 The component type and deployment retrievers report `openchoreoComponentTypeResolved` and `openchoreoComponentResolved`. When the entity has no matching OpenChoreo resource it
 is false and every other fact is null, so checks fail the entity instead of skipping it. jsonfc
@@ -137,6 +137,10 @@ ReleaseLine:
   `Observe` binding, still counts.
 - `openchoreoEnvironmentAlerts`: a list with one entry per environment the line has an active
   release binding in.
+- `openchoreoAlertCountsResolved`: true when every entry of `openchoreoEnvironmentAlerts` with
+  observability holds all five counts, and at least one entry has observability. It is never
+  false. It is left out whenever a count it covers is missing, so a check that requires it shows no
+  result instead of judging partial counts.
 
 | Field                               | Meaning                                                       |
 | ----------------------------------- | ------------------------------------------------------------- |
@@ -159,17 +163,33 @@ A check selects entries with its condition's `path` and judges each with `everyF
 
 ```json
 {
-  "fact": "openchoreoEnvironmentAlerts",
-  "path": "$[?(@.isProduction)].unacknowledgedIncidentsLast30Days",
-  "operator": "everyFact:equal",
-  "value": 0
+  "all": [
+    {
+      "fact": "openchoreoAlertCountsResolved",
+      "operator": "equal",
+      "value": true
+    },
+    {
+      "fact": "openchoreoEnvironmentAlerts",
+      "path": "$[?(@.isProduction)].unacknowledgedIncidentsLast30Days",
+      "operator": "everyFact:equal",
+      "value": 0
+    }
+  ]
 }
 ```
 
+A count that can't be determined is left out of its entry, and the path selects only the counts
+that are there. Without the `openchoreoAlertCountsResolved` condition, the check would pass on the
+environments that returned counts, even when the observer of another refused or failed the query.
+With it, the check shows no result until every observed environment has its counts.
+Environments without observability don't hold it back, so it doesn't show that production is
+observed. A check that needs that should also select on `hasObservability`.
+
 `everyFact` fails when the path selects nothing, such as a line with no production environment, or
-a field left out of every selected entry. Wrap the condition in `any` with one that passes in that
-case, such as `{ "path": "$[*].isProduction", "operator": "everyFact:equal", "value": false }`,
-when that should pass.
+a field left out of every selected entry. Wrap the count condition in `any` with one that passes in
+that case, such as `{ "path": "$[*].isProduction", "operator": "everyFact:equal", "value": false }`,
+when that should pass, and keep the `openchoreoAlertCountsResolved` condition outside the `any`.
 
 Facts are left out rather than guessed:
 
@@ -190,6 +210,9 @@ Facts are left out rather than guessed:
 - The observer returns at most 1000 alerts or incidents per query, so `criticalAlertsLast30Days`,
   `openIncidentsLast30Days` and `unacknowledgedIncidentsLast30Days` are left out when the 30 days
   hold more. The totals are still reported.
+- `openchoreoAlertCountsResolved` is left out when an entry with observability misses any count
+  for the reasons above, when an entry's `hasObservability` is left out, when no entry has
+  observability, and whenever `openchoreoEnvironmentAlerts` is left out.
 
 The facts hold only counts. They are computed with the portal's service credentials and readable
 by everyone who can see the entity's scorecard, so incident notes and descriptions, and alert rule

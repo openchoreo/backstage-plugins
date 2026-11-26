@@ -269,6 +269,7 @@ describe('openchoreoAlertingFactRetriever', () => {
           ...COUNTS,
         },
       ],
+      openchoreoAlertCountsResolved: true,
     });
   });
 
@@ -300,6 +301,7 @@ describe('openchoreoAlertingFactRetriever', () => {
           ...COUNTS,
         },
       ],
+      openchoreoAlertCountsResolved: true,
     });
     const linePosts = posts.filter(
       ({ options }) => options.body.searchScope.releaseLine,
@@ -434,6 +436,7 @@ describe('openchoreoAlertingFactRetriever', () => {
       { environment: 'dev', isProduction: false, hasObservability: false },
       { environment: 'prod', isProduction: true, hasObservability: false },
     ]);
+    expect(byName.api).not.toHaveProperty('openchoreoAlertCountsResolved');
     expect(posts).toHaveLength(0);
   });
 
@@ -467,6 +470,7 @@ describe('openchoreoAlertingFactRetriever', () => {
       { environment: 'dev', isProduction: false, hasObservability: false },
       { environment: 'prod', isProduction: true, hasObservability: false },
     ]);
+    expect(byName.api).not.toHaveProperty('openchoreoAlertCountsResolved');
   });
 
   it("falls back to the cluster's default data plane, and from it only to the cluster's default observability plane", async () => {
@@ -548,6 +552,7 @@ describe('openchoreoAlertingFactRetriever', () => {
     expect(byName.api.openchoreoEnvironmentAlerts).toContainEqual({
       environment: 'dev',
     });
+    expect(byName.api).not.toHaveProperty('openchoreoAlertCountsResolved');
     expect(byName['api-experimental'].openchoreoEnvironmentAlerts).toEqual([
       {
         environment: 'dev',
@@ -556,6 +561,7 @@ describe('openchoreoAlertingFactRetriever', () => {
         ...COUNTS,
       },
     ]);
+    expect(byName['api-experimental'].openchoreoAlertCountsResolved).toBe(true);
     expect(devReads).toBe(2);
   });
 
@@ -568,6 +574,7 @@ describe('openchoreoAlertingFactRetriever', () => {
       { environment: 'dev', isProduction: false },
       { environment: 'prod', isProduction: true },
     ]);
+    expect(byName.api).not.toHaveProperty('openchoreoAlertCountsResolved');
     expect(logger.warn).toHaveBeenCalledWith(
       expect.stringContaining('GET DataPlane default returned HTTP 503'),
     );
@@ -583,6 +590,7 @@ describe('openchoreoAlertingFactRetriever', () => {
       { environment: 'dev', isProduction: false, hasObservability: true },
       { environment: 'prod', isProduction: true, hasObservability: true },
     ]);
+    expect(byName.api).not.toHaveProperty('openchoreoAlertCountsResolved');
     expect(logger.warn).toHaveBeenCalledTimes(1);
     expect(logger.warn).toHaveBeenCalledWith(
       expect.stringContaining("didn't accept the portal's service token"),
@@ -602,6 +610,7 @@ describe('openchoreoAlertingFactRetriever', () => {
       { environment: 'dev', isProduction: false, hasObservability: true },
       { environment: 'prod', isProduction: true, hasObservability: true },
     ]);
+    expect(byName.api).not.toHaveProperty('openchoreoAlertCountsResolved');
     expect(byName['api-experimental'].openchoreoEnvironmentAlerts).toEqual([
       { environment: 'dev', isProduction: false, hasObservability: true },
     ]);
@@ -628,6 +637,30 @@ describe('openchoreoAlertingFactRetriever', () => {
       openIncidentsLast30Days: 2,
       unacknowledgedIncidentsLast30Days: 1,
     });
+    expect(byName.api).not.toHaveProperty('openchoreoAlertCountsResolved');
+  });
+
+  it('leaves out that the counts are resolved when one environment misses them and another has them', async () => {
+    const { byName } = await run(
+      [mainLine],
+      fakeClient(),
+      fakeObservers((path, body) => {
+        if (body.searchScope.environment === 'prod') {
+          return status(500);
+        }
+        return ok(path === ALERTS ? alertsResponse : incidentsResponse);
+      }),
+    );
+    expect(byName.api.openchoreoEnvironmentAlerts).toStrictEqual([
+      {
+        environment: 'dev',
+        isProduction: false,
+        hasObservability: true,
+        ...COUNTS,
+      },
+      { environment: 'prod', isProduction: true, hasObservability: true },
+    ]);
+    expect(byName.api).not.toHaveProperty('openchoreoAlertCountsResolved');
   });
 
   it("leaves counts out without a warning when the observer doesn't know the scope yet", async () => {
@@ -642,6 +675,7 @@ describe('openchoreoAlertingFactRetriever', () => {
       { environment: 'dev', isProduction: false, hasObservability: true },
       { environment: 'prod', isProduction: true, hasObservability: true },
     ]);
+    expect(byName.api).not.toHaveProperty('openchoreoAlertCountsResolved');
     expect(logger.warn).not.toHaveBeenCalled();
     expect(logger.debug).toHaveBeenCalled();
   });
@@ -656,6 +690,7 @@ describe('openchoreoAlertingFactRetriever', () => {
       { environment: 'dev', isProduction: false, hasObservability: true },
       { environment: 'prod', isProduction: true, hasObservability: true },
     ]);
+    expect(byName.api).not.toHaveProperty('openchoreoAlertCountsResolved');
     expect(logger.warn).toHaveBeenCalledTimes(1);
     expect(logger.warn).toHaveBeenCalledWith(
       expect.stringContaining(OBSERVER_A),
@@ -674,6 +709,7 @@ describe('openchoreoAlertingFactRetriever', () => {
       { environment: 'dev', isProduction: false, hasObservability: true },
       { environment: 'prod', isProduction: true, hasObservability: true },
     ]);
+    expect(byName.api).not.toHaveProperty('openchoreoAlertCountsResolved');
     expect(logger.warn).toHaveBeenCalledWith(
       expect.stringContaining('ECONNREFUSED'),
     );
@@ -692,6 +728,7 @@ describe('openchoreoAlertingFactRetriever', () => {
     const [dev] = byName.api.openchoreoEnvironmentAlerts as any[];
     expect(dev.alertsFiredLast30Days).toBe(1200);
     expect(dev).not.toHaveProperty('criticalAlertsLast30Days');
+    expect(byName.api).not.toHaveProperty('openchoreoAlertCountsResolved');
   });
 
   it("passes the entity's signal to every request", async () => {
@@ -885,6 +922,28 @@ describe('openchoreoAlertingFactRetriever', () => {
         ({ options }) => options.body.searchScope.environment === 'prod',
       ),
     ).toHaveLength(0);
+  });
+
+  it('reports the counts as resolved when an environment without observability sits beside one with all its counts', async () => {
+    const { byName } = await run(
+      [mainLine],
+      fakeClient({
+        [PATHS.environment]: ({ path }) =>
+          path.envName === 'prod'
+            ? status(404)
+            : ok({ spec: { isProduction: false } }),
+      }),
+    );
+    expect(byName.api.openchoreoEnvironmentAlerts).toStrictEqual([
+      {
+        environment: 'dev',
+        isProduction: false,
+        hasObservability: true,
+        ...COUNTS,
+      },
+      { environment: 'prod', isProduction: false, hasObservability: false },
+    ]);
+    expect(byName.api.openchoreoAlertCountsResolved).toBe(true);
   });
 
   it("leaves the environment list out when the bindings can't be read", async () => {

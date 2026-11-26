@@ -1,10 +1,12 @@
 import {
   alertCounts,
+  alertCountsResolved,
   alertWindow,
   configuredTraits,
   createsAlertRule,
   environmentAlerts,
   incidentCounts,
+  type EnvironmentAlerts,
 } from './alertingFacts';
 
 describe('configuredTraits', () => {
@@ -216,5 +218,49 @@ describe('environmentAlerts', () => {
       openIncidentsLast30Days: 1,
       unacknowledgedIncidentsLast30Days: 1,
     });
+  });
+});
+
+describe('alertCountsResolved', () => {
+  const counted = (environment: string) => ({
+    environment,
+    hasObservability: true,
+    alertsFiredLast30Days: 0,
+    criticalAlertsLast30Days: 0,
+    incidentsLast30Days: 0,
+    openIncidentsLast30Days: 0,
+    unacknowledgedIncidentsLast30Days: 0,
+  });
+
+  it('holds when every environment with observability has all its counts', () => {
+    expect(alertCountsResolved([counted('dev'), counted('prod')])).toBe(true);
+  });
+
+  it("isn't blocked by an environment without observability", () => {
+    expect(
+      alertCountsResolved([
+        { environment: 'dev', hasObservability: false },
+        counted('prod'),
+      ]),
+    ).toBe(true);
+  });
+
+  it('fails when one environment misses one count', () => {
+    const truncated: EnvironmentAlerts = counted('prod');
+    delete truncated.criticalAlertsLast30Days;
+    expect(alertCountsResolved([counted('dev'), truncated])).toBe(false);
+  });
+
+  it("fails when an environment's observability is unknown", () => {
+    expect(alertCountsResolved([counted('dev'), { environment: 'prod' }])).toBe(
+      false,
+    );
+  });
+
+  it('fails when no environment has observability', () => {
+    expect(
+      alertCountsResolved([{ environment: 'dev', hasObservability: false }]),
+    ).toBe(false);
+    expect(alertCountsResolved([])).toBe(false);
   });
 });

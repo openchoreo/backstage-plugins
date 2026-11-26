@@ -27,6 +27,7 @@ import {
   type ReleaseBinding,
 } from './deploymentFacts';
 import {
+  alertCountsResolved,
   alertWindow,
   configuredTraits,
   createsAlertRule,
@@ -405,6 +406,11 @@ const schema: FactRetriever['schema'] = {
       "One entry per environment the line, the main line for a component, has an active release binding in, with alert and incident counts over the trailing 30 days. Select entries with a condition's path and the everyFact: or someFact: operators, e.g. path $[?(@.isProduction)].unacknowledgedIncidentsLast30Days with everyFact:equal 0. Reported only when the portal service credentials can read every binding of the component and every environment in its namespace. Left out for a line with no active binding, so its checks show no result, and when the release bindings or the namespace's authz profile can't be read. A field that can't be determined is left out of its entry.",
     metadata: { entries: ENVIRONMENT_ALERT_ENTRIES },
   },
+  openchoreoAlertCountsResolved: {
+    type: 'boolean',
+    description:
+      "True when every openchoreoEnvironmentAlerts entry with observability holds all its alert and incident counts and at least one entry has observability. Never false: left out when any count of such an entry is missing (the observer refused or failed a query, doesn't know the component or line yet, or returned fewer items than it counts), when an entry's hasObservability is unknown, when no entry has observability, and whenever openchoreoEnvironmentAlerts is left out. Entries without observability don't count against it. Pair it, with equal true, with a condition whose path reads the count fields, so an incomplete count skips the check instead of passing it on the environments that returned counts.",
+  },
 };
 
 const UNRESOLVED_FACTS = { openchoreoAlertingResolved: false };
@@ -629,6 +635,9 @@ export function createOpenChoreoAlertingFactRetriever(
           return {
             ...facts,
             openchoreoEnvironmentAlerts: entries,
+            ...(alertCountsResolved(entries) && {
+              openchoreoAlertCountsResolved: true,
+            }),
           };
         },
       ),

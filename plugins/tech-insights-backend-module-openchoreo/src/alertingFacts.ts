@@ -197,3 +197,29 @@ export function environmentAlerts(input: {
       incidentCounts(input.incidents)),
   };
 }
+
+const COUNT_FIELDS: (keyof EnvironmentAlerts)[] = [
+  'alertsFiredLast30Days',
+  'criticalAlertsLast30Days',
+  'incidentsLast30Days',
+  'openIncidentsLast30Days',
+  'unacknowledgedIncidentsLast30Days',
+];
+
+/**
+ * Whether the entries hold every count they could: at least one environment
+ * has observability, each of those has all its counts, and none has an
+ * unknown `hasObservability`.
+ */
+export function alertCountsResolved(entries: EnvironmentAlerts[]): boolean {
+  if (entries.some(entry => entry.hasObservability === undefined)) {
+    return false;
+  }
+  const observed = entries.filter(entry => entry.hasObservability);
+  return (
+    observed.length > 0 &&
+    observed.every(entry =>
+      COUNT_FIELDS.every(field => typeof entry[field] === 'number'),
+    )
+  );
+}
