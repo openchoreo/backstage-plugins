@@ -38,14 +38,14 @@ export const useStyles = makeStyles(theme => ({
       paddingBottom: theme.spacing(1.5),
     },
   },
-  quickActionHeaderCompact: {
-    marginBottom: theme.spacing(0.5),
-  },
   quickActionHeader: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: theme.spacing(1),
+  },
+  quickActionHeaderCompact: {
+    marginBottom: theme.spacing(0.5),
   },
   quickActionTitle: {
     fontWeight: 600,
