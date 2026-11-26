@@ -113,13 +113,17 @@ export interface IncidentsResult {
   total?: number;
 }
 
+/**
+ * A full page can't be trusted: the observer counts the total in a separate
+ * query before it selects the page.
+ */
 function isComplete(items: unknown[], total: number) {
-  return items.length >= total;
+  return items.length >= total && items.length < OBSERVER_QUERY_LIMIT;
 }
 
 /**
  * Counts over one alerts query. Counts read from the items are left out when
- * the response holds fewer items than its total.
+ * the response holds 1000 items (the observer's cap) or fewer than its total.
  */
 export function alertCounts(result: AlertsResult) {
   const { total } = result;
@@ -140,7 +144,8 @@ export function alertCounts(result: AlertsResult) {
 /**
  * Counts over one incidents query. An incident is open while it is active
  * or acknowledged, and unacknowledged while it is active. Counts read from
- * the items are left out when the response holds fewer items than its total.
+ * the items are left out when the response holds 1000 items (the observer's
+ * cap) or fewer than its total.
  */
 export function incidentCounts(result: IncidentsResult) {
   const { total } = result;

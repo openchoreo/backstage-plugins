@@ -190,7 +190,7 @@ observed. A check that needs that should also select on `hasObservability`.
 
 `everyFact` fails when the path selects nothing, such as a line with no production environment, or
 a field left out of every selected entry. Wrap the count condition in `any` with one that passes in
-that case, such as `{ "path": "$[*].isProduction", "operator": "everyFact:equal", "value": false }`,
+that case, such as `{ "fact": "openchoreoEnvironmentAlerts", "path": "$[*].isProduction", "operator": "everyFact:equal", "value": false }`,
 when that should pass, and keep the `openchoreoAlertCountsResolved` condition outside the `any`.
 
 Facts are left out rather than guessed:
@@ -210,8 +210,8 @@ Facts are left out rather than guessed:
 - The counts are left out of an entry without observability, and when its observer refuses or fails
   the query, or doesn't know the component or line yet.
 - The observer returns at most 1000 alerts or incidents per query, so `criticalAlertsLast30Days`,
-  `openIncidentsLast30Days` and `unacknowledgedIncidentsLast30Days` are left out when the 30 days
-  hold more. The totals are still reported.
+  `openIncidentsLast30Days` and `unacknowledgedIncidentsLast30Days` are left out when a query
+  returns 1000 items (the observer's cap) or fewer than its total. The totals are still reported.
 - `openchoreoAlertCountsResolved` is left out when an entry with observability misses any count
   for the reasons above, when an entry's `hasObservability` is left out, when no entry has
   observability, and whenever `openchoreoEnvironmentAlerts` is left out.

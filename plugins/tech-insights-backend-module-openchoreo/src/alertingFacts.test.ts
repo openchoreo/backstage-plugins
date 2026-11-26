@@ -129,6 +129,34 @@ describe('alertCounts', () => {
     ).toStrictEqual({ alertsFiredLast30Days: 1500 });
   });
 
+  it("leaves the critical count out when the page reaches the observer's cap, even if it matches the total", () => {
+    expect(
+      alertCounts({
+        alerts: Array.from({ length: 1000 }, () => alert('critical')),
+        total: 1000,
+      }),
+    ).toStrictEqual({ alertsFiredLast30Days: 1000 });
+  });
+
+  it('keeps the critical count for a complete page below the cap', () => {
+    expect(
+      alertCounts({
+        alerts: Array.from({ length: 999 }, () => alert('critical')),
+        total: 999,
+      }),
+    ).toStrictEqual({
+      alertsFiredLast30Days: 999,
+      criticalAlertsLast30Days: 999,
+    });
+  });
+
+  it('counts zero for an empty page', () => {
+    expect(alertCounts({ alerts: [], total: 0 })).toStrictEqual({
+      alertsFiredLast30Days: 0,
+      criticalAlertsLast30Days: 0,
+    });
+  });
+
   it('leaves both out without a total', () => {
     expect(alertCounts({ alerts: [] })).toStrictEqual({});
   });
@@ -156,6 +184,36 @@ describe('incidentCounts', () => {
     expect(
       incidentCounts({ incidents: [{ status: 'active' }], total: 2 }),
     ).toStrictEqual({ incidentsLast30Days: 2 });
+  });
+
+  it("leaves the status counts out when the page reaches the observer's cap, even if it matches the total", () => {
+    expect(
+      incidentCounts({
+        incidents: Array.from({ length: 1000 }, () => ({ status: 'active' })),
+        total: 1000,
+      }),
+    ).toStrictEqual({ incidentsLast30Days: 1000 });
+  });
+
+  it('keeps the status counts for a complete page below the cap', () => {
+    expect(
+      incidentCounts({
+        incidents: Array.from({ length: 999 }, () => ({ status: 'active' })),
+        total: 999,
+      }),
+    ).toStrictEqual({
+      incidentsLast30Days: 999,
+      openIncidentsLast30Days: 999,
+      unacknowledgedIncidentsLast30Days: 999,
+    });
+  });
+
+  it('counts zero for an empty page', () => {
+    expect(incidentCounts({ incidents: [], total: 0 })).toStrictEqual({
+      incidentsLast30Days: 0,
+      openIncidentsLast30Days: 0,
+      unacknowledgedIncidentsLast30Days: 0,
+    });
   });
 });
 

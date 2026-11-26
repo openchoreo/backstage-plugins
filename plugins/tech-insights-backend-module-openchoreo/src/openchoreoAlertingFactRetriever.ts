@@ -395,7 +395,7 @@ const ENVIRONMENT_ALERT_ENTRIES = {
   },
   criticalAlertsLast30Days: {
     type: 'integer',
-    description: `Alerts fired in the last 30 days by a rule with critical severity. ${COUNT_LEFT_OUT}, or returns fewer alerts than it counts (more than 1000).`,
+    description: `Alerts fired in the last 30 days by a rule with critical severity. ${COUNT_LEFT_OUT}, or returns 1000 alerts (its cap) or fewer than it counts.`,
   },
   incidentsLast30Days: {
     type: 'integer',
@@ -403,7 +403,7 @@ const ENVIRONMENT_ALERT_ENTRIES = {
   },
   openIncidentsLast30Days: {
     type: 'integer',
-    description: `Incidents triggered in the last 30 days that are still active or acknowledged. ${COUNT_LEFT_OUT}, or returns fewer incidents than it counts (more than 1000).`,
+    description: `Incidents triggered in the last 30 days that are still active or acknowledged. ${COUNT_LEFT_OUT}, or returns 1000 incidents (its cap) or fewer than it counts.`,
   },
   unacknowledgedIncidentsLast30Days: {
     type: 'integer',
@@ -431,7 +431,7 @@ const schema: FactRetriever['schema'] = {
   openchoreoAlertCountsResolved: {
     type: 'boolean',
     description:
-      "True when every openchoreoEnvironmentAlerts entry with observability holds all its alert and incident counts and at least one entry has observability. Never false: left out when any count of such an entry is missing (the observer refused or failed a query, doesn't know the component or line yet, or returned fewer items than it counts), when an entry's hasObservability is unknown, when no entry has observability, and whenever openchoreoEnvironmentAlerts is left out. Entries without observability don't count against it. Pair it, with equal true, with a condition whose path reads the count fields, so an incomplete count skips the check instead of passing it on the environments that returned counts.",
+      "True when every openchoreoEnvironmentAlerts entry with observability holds all its alert and incident counts and at least one entry has observability. Never false: left out when any count of such an entry is missing (the observer refused or failed a query, doesn't know the component or line yet, or returned 1000 items, its cap, or fewer than it counts), when an entry's hasObservability is unknown, when no entry has observability, and whenever openchoreoEnvironmentAlerts is left out. Entries without observability don't count against it. Pair it, with equal true, with a condition whose path reads the count fields, so an incomplete count skips the check instead of passing it on the environments that returned counts.",
   },
 };
 
