@@ -722,6 +722,28 @@ export function registerCheckActions(options: CheckActionsOptions) {
         allowService: false,
       });
       const existing = await getExisting(input.id);
+      // The saved entity filter is kept, so the retrievers must still collect
+      // facts for one of its kinds.
+      const kinds = await sharedKinds(requireEvaluation(), input.factIds);
+      const filterKinds = kindsOfFilter(existing.filter);
+      if (kinds?.length === 0) {
+        throw new InputError(noSharedKind(input.factIds));
+      }
+      if (
+        kinds &&
+        filterKinds &&
+        !kinds.some(kind =>
+          filterKinds.some(k => k.toLowerCase() === kind.toLowerCase()),
+        )
+      ) {
+        throw new InputError(
+          `${input.factIds.join(
+            ', ',
+          )} don't collect facts for ${filterKinds.join(
+            ', ',
+          )}, the kinds this check applies to, so it would never have a result.`,
+        );
+      }
       const draft = toDraftCheck(input);
       const metadata = withMetadata(existing.metadata, input.metadata);
       const updated: TechInsightJsonRuleCheck = {

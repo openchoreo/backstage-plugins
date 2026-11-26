@@ -737,6 +737,52 @@ describe('registerCheckActions', () => {
       expect(registry.update).not.toHaveBeenCalled();
     });
 
+    it('refuses fact retrievers with no kind in common', async () => {
+      const { invoke, registry, store } = setup();
+      store.getLatestSchemas.mockResolvedValue([
+        { id: 'a', entityFilter: [{ kind: 'component' }] },
+        { id: 'b', entityFilter: [{ kind: 'ClusterComponentType' }] },
+      ]);
+
+      await expect(invoke('update_check', input, user)).rejects.toThrow(
+        "don't collect facts for any of the same entity kinds",
+      );
+      expect(registry.update).not.toHaveBeenCalled();
+    });
+
+    it('refuses fact retrievers that miss the kinds the check applies to', async () => {
+      const { invoke, registry, store } = setup();
+      registry.get.mockResolvedValue({
+        ...savedCheck,
+        filter: { kind: ['Component'] },
+      } as typeof savedCheck);
+      store.getLatestSchemas.mockResolvedValue([
+        { id: 'a', entityFilter: [{ kind: 'ClusterComponentType' }] },
+      ]);
+
+      await expect(invoke('update_check', input, user)).rejects.toThrow(
+        "don't collect facts for Component, the kinds this check applies to",
+      );
+      expect(registry.update).not.toHaveBeenCalled();
+    });
+
+    it('keeps the filter when the fact retrievers still collect for one of its kinds', async () => {
+      const { invoke, registry, store } = setup();
+      registry.get.mockResolvedValue({
+        ...savedCheck,
+        filter: { kind: ['Component', 'System'] },
+      } as typeof savedCheck);
+      store.getLatestSchemas.mockResolvedValue([
+        { id: 'a', entityFilter: [{ kind: 'component' }] },
+      ]);
+
+      await invoke('update_check', input, user);
+
+      expect(registry.update.mock.calls[0][1].filter).toEqual({
+        kind: ['Component', 'System'],
+      });
+    });
+
     it('gives a hint for an unknown id', async () => {
       const { invoke, registry } = setup();
 
