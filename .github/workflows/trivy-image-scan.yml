@@ -1,0 +1,144 @@
+name: Trivy Image Scan
+run-name: Trivy Image Scan (${{ inputs.image_tag || github.ref_name }})
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Release tag to scan (e.g. v1.3.3). Empty scans the image built from the selected ref.'
+        required: false
+        type: string
+
+permissions: {}
+
+env:
+  OCI_REGISTRY_HOST: ${{ vars.OCI_REGISTRY_HOST || 'ghcr.io' }}
+  IMAGE_NAME: ${{ vars.IMAGE_NAME || 'openchoreo/openchoreo-ui' }}
+
+jobs:
+  scan:
+    name: Scan
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: read
+      security-events: write
+    steps:
+      - name: Validate inputs
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          if [[ -n "$IMAGE_TAG" && ! "$IMAGE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::image_tag must be a release tag like v1.3.3, got '$IMAGE_TAG'" && exit 1
+          fi
+
+      # Without image_tag, scans the image publish-candidates.yml pushed for this
+      # commit (its first 8 characters).
+      - name: Set image
+        id: image
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: echo "ref=$OCI_REGISTRY_HOST/$IMAGE_NAME:${IMAGE_TAG:-${GITHUB_SHA:0:8}}" >> "$GITHUB_OUTPUT"
+
+      # Release results are filed under the branch the release was cut from, so
+      # code scanning tracks them per branch and main's alerts keep main's state.
+      # Same outcome as release-orchestrator.yml: a stable release lives on
+      # release-vX.Y; a pre-release on its own release-<tag> branch, or on
+      # release-vX.Y when that branch already existed when it was cut. Falls back
+      # to the tag itself when neither branch exists.
+      - name: Resolve where to file release results
+        id: upload-ref
+        if: inputs.image_tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          minor_branch="release-$(grep -oE '^v[0-9]+\.[0-9]+' <<< "$IMAGE_TAG")"
+          if [[ "$IMAGE_TAG" == *-* ]]; then
+            candidates=("release-$IMAGE_TAG" "$minor_branch")
+          else
+            candidates=("$minor_branch")
+          fi
+          ref=""
+          for branch in "${candidates[@]}"; do
+            if out=$(gh api "repos/$GITHUB_REPOSITORY/branches/$branch" --jq .name 2>&1); then
+              ref="refs/heads/$branch"
+              break
+            elif [[ "$out" != *"HTTP 404"* ]]; then
+              # Only a missing branch moves on; any other API error must not misfile results.
+              echo "::error::Looking up branch $branch failed: $out"
+              exit 1
+            fi
+          done
+          # The commit the scanned image was built from. The branch may have moved past it.
+          if out=$(gh api "repos/$GITHUB_REPOSITORY/commits/$IMAGE_TAG" --jq .sha 2>&1); then
+            sha="$out"
+            if [[ -z "$ref" ]]; then
+              echo "::warning::No release branch found for $IMAGE_TAG (tried ${candidates[*]}); filing results under the tag"
+              ref="refs/tags/$IMAGE_TAG"
+            fi
+          elif [[ "$out" == *"HTTP 422"* || "$out" == *"HTTP 404"* ]] && [[ -n "$ref" ]]; then
+            # An openchoreo hotfix can tag the image without tagging this repo.
+            echo "::warning::$IMAGE_TAG is not a tag in this repo; filing results at the head of ${ref#refs/heads/}"
+            sha=$(gh api "repos/$GITHUB_REPOSITORY/commits/${ref#refs/heads/}" --jq .sha)
+          else
+            echo "::error::Looking up $IMAGE_TAG failed: $out"
+            exit 1
+          fi
+          # Without both, upload-sarif would fall back to main and replace main's results.
+          if [[ -z "$ref" || ! "$sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Could not work out where to file results for $IMAGE_TAG (ref='$ref', sha='$sha')"
+            exit 1
+          fi
+          echo "Filing results under $ref ($sha)"
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Login to container registry
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        with:
+          registry: ${{ env.OCI_REGISTRY_HOST }}
+          username: ${{ env.OCI_REGISTRY_HOST == 'ghcr.io' && (secrets.OCI_REGISTRY_USERNAME || github.actor) || secrets.OCI_REGISTRY_USERNAME }}
+          password: ${{ env.OCI_REGISTRY_HOST == 'ghcr.io' && (secrets.OCI_REGISTRY_PASSWORD || github.token) || secrets.OCI_REGISTRY_PASSWORD }}
+
+      - name: Verify image exists
+        env:
+          IMAGE: ${{ steps.image.outputs.ref }}
+        run: |
+          docker manifest inspect "$IMAGE" > /dev/null 2>&1 || \
+            (echo "::error::Image $IMAGE not found. Ensure the build workflow has completed." && exit 1)
+
+      # Release scans keep only fixable critical and high findings, which is what
+      # decides whether a line needs a patch. Main keeps every severity.
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: ${{ steps.image.outputs.ref }}
+          format: sarif
+          output: trivy.sarif
+          severity: ${{ inputs.image_tag && 'CRITICAL,HIGH' || 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL' }}
+          ignore-unfixed: ${{ inputs.image_tag != '' }}
+          limit-severities-for-sarif: ${{ inputs.image_tag != '' }}
+
+      # Code scanning shares an alert between branches when the rule and path match,
+      # and shows main's status and text for it. Prefixing the paths, for example
+      # release-v1.3/app/node_modules/..., gives each release branch its own alerts.
+      - name: Prefix release result paths
+        if: inputs.image_tag != ''
+        env:
+          UPLOAD_REF: ${{ steps.upload-ref.outputs.ref }}
+        run: |
+          jq --arg prefix "${UPLOAD_REF#refs/*/}/" \
+            '(.runs[].results[]?.locations[]?.physicalLocation.artifactLocation.uri) |= ($prefix + .)' \
+            trivy.sarif > trivy.sarif.tmp
+          mv trivy.sarif.tmp trivy.sarif
+
+      # ref and sha are empty for main, so the upload uses this run's ref and commit.
+      - name: Upload results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4
+        with:
+          sarif_file: trivy.sarif
+          category: openchoreo-ui
+          ref: ${{ steps.upload-ref.outputs.ref }}
+          sha: ${{ steps.upload-ref.outputs.sha }}
