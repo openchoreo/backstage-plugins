@@ -57,6 +57,9 @@ export function useUrlSyncedTab<T extends string = string>({
   // Track initial mount to avoid unnecessary state updates
   const isInitialMount = useRef(true);
 
+  // The tab last requested, which may not have reached activeTab yet.
+  const requestedTab = useRef<T>(initialTab ?? defaultTab);
+
   // Sync with URL when initialTab changes (browser back/forward)
   useEffect(() => {
     // Skip the initial mount since useState already handles it
@@ -67,19 +70,32 @@ export function useUrlSyncedTab<T extends string = string>({
 
     // Only update if initialTab is defined and different from current
     if (initialTab !== undefined && initialTab !== activeTab) {
+      requestedTab.current = initialTab;
       setActiveTabState(initialTab);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Deliberately exclude activeTab to avoid infinite loops
   }, [initialTab]);
 
+  // Since Backstage 1.57 a navigation re-renders synchronously, before the
+  // tab state update lands. An effect that picks a default tab therefore runs
+  // again with the old activeTab and asks for the same tab, and navigating
+  // again would loop until React gives up (error #185). So a repeated request
+  // for the tab already requested does not touch the URL. onTabChange is read
+  // through a ref because callers derive it from the current location. The ref
+  // is updated in an effect so a render React discards cannot leave its
+  // callback behind; this effect runs before the caller's own effects.
+  const onTabChangeRef = useRef(onTabChange);
+  useEffect(() => {
+    onTabChangeRef.current = onTabChange;
+  });
+
   // Wrapper to update both local state and URL
-  const setActiveTab = useCallback(
-    (tab: T, replace?: boolean) => {
-      setActiveTabState(tab);
-      onTabChange?.(tab, replace);
-    },
-    [onTabChange],
-  );
+  const setActiveTab = useCallback((tab: T, replace?: boolean) => {
+    setActiveTabState(tab);
+    if (tab === requestedTab.current) return;
+    requestedTab.current = tab;
+    onTabChangeRef.current?.(tab, replace);
+  }, []);
 
   return [activeTab, setActiveTab];
 }

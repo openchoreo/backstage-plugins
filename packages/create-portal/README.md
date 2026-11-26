@@ -9,8 +9,9 @@ plus a small skeleton diff.
 
 ## Requirements
 
-- Node.js 20 or 22 and Yarn (`corepack enable`; the scaffold pins its own
-  Yarn release under `.yarn/releases`).
+- Node.js 24.15+ or 26.13+ and Yarn (`corepack enable`; the scaffold pins its
+  own Yarn release under `.yarn/releases`). Node 26 doesn't bundle Corepack:
+  run `npm install -g corepack` first.
 - `git` on the `PATH` (optional) — the CLI initializes a repository with an
   initial commit of the untouched template, which later serves as the
   upgrade base.

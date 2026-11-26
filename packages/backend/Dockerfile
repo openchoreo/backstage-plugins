@@ -1,12 +1,13 @@
-ARG BUILD_IMAGE=docker.io/node:22-bookworm-slim@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436
+ARG BUILD_IMAGE=docker.io/node:24-bookworm-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54
 # Google distroless doesn't have tags for minor and patches which forces 
 # to float versions creating regression scenarios like the one introduced in 22.23.0 
 # as a result of a patch for CVE-2026-48931 which broke OpenChoreo
 # see https://github.com/openchoreo/backstage-plugins/pull/657
 # This can be mitigated by looking at the image OCI annotations 
 # which can be used to pinpoint the exact version
-# e.g. docker inspect gcr.io/distroless/nodejs22-debian13:nonroot | jq '.[0].Annotations'
-ARG RUNTIME_IMAGE=gcr.io/distroless/nodejs22-debian13:nonroot@sha256:b0b1352373f14fe86376d423e6d283ea6b85b912ff55ca89bed8d2fe11c257b8
+# e.g. docker inspect gcr.io/distroless/nodejs24-debian13:nonroot | jq '.[0].Annotations'
+# Both images below are Node 24.22.3; Backstage 1.57 requires Node >= 24.15.
+ARG RUNTIME_IMAGE=gcr.io/distroless/nodejs24-debian13:nonroot@sha256:6abfcb367ebc291572c774c1592a986be2ab26a2486f73093401327495a5962a
 
 # ---------------------------------------------------------------------------
 # Stage 1 - Install all dependencies, compile TypeScript, build backend
