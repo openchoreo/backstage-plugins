@@ -46,7 +46,9 @@ function flatLeaves(ruleJson: string | undefined): Leaf[] | null {
       leaf &&
       typeof leaf === 'object' &&
       typeof leaf.fact === 'string' &&
-      typeof leaf.operator === 'string',
+      typeof leaf.operator === 'string' &&
+      // A path reads a value inside the fact; the row would name the whole fact.
+      !('path' in leaf),
   );
   return flat ? (group as Leaf[]) : null;
 }

@@ -91,6 +91,31 @@ describe('ComponentPicker', () => {
     );
   });
 
+  it('lists everything again when the search is cleared', async () => {
+    render(<ComponentPicker kinds={[]} onTest={jest.fn()} />);
+    await act(async () => {
+      fireEvent.change(box(), { target: { value: 'ord' } });
+    });
+    await waitFor(() =>
+      expect(mockQueryEntities).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          fullTextFilter: expect.objectContaining({ term: 'ord' }),
+        }),
+      ),
+    );
+
+    await act(async () => {
+      // MUI shows ✕ only on hover, so it isn't in the accessibility tree.
+      fireEvent.click(screen.getByTitle('Clear'));
+    });
+
+    await waitFor(() =>
+      expect(mockQueryEntities).toHaveBeenLastCalledWith(
+        expect.objectContaining({ fullTextFilter: undefined }),
+      ),
+    );
+  });
+
   it('tests the picked entity by its full ref', async () => {
     const onTest = jest.fn();
     render(<ComponentPicker kinds={[]} onTest={onTest} />);

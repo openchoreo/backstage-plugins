@@ -988,6 +988,7 @@ export const AssistantChatDrawer = ({
     turnRef.current++;
     setTimeline([]);
     setSavedCheck(undefined);
+    setExperience(undefined);
     setStreaming('');
     setToolStatus(null);
     setProgress(null);
@@ -1354,6 +1355,7 @@ export const AssistantChatDrawer = ({
                               <IconButton
                                 size="small"
                                 style={{ padding: 2 }}
+                                aria-label="Copy name"
                                 onClick={() =>
                                   handleCopyPrompt(
                                     parsedCheck.name!,
@@ -1380,6 +1382,7 @@ export const AssistantChatDrawer = ({
                               <IconButton
                                 size="small"
                                 style={{ padding: 2 }}
+                                aria-label="Copy description"
                                 onClick={() =>
                                   handleCopyPrompt(
                                     parsedCheck.description!,

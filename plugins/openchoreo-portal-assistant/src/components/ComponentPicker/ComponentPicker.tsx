@@ -89,7 +89,8 @@ export const ComponentPicker = ({
           value={picked}
           onChange={(_e, next) => setPicked(next)}
           onInputChange={(_e, next, reason) => {
-            if (reason === 'input') setTerm(next);
+            // Typing and ✕ change the search; picking an option only shows its name.
+            if (reason === 'input' || reason === 'clear') setTerm(next);
           }}
           getOptionLabel={option =>
             option.metadata.title ?? option.metadata.name

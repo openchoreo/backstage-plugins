@@ -593,6 +593,37 @@ describe('AssistantChatDrawer check_authoring replies', () => {
     );
   });
 
+  it('names the copy buttons of a new check reply', async () => {
+    render(
+      <AssistantChatDrawer
+        {...baseProps}
+        scopeOverrides={{ caseType: 'check_authoring' }}
+      />,
+    );
+    sendMessage('repos must not be archived');
+    await fireStreamEvent({
+      type: 'done',
+      message: [
+        'Name: Repo not archived',
+        'Description: Fails if the repository is archived.',
+        '',
+        '```json',
+        '{"conditions":{"all":[{"fact":"githubIsArchived","operator":"equal","value":false}]}}',
+        '```',
+      ].join('\n'),
+    } as StreamEvent);
+    await finishStream();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy name' }));
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      'Repo not archived',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Copy description' }));
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      'Fails if the repository is archived.',
+    );
+  });
+
   it('gives every suggested field a copy button, whatever bullet style the model used', async () => {
     render(
       <AssistantChatDrawer
@@ -792,7 +823,9 @@ describe('AssistantChatDrawer confirm card', () => {
     await fireStreamEvent({ type: 'done', message: 'Hi!' } as StreamEvent);
     await finishStream();
 
-    expect(screen.queryByRole('group', { name: /Save changes/ })).toBeNull();
+    expect(
+      screen.queryByRole('group', { name: /^(Save|Create) check/ }),
+    ).toBeNull();
   });
 });
 
@@ -1888,6 +1921,41 @@ describe('AssistantChatDrawer check authoring level and welcome', () => {
     expect(
       within(kept).getByRole('button', { name: 'Describe your own check' }),
     ).toBeDisabled();
+  });
+
+  it('asks again in a new chat opened while the drawer is open', async () => {
+    const { rerender } = render(
+      <AssistantChatDrawer
+        {...baseProps}
+        openSeq={1}
+        conversationKey="check-a"
+        scopeOverrides={{ caseType: 'check_authoring' }}
+      />,
+    );
+    await pickLevel();
+
+    rerender(
+      <AssistantChatDrawer
+        {...baseProps}
+        openSeq={2}
+        conversationKey="check-b"
+        scopeOverrides={{ caseType: 'check_authoring' }}
+      />,
+    );
+    fireEvent.click(
+      within(
+        screen.getByRole('group', { name: 'Write a new check' }),
+      ).getByRole('button', { name: 'Describe your own check' }),
+    );
+    const box = screen.getByPlaceholderText(
+      'Describe the check you need, for example: repos must be private',
+    );
+    fireEvent.change(box, { target: { value: 'Repos must be private' } });
+    await act(async () => {
+      fireEvent.keyDown(box, { key: 'Enter', code: 'Enter' });
+    });
+
+    expect(holder.lastRequest?.scope).not.toHaveProperty('experience');
   });
 
   it('asks again after Clear, and when opened again for a new chat', async () => {

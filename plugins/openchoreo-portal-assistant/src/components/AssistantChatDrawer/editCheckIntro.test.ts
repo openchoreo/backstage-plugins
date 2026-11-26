@@ -89,6 +89,19 @@ describe('ruleLines', () => {
         ],
       },
     ],
+    [
+      'a value read through a path',
+      {
+        all: [
+          {
+            fact: 'githubTopics',
+            path: '$.length',
+            operator: 'greaterThan',
+            value: 0,
+          },
+        ],
+      },
+    ],
   ])('gives nothing for %s', (_, rule) => {
     expect(ruleLines(JSON.stringify(rule), [])).toBeNull();
   });
