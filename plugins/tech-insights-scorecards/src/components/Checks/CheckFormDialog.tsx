@@ -15,6 +15,8 @@ interface CheckFormDialogProps {
   onClose: () => void;
   onSaved: (check: DynamicCheck) => void;
   onPublished: () => void;
+  /** Called after the assistant saves the check. */
+  onAssistantSaved?: () => void;
 }
 
 /**
@@ -32,6 +34,7 @@ export function CheckFormDialog(props: CheckFormDialogProps) {
     onClose,
     onSaved,
     onPublished,
+    onAssistantSaved,
   } = props;
 
   // Optional: only present when a host app installs a check-authoring assistant.
@@ -63,7 +66,11 @@ export function CheckFormDialog(props: CheckFormDialogProps) {
               marginBottom: 8,
             }}
           >
-            <assistant.LaunchButton factSchemas={factSchemas} check={check} />
+            <assistant.LaunchButton
+              factSchemas={factSchemas}
+              check={check}
+              onChecksChanged={onAssistantSaved}
+            />
           </div>
         )}
         <CheckForm

@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   mockApis,
@@ -7,6 +7,8 @@ import {
 } from '@backstage/test-utils';
 import { configApiRef } from '@backstage/core-plugin-api';
 import { toastApiRef } from '@backstage/frontend-plugin-api';
+import { catalogApiRef } from '@backstage/plugin-catalog-react';
+import { mockCatalogApi } from '../../__testUtils__/testApis';
 import {
   checkAuthoringAssistantApiRef,
   type CheckAuthoringAssistantApi,
@@ -43,16 +45,22 @@ const dynamicChecksApi = {
 function renderTable(
   assistant?: CheckAuthoringAssistantApi,
   onNewCheck?: () => void,
+  onChecksChanged?: () => void,
 ) {
   const apis: any[] = [
     [dynamicChecksApiRef, dynamicChecksApi],
     [toastApiRef, { post: jest.fn() }],
     [configApiRef, mockApis.config()],
+    // The edit dialog's form lists the catalog's kinds.
+    [catalogApiRef, mockCatalogApi()],
   ];
   if (assistant) apis.push([checkAuthoringAssistantApiRef, assistant]);
   return renderInTestApp(
     <TestApiProvider apis={apis as any}>
-      <CheckPolicyTable onNewCheck={onNewCheck} />
+      <CheckPolicyTable
+        onNewCheck={onNewCheck}
+        onChecksChanged={onChecksChanged}
+      />
     </TestApiProvider>,
   );
 }
@@ -118,6 +126,60 @@ describe('CheckPolicyTable create check action', () => {
       screen.getByRole('menuitem', { name: 'Create manually' }),
     );
     expect(onNewCheck).toHaveBeenCalledTimes(1);
+  });
+
+  it('tells the page and reloads the list after the assistant saves a check', async () => {
+    const onChecksChanged = jest.fn();
+    await renderTable(
+      {
+        LaunchButton: () => null,
+        NewCheckLauncher: ({ children, onChecksChanged: saved }) => (
+          <>
+            {children(jest.fn())}
+            <button onClick={saved}>Assistant saved</button>
+          </>
+        ),
+      },
+      undefined,
+      onChecksChanged,
+    );
+    await createCheck();
+    dynamicChecksApi.listChecks.mockClear();
+
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Assistant saved' }),
+    );
+
+    expect(onChecksChanged).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(dynamicChecksApi.listChecks).toHaveBeenCalled());
+  });
+
+  it('closes the edit dialog and reloads the list after the assistant saves the check', async () => {
+    const onChecksChanged = jest.fn();
+    await renderTable(
+      {
+        LaunchButton: ({ onChecksChanged: saved }) => (
+          <button onClick={saved}>Assistant saved</button>
+        ),
+      },
+      undefined,
+      onChecksChanged,
+    );
+    await userEvent.click(
+      await screen.findByLabelText(`Edit check ${check.name}`),
+    );
+    const dialog = await screen.findByRole('dialog');
+    dynamicChecksApi.listChecks.mockClear();
+
+    await userEvent.click(
+      within(dialog).getByRole('button', { name: 'Assistant saved' }),
+    );
+
+    expect(onChecksChanged).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(dynamicChecksApi.listChecks).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    );
   });
 
   it('is disabled for a user who may not manage checks', async () => {

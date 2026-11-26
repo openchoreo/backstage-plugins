@@ -384,7 +384,10 @@ export function CheckPolicyTable(props: CheckPolicyTableProps) {
           {assistant?.NewCheckLauncher ? (
             <assistant.NewCheckLauncher
               factSchemas={factSchemas}
-              onChecksChanged={refresh}
+              onChecksChanged={() => {
+                onChecksChanged?.();
+                refresh();
+              }}
             >
               {renderCreateCheck}
             </assistant.NewCheckLauncher>
@@ -583,6 +586,7 @@ export function CheckPolicyTable(props: CheckPolicyTableProps) {
         onClose={() => setDialogOpen(false)}
         onSaved={handleSaved}
         onPublished={handlePublished}
+        onAssistantSaved={handleSaved}
       />
     </>
   );
