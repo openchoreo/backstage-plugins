@@ -328,6 +328,7 @@ describe('CheckValidator', () => {
       [{ operator: 'someFact:equal', value: 'security' }],
       [{ operator: 'everyFact:notEqual', value: 'security' }],
       [{ path: '$[0]', operator: 'equal', value: 'security' }],
+      [{ path: '$.length', operator: 'greaterThan', value: 0 }],
     ])('accepts %j', async condition => {
       await expect(problemsOfCondition(condition)).resolves.toEqual([]);
     });

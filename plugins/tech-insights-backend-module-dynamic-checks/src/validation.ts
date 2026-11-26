@@ -235,7 +235,13 @@ function typeProblems(
         },
       ];
     }
-    if (typeof fact !== 'string' || !NUMBER_OPERATORS.has(String(operator))) {
+    // A path reads a value inside the fact (e.g. a list's $.length), whose
+    // type the fact schema doesn't give.
+    if (
+      typeof fact !== 'string' ||
+      factPath !== undefined ||
+      !NUMBER_OPERATORS.has(String(operator))
+    ) {
       return [];
     }
     const type = factTypes.get(fact);
