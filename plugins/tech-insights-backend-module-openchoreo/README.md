@@ -156,7 +156,9 @@ ReleaseLine:
 The counts cover the 30 days before each run, the longest window the observer accepts. An incident
 triggered earlier is not counted, even while it is still open. Each environment is queried on its
 own, scoped to the component, and for a ReleaseLine to that line, so a Component's counts cover its
-main line only.
+main line only. A query that gets no answer within 10 seconds leaves its counts out, and an observer
+that times out or can't be reached isn't queried again until the next run, so it can't hold up
+every entity.
 
 A check selects entries with its condition's `path` and judges each with `everyFact:` or
 `someFact:`. For example, no production environment has an unacknowledged incident:

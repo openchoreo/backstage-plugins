@@ -72,20 +72,28 @@ type ObserverQuery = <T>(
   signal: AbortSignal,
 ) => Promise<T | undefined>;
 
+/** Well inside ENTITY_DEADLINE_MS, so one hung observer costs its counts rather than the entity. */
+const OBSERVER_QUERY_TIMEOUT_MS = 10_000;
+
 /**
  * Runs one observer query over the run's window. Resolves to undefined when
  * the observer doesn't answer, so only that entry's counts are left out.
  * A 401 (token rejected) and a 403 (grant missing) concern the service
  * credentials rather than one observer, so each is warned about once per run;
- * other failures once per run per observer.
+ * other HTTP errors once per run per observer. An observer that times out or
+ * can't be reached isn't queried again until the next run. Rejects when the
+ * entity's own deadline cuts a query short, which says nothing about the
+ * observer.
  */
 function observerQueries(
   token: string | undefined,
   logger: LoggerService,
   window: { startTime: string; endTime: string },
+  timeoutMs: number,
 ): ObserverQuery {
   const clients = new Map<string, ObserverClient>();
   const failingObservers = new Set<string>();
+  const unreachableObservers = new Set<string>();
   let warnedUnauthenticated = false;
   let warnedForbidden = false;
 
@@ -120,6 +128,12 @@ function observerQueries(
     }${searchScope.releaseLine ? `:${searchScope.releaseLine}` : ''} in ${
       searchScope.environment
     }`;
+    if (unreachableObservers.has(observerUrl)) {
+      logger.debug(
+        `Skipping the ${subject}: observer ${observerUrl} timed out or couldn't be reached earlier in this run`,
+      );
+      return undefined;
+    }
     try {
       const { data, error, response } = await clientFor(observerUrl).POST(
         kind === 'alerts'
@@ -132,7 +146,7 @@ function observerQueries(
             sortOrder: 'desc',
             searchScope,
           },
-          signal,
+          signal: AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]),
         },
       );
       if (data) {
@@ -165,7 +179,15 @@ function observerQueries(
       }
       failed(observerUrl, `the ${subject} returned HTTP ${status}`);
     } catch (error) {
-      failed(observerUrl, `the ${subject} failed: ${(error as Error).message}`);
+      if (signal.aborted) {
+        throw signal.reason;
+      }
+      unreachableObservers.add(observerUrl);
+      logger.warn(
+        `Leaving out the alert or incident counts that observer ${observerUrl} can't provide: the ${subject} failed: ${
+          (error as Error).message
+        }. Further queries to it are skipped until the next run.`,
+      );
     }
     return undefined;
   };
@@ -353,7 +375,7 @@ function profileLoader(client: OpenChoreoApiClient) {
 }
 
 const COUNT_LEFT_OUT =
-  "Left out when the environment has no observer, or the observer refuses or fails the query or doesn't know the component or line yet";
+  "Left out when the environment has no observer, or the observer refuses or fails the query, timed out or couldn't be reached earlier in the run, or doesn't know the component or line yet";
 
 const ENVIRONMENT_ALERT_ENTRIES = {
   environment: { type: 'string', description: 'Environment name' },
@@ -417,6 +439,10 @@ const UNRESOLVED_FACTS = { openchoreoAlertingResolved: false };
 
 export function createOpenChoreoAlertingFactRetriever(
   tokenService: OpenChoreoTokenService,
+  {
+    observerQueryTimeoutMs = OBSERVER_QUERY_TIMEOUT_MS,
+    deadlineMs,
+  }: { observerQueryTimeoutMs?: number; deadlineMs?: number } = {},
 ): FactRetriever {
   return {
     id: OPENCHOREO_ALERTING_FACT_RETRIEVER_ID,
@@ -445,6 +471,7 @@ export function createOpenChoreoAlertingFactRetriever(
               token,
               context.logger,
               alertWindow(new Date()),
+              observerQueryTimeoutMs,
             ),
           };
         },
@@ -640,6 +667,7 @@ export function createOpenChoreoAlertingFactRetriever(
             }),
           };
         },
+        { deadlineMs },
       ),
   };
 }

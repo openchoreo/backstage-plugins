@@ -189,19 +189,31 @@ const COUNTS = {
   unacknowledgedIncidentsLast30Days: 1,
 };
 
-type ObserverHandler = (path: string, body: any) => unknown;
+type ObserverHandler = (
+  path: string,
+  body: any,
+  request: { url: string; signal: AbortSignal },
+) => unknown;
+
+const answer: ObserverHandler = path =>
+  ok(path === ALERTS ? alertsResponse : incidentsResponse);
+
+/** A request that never answers, rejecting only once its signal aborts. */
+const hang: ObserverHandler = (_path, _body, { signal }) =>
+  new Promise((_resolve, reject) => {
+    signal.addEventListener('abort', () => reject(signal.reason), {
+      once: true,
+    });
+  });
 
 /** Observer clients by URL, all answering with `handler`. */
-function fakeObservers(
-  handler: ObserverHandler = path =>
-    ok(path === ALERTS ? alertsResponse : incidentsResponse),
-) {
+function fakeObservers(handler: ObserverHandler = answer) {
   const clients = new Map<string, { POST: jest.Mock }>();
   (createObservabilityClientWithUrl as jest.Mock).mockImplementation(
     (url: string) => {
       const client = {
-        POST: jest.fn(async (path: string, { body }: any) =>
-          handler(path, body),
+        POST: jest.fn(async (path: string, { body, signal }: any) =>
+          handler(path, body, { url, signal }),
         ),
       };
       clients.set(url, client);
@@ -223,6 +235,7 @@ async function run(
   entities: Entity[],
   client: { GET: jest.Mock },
   observers = fakeObservers(),
+  options?: Parameters<typeof createOpenChoreoAlertingFactRetriever>[1],
 ) {
   mockGetEntities.mockResolvedValue({ items: entities });
   (createServiceClient as jest.Mock).mockResolvedValue(client);
@@ -230,7 +243,10 @@ async function run(
     hasServiceCredentials: () => true,
     getServiceToken: jest.fn(async () => 'service-token'),
   } as unknown as OpenChoreoTokenService;
-  const retriever = createOpenChoreoAlertingFactRetriever(tokenService);
+  const retriever = createOpenChoreoAlertingFactRetriever(
+    tokenService,
+    options,
+  );
   const logger = mockServices.logger.mock();
   const facts = await retriever.handler({
     config: mockServices.rootConfig(),
@@ -680,8 +696,8 @@ describe('openchoreoAlertingFactRetriever', () => {
     expect(logger.debug).toHaveBeenCalled();
   });
 
-  it('leaves counts out when the observer fails, warning once per observer per run', async () => {
-    const { byName, logger } = await run(
+  it('leaves counts out when the observer fails, warning once per observer per run and still querying it', async () => {
+    const { byName, logger, posts } = await run(
       [mainLine, releaseLine],
       fakeClient(),
       fakeObservers(() => status(500)),
@@ -695,11 +711,12 @@ describe('openchoreoAlertingFactRetriever', () => {
     expect(logger.warn).toHaveBeenCalledWith(
       expect.stringContaining(OBSERVER_A),
     );
+    expect(posts).toHaveLength(6);
   });
 
-  it("leaves counts out when the observer can't be reached", async () => {
-    const { byName, logger } = await run(
-      [mainLine],
+  it("leaves counts out when the observer can't be reached, and doesn't query it again this run", async () => {
+    const { byName, logger, posts } = await run(
+      [mainLine, releaseLine],
       fakeClient(),
       fakeObservers(() => {
         throw new Error('connect ECONNREFUSED');
@@ -710,9 +727,110 @@ describe('openchoreoAlertingFactRetriever', () => {
       { environment: 'prod', isProduction: true, hasObservability: true },
     ]);
     expect(byName.api).not.toHaveProperty('openchoreoAlertCountsResolved');
+    expect(logger.warn).toHaveBeenCalledTimes(1);
     expect(logger.warn).toHaveBeenCalledWith(
       expect.stringContaining('ECONNREFUSED'),
     );
+    expect(posts).toHaveLength(1);
+  });
+
+  it("leaves counts out when the observer times out, keeping the entity's other facts and skipping that observer for the run", async () => {
+    const { byName, logger, posts } = await run(
+      [mainLine, releaseLine],
+      fakeClient(),
+      fakeObservers(hang),
+      { observerQueryTimeoutMs: 20 },
+    );
+    expect(byName.api).toStrictEqual({
+      openchoreoAlertingResolved: true,
+      openchoreoConfiguredAlertRuleCount: 2,
+      openchoreoEnvironmentAlerts: [
+        { environment: 'dev', isProduction: false, hasObservability: true },
+        { environment: 'prod', isProduction: true, hasObservability: true },
+      ],
+    });
+    expect(byName['api-experimental']).toStrictEqual({
+      openchoreoAlertingResolved: true,
+      openchoreoConfiguredAlertRuleCount: 3,
+      openchoreoEnvironmentAlerts: [
+        { environment: 'dev', isProduction: false, hasObservability: true },
+      ],
+    });
+    expect(posts).toHaveLength(1);
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining(
+        `observer ${OBSERVER_A} can't provide: the alerts query for acme/api in dev failed`,
+      ),
+    );
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('skipped until the next run'),
+    );
+  });
+
+  it('keeps querying other observers when one times out', async () => {
+    const { byName, posts } = await run(
+      [mainLine],
+      fakeClient({
+        [PATHS.environment]: ({ path }) =>
+          path.envName === 'prod'
+            ? ok({
+                spec: {
+                  isProduction: true,
+                  dataPlaneRef: { kind: 'ClusterDataPlane', name: 'shared' },
+                },
+              })
+            : ok({ spec: { isProduction: false } }),
+      }),
+      fakeObservers((path, body, request) =>
+        request.url === OBSERVER_A
+          ? hang(path, body, request)
+          : answer(path, body, request),
+      ),
+      { observerQueryTimeoutMs: 20 },
+    );
+    expect(byName.api.openchoreoEnvironmentAlerts).toStrictEqual([
+      { environment: 'dev', isProduction: false, hasObservability: true },
+      {
+        environment: 'prod',
+        isProduction: true,
+        hasObservability: true,
+        ...COUNTS,
+      },
+    ]);
+    expect(posts.map(({ url, path }) => [url, path])).toEqual([
+      [OBSERVER_A, ALERTS],
+      [OBSERVER_B, ALERTS],
+      [OBSERVER_B, INCIDENTS],
+    ]);
+  });
+
+  it("doesn't skip the observer for the run when the entity's deadline cuts its query short", async () => {
+    let calls = 0;
+    let hungSignal: AbortSignal | undefined;
+    const { byName, posts } = await run(
+      [mainLine, releaseLine],
+      fakeClient(),
+      fakeObservers((path, body, request) => {
+        if (++calls === 1) {
+          hungSignal = request.signal;
+          return hang(path, body, request);
+        }
+        return answer(path, body, request);
+      }),
+      { observerQueryTimeoutMs: 5_000, deadlineMs: 50 },
+    );
+    expect(byName).not.toHaveProperty('api');
+    expect(hungSignal?.aborted).toBe(true);
+    expect(byName['api-experimental'].openchoreoEnvironmentAlerts).toEqual([
+      {
+        environment: 'dev',
+        isProduction: false,
+        hasObservability: true,
+        ...COUNTS,
+      },
+    ]);
+    expect(posts).toHaveLength(3);
   });
 
   it('leaves the critical count out when the observer returns fewer alerts than it counts', async () => {
