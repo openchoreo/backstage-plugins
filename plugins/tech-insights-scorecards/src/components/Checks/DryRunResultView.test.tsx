@@ -89,6 +89,132 @@ describe('DryRunResultView', () => {
     ).toEqual(['hasReadme', 'true', 'not equal true', 'Failed']);
   });
 
+  it('shows what a path selected beside a preview of the fact', async () => {
+    const shards = [
+      { name: 'a', primary: true, healthy: true },
+      { name: 'b', primary: true, healthy: false },
+    ];
+    await renderWithApis(
+      <DryRunResultView
+        result={{
+          ...result,
+          reasons: [],
+          conditions: {
+            all: [
+              {
+                fact: 'shards',
+                path: '$[?(@.primary)].healthy',
+                operator: 'everyFact:equal',
+                value: true,
+                factResult: [true, false],
+                factPreview: JSON.stringify(shards),
+                result: false,
+              },
+              {
+                fact: 'shards',
+                path: '$[?(@.replicas)].healthy',
+                operator: 'someFact:equal',
+                value: true,
+                factPreview: JSON.stringify(shards),
+                selectedNothing: true,
+                result: false,
+              },
+            ],
+          },
+        }}
+      />,
+    );
+    const [, selected, empty] = screen.getAllByRole('row');
+    expect(
+      within(selected)
+        .getAllByRole('cell')
+        .map(cell => cell.textContent),
+    ).toEqual([
+      'shards$[?(@.primary)].healthy',
+      `[true,false]from ${JSON.stringify(shards)}`,
+      'everyFact:equal true',
+      'Failed',
+    ]);
+    expect(within(empty).getAllByRole('cell')[1].textContent).toBe(
+      `Nothing selectedfrom ${JSON.stringify(shards)}`,
+    );
+  });
+
+  it.each([
+    ['selected nothing', { selectedNothing: true, result: false }, 'Passed'],
+    [
+      'selected values that pass',
+      { factResult: [false], result: false },
+      'Passed',
+    ],
+    [
+      'selected values that fail',
+      { factResult: [true], result: true },
+      'Failed',
+    ],
+  ])(
+    'shows the outcome of a negated path condition that %s',
+    async (_label, evaluated, outcome) => {
+      await renderWithApis(
+        <DryRunResultView
+          result={{
+            ...result,
+            reasons: [],
+            conditions: {
+              not: {
+                fact: 'shards',
+                path: '$[?(@.primary)].healthy',
+                operator: 'everyFact:equal',
+                value: true,
+                factPreview: '[]',
+                ...evaluated,
+              },
+            },
+          }}
+        />,
+      );
+      const [, row] = screen.getAllByRole('row');
+      const cells = within(row)
+        .getAllByRole('cell')
+        .map(cell => cell.textContent);
+      expect(cells[2]).toBe('not everyFact:equal true');
+      expect(cells[3]).toBe(outcome);
+    },
+  );
+
+  it('cuts long values with a marker', async () => {
+    const long = Array.from({ length: 100 }, (_, i) => `entry-${i}`);
+    const preview = 'x'.repeat(300);
+    await renderWithApis(
+      <DryRunResultView
+        result={{
+          ...result,
+          reasons: [],
+          conditions: {
+            all: [
+              {
+                fact: 'shards',
+                path: '$[*].name',
+                operator: 'everyFact:notEqual',
+                value: '',
+                factResult: long,
+                factPreview: preview,
+                factPreviewTruncated: true,
+                result: true,
+              },
+            ],
+          },
+        }}
+      />,
+    );
+    const [, row] = screen.getAllByRole('row');
+    const actual = within(row).getAllByRole('cell')[1].textContent;
+    expect(actual).toBe(
+      `${JSON.stringify(long).slice(0, 300)}… (truncated)` +
+        `from ${preview}… (truncated)`,
+    );
+  });
+
   it('shows a status it does not recognise', async () => {
     await renderWithApis(
       <DryRunResultView

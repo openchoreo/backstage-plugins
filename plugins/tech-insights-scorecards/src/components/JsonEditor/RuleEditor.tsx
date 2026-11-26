@@ -2,21 +2,27 @@ import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { jsonLanguage, jsonParseLinter } from '@codemirror/lang-json';
 import { lintGutter, linter } from '@codemirror/lint';
 import { StateEffect } from '@codemirror/state';
-import type { EditorView } from '@codemirror/view';
+import type { EditorView, ViewUpdate } from '@codemirror/view';
 import { useApi } from '@backstage/core-plugin-api';
 import useLatest from 'react-use/lib/useLatest';
 import { dynamicChecksApiRef } from '../../api/DynamicChecksApi';
-import { factFieldsOf, type FactSchema } from '../../api/types';
+import {
+  factEntryFieldsOf,
+  factFieldsOf,
+  type FactSchema,
+} from '../../api/types';
 import { JsonEditor } from './JsonEditor';
 import { ruleCompletionSource, type FactOption } from './ruleCompletions';
-import { serverRuleLinter } from './ruleLint';
+import { ruleFactLinter, serverRuleLinter } from './ruleLint';
 
 const LINT_DELAY_MS = 500;
 
 /**
- * Asks the server linter to run again. A change of retrievers changes which
- * facts are known, not the text, so CodeMirror wouldn't lint on its own, and
- * `forceLinting` only hurries a lint that's already pending.
+ * Asks the linters to run again. Retrievers, the validate permission and
+ * fact schemas change what they report, not the text, so CodeMirror wouldn't
+ * lint on its own, and `forceLinting` only hurries a lint that's already
+ * pending. A refresh runs every linter; the server linter skips the backend
+ * when the text and its own inputs are unchanged.
  */
 const relint = StateEffect.define<null>();
 
@@ -37,8 +43,9 @@ export interface RuleEditorProps {
 
 /**
  * The check's json-rules-engine rule: JSON syntax errors, the backend
- * validator's problems marked on the condition at fault, and suggestions for
- * the chosen retrievers' facts and the engine's operators.
+ * validator's problems marked on the condition at fault, warnings about list
+ * facts used in ways that likely fail, and suggestions for the chosen
+ * retrievers' facts, list entry fields and the engine's operators.
  */
 export function RuleEditor(props: RuleEditorProps) {
   const { factIds, factSchemas, canValidate, ...editorProps } = props;
@@ -54,6 +61,7 @@ export function RuleEditor(props: RuleEditorProps) {
               type: field.type,
               description: field.description,
               retriever: id,
+              entries: factEntryFieldsOf(field),
             }))
           : [];
       }),
@@ -67,32 +75,41 @@ export function RuleEditor(props: RuleEditorProps) {
       ? (rule: unknown) => api.validateRule(factIds, rule)
       : async () => undefined,
   );
-  const extensions = useMemo(
-    () => [
+  const retrieverKey = factIds.join('\n');
+  const validateInputsRef = useLatest(`${canValidate}\n${retrieverKey}`);
+  const extensions = useMemo(() => {
+    const relintConfig = {
+      delay: LINT_DELAY_MS,
+      needsRefresh: (update: ViewUpdate) =>
+        update.transactions.some(tr =>
+          tr.effects.some(effect => effect.is(relint)),
+        ),
+    };
+    return [
       lintGutter(),
       linter(jsonParseLinter(), { delay: LINT_DELAY_MS }),
       linter(
-        serverRuleLinter(rule => validateRef.current(rule)),
-        {
-          delay: LINT_DELAY_MS,
-          needsRefresh: update =>
-            update.transactions.some(tr =>
-              tr.effects.some(effect => effect.is(relint)),
-            ),
-        },
+        serverRuleLinter(
+          rule => validateRef.current(rule),
+          () => validateInputsRef.current,
+        ),
+        relintConfig,
+      ),
+      linter(
+        ruleFactLinter(() => factsRef.current),
+        relintConfig,
       ),
       jsonLanguage.data.of({
         autocomplete: ruleCompletionSource(() => factsRef.current),
       }),
-    ],
-    [factsRef, validateRef],
-  );
+    ];
+  }, [factsRef, validateRef, validateInputsRef]);
 
   const viewRef = useRef<EditorView>();
-  const retrieverKey = factIds.join('\n');
+  const factsKey = JSON.stringify(facts);
   useEffect(() => {
     viewRef.current?.dispatch({ effects: relint.of(null) });
-  }, [retrieverKey, canValidate]);
+  }, [retrieverKey, factsKey, canValidate]);
 
   return (
     <JsonEditor

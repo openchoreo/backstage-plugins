@@ -35,6 +35,11 @@ interface EvaluatedCondition {
   factResult: unknown;
   result?: boolean;
   negated: boolean;
+  path?: string;
+  /** The fact's JSON, possibly cut, that `path` selected `factResult` from. */
+  factPreview?: string;
+  factPreviewTruncated: boolean;
+  selectedNothing: boolean;
 }
 
 function evaluatedConditions(
@@ -61,12 +66,28 @@ function evaluatedConditions(
       factResult: n.factResult,
       result,
       negated,
+      path: typeof n.path === 'string' ? n.path : undefined,
+      factPreview:
+        typeof n.factPreview === 'string' ? n.factPreview : undefined,
+      factPreviewTruncated: n.factPreviewTruncated === true,
+      selectedNothing: n.selectedNothing === true,
     },
   ];
 }
 
+// Matches the backend's FACT_PREVIEW_LENGTH; a preview it cut is marked by
+// factPreviewTruncated, so the two needn't stay equal.
+const DISPLAY_LENGTH = 300;
+const TRUNCATED_MARKER = '… (truncated)';
+
+function truncated(text: string, alreadyCut = false) {
+  return alreadyCut || text.length > DISPLAY_LENGTH
+    ? `${text.slice(0, DISPLAY_LENGTH)}${TRUNCATED_MARKER}`
+    : text;
+}
+
 function display(value: unknown) {
-  return value === undefined ? '—' : JSON.stringify(value);
+  return value === undefined ? '—' : truncated(JSON.stringify(value));
 }
 
 /** A collected value; null is what an unresolved entity reports. */
@@ -166,9 +187,27 @@ export function DryRunResultView({ result }: { result: DryRunResult }) {
           <TableBody>
             {conditions.map((c, i) => (
               <TableRow key={i}>
-                <TableCell className={codeClasses.code}>{c.fact}</TableCell>
                 <TableCell className={codeClasses.code}>
-                  {displayActual(c.factResult)}
+                  {c.fact}
+                  {c.path !== undefined && (
+                    <Typography variant="caption" component="div">
+                      {c.path}
+                    </Typography>
+                  )}
+                </TableCell>
+                <TableCell className={codeClasses.code}>
+                  {c.selectedNothing
+                    ? 'Nothing selected'
+                    : displayActual(c.factResult)}
+                  {c.path !== undefined && c.factPreview !== undefined && (
+                    <Typography
+                      variant="caption"
+                      color="textSecondary"
+                      component="div"
+                    >
+                      from {truncated(c.factPreview, c.factPreviewTruncated)}
+                    </Typography>
+                  )}
                 </TableCell>
                 <TableCell className={codeClasses.code}>
                   {c.negated ? 'not ' : ''}

@@ -4,6 +4,7 @@ import {
   factValueNodes,
   nodeAtPointer,
   siblingString,
+  siblingStringNode,
   valueContextAt,
 } from './jsonTree';
 
@@ -98,5 +99,28 @@ describe('valueContextAt', () => {
     ['after a value', '{ "fact": "x" }', 14],
   ])('returns undefined %s', (_label, doc, pos) => {
     expect(valueContextAt(stateOf(doc), pos)).toBeUndefined();
+  });
+});
+
+describe('siblingStringNode', () => {
+  const objectOf = (state: EditorState) => nodeAtPointer(state, '')!;
+
+  it('returns the last string value of a key with its node', () => {
+    const state = stateOf('{ "path": "$[0]", "path": "$[*].name" }');
+    const found = siblingStringNode(state, objectOf(state), 'path')!;
+    expect(found.value).toBe('$[*].name');
+    expect(state.sliceDoc(found.node.from, found.node.to)).toBe('"$[*].name"');
+  });
+
+  it.each([
+    ['a missing key', '{ "fact": "x" }'],
+    ['a value that is not a string', '{ "path": 3 }'],
+  ])('returns undefined for %s', (_label, doc) => {
+    const state = stateOf(doc);
+    expect(siblingStringNode(state, objectOf(state), 'path')).toBeUndefined();
+  });
+
+  it('returns undefined without an object', () => {
+    expect(siblingStringNode(stateOf('{}'), null, 'path')).toBeUndefined();
   });
 });
