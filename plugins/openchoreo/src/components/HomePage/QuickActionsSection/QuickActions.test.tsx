@@ -37,6 +37,20 @@ describe('QuickActionsSection', () => {
     expect(screen.getByText('Create Component')).toBeInTheDocument();
   });
 
+  it('uses compact tiles only when hideTitle is set', async () => {
+    const compact = /quickActionCardContentCompact/;
+    const tile = () =>
+      screen.getByText('Create Component').closest('div')
+        ?.parentElement as HTMLElement;
+
+    const { unmount } = await renderInTestApp(<QuickActionsSection />);
+    expect(tile().className).not.toMatch(compact);
+    unmount();
+
+    await renderInTestApp(<QuickActionsSection hideTitle />);
+    expect(tile().className).toMatch(compact);
+  });
+
   it('renders Create Component as a link when the user can create', async () => {
     await renderInTestApp(<QuickActionsSection />);
 

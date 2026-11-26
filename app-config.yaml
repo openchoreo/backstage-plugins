@@ -270,11 +270,11 @@ openchoreo:
 
   # Default home layout. Cards wrap like MUI Grid items; `width` is out of 12
   # columns, optional `height` is in 60px rows.
-  home:
-    defaultLayout:
-      - { widget: OpenChoreoMyProjects, width: 6 }
-      - { widget: OpenChoreoQuickActions, width: 6 }
-      - { widget: OpenChoreoRecentDeployments, width: 12 }
+  # home:
+  #   defaultLayout:
+  #     - { widget: OpenChoreoOverview, width: 6 }
+  #     - { widget: OpenChoreoQuickActions, width: 6 }
+  #     - { widget: OpenChoreoRecentDeployments, width: 12 }
 
   # Feature flags for enabling/disabling OpenChoreo functionality
   # These can be controlled via Helm values: backstage.features.*
