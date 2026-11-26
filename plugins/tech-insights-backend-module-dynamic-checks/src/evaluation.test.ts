@@ -10,7 +10,11 @@ import {
   EvaluableCheckRegistry,
   StaticCheckRegistry,
 } from './EvaluableCheckRegistry';
-import { dryRunCheck, type CheckEvaluation } from './dryRun';
+import {
+  dryRunCheck,
+  FACT_PREVIEW_LENGTH,
+  type CheckEvaluation,
+} from './dryRun';
 import { CheckValidator } from './validation';
 
 const ENTITY_REF = 'component:default/greeter';
@@ -359,7 +363,7 @@ describe('dryRunCheck', () => {
       },
     });
 
-    it('shows what the path selected beside the whole fact', async () => {
+    it('shows what the path selected beside a preview of the fact', async () => {
       const shards = [
         { name: 'a', primary: true, healthy: true },
         { name: 'b', primary: true, healthy: false },
@@ -380,11 +384,72 @@ describe('dryRunCheck', () => {
         expect.objectContaining({
           path: '$[?(@.primary)].healthy',
           factResult: [true, false],
-          factValue: shards,
+          factPreview: JSON.stringify(shards),
           result: false,
         }),
       );
       expect(leaf).not.toHaveProperty('selectedNothing');
+      expect(leaf).not.toHaveProperty('factPreviewTruncated');
+      expect(leaf).not.toHaveProperty('factValue');
+    });
+
+    it('cuts the preview of a large fact', async () => {
+      const shards = Array.from({ length: 50 }, (_, i) => ({
+        name: `shard-${i}`,
+        primary: true,
+        healthy: true,
+      }));
+      const { evaluation } = createEvaluation(createStore({ shards }));
+
+      const response = await dryRunCheck({
+        check: pathCheck('everyFact:equal'),
+        entity,
+        entityRef: ENTITY_REF,
+        evaluation,
+      });
+
+      const [leaf] = (response.conditions as { all: unknown[] }).all;
+      expect(leaf).toEqual(
+        expect.objectContaining({
+          factPreview: JSON.stringify(shards).slice(0, FACT_PREVIEW_LENGTH),
+          factPreviewTruncated: true,
+        }),
+      );
+    });
+
+    it('explains the fact values the check ran on', async () => {
+      const stale = createStore({
+        shards: [{ name: 'a', primary: true, healthy: true }],
+      });
+      const shards = [{ name: 'c', primary: false, healthy: true }];
+      const fresh = createStore({ shards });
+      const store = {
+        ...fresh,
+        getLatestFactsByIds: jest
+          .fn()
+          .mockImplementationOnce(stale.getLatestFactsByIds)
+          .mockImplementation(fresh.getLatestFactsByIds),
+      } as unknown as TechInsightsStore;
+      const { evaluation } = createEvaluation(store);
+
+      const response = await dryRunCheck({
+        check: pathCheck('everyFact:equal'),
+        entity,
+        entityRef: ENTITY_REF,
+        evaluation,
+      });
+
+      expect(store.getLatestFactsByIds).toHaveBeenCalledTimes(2);
+      expect(response.reasons).toEqual([
+        expect.objectContaining({ code: 'empty-selection' }),
+      ]);
+      const [leaf] = (response.conditions as { all: unknown[] }).all;
+      expect(leaf).toEqual(
+        expect.objectContaining({
+          selectedNothing: true,
+          factPreview: JSON.stringify(shards),
+        }),
+      );
     });
 
     it('says when the path selected nothing', async () => {
@@ -409,7 +474,10 @@ describe('dryRunCheck', () => {
       });
       const [leaf] = (response.conditions as { all: unknown[] }).all;
       expect(leaf).toEqual(
-        expect.objectContaining({ selectedNothing: true, factValue: shards }),
+        expect.objectContaining({
+          selectedNothing: true,
+          factPreview: JSON.stringify(shards),
+        }),
       );
       expect(leaf).not.toHaveProperty('factResult');
     });
@@ -467,9 +535,109 @@ describe('dryRunCheck', () => {
         expect.objectContaining({
           ...leaf,
           factResult: [false],
-          factValue: shards,
+          factPreview: JSON.stringify(shards),
           result: true,
         }),
+      );
+    });
+
+    describe('under a not', () => {
+      const negatedCheck = (
+        operator: string,
+        wrap: (leaf: unknown) => unknown = leaf => ({ not: leaf }),
+      ): TechInsightJsonRuleCheck => ({
+        ...check('ignored', 'shards'),
+        rule: {
+          conditions: wrap({
+            fact: 'shards',
+            path: '$[?(@.primary)].healthy',
+            operator,
+            value: true,
+          }) as TechInsightJsonRuleCheck['rule']['conditions'],
+        },
+      });
+
+      it.each([
+        [
+          'a list operator',
+          'everyFact:equal',
+          undefined,
+          'passed',
+          'passed only because',
+        ],
+        [
+          'a negated list operator',
+          'not:everyFact:equal',
+          undefined,
+          'failed',
+          'failed because',
+        ],
+        [
+          'two nots',
+          'everyFact:equal',
+          (leaf: unknown) => ({ not: { not: leaf } }),
+          'failed',
+          'failed because',
+        ],
+        [
+          'a not inside all and any',
+          'everyFact:equal',
+          (leaf: unknown) => ({ all: [{ any: [{ not: leaf }] }] }),
+          'passed',
+          'passed only because',
+        ],
+      ])(
+        'names the outcome of %s that selected nothing',
+        async (_label, operator, wrap, status, consequence) => {
+          const shards = [{ name: 'c', primary: false, healthy: true }];
+          const { evaluation } = createEvaluation(createStore({ shards }));
+
+          const response = await dryRunCheck({
+            check: negatedCheck(operator, wrap),
+            entity,
+            entityRef: ENTITY_REF,
+            evaluation,
+          });
+
+          expect(response).toMatchObject({
+            status,
+            reasons: [
+              {
+                code: 'empty-selection',
+                message: `The path "$[?(@.primary)].healthy" selected nothing from shards for ${ENTITY_REF}, so its condition had no value to compare and ${consequence} nothing was selected.`,
+              },
+            ],
+          });
+        },
+      );
+
+      it.each([
+        ['passes', [{ name: 'a', primary: true, healthy: false }], 'passed'],
+        ['fails', [{ name: 'a', primary: true, healthy: true }], 'failed'],
+      ])(
+        'reports no empty selection when what it selected %s',
+        async (_label, shards, status) => {
+          const { evaluation } = createEvaluation(createStore({ shards }));
+
+          const response = await dryRunCheck({
+            check: negatedCheck('everyFact:equal'),
+            entity,
+            entityRef: ENTITY_REF,
+            evaluation,
+          });
+
+          expect(response).toMatchObject({ status, reasons: [] });
+          const { not: leaf } = response.conditions as {
+            not: Record<string, unknown>;
+          };
+          expect(leaf).toEqual(
+            expect.objectContaining({
+              factResult: shards.map(s => s.healthy),
+              factPreview: JSON.stringify(shards),
+            }),
+          );
+          expect(leaf).not.toHaveProperty('selectedNothing');
+        },
       );
     });
 

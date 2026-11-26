@@ -77,11 +77,12 @@ describe('serverRuleLinter', () => {
     path: '/conditions/all/0',
     message: 'Unknown operator: equals',
   };
+  const noInputs = () => '';
 
   it('skips the request while the JSON does not parse', async () => {
     const validate = jest.fn();
     await expect(
-      serverRuleLinter(validate)(viewOf('{ "a": ')),
+      serverRuleLinter(validate, noInputs)(viewOf('{ "a": ')),
     ).resolves.toEqual([]);
     expect(validate).not.toHaveBeenCalled();
   });
@@ -89,26 +90,79 @@ describe('serverRuleLinter', () => {
   it('reports nothing when validation fails or is unavailable', async () => {
     const view = viewOf(RULE);
     await expect(
-      serverRuleLinter(() => Promise.reject(new Error('503')))(view),
+      serverRuleLinter(() => Promise.reject(new Error('503')), noInputs)(view),
     ).resolves.toEqual([]);
     await expect(
-      serverRuleLinter(async () => undefined)(view),
+      serverRuleLinter(async () => undefined, noInputs)(view),
     ).resolves.toEqual([]);
   });
 
   it('answers an older run with the newest result', async () => {
     const resolvers: Array<(problems: CheckProblem[]) => void> = [];
+    let retrievers = 'repoFacts';
     const lint = serverRuleLinter(
       () => new Promise(resolve => resolvers.push(resolve)),
+      () => retrievers,
     );
     const view = viewOf(RULE);
     const older = lint(view) as Promise<Diagnostic[]>;
+    retrievers = 'repoFacts\nciFacts';
     const newer = lint(view) as Promise<Diagnostic[]>;
     await Promise.resolve();
     resolvers[1]([problem]);
     resolvers[0]([]);
     await expect(newer).resolves.toHaveLength(1);
     await expect(older).resolves.toHaveLength(1);
+  });
+
+  it('answers a run that reused a pending request with the newest result', async () => {
+    const resolvers: Array<(problems: CheckProblem[]) => void> = [];
+    let retrievers = 'repoFacts';
+    const lint = serverRuleLinter(
+      () => new Promise(resolve => resolvers.push(resolve)),
+      () => retrievers,
+    );
+    const view = viewOf(RULE);
+    const first = lint(view) as Promise<Diagnostic[]>;
+    const reused = lint(view) as Promise<Diagnostic[]>;
+    retrievers = 'repoFacts\nciFacts';
+    const newer = lint(view) as Promise<Diagnostic[]>;
+    await Promise.resolve();
+    expect(resolvers).toHaveLength(2);
+    resolvers[1]([problem]);
+    resolvers[0]([]);
+    await expect(newer).resolves.toHaveLength(1);
+    await expect(reused).resolves.toHaveLength(1);
+    await expect(first).resolves.toHaveLength(1);
+  });
+
+  it('asks again only when the document or its inputs change', async () => {
+    const validate = jest.fn(async () => [problem]);
+    let inputs = 'repoFacts';
+    const lint = serverRuleLinter(validate, () => inputs);
+
+    await expect(lint(viewOf(RULE))).resolves.toHaveLength(1);
+    await expect(lint(viewOf(RULE))).resolves.toHaveLength(1);
+    expect(validate).toHaveBeenCalledTimes(1);
+
+    await lint(viewOf(`${RULE} `));
+    expect(validate).toHaveBeenCalledTimes(2);
+
+    inputs = 'repoFacts\nciFacts';
+    await lint(viewOf(`${RULE} `));
+    expect(validate).toHaveBeenCalledTimes(3);
+  });
+
+  it('retries a request that failed', async () => {
+    const validate = jest
+      .fn()
+      .mockRejectedValueOnce(new Error('503'))
+      .mockResolvedValue([problem]);
+    const lint = serverRuleLinter(validate, noInputs);
+
+    await expect(lint(viewOf(RULE))).resolves.toEqual([]);
+    await expect(lint(viewOf(RULE))).resolves.toHaveLength(1);
+    expect(validate).toHaveBeenCalledTimes(2);
   });
 });
 

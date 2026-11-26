@@ -18,9 +18,11 @@ import { ruleFactLinter, serverRuleLinter } from './ruleLint';
 const LINT_DELAY_MS = 500;
 
 /**
- * Asks the fact-aware linters to run again. A change of retrievers changes
- * which facts are known, not the text, so CodeMirror wouldn't lint on its
- * own, and `forceLinting` only hurries a lint that's already pending.
+ * Asks the linters to run again. Retrievers, the validate permission and
+ * fact schemas change what they report, not the text, so CodeMirror wouldn't
+ * lint on its own, and `forceLinting` only hurries a lint that's already
+ * pending. A refresh runs every linter; the server linter skips the backend
+ * when the text and its own inputs are unchanged.
  */
 const relint = StateEffect.define<null>();
 
@@ -73,6 +75,8 @@ export function RuleEditor(props: RuleEditorProps) {
       ? (rule: unknown) => api.validateRule(factIds, rule)
       : async () => undefined,
   );
+  const retrieverKey = factIds.join('\n');
+  const validateInputsRef = useLatest(`${canValidate}\n${retrieverKey}`);
   const extensions = useMemo(() => {
     const relintConfig = {
       delay: LINT_DELAY_MS,
@@ -85,7 +89,10 @@ export function RuleEditor(props: RuleEditorProps) {
       lintGutter(),
       linter(jsonParseLinter(), { delay: LINT_DELAY_MS }),
       linter(
-        serverRuleLinter(rule => validateRef.current(rule)),
+        serverRuleLinter(
+          rule => validateRef.current(rule),
+          () => validateInputsRef.current,
+        ),
         relintConfig,
       ),
       linter(
@@ -96,10 +103,9 @@ export function RuleEditor(props: RuleEditorProps) {
         autocomplete: ruleCompletionSource(() => factsRef.current),
       }),
     ];
-  }, [factsRef, validateRef]);
+  }, [factsRef, validateRef, validateInputsRef]);
 
   const viewRef = useRef<EditorView>();
-  const retrieverKey = factIds.join('\n');
   const factsKey = JSON.stringify(facts);
   useEffect(() => {
     viewRef.current?.dispatch({ effects: relint.of(null) });

@@ -5,9 +5,7 @@ import type { CheckProblem } from '../../api/types';
 import {
   factValueNodes,
   nodeAtPointer,
-  propertyKey,
-  propertyValue,
-  stringValue,
+  siblingStringNode,
   treeOf,
 } from './jsonTree';
 import { LIST_FACT_TYPE, objectRole, type FactOption } from './ruleCompletions';
@@ -94,31 +92,16 @@ export function entryFieldsIn(path: string): string[] {
   ];
 }
 
-function stringProperty(
-  state: EditorState,
-  object: SyntaxNode,
-  key: string,
-): { node: SyntaxNode; value: string } | undefined {
-  const property = object
-    .getChildren('Property')
-    .filter(p => propertyKey(state, p) === key)
-    .pop();
-  const node = property && propertyValue(property);
-  if (node?.name !== 'String') return undefined;
-  const value = stringValue(state, node);
-  return value === undefined ? undefined : { node, value };
-}
-
 function conditionWarnings(
   state: EditorState,
   condition: SyntaxNode,
   facts: FactOption[],
 ): Diagnostic[] {
-  const factName = stringProperty(state, condition, 'fact')?.value;
+  const factName = siblingStringNode(state, condition, 'fact')?.value;
   const fact = facts.find(f => f.name === factName);
   if (!fact) return [];
-  const path = stringProperty(state, condition, 'path');
-  const operator = stringProperty(state, condition, 'operator');
+  const path = siblingStringNode(state, condition, 'path');
+  const operator = siblingStringNode(state, condition, 'operator');
   const warnings: Diagnostic[] = [];
 
   if (path && fact.type === LIST_FACT_TYPE && fact.entries) {
@@ -211,13 +194,24 @@ export function problemDiagnostics(
  * lint started. A slower, older request can still resolve after a newer one
  * for the same document (after the chosen retrievers change), so every run
  * answers with the newest one's result.
+ *
+ * Every linter in an editor runs whenever any of them is refreshed, so a run
+ * for the same document and `inputsKey` (what else `validate` depends on)
+ * answers with the last result instead of asking the backend again. A failed
+ * request isn't kept, so the next run retries it.
  */
 export function serverRuleLinter(
   validate: (rule: unknown) => Promise<CheckProblem[] | undefined>,
+  inputsKey: () => string,
 ): LintSource {
   let latest: Promise<Diagnostic[]> | undefined;
+  let latestKey: string | undefined;
+  const newest = (run: Promise<Diagnostic[]>) =>
+    run.then(result => (latest === run ? result : latest!));
   return view => {
     const { state } = view;
+    const key = JSON.stringify([inputsKey(), state.doc.toString()]);
+    if (latest && key === latestKey) return newest(latest);
     const run = (async () => {
       let rule: unknown;
       try {
@@ -225,10 +219,14 @@ export function serverRuleLinter(
       } catch {
         return [];
       }
-      const problems = await validate(rule).catch(() => undefined);
+      const problems = await validate(rule).catch(() => {
+        if (latest === run) latestKey = undefined;
+        return undefined;
+      });
       return problems ? problemDiagnostics(state, problems) : [];
     })();
     latest = run;
-    return run.then(result => (latest === run ? result : latest!));
+    latestKey = key;
+    return newest(run);
   };
 }

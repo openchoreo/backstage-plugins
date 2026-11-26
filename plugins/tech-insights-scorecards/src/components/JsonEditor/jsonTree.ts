@@ -132,16 +132,30 @@ export function valueContextAt(
   return { key, value, object: node.parent };
 }
 
+/**
+ * A sibling property's string value in the same object, with the node that
+ * holds it. With a repeated key the last one is taken, as `JSON.parse` does.
+ */
+export function siblingStringNode(
+  state: EditorState,
+  object: SyntaxNode | null,
+  key: string,
+): { node: SyntaxNode; value: string } | undefined {
+  const property = object
+    ?.getChildren('Property')
+    .filter(p => propertyKey(state, p) === key)
+    .pop();
+  const node = property && propertyValue(property);
+  if (node?.name !== 'String') return undefined;
+  const value = stringValue(state, node);
+  return value === undefined ? undefined : { node, value };
+}
+
 /** The string value of a sibling property in the same object. */
 export function siblingString(
   state: EditorState,
   object: SyntaxNode | null,
   key: string,
 ): string | undefined {
-  const property = object
-    ?.getChildren('Property')
-    .filter(p => propertyKey(state, p) === key)
-    .pop();
-  const value = property && propertyValue(property);
-  return value?.name === 'String' ? stringValue(state, value) : undefined;
+  return siblingStringNode(state, object, key)?.value;
 }

@@ -159,8 +159,9 @@ export interface DryRunResult {
   /**
    * The rule's conditions as evaluated: `all`/`any`/`not` nodes, with each
    * leaf condition carrying its `factResult` and `result`. A leaf with a
-   * `path` has the value the path selected as `factResult`, the whole fact as
-   * `factValue`, and `selectedNothing` when the path matched nothing.
+   * `path` has the value the path selected as `factResult`, the start of the
+   * fact's JSON as `factPreview` (with `factPreviewTruncated` when it was
+   * cut), and `selectedNothing` when the path matched nothing.
    */
   conditions?: unknown;
   /** Latest collection time per selected fact retriever, ISO 8601. */

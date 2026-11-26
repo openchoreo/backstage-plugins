@@ -30,7 +30,7 @@ export const RULE_OPERATOR_DECORATORS: ReadonlyArray<{
   },
   {
     name: 'everyFact',
-    info: 'fact (an array, or what its path selects): every item must pass against value; fails when nothing is selected',
+    info: 'fact (an array, or what its path selects): every item must pass against value; an empty list passes, but a path that selects nothing fails',
   },
   {
     name: 'someValue',
