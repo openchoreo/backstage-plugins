@@ -9,6 +9,7 @@ import {
 } from '@material-ui/core';
 import LaunchIcon from '@material-ui/icons/Launch';
 import { Link } from 'react-router-dom';
+import clsx from 'clsx';
 import { useComponentCreatePermission } from '@openchoreo/backstage-plugin-react';
 import { useStyles } from './styles';
 
@@ -74,8 +75,18 @@ export const QuickActionsSection = ({
                   disabled={action.disabled}
                   disableRipple
                 >
-                  <CardContent className={classes.quickActionCardContent}>
-                    <Box className={classes.quickActionHeader}>
+                  <CardContent
+                    className={clsx(
+                      classes.quickActionCardContent,
+                      hideTitle && classes.quickActionCardContentCompact,
+                    )}
+                  >
+                    <Box
+                      className={clsx(
+                        classes.quickActionHeader,
+                        hideTitle && classes.quickActionHeaderCompact,
+                      )}
+                    >
                       <Typography
                         variant="h5"
                         className={classes.quickActionTitle}
