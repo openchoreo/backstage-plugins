@@ -280,6 +280,7 @@ describe('openchoreoDeploymentFactRetriever', () => {
           externalEndpointCount: 1,
         },
       ],
+      openchoreoReleasesResolved: true,
     });
   });
 
@@ -375,6 +376,7 @@ describe('openchoreoDeploymentFactRetriever', () => {
     expect(byName.gone).toEqual({
       openchoreoComponentResolved: false,
       openchoreoEnvironmentDeployments: null,
+      openchoreoReleasesResolved: null,
     });
   });
 
@@ -508,6 +510,7 @@ describe('openchoreoDeploymentFactRetriever', () => {
         isOnLatestRelease: true,
         externalEndpointCount: expect.any(Number),
       });
+      expect(facts).not.toHaveProperty('openchoreoReleasesResolved');
     }
     expect(callsTo(client, RELEASE_PATH)).toHaveLength(1);
     expect(logger.warn).toHaveBeenCalledTimes(1);
@@ -534,8 +537,10 @@ describe('openchoreoDeploymentFactRetriever', () => {
     const [apiEntry] = byName.api.openchoreoEnvironmentDeployments as object[];
     expect(apiEntry).not.toHaveProperty('isImagePinned');
     expect(apiEntry).toHaveProperty('isReady', true);
+    expect(byName.api).not.toHaveProperty('openchoreoReleasesResolved');
     const [webEntry] = byName.web.openchoreoEnvironmentDeployments as object[];
     expect(webEntry).toHaveProperty('isImagePinned', true);
+    expect(byName.web).toHaveProperty('openchoreoReleasesResolved', true);
     expect(logger.warn).toHaveBeenCalledWith(
       expect.stringContaining('GET component release r2 returned HTTP 500'),
     );
@@ -573,6 +578,7 @@ describe('openchoreoDeploymentFactRetriever', () => {
         expect(entry).not.toHaveProperty('imageRegistry');
         expect(entry).not.toHaveProperty('plainTextSecretEnvVarCount');
         expect(entry).toHaveProperty('isOnLatestRelease', true);
+        expect(facts).not.toHaveProperty('openchoreoReleasesResolved');
       }
       expect(callsTo(client, RELEASE_PATH)).toHaveLength(0);
       expect(logger.warn).toHaveBeenCalledTimes(1);
@@ -599,6 +605,7 @@ describe('openchoreoDeploymentFactRetriever', () => {
     const { byName } = await run([annotated('api')], client);
     const [entry] = byName.api.openchoreoEnvironmentDeployments as object[];
     expect(entry).toHaveProperty('isImagePinned', true);
+    expect(byName.api).toHaveProperty('openchoreoReleasesResolved', true);
     expect(callsTo(client, RELEASE_PATH)).toHaveLength(1);
   });
 
@@ -614,9 +621,84 @@ describe('openchoreoDeploymentFactRetriever', () => {
     for (const facts of [byName.api, byName.web]) {
       const [entry] = facts.openchoreoEnvironmentDeployments as object[];
       expect(entry).not.toHaveProperty('isImagePinned');
+      expect(facts).not.toHaveProperty('openchoreoReleasesResolved');
     }
     expect(callsTo(client, RELEASE_PATH)).toHaveLength(1);
     expect(logger.warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves out openchoreoReleasesResolved when one of the releases is missing', async () => {
+    const client = fakeClient({
+      capabilities: everything,
+      bindings: () =>
+        ok({
+          items: [
+            {
+              spec: { environment: 'development', releaseName: 'r2' },
+              status: readyStatus,
+            },
+            {
+              spec: { environment: 'production', releaseName: 'r9' },
+              status: readyStatus,
+            },
+          ],
+        }),
+    });
+    const { byName } = await run([annotated('api')], client);
+    const [development, production] = byName.api
+      .openchoreoEnvironmentDeployments as object[];
+    expect(development).toHaveProperty('isImagePinned', true);
+    expect(production).not.toHaveProperty('isImagePinned');
+    expect(byName.api).not.toHaveProperty('openchoreoReleasesResolved');
+  });
+
+  it('leaves out openchoreoReleasesResolved for a binding that names no release', async () => {
+    const client = fakeClient({
+      capabilities: everything,
+      bindings: () =>
+        ok({
+          items: [
+            {
+              spec: { environment: 'development', releaseName: 'r2' },
+              status: readyStatus,
+            },
+            { spec: { environment: 'production' }, status: readyStatus },
+          ],
+        }),
+    });
+    const { byName } = await run([annotated('api')], client);
+    expect(byName.api.openchoreoEnvironmentDeployments).toHaveLength(2);
+    expect(byName.api).not.toHaveProperty('openchoreoReleasesResolved');
+  });
+
+  it('reports openchoreoReleasesResolved beside an Observe binding', async () => {
+    const client = fakeClient({
+      capabilities: everything,
+      bindings: () =>
+        ok({
+          items: [
+            {
+              spec: { environment: 'development', releaseName: 'r2' },
+              status: readyStatus,
+            },
+            {
+              spec: {
+                environment: 'production',
+                releaseName: 'r9',
+                mode: 'Observe',
+              },
+              status: readyStatus,
+            },
+          ],
+        }),
+    });
+    const { byName } = await run([annotated('api')], client);
+    expect(byName.api).toHaveProperty('openchoreoReleasesResolved', true);
+    expect(
+      callsTo(client, RELEASE_PATH).map(
+        ([, { params }]) => params.path.componentReleaseName,
+      ),
+    ).toEqual(['r2']);
   });
 
   it('counts the external Endpoints the line owns per environment', async () => {
@@ -812,6 +894,7 @@ describe('openchoreoDeploymentFactRetriever', () => {
         externalEndpointCount: 1,
       },
     ]);
+    expect(byName.api).not.toHaveProperty('openchoreoReleasesResolved');
     expect(callsTo(client, RELEASE_PATH)).toHaveLength(0);
   });
 
@@ -979,6 +1062,7 @@ describe('openchoreoDeploymentFactRetriever', () => {
             externalEndpointCount: 1,
           },
         ],
+        openchoreoReleasesResolved: true,
       });
       expect(client.GET).toHaveBeenCalledWith(
         '/api/v1/namespaces/{namespaceName}/components/{componentName}/releaselines/{releaseLineName}',
@@ -1017,6 +1101,7 @@ describe('openchoreoDeploymentFactRetriever', () => {
         isReady: true,
         externalEndpointCount: 0,
       });
+      expect(byName.canary).not.toHaveProperty('openchoreoReleasesResolved');
     });
 
     it('leaves the list out when the release line cannot be read', async () => {

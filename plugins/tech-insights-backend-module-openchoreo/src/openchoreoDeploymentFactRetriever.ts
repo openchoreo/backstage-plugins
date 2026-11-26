@@ -25,6 +25,7 @@ import {
   activeBindings,
   endpointsPerEnvironment,
   environmentDeployment,
+  everyReleaseRead,
   isObserveBinding,
   lineBindings,
   lineExternalEndpoints,
@@ -337,7 +338,7 @@ const ENVIRONMENT_DEPLOYMENT_ENTRIES = {
   plainTextSecretEnvVarCount: {
     type: 'integer',
     description:
-      "Environment variables whose name looks like a secret (token, password, API key…) but hold a plain value instead of a secret reference, in the Workload the binding's ComponentRelease froze and the binding's own overrides. Left out for Observe bindings, and when the ComponentRelease can't be read, which needs componentrelease:view.",
+      "Environment variables whose name looks like a secret (token, password, API key…) but hold a plain value instead of a secret reference, in the Workload the binding's ComponentRelease froze and the binding's own overrides. Left out for Observe bindings, and when the ComponentRelease can't be read, which needs componentrelease:view; openchoreoReleasesResolved is left out then.",
   },
   isImagePinned: {
     type: 'boolean',
@@ -367,6 +368,11 @@ const schema: FactRetriever['schema'] = {
     description:
       "One entry per active release binding of the line, the main line's for a component, describing the environment and the release deployed there. Select entries with a condition's path and the everyFact: or someFact: operators, e.g. path $[?(@.isProduction)].isReady with everyFact:equal true. Reported only when the portal service credentials can read every binding of the component and every environment in its namespace, and left out for a line with no active binding, so its checks show no result. A field whose source can't be read is left out of its entry. A binding the OpenChoreo API reports in Observe mode renders nothing from its release, so its entry leaves out isOnLatestRelease, plainTextSecretEnvVarCount, isImagePinned and imageRegistry.",
     metadata: { entries: ENVIRONMENT_DEPLOYMENT_ENTRIES },
+  },
+  openchoreoReleasesResolved: {
+    type: 'boolean',
+    description:
+      "Whether the ComponentRelease of every binding in openchoreoEnvironmentDeployments that renders its release (every one not in Observe mode) was read, so each of their entries has plainTextSecretEnvVarCount and isImagePinned. Reported only as true, or as null with every other fact for a component that isn't found. Left out when any of those releases can't be read (reading them needs componentrelease:view), when such a binding names no release, when every binding is in Observe mode, and whenever openchoreoEnvironmentDeployments is left out. Pair the condition equal true with a $[*] path over the image or secret fields, so a line with an environment whose release couldn't be read gets no result rather than being judged on the other environments.",
   },
 };
 
@@ -617,6 +623,9 @@ export function createOpenChoreoDeploymentFactRetriever(
                 externalEndpoints,
               }),
             ),
+            ...(everyReleaseRead(bindings, releases) && {
+              openchoreoReleasesResolved: true,
+            }),
           };
         },
       ),

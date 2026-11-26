@@ -60,6 +60,11 @@ const checks = [
             operator: 'everyFact:equal',
             value: 0,
           },
+          {
+            fact: 'openchoreoReleasesResolved',
+            operator: 'equal',
+            value: true,
+          },
         ],
       },
     },
@@ -83,6 +88,11 @@ const checks = [
             fact: 'openchoreoEnvironmentDeployments',
             path: '$[*].isImagePinned',
             operator: 'everyFact:equal',
+            value: true,
+          },
+          {
+            fact: 'openchoreoReleasesResolved',
+            operator: 'equal',
             value: true,
           },
         ],

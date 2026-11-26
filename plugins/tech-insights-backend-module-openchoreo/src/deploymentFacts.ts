@@ -181,6 +181,25 @@ export function isObserveBinding(binding: ReleaseBinding): boolean {
 }
 
 /**
+ * Whether `releases` holds the ComponentRelease of every binding that renders
+ * one, with at least one such binding. A binding that names no release, or
+ * whose release couldn't be read, makes it false.
+ */
+export function everyReleaseRead(
+  bindings: ReleaseBinding[],
+  releases: Map<string, ReleasedWorkload | undefined>,
+): boolean {
+  const rendering = bindings.filter(binding => !isObserveBinding(binding));
+  return (
+    rendering.length > 0 &&
+    rendering.every(binding => {
+      const releaseName = binding.spec?.releaseName;
+      return Boolean(releaseName) && releases.get(releaseName!) !== undefined;
+    })
+  );
+}
+
+/**
  * One entry of `openchoreoEnvironmentDeployments`. A type alias rather than
  * an interface, so it's assignable to the JSON values a fact holds.
  */

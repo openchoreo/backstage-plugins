@@ -2,6 +2,7 @@ import {
   activeBindings,
   endpointsPerEnvironment,
   environmentDeployment,
+  everyReleaseRead,
   isSecretLikeKey,
   lineBindings,
   lineExternalEndpoints,
@@ -9,6 +10,7 @@ import {
   plainTextSecretEnvCount,
   type Endpoint,
   type ReleaseBinding,
+  type ReleasedWorkload,
 } from './deploymentFacts';
 
 describe('parseImage', () => {
@@ -108,6 +110,56 @@ describe('activeBindings', () => {
       deployed,
       explicit,
     ]);
+  });
+});
+
+describe('everyReleaseRead', () => {
+  const manage = (environment: string, releaseName?: string) => ({
+    spec: { environment, releaseName },
+  });
+  const observe = (environment: string, releaseName: string) => ({
+    spec: { environment, releaseName, mode: 'Observe' },
+  });
+  const releases = new Map<string, ReleasedWorkload | undefined>([
+    ['r1', { container: { image: 'ghcr.io/acme/api:1.0.0' } }],
+    ['r2', {}],
+    ['gone', undefined],
+  ]);
+
+  it.each([
+    [
+      'every rendering binding on a read release',
+      [manage('dev', 'r1'), manage('prod', 'r2')],
+      true,
+    ],
+    [
+      'an Observe binding beside one on a read release',
+      [manage('dev', 'r1'), observe('prod', 'gone')],
+      true,
+    ],
+    [
+      'one release read and one missing',
+      [manage('dev', 'r1'), manage('prod', 'gone')],
+      false,
+    ],
+    [
+      'a release never requested',
+      [manage('dev', 'r1'), manage('prod', 'r9')],
+      false,
+    ],
+    [
+      'a binding that names no release',
+      [manage('dev', 'r1'), manage('prod')],
+      false,
+    ],
+    [
+      'only Observe bindings',
+      [observe('dev', 'r1'), observe('prod', 'r2')],
+      false,
+    ],
+    ['no bindings', [], false],
+  ])('%s', (_label, bindings: ReleaseBinding[], expected) => {
+    expect(everyReleaseRead(bindings, releases)).toBe(expected);
   });
 });
 

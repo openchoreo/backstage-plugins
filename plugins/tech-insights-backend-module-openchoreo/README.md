@@ -9,10 +9,10 @@ portal's service credentials (`openchoreo.auth`).
 | `openchoreoDeploymentFactRetriever`    | `Component`, `ReleaseLine`              | One entry per environment the line is bound to: production, synced, ready and latest-release status, image registry and pinning, secret-like plain env values, external endpoints |
 | `openchoreoBuildFactRetriever`         | `Component`, `ReleaseLine`              | Whether the last finished build succeeded, and the share of the last 20 that did                                                                                                  |
 
-The component type and deployment retrievers report a `…Resolved` fact. When the entity has no matching OpenChoreo resource it
+The component type and deployment retrievers report `openchoreoComponentTypeResolved` and `openchoreoComponentResolved`. When the entity has no matching OpenChoreo resource it
 is false and every other fact is null, so checks fail the entity instead of skipping it. jsonfc
 skips a check only when a fact it uses is missing. `notEqual`, `notIn` and `not` pass on null, so a
-check written with them should also require the `…Resolved` fact.
+check written with them should also require that fact.
 
 The deployment facts cover only Components the OpenChoreo catalog provider created, the ones with
 an `openchoreo.io/component` annotation. Other Components get no facts, so these checks show no
@@ -70,8 +70,14 @@ null:
   release it's bound to, though nothing confirms that image is running, for example when
   `isReleaseSynced` is false. They are left out when the ComponentRelease can't be read, and
   `imageRegistry` also when the release names no image. A path such as `$[*].isImagePinned`
-  selects nothing for an environment that leaves a field out, so a check on it covers only the
-  environments that report it.
+  selects nothing for an environment that leaves a field out, so on its own a check on it covers
+  only the environments that report it. The `openchoreoReleasesResolved` fact is true when the
+  ComponentRelease of every binding that renders its release was read, and is left out otherwise:
+  when any of those releases can't be read, when such a binding names no release, when every
+  binding is in `Observe` mode, and whenever `openchoreoEnvironmentDeployments` is left out. Add
+  `{ "fact": "openchoreoReleasesResolved", "operator": "equal", "value": true }` to the `all` of a
+  check on `plainTextSecretEnvVarCount` or `isImagePinned`, as the starter checks do, so a line with an environment whose release
+  couldn't be read shows no result instead of being judged on its other environments.
 - `isOnLatestRelease` is left out when OpenChoreo records no latest release, which it does for a
   component or release line only when `autoDeploy` is on for it.
 - `externalEndpointCount` is left out when the line's Endpoints or their bindings can't be read.
@@ -182,9 +188,10 @@ entry without them:
   no CEL condition and no denial at, above or below it. A narrower grant would hide Endpoints and
   count them as none.
 
-Checks that need these fields, such as the starter checks on plain secrets and pinned images, fail
-on every deployed component until `componentrelease:view` is granted, since `everyFact` fails when
-every entry leaves the field out.
+Without `componentrelease:view`, `openchoreoReleasesResolved` is left out too, so checks that
+require it next to these fields, such as the starter checks on plain secrets and pinned images,
+show no result on every deployed component until the grant is added. A check on these fields that
+doesn't require it fails instead, since `everyFact` fails when every entry leaves the field out.
 
 The build facts need `workflowrun:view` on the component's path, granted without conditions. The
 run list returns only the runs the credentials can see, so without the grant the facts are left

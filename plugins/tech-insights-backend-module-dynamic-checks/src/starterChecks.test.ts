@@ -83,6 +83,7 @@ const everyEnvironment = (field: string, value: unknown) => ({
         operator: 'everyFact:equal',
         value,
       },
+      { fact: 'openchoreoReleasesResolved', operator: 'equal', value: true },
     ],
   },
 });
@@ -231,6 +232,7 @@ describe('evaluating the environment starter checks with jsonfc', () => {
     ...fields,
   });
 
+  // An undefined releasesResolved leaves the fact out.
   it.each([
     [
       'every environment clean and pinned',
@@ -243,6 +245,7 @@ describe('evaluating the environment starter checks with jsonfc', () => {
           isImagePinned: true,
         }),
       ],
+      true,
       { [SECRETS_ID]: true, [SAMPLE_ID]: true },
     ],
     [
@@ -256,16 +259,19 @@ describe('evaluating the environment starter checks with jsonfc', () => {
           isImagePinned: false,
         }),
       ],
+      true,
       { [SECRETS_ID]: false, [SAMPLE_ID]: false },
     ],
     [
       'a single passing environment',
       [entry({ plainTextSecretEnvVarCount: 0, isImagePinned: true })],
+      true,
       { [SECRETS_ID]: true, [SAMPLE_ID]: true },
     ],
     [
       'a single failing environment',
       [entry({ plainTextSecretEnvVarCount: 2, isImagePinned: false })],
+      true,
       { [SECRETS_ID]: false, [SAMPLE_ID]: false },
     ],
     [
@@ -274,7 +280,8 @@ describe('evaluating the environment starter checks with jsonfc', () => {
         entry({ plainTextSecretEnvVarCount: 0, isImagePinned: true }),
         entry({ environment: 'production', isProduction: true }),
       ],
-      { [SECRETS_ID]: true, [SAMPLE_ID]: true },
+      undefined,
+      {},
     ],
     [
       'an environment whose release could not be read beside a failing one',
@@ -282,24 +289,35 @@ describe('evaluating the environment starter checks with jsonfc', () => {
         entry({ plainTextSecretEnvVarCount: 1, isImagePinned: false }),
         entry({ environment: 'production', isProduction: true }),
       ],
-      { [SECRETS_ID]: false, [SAMPLE_ID]: false },
+      undefined,
+      {},
     ],
     [
       'no environment whose release could be read',
       [entry({}), entry({ environment: 'production', isProduction: true })],
+      undefined,
+      {},
+    ],
+    [
+      'an empty list, which everyFact fails',
+      [],
+      true,
       { [SECRETS_ID]: false, [SAMPLE_ID]: false },
     ],
-    ['an empty list', [], { [SECRETS_ID]: false, [SAMPLE_ID]: false }],
     [
       'null, the value of an unresolved component',
       null,
+      null,
       { [SECRETS_ID]: false, [SAMPLE_ID]: false },
     ],
-  ])('judges %s', async (_label, deployments, expected) => {
+  ])('judges %s', async (_label, deployments, releasesResolved, expected) => {
     await expect(
       evaluate({
         openchoreoComponentResolved: deployments !== null,
         openchoreoEnvironmentDeployments: deployments,
+        ...(releasesResolved !== undefined && {
+          openchoreoReleasesResolved: releasesResolved,
+        }),
       }),
     ).resolves.toEqual(expected);
   });
