@@ -57,8 +57,9 @@ However, the `/etc/hosts` approach is recommended for its simplicity and reliabi
 
 ### Required Tools
 
-- Node.js 22
-- Yarn 4.4.1
+- Node.js 24.15+ or 26.13+
+- Yarn 4.18.0 (pinned in `.yarn/releases`; run `corepack enable`, after
+  `npm install -g corepack` on Node 26)
 - Docker
 
 ### 1. Install Dependencies

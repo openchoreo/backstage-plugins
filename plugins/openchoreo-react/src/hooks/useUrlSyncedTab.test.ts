@@ -124,4 +124,53 @@ describe('useUrlSyncedTab', () => {
     // State should remain unchanged
     expect(result.current[0]).toBe('settings');
   });
+
+  it('keeps setActiveTab stable when onTabChange changes, and calls the latest one', () => {
+    const first = jest.fn();
+    const second = jest.fn();
+    const { result, rerender } = renderHook(
+      ({ onTabChange }) =>
+        useUrlSyncedTab<string>({
+          initialTab: undefined,
+          defaultTab: '',
+          onTabChange,
+        }),
+      { initialProps: { onTabChange: first } },
+    );
+    const setActiveTab = result.current[1];
+
+    rerender({ onTabChange: second });
+
+    expect(result.current[1]).toBe(setActiveTab);
+    act(() => {
+      result.current[1]('workload', true);
+    });
+    expect(first).not.toHaveBeenCalled();
+    expect(second).toHaveBeenCalledWith('workload', true);
+  });
+
+  it('updates the URL once when the same tab is requested again before it lands', () => {
+    const onTabChange = jest.fn();
+    const { result } = renderHook(() =>
+      useUrlSyncedTab<string>({
+        initialTab: undefined,
+        defaultTab: '',
+        onTabChange,
+      }),
+    );
+
+    act(() => {
+      result.current[1]('workload', true);
+      result.current[1]('workload', true);
+      result.current[1]('workload', true);
+    });
+
+    expect(result.current[0]).toBe('workload');
+    expect(onTabChange).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      result.current[1]('component');
+    });
+    expect(onTabChange).toHaveBeenLastCalledWith('component', undefined);
+  });
 });

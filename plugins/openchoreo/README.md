@@ -39,7 +39,7 @@ for platform engineers (`@openchoreo/backstage-plugin-platform-engineer-core`).
   [OpenChoreo quick start](https://openchoreo.dev/docs/getting-started/quick-start-guide/)).
 - A Backstage app on a supported release — see the
   [compatibility matrix](https://openchoreo.dev/docs/platform-engineer-guide/backstage-plugins/compatibility-matrix/).
-- Node.js 22 or 24.
+- Node.js 24.15+ or 26.13+.
 
 ## Installation
 
