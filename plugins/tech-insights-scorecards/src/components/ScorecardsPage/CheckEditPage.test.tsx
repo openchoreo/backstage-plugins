@@ -123,6 +123,30 @@ describe('CheckEditPage', () => {
     expect(onChecksChanged).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps the newer check when an older reload answers late', async () => {
+    const answers: Array<(checks: DynamicCheck[]) => void> = [];
+    listChecks.mockImplementation(
+      () => new Promise(resolve => answers.push(resolve)),
+    );
+    await renderPage(check);
+    const { onChecksChanged } = LaunchButton.mock.calls[0][0];
+
+    let older: Promise<void> | undefined;
+    let newer: Promise<void> | undefined;
+    act(() => {
+      older = onChecksChanged?.() as unknown as Promise<void>;
+      newer = onChecksChanged?.() as unknown as Promise<void>;
+    });
+    await act(async () => {
+      answers[1]([{ ...check, description: 'Newer save' }]);
+      await newer;
+      answers[0]([{ ...check, description: 'Older save' }]);
+      await older;
+    });
+
+    expect(screen.getByTestId('form')).toHaveTextContent('Newer save');
+  });
+
   it('warns when the saved check could not be reloaded', async () => {
     listChecks.mockRejectedValue(new Error('offline'));
     await renderPage(check);
