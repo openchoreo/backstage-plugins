@@ -273,6 +273,292 @@ describe('openchoreo-portal-assistant-backend router', () => {
     });
   });
 
+  describe('acting for the signed-in Backstage user', () => {
+    const userCredentials = {
+      $$type: '@backstage/BackstageCredentials',
+      principal: { type: 'user', userEntityRef: 'user:default/jane' },
+    };
+    const serviceCredentials = {
+      $$type: '@backstage/BackstageCredentials',
+      principal: { type: 'service', subject: 'plugin:catalog' },
+    };
+
+    function makeAuth() {
+      return {
+        authenticate: jest.fn(async (token: string) => {
+          if (token === 'user-token') return userCredentials;
+          if (token === 'service-token') return serviceCredentials;
+          const error = new Error('bad token value');
+          error.name = 'AuthenticationError';
+          throw error;
+        }),
+        isPrincipal: jest.fn(
+          (credentials: any, type: string) =>
+            credentials.principal.type === type,
+        ),
+        getPluginRequestToken: jest.fn(async () => ({
+          token: 'mcp-actions-token',
+        })),
+      } as any;
+    }
+
+    /**
+     * Sends a check-authoring chat (or another case) and returns the headers
+     * the upstream received.
+     */
+    async function chatWith(
+      headers: Record<string, string>,
+      auth = makeAuth(),
+      caseType: string | null = 'check_authoring',
+    ): Promise<{
+      upstreamHeaders: http.IncomingHttpHeaders;
+      status: number;
+      auth: ReturnType<typeof makeAuth>;
+    }> {
+      let upstreamHeaders: http.IncomingHttpHeaders = {};
+      upstream.setHandler((req, res) => {
+        upstreamHeaders = req.headers;
+        res.writeHead(200, { 'content-type': 'application/x-ndjson' });
+        res.end('{"type":"done","message":""}\n');
+      });
+      const authedApp = express();
+      authedApp.use(
+        await createRouter({ logger, auth, targetUrl: upstream.url }),
+      );
+
+      let call = request(authedApp).post('/api/v1alpha1/portal-assistant/chat');
+      for (const [name, value] of Object.entries(headers)) {
+        call = call.set(name, value);
+      }
+      const res = await call.send({
+        messages: [{ role: 'user', content: 'x' }],
+        ...(caseType && { scope: { caseType } }),
+      });
+      return { upstreamHeaders, status: res.status, auth };
+    }
+
+    it.each([['runtime_debug'], [null]])(
+      'issues no token for a chat that is not check authoring (%s)',
+      async caseType => {
+        const { upstreamHeaders, auth } = await chatWith(
+          { 'x-backstage-identity': 'user-token' },
+          makeAuth(),
+          caseType,
+        );
+
+        expect(auth.authenticate).not.toHaveBeenCalled();
+        expect(upstreamHeaders['x-backstage-user-token']).toBeUndefined();
+      },
+    );
+
+    it('forwards a token for mcp-actions issued on behalf of the user', async () => {
+      const { upstreamHeaders, auth } = await chatWith({
+        Authorization: 'Bearer openchoreo-jwt',
+        'x-backstage-identity': 'user-token',
+      });
+
+      expect(auth.getPluginRequestToken).toHaveBeenCalledWith({
+        onBehalfOf: userCredentials,
+        targetPluginId: 'mcp-actions',
+      });
+      expect(upstreamHeaders['x-backstage-user-token']).toBe(
+        'mcp-actions-token',
+      );
+      // The user's own Backstage token never leaves Backstage, and the
+      // OpenChoreo token is forwarded as before.
+      expect(upstreamHeaders['x-backstage-identity']).toBeUndefined();
+      expect(upstreamHeaders.authorization).toBe('Bearer openchoreo-jwt');
+    });
+
+    it('still forwards the chat, read-only, when the identity is invalid', async () => {
+      const { upstreamHeaders, status, auth } = await chatWith({
+        'x-backstage-identity': 'forged',
+      });
+
+      expect(status).toBe(200);
+      expect(auth.getPluginRequestToken).not.toHaveBeenCalled();
+      expect(upstreamHeaders['x-backstage-user-token']).toBeUndefined();
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('(AuthenticationError)'),
+      );
+      // Nothing about the token reaches the logs.
+      expect(JSON.stringify(logger.warn.mock.calls)).not.toMatch(
+        /forged|bad token value/,
+      );
+    });
+
+    it('issues nothing for a service principal', async () => {
+      const { upstreamHeaders, auth } = await chatWith({
+        'x-backstage-identity': 'service-token',
+      });
+
+      expect(auth.getPluginRequestToken).not.toHaveBeenCalled();
+      expect(upstreamHeaders['x-backstage-user-token']).toBeUndefined();
+    });
+
+    it('issues nothing without an identity header', async () => {
+      const { upstreamHeaders, auth } = await chatWith({});
+
+      expect(auth.authenticate).not.toHaveBeenCalled();
+      expect(upstreamHeaders['x-backstage-user-token']).toBeUndefined();
+    });
+
+    it('never forwards a user token sent by the browser', async () => {
+      const { upstreamHeaders } = await chatWith({
+        'x-backstage-user-token': 'browser-made',
+      });
+
+      expect(upstreamHeaders['x-backstage-user-token']).toBeUndefined();
+    });
+
+    it('issues nothing when no auth service is configured', async () => {
+      let upstreamHeaders: http.IncomingHttpHeaders = {};
+      upstream.setHandler((req, res) => {
+        upstreamHeaders = req.headers;
+        res.writeHead(200, { 'content-type': 'application/x-ndjson' });
+        res.end('{"type":"done","message":""}\n');
+      });
+
+      await request(app)
+        .post('/api/v1alpha1/portal-assistant/chat')
+        .set('x-backstage-identity', 'user-token')
+        .send({
+          messages: [{ role: 'user', content: 'x' }],
+          scope: { caseType: 'check_authoring' },
+        });
+
+      expect(upstreamHeaders['x-backstage-user-token']).toBeUndefined();
+      expect(upstreamHeaders['x-backstage-identity']).toBeUndefined();
+    });
+
+    describe('POST /api/v1alpha1/portal-assistant/chat/confirm', () => {
+      /** Confirms a card; returns what the upstream got and what came back. */
+      async function confirmWith(
+        headers: Record<string, string>,
+        reply: { status: number; body: object },
+      ) {
+        const inbound = {
+          path: '',
+          headers: {} as http.IncomingHttpHeaders,
+          body: '',
+        };
+        upstream.setHandler((req, res) => {
+          inbound.path = req.url ?? '';
+          inbound.headers = req.headers;
+          req.on('data', chunk => (inbound.body += chunk));
+          req.on('end', () => {
+            res.writeHead(reply.status, { 'content-type': 'application/json' });
+            res.end(JSON.stringify(reply.body));
+          });
+        });
+        const authedApp = express();
+        authedApp.use(
+          await createRouter({
+            logger,
+            auth: makeAuth(),
+            targetUrl: upstream.url,
+          }),
+        );
+        let call = request(authedApp).post(
+          '/api/v1alpha1/portal-assistant/chat/confirm',
+        );
+        for (const [name, value] of Object.entries(headers)) {
+          call = call.set(name, value);
+        }
+        const res = await call.send({
+          token: 'card-token',
+          status: 'published',
+        });
+        return { inbound, res };
+      }
+
+      it('saves through the agent with a token issued for the user', async () => {
+        const saved = {
+          check_id: 'c1',
+          status: 'published',
+          message: 'Saved and published.',
+        };
+
+        const { inbound, res } = await confirmWith(
+          {
+            Authorization: 'Bearer openchoreo-jwt',
+            'x-backstage-identity': 'user-token',
+          },
+          { status: 200, body: saved },
+        );
+
+        expect(inbound.path).toBe(
+          '/api/v1alpha1/portal-assistant/chat/confirm',
+        );
+        expect(JSON.parse(inbound.body)).toEqual({
+          token: 'card-token',
+          status: 'published',
+        });
+        expect(inbound.headers['x-backstage-user-token']).toBe(
+          'mcp-actions-token',
+        );
+        expect(inbound.headers['x-backstage-identity']).toBeUndefined();
+        expect(inbound.headers.authorization).toBe('Bearer openchoreo-jwt');
+        expect(res.status).toBe(200);
+        expect(res.body).toEqual(saved);
+      });
+
+      it("passes the agent's refusal through unchanged", async () => {
+        const refusal = {
+          detail: {
+            error: 'CONFIRM_FAILED',
+            message: 'This change was already confirmed.',
+          },
+        };
+
+        const { res } = await confirmWith(
+          { 'x-backstage-identity': 'user-token' },
+          { status: 400, body: refusal },
+        );
+
+        expect(res.status).toBe(400);
+        expect(res.body).toEqual(refusal);
+      });
+
+      it('never forwards a user token sent by the browser', async () => {
+        const { inbound } = await confirmWith(
+          { 'x-backstage-user-token': 'browser-made' },
+          { status: 400, body: {} },
+        );
+
+        expect(inbound.headers['x-backstage-user-token']).toBeUndefined();
+      });
+    });
+  });
+
+  describe('warmup never acts for the user', () => {
+    it('does not issue a user token for /warmup', async () => {
+      let upstreamHeaders: http.IncomingHttpHeaders = {};
+      upstream.setHandler((req, res) => {
+        upstreamHeaders = req.headers;
+        res.writeHead(202, { 'content-type': 'application/json' });
+        res.end('{}');
+      });
+      const auth = {
+        authenticate: jest.fn(),
+        isPrincipal: jest.fn(),
+        getPluginRequestToken: jest.fn(),
+      } as any;
+      const authedApp = express();
+      authedApp.use(
+        await createRouter({ logger, auth, targetUrl: upstream.url }),
+      );
+
+      await request(authedApp)
+        .post('/api/v1alpha1/portal-assistant/warmup')
+        .set('x-backstage-identity', 'user-token')
+        .send({});
+
+      expect(auth.authenticate).not.toHaveBeenCalled();
+      expect(upstreamHeaders['x-backstage-user-token']).toBeUndefined();
+    });
+  });
+
   describe('upstream timeout', () => {
     it('forwardJson returns 504 when the upstream does not respond within upstreamTimeoutMs', async () => {
       // Upstream accepts the connection but never responds — would

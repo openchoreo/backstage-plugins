@@ -35,7 +35,7 @@ export interface ScorecardsPageProps {
 
 /**
  * The catalog-wide scorecard page: a pass-rate summary, then the checks
- * table and Data sources panel. "View full breakdown" and "New check"/edit
+ * table and Data sources panel. "View full breakdown" and "Create check"/edit
  * swap in full-page views through local state rather than sub-routes. Each
  * entity's own results live on its scorecard tab.
  */
@@ -138,6 +138,7 @@ export function ScorecardsPage({
             onBack={() => setView('checks')}
             onSaved={leaveEditor}
             onPublished={leaveEditor}
+            onChecksChanged={refreshScores}
           />
         )}
       </Content>

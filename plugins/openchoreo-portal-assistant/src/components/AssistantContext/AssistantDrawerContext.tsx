@@ -115,6 +115,11 @@ export type OpenAssistantOptions = {
    * clicked, mirroring the existing one-tap-to-send behaviour.
    */
   suggestions?: string[];
+  /**
+   * Called after a confirm card in this chat saves a check, so the page
+   * that opened the drawer (e.g. the scorecards check list) can refresh.
+   */
+  onChecksChanged?: () => void;
 };
 
 type AssistantDrawerState = {
@@ -239,6 +244,7 @@ export const AssistantDrawerProvider = ({
         conversationKey={state.options.conversationKey}
         resetConversation={state.options.resetConversation}
         suggestions={state.options.suggestions}
+        onChecksChanged={state.options.onChecksChanged}
         openSeq={state.openSeq}
       />
     </AssistantDrawerContext.Provider>

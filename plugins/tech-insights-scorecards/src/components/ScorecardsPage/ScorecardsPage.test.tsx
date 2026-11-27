@@ -72,7 +72,9 @@ describe('ScorecardsPage', () => {
       },
     });
 
-    const newCheck = await screen.findByRole('button', { name: 'New check' });
+    const newCheck = await screen.findByRole('button', {
+      name: 'Create check',
+    });
     await waitFor(() => expect(newCheck).toBeEnabled());
     await userEvent.click(newCheck);
 
@@ -95,7 +97,9 @@ describe('ScorecardsPage', () => {
 
     const row = await screen.findByText('Has a README');
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'New check' })).toBeEnabled(),
+      expect(
+        screen.getByRole('button', { name: 'Create check' }),
+      ).toBeEnabled(),
     );
     await userEvent.click(row);
 

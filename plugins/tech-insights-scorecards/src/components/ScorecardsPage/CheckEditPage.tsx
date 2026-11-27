@@ -1,6 +1,9 @@
+import { useApiHolder } from '@backstage/core-plugin-api';
+import { checkAuthoringAssistantsApiRef } from '../../api/CheckAuthoringAssistantApi';
 import type { DynamicCheck, FactSchema } from '../../api/types';
 import { useEntityLabel } from '../../utils/kinds';
 import { CheckForm } from '../Checks/CheckForm';
+import { useAssistantSavedCheck } from '../Checks/useAssistantSavedCheck';
 import { FullPageView } from '../FullPageView';
 
 interface CheckEditPageProps {
@@ -10,6 +13,8 @@ interface CheckEditPageProps {
   onBack: () => void;
   onSaved: (check: DynamicCheck) => void;
   onPublished: () => void;
+  /** Called after the assistant saves the check. */
+  onChecksChanged?: () => void;
 }
 
 /**
@@ -19,23 +24,43 @@ interface CheckEditPageProps {
  */
 export function CheckEditPage(props: CheckEditPageProps) {
   const {
-    check,
+    check: initialCheck,
     factSchemas,
     existingCategories,
     onBack,
     onSaved,
     onPublished,
+    onChecksChanged,
   } = props;
   const entityLabel = useEntityLabel();
+
+  // Optional: only present when a host app installs a check-authoring assistant.
+  const assistant = useApiHolder().get(
+    checkAuthoringAssistantsApiRef,
+  )?.assistant;
+
+  const { check, revision, reloadCheck } = useAssistantSavedCheck(
+    initialCheck,
+    onChecksChanged,
+  );
 
   return (
     <FullPageView
       title={check ? `Edit check: ${check.name}` : 'New check'}
       subtitle={`Define the check, dry-run it against a sample ${entityLabel.singular}, then save or publish.`}
+      actions={
+        assistant && check ? (
+          <assistant.LaunchButton
+            factSchemas={factSchemas}
+            check={check}
+            onChecksChanged={reloadCheck}
+          />
+        ) : undefined
+      }
       onBack={onBack}
     >
       <CheckForm
-        key={check?.id ?? 'new'}
+        key={`${check?.id ?? 'new'}:${revision}`}
         check={check}
         factSchemas={factSchemas}
         existingCategories={existingCategories}

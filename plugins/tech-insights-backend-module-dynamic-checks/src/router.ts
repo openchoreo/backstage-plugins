@@ -7,13 +7,7 @@ import type {
   PermissionsService,
   SchedulerService,
 } from '@backstage/backend-plugin-api';
-import { parseEntityRef, stringifyEntityRef } from '@backstage/catalog-model';
-import {
-  InputError,
-  NotAllowedError,
-  NotFoundError,
-  ServiceUnavailableError,
-} from '@backstage/errors';
+import { InputError, NotAllowedError, NotFoundError } from '@backstage/errors';
 import {
   AuthorizeResult,
   type BasicPermission,
@@ -25,7 +19,12 @@ import {
   dynamicCheckReadPermission,
 } from '@openchoreo/backstage-plugin-tech-insights-dynamic-checks-common';
 import { DynamicCheckRegistry } from './DynamicCheckRegistry';
-import { dryRunCheck, type CheckEvaluation } from './dryRun';
+import type { CheckEvaluation } from './dryRun';
+import {
+  dryRunForCaller,
+  requireEvaluable as requireEvaluableWith,
+  requireEvaluation as requireEvaluationOf,
+} from './checkOperations';
 
 interface RouterOptions {
   logger: LoggerService;
@@ -86,21 +85,6 @@ function basicValidate(check: Partial<TechInsightJsonRuleCheck>) {
   }
 }
 
-function normalizeEntityRef(entity: unknown): string {
-  if (typeof entity !== 'string' || !entity.trim()) {
-    throw new InputError(
-      'Enter an entity ref to dry-run against, e.g. component:default/my-service.',
-    );
-  }
-  try {
-    return stringifyEntityRef(parseEntityRef(entity.trim()));
-  } catch {
-    throw new InputError(
-      `"${entity}" isn't a complete entity ref. Use kind:namespace/name, e.g. component:default/my-service.`,
-    );
-  }
-}
-
 export async function createDynamicChecksRouter(
   options: RouterOptions,
 ): Promise<express.Router> {
@@ -127,27 +111,9 @@ export async function createDynamicChecksRouter(
     }
   }
 
-  function requireEvaluation(): CheckEvaluation {
-    const evaluation = getEvaluation();
-    if (!evaluation) {
-      throw new ServiceUnavailableError(
-        'Check evaluation is not ready yet; try again shortly.',
-      );
-    }
-    return evaluation;
-  }
-
-  /** Refuses a check that can't be evaluated against the current facts. */
-  async function requireEvaluable(check: TechInsightJsonRuleCheck) {
-    const problems = await requireEvaluation().validator.problemsOf(check);
-    if (problems.length > 0) {
-      throw new InputError(
-        `The check can't be evaluated: ${problems
-          .map(problem => problem.message)
-          .join(' ')}`,
-      );
-    }
-  }
+  const requireEvaluation = () => requireEvaluationOf(getEvaluation);
+  const requireEvaluable = (check: TechInsightJsonRuleCheck) =>
+    requireEvaluableWith(requireEvaluation(), check);
 
   router.get('/dynamic-checks', async (req, res) => {
     await authorize(req, dynamicCheckReadPermission);
@@ -165,6 +131,13 @@ export async function createDynamicChecksRouter(
           : check,
       ),
     );
+  });
+
+  // tech-insights' own /fact-schemas also returns retrievers that no longer
+  // run, so check authoring reads the schemas from here.
+  router.get('/dynamic-checks/fact-schemas', async (req, res) => {
+    await authorize(req, dynamicCheckReadPermission);
+    res.json(await requireEvaluation().store.getLatestSchemas());
   });
 
   router.post('/dynamic-checks', async (req, res) => {
@@ -239,24 +212,16 @@ export async function createDynamicChecksRouter(
       entity?: unknown;
       check?: Omit<TechInsightJsonRuleCheck, 'id'>;
     };
-    const entityRef = normalizeEntityRef(entity);
     if (!check) throw new InputError('The request has no check to dry-run.');
     basicValidate(check);
 
-    const evaluation = requireEvaluation();
-    const catalogEntity = await catalog.getEntityByRef(entityRef, {
-      credentials: await httpAuth.credentials(req),
-    });
-    if (!catalogEntity) {
-      throw new NotFoundError(`No entity ${entityRef} in the catalog.`);
-    }
-
     res.json(
-      await dryRunCheck({
+      await dryRunForCaller({
+        catalog,
+        credentials: await httpAuth.credentials(req),
+        evaluation: requireEvaluation(),
+        entity,
         check,
-        entity: catalogEntity,
-        entityRef,
-        evaluation,
       }),
     );
   });

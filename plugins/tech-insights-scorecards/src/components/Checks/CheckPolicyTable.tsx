@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Box from '@material-ui/core/Box';
-import Button from '@material-ui/core/Button';
 import Chip from '@material-ui/core/Chip';
 import IconButton from '@material-ui/core/IconButton';
 import InputAdornment from '@material-ui/core/InputAdornment';
@@ -14,7 +13,6 @@ import TableRow from '@material-ui/core/TableRow';
 import TextField from '@material-ui/core/TextField';
 import Tooltip from '@material-ui/core/Tooltip';
 import Typography from '@material-ui/core/Typography';
-import AddIcon from '@material-ui/icons/Add';
 import ClearIcon from '@material-ui/icons/Clear';
 import DeleteOutlineIcon from '@material-ui/icons/DeleteOutline';
 import EditOutlinedIcon from '@material-ui/icons/EditOutlined';
@@ -30,8 +28,9 @@ import {
   Progress,
   ResponseErrorPanel,
 } from '@backstage/core-components';
-import { useApi } from '@backstage/core-plugin-api';
+import { useApi, useApiHolder } from '@backstage/core-plugin-api';
 import { toastApiRef } from '@backstage/frontend-plugin-api';
+import { checkAuthoringAssistantsApiRef } from '../../api/CheckAuthoringAssistantApi';
 import { dynamicChecksApiRef } from '../../api/DynamicChecksApi';
 import type { DynamicCheck, FactSchema } from '../../api/types';
 import { CHECK_TIERS } from '../../utils/tierPalette';
@@ -43,6 +42,7 @@ import {
 import { TierChip } from '../TierChip';
 import { CheckFormDialog } from './CheckFormDialog';
 import { CheckStatusChip } from './CheckStatusChip';
+import { CreateCheckButton } from './CreateCheckButton';
 import { DeleteCheckDialog } from './DeleteCheckDialog';
 
 const PAGE_SIZES = [10, 25, 50];
@@ -92,7 +92,7 @@ function publishTooltip(published: boolean) {
 
 interface CheckPolicyTableProps {
   /**
-   * When provided, "New check" calls this instead of opening the built-in
+   * When provided, "Create check" calls this instead of opening the built-in
    * CheckFormDialog — lets a host app (which may want its own full-page
    * editor, e.g. matching its own house layout for create/edit flows)
    * take over navigation entirely. factSchemas/existingCategories are
@@ -120,7 +120,7 @@ interface CheckPolicyTableProps {
  * Check list: search/filter by status, category and tier, a Draft/Published
  * status per check, paged 10 at a time by default, a row click that opens
  * the check for editing, icon row actions (publish or unpublish, edit, delete with
- * confirmation), and a "New check" action that opens CheckFormDialog (or
+ * confirmation), and a "Create check" action that opens CheckFormDialog (or
  * delegates to onNewCheck/onEditCheck, see CheckPolicyTableProps). Actions
  * the user lacks the permission for are disabled.
  */
@@ -130,6 +130,10 @@ export function CheckPolicyTable(props: CheckPolicyTableProps) {
   const api = useApi(dynamicChecksApiRef);
   const toastApi = useApi(toastApiRef);
   const tierLabel = useTierLabel();
+  // Optional: only present when a host app installs a check-authoring assistant.
+  const assistant = useApiHolder().get(
+    checkAuthoringAssistantsApiRef,
+  )?.assistant;
   const permissions = useCheckPermissions();
 
   const [checks, setChecks] = useState<DynamicCheck[]>([]);
@@ -273,6 +277,12 @@ export function CheckPolicyTable(props: CheckPolicyTableProps) {
     await refresh();
   }
 
+  // The dialog stays open and reloads the check, keeping it in sync.
+  async function handleAssistantSaved() {
+    onChecksChanged?.();
+    await refresh();
+  }
+
   async function handlePublished() {
     setDialogOpen(false);
     onChecksChanged?.();
@@ -282,6 +292,20 @@ export function CheckPolicyTable(props: CheckPolicyTableProps) {
   if (error) {
     return <ResponseErrorPanel error={error} />;
   }
+
+  const renderCreateCheck = (openAssistant?: () => void) => (
+    <Tooltip title={permissions.canManage ? '' : NOT_ALLOWED_TOOLTIP}>
+      <span>
+        <CreateCheckButton
+          // The host's editor keeps the fact schemas it's handed, so
+          // they have to be loaded first.
+          disabled={!permissions.canManage || loading}
+          onCreateManually={openNewCheck}
+          onGenerateWithAi={openAssistant}
+        />
+      </span>
+    </Tooltip>
+  );
 
   return (
     <>
@@ -365,22 +389,19 @@ export function CheckPolicyTable(props: CheckPolicyTableProps) {
             </IconButton>
           </Tooltip>
           <Box flexGrow={1} />
-          <Tooltip title={permissions.canManage ? '' : NOT_ALLOWED_TOOLTIP}>
-            <span>
-              <Button
-                variant="contained"
-                color="primary"
-                size="small"
-                startIcon={<AddIcon />}
-                // The host's editor keeps the fact schemas it's handed, so
-                // they have to be loaded first.
-                disabled={!permissions.canManage || loading}
-                onClick={openNewCheck}
-              >
-                New check
-              </Button>
-            </span>
-          </Tooltip>
+          {assistant?.NewCheckLauncher ? (
+            <assistant.NewCheckLauncher
+              factSchemas={factSchemas}
+              onChecksChanged={() => {
+                onChecksChanged?.();
+                refresh();
+              }}
+            >
+              {renderCreateCheck}
+            </assistant.NewCheckLauncher>
+          ) : (
+            renderCreateCheck()
+          )}
         </Box>
 
         {actionError && (
@@ -395,7 +416,7 @@ export function CheckPolicyTable(props: CheckPolicyTableProps) {
           <Box p={3} textAlign="center">
             <Typography variant="body2" color="textSecondary">
               {checks.length === 0
-                ? 'No checks yet. Create one with "New check".'
+                ? 'No checks yet. Create one with "Create check".'
                 : 'No checks match the current filters.'}
             </Typography>
           </Box>
@@ -573,6 +594,7 @@ export function CheckPolicyTable(props: CheckPolicyTableProps) {
         onClose={() => setDialogOpen(false)}
         onSaved={handleSaved}
         onPublished={handlePublished}
+        onAssistantSaved={handleAssistantSaved}
       />
     </>
   );

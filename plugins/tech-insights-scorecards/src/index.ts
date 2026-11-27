@@ -26,6 +26,9 @@ export type { TierChipProps } from './components/TierChip';
 export { dynamicChecksApiRef } from './api/DynamicChecksApi';
 export type { DynamicChecksApi } from './api/DynamicChecksApi';
 export { DynamicChecksClient } from './api/DynamicChecksClient';
+export { factFieldsOf } from './api/types';
+export { DryRunEntityField } from './components/Checks/DryRunEntityField';
+export { kindsOfFilter } from './utils/kinds';
 export type {
   CheckLink,
   CheckProblem,

@@ -3,13 +3,14 @@ import {
   createFrontendModule,
 } from '@backstage/frontend-plugin-api';
 import { AppRootWrapperBlueprint } from '@backstage/plugin-app-react';
-import { discoveryApiRef } from '@backstage/core-plugin-api';
+import { discoveryApiRef, identityApiRef } from '@backstage/core-plugin-api';
 import {
   openChoreoFetchApiRef,
   portalAssistantIntegrationApiRef,
   type PortalAssistantIntegration,
 } from '@openchoreo/backstage-plugin-react';
 import { LogRowActionBlueprint } from '@openchoreo/backstage-plugin-openchoreo-observability/alpha';
+import { CheckAuthoringAssistantBlueprint } from '@openchoreo/backstage-plugin-tech-insights-scorecards/alpha';
 
 import {
   portalAssistantApiRef,
@@ -19,6 +20,10 @@ import { AssistantDrawerProvider } from './components/AssistantContext/Assistant
 import { FailedBuildSnackbar } from './components/FailedBuildSnackbar/FailedBuildSnackbar';
 import { InvestigateLogButton } from './components/InvestigateLogButton/InvestigateLogButton';
 import { InvestigateDependencyButton } from './components/InvestigateDependencyButton/InvestigateDependencyButton';
+import {
+  EditCheckWithAiButton,
+  NewCheckLauncher,
+} from './components/AskPortalAssistantButton/AskPortalAssistantButton';
 
 // Mounts the assistant drawer around the whole app so `useAssistantDrawer`
 // works from any surface that opens it.
@@ -42,9 +47,12 @@ const portalAssistantService = ApiBlueprint.make({
         // The agent is reached in direct mode, so this must be the
         // OpenChoreo-scoped fetch API that carries the IDP token.
         fetchApi: openChoreoFetchApiRef,
+        // The user's Backstage token, for the forwarder to act on their
+        // behalf (see PortalAssistantClient.streamChat).
+        identityApi: identityApiRef,
       },
-      factory: ({ discoveryApi, fetchApi }) =>
-        new PortalAssistantClient({ discoveryApi, fetchApi }),
+      factory: ({ discoveryApi, fetchApi, identityApi }) =>
+        new PortalAssistantClient({ discoveryApi, fetchApi, identityApi }),
     }),
 });
 
@@ -79,6 +87,16 @@ const investigateLogAction = LogRowActionBlueprint.make({
   },
 });
 
+// "Generate with AI" in the scorecards "Create check" menu and "Edit with AI"
+// when editing a check. Same composition as above: the scorecards plugin only
+// exposes the blueprint and owns no dependency on the assistant.
+const checkAuthoringAssistant = CheckAuthoringAssistantBlueprint.make({
+  name: 'portal-assistant',
+  params: {
+    assistant: { LaunchButton: EditCheckWithAiButton, NewCheckLauncher },
+  },
+});
+
 /**
  * Everything the Portal Assistant contributes to a host app.
  *
@@ -99,6 +117,7 @@ export const assistantFeature = createFrontendModule({
     portalAssistantService,
     assistantIntegration,
     investigateLogAction,
+    checkAuthoringAssistant,
   ],
 });
 

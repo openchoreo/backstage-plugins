@@ -26,7 +26,7 @@ export interface DynamicCheckInput {
 
 /** Why a check can't be evaluated against the facts collected now. */
 export interface CheckProblem {
-  code: 'unknown-retriever' | 'unknown-fact' | 'invalid-rule';
+  code: 'unknown-retriever' | 'unknown-fact' | 'invalid-rule' | 'kind-mismatch';
   message: string;
   factRetrieverId?: string;
   /** JSON pointer into the rule at the condition an invalid rule fails on. */
@@ -88,8 +88,8 @@ export function factEntryFieldsOf(
 }
 
 /**
- * One registered fact retriever's schema, as returned by the host
- * tech-insights plugin's own `/fact-schemas` endpoint. Fact names are
+ * One registered fact retriever's schema, as returned by the dynamic-checks
+ * `/dynamic-checks/fact-schemas` endpoint. Fact names are
  * dynamic keys alongside the fixed `id`/`version`/`entityFilter` fields —
  * see `factFieldsOf` for how callers pull just the fact names back out.
  */
@@ -141,6 +141,7 @@ export interface DryRunReason {
     | 'unknown-retriever'
     | 'unknown-fact'
     | 'invalid-rule'
+    | 'kind-mismatch'
     | 'evaluation-error'
     | 'entity-filtered'
     | 'retriever-not-covering'

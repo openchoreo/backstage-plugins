@@ -3,6 +3,7 @@ import AssessmentIcon from '@material-ui/icons/Assessment';
 import {
   ApiBlueprint,
   configApiRef,
+  createExtensionInput,
   createFrontendFeatureLoader,
   createFrontendModule,
   createFrontendPlugin,
@@ -20,10 +21,15 @@ import {
   maturityApiRef,
   MaturityClient,
 } from '@backstage-community/plugin-tech-insights-maturity';
+import { CheckAuthoringAssistantBlueprint } from './alpha/CheckAuthoringAssistantBlueprint';
+import { checkAuthoringAssistantsApiRef } from './api/CheckAuthoringAssistantApi';
 import { dynamicChecksApiRef } from './api/DynamicChecksApi';
 import { DynamicChecksClient } from './api/DynamicChecksClient';
 import { ScorecardsGate } from './components/ScorecardsGate';
 import { DEFAULT_ENTITY_TAB_PATH, rootRouteRef } from './routes';
+
+export { CheckAuthoringAssistantBlueprint } from './alpha/CheckAuthoringAssistantBlueprint';
+export type { CheckAuthoringAssistant } from './api/CheckAuthoringAssistantApi';
 
 const DEFAULT_TITLE = 'Scorecards';
 
@@ -36,6 +42,31 @@ const dynamicChecksApi = ApiBlueprint.make({
       factory: ({ discoveryApi, fetchApi }) =>
         new DynamicChecksClient(discoveryApi, fetchApi),
     }),
+});
+
+/**
+ * Collects the `CheckAuthoringAssistantBlueprint` extensions a host installs
+ * and hands the first one to the check views.
+ */
+const checkAuthoringAssistantsApi = ApiBlueprint.makeWithOverrides({
+  name: 'check-authoring-assistants',
+  inputs: {
+    assistants: createExtensionInput([
+      CheckAuthoringAssistantBlueprint.dataRefs.assistant,
+    ]),
+  },
+  factory(originalFactory, { inputs }) {
+    const [assistant] = inputs.assistants.map(e =>
+      e.get(CheckAuthoringAssistantBlueprint.dataRefs.assistant),
+    );
+    return originalFactory(defineParams =>
+      defineParams({
+        api: checkAuthoringAssistantsApiRef,
+        deps: {},
+        factory: () => ({ assistant }),
+      }),
+    );
+  },
 });
 
 /**
@@ -137,6 +168,7 @@ export const techInsightsScorecardsPlugin = createFrontendPlugin({
   routes: { root: rootRouteRef },
   extensions: [
     dynamicChecksApi,
+    checkAuthoringAssistantsApi,
     scorecardsPage,
     entityScorecardContent,
     entityScorecardSummaryCard,

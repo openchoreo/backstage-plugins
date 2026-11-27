@@ -41,8 +41,8 @@ function setup(options: {
     store: {
       getLatestSchemas: jest
         .fn()
-        .mockImplementation(async (ids: string[]) =>
-          ids.includes('githubRepositoryFactRetriever')
+        .mockImplementation(async (ids?: string[]) =>
+          !ids || ids.includes('githubRepositoryFactRetriever')
             ? [{ id: 'githubRepositoryFactRetriever' }]
             : [],
         ),
@@ -121,6 +121,21 @@ describe('POST /dynamic-checks/validate', () => {
         rule,
       }),
     );
+  });
+});
+
+describe('GET /dynamic-checks/fact-schemas', () => {
+  it('returns the schemas from the evaluation store', async () => {
+    const { app } = await setup({ result: AuthorizeResult.ALLOW });
+    const response = await request(app).get('/dynamic-checks/fact-schemas');
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual([{ id: 'githubRepositoryFactRetriever' }]);
+  });
+
+  it('needs the read permission', async () => {
+    const { app } = await setup({ result: AuthorizeResult.DENY });
+    const response = await request(app).get('/dynamic-checks/fact-schemas');
+    expect(response.status).toBe(403);
   });
 });
 

@@ -143,7 +143,7 @@ describe('DynamicChecksClient', () => {
     ]);
     expect(fetch.mock.calls.map(([url]) => url)).toEqual([
       `${BASE_URL}/.backstage/scheduler/v1/tasks`,
-      `${BASE_URL}/fact-schemas`,
+      `${BASE_URL}/dynamic-checks/fact-schemas`,
     ]);
   });
 

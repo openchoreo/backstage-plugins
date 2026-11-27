@@ -3,6 +3,7 @@ import {
   createPlugin,
   discoveryApiRef,
   fetchApiRef,
+  identityApiRef,
 } from '@backstage/core-plugin-api';
 
 import {
@@ -35,9 +36,13 @@ export const openchoreoPortalAssistantPlugin = createPlugin({
   apis: [
     createApiFactory({
       api: portalAssistantApiRef,
-      deps: { discoveryApi: discoveryApiRef, fetchApi: fetchApiRef },
-      factory: ({ discoveryApi, fetchApi }) =>
-        new PortalAssistantClient({ discoveryApi, fetchApi }),
+      deps: {
+        discoveryApi: discoveryApiRef,
+        fetchApi: fetchApiRef,
+        identityApi: identityApiRef,
+      },
+      factory: ({ discoveryApi, fetchApi, identityApi }) =>
+        new PortalAssistantClient({ discoveryApi, fetchApi, identityApi }),
     }),
   ],
 });

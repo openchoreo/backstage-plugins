@@ -1,10 +1,31 @@
 import {
   DiscoveryApi,
   FetchApi,
+  IdentityApi,
   createApiRef,
 } from '@backstage/core-plugin-api';
 
-export type ChatMessage = { role: 'user' | 'assistant'; content: string };
+/**
+ * Carries the signed-in user's Backstage token to the Backstage backend
+ * forwarder (see PortalAssistantClient.streamChat).
+ */
+export const BACKSTAGE_IDENTITY_HEADER = 'x-backstage-identity';
+
+/**
+ * The drawer button a user message came from: its A2UI event's name and
+ * context. The agent follows a decision button's action, not its words; a
+ * typed message has none.
+ */
+export type ChatAction = {
+  name: string;
+  context?: Record<string, string | number>;
+};
+
+export type ChatMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+  action?: ChatAction;
+};
 
 /**
  * A single pre-rendered log row passed to the agent in
@@ -28,6 +49,31 @@ export type PrefetchedLogEntry = {
 };
 
 /**
+ * One fact exposed by a registered fact retriever, forwarded to the agent
+ * in {@link ChatScope.availableFactRetrievers} so it only references facts
+ * that actually exist on this backend instead of hallucinating names.
+ * Mirrors ``FactRetrieverField`` in portal-assistant's ``agent_routes.py``.
+ */
+export type FactRetrieverField = {
+  name: string;
+  type: string;
+  description?: string;
+};
+
+/**
+ * One registered fact retriever and the facts it exposes, as forwarded in
+ * {@link ChatScope.availableFactRetrievers}. Mirrors ``FactRetriever`` in
+ * portal-assistant's ``agent_routes.py`` — the check_authoring prompt
+ * branch renders this into the "Available facts" table in perch_prompt.j2.
+ */
+export type FactRetriever = {
+  id: string;
+  /** Entity kinds it collects facts for; absent when not limited to any. */
+  kinds?: string[];
+  facts: FactRetrieverField[];
+};
+
+/**
  * Discriminator the frontend launchers send to the agent so it can
  * layer in case-specific guidance.
  *
@@ -42,11 +88,16 @@ export type PrefetchedLogEntry = {
  *   connection can't resolve (the depended-on component is undeployed
  *   or not ready). The agent reads the binding's pending connections
  *   and explains why each named dependency is down plus how to recover.
+ * - ``check_authoring``: check-editor create/edit view launcher. The
+ *   agent drafts json-rules-engine check syntax from a plain-language
+ *   description; the user reviews it in the popup and copies it into
+ *   the Rule field themselves (no automatic insert yet).
  */
 export type ChatCaseType =
   | 'build_failure'
   | 'runtime_debug'
-  | 'dependency_pending';
+  | 'dependency_pending'
+  | 'check_authoring';
 
 export type ChatScope = {
   namespace?: string;
@@ -143,17 +194,136 @@ export type ChatScope = {
    * verbatim and never reads it itself.
    */
   componentPath?: string;
+
+  // ── Check-authoring scope fields (for caseType === 'check_authoring') ──
+
+  /**
+   * Fact retrievers registered on the tech-insights backend, forwarded so
+   * the check_authoring agent can draft ``rule.conditions`` against facts
+   * that actually exist instead of inventing names. Set by the "Generate
+   * with AI" and "Edit with AI" launchers from the same fact schemas
+   * response the form itself uses to populate the retriever picker.
+   */
+  availableFactRetrievers?: FactRetriever[];
+  /**
+   * Fact retriever ids already selected in the check-editor form. The agent
+   * treats these as a preference, not a hard restriction — it may still
+   * reach for a different retriever in ``availableFactRetrievers`` when the
+   * request needs a fact none of the selected ones provide.
+   */
+  selectedFactIds?: string[];
+  /**
+   * Set when the launcher is opened from the edit dialog of an existing
+   * check. The agent edits ``currentRule`` (the check's ``rule.conditions``
+   * as a JSON string) instead of drafting a new check, and uses the name
+   * and description to suggest related text changes.
+   */
+  checkId?: string;
+  checkName?: string;
+  checkDescription?: string;
+  currentRule?: string;
+  /** A level's message: the reply is the check authoring chat's welcome. */
+  welcome?: boolean;
+  /** How much the user knows about checks; check authoring only. */
+  experience?: Experience;
 };
+
+/** The level a check authoring user picked, for the agent to suit replies to. */
+export type Experience = 'beginner' | 'experienced';
 
 export type ChatRequest = {
   messages: ChatMessage[];
   scope?: ChatScope;
 };
 
+/** A suggested change to one text field of a check. */
+export type CheckTextChange = {
+  field: 'name' | 'description';
+  label: string;
+  old?: string | null;
+  new: string;
+};
+
+export type CheckStatus = 'draft' | 'published';
+
+/**
+ * A check change ready to save, sent before `done` in check-authoring chats:
+ * an edit (`kind: 'update'`) or a drafted new check (`kind: 'create'`). The
+ * drawer shows it as a confirm card; nothing is saved until the user picks
+ * a button, which sends `token` to {@link PortalAssistantApi.confirmChange}.
+ */
+export type ConfirmationRequired = {
+  type: 'confirmation_required';
+  token: string;
+  kind: 'update' | 'create';
+  check_name: string;
+  new_rule: string;
+  valid: boolean;
+  problems?: string[];
+  /** Numbers in the rule its texts don't match; shown, not blocking. */
+  warnings?: string[];
+  /** Tested on a component in this turn: offer only to save, not another test. */
+  tested?: boolean;
+  /** The user skipped the test or asked to save: offer only to save. */
+  test_skipped?: boolean;
+  /**
+   * A beginner's practice check (the welcome's example): once tested, the
+   * card offers what to do next instead of saving.
+   */
+  example?: boolean;
+  /** Edits only. */
+  check_id?: string | null;
+  status?: CheckStatus | null;
+  current_rule?: string | null;
+  text_changes?: CheckTextChange[];
+  /** New checks only. */
+  description?: string | null;
+  fact_ids?: string[];
+  category?: string | null;
+  tier?: string | null;
+  /** Entity kinds the check will apply to; empty when not limited to any. */
+  applies_to?: string[];
+};
+
+/**
+ * UI for a reply, sent before `done`: A2UI v1.0 messages (`createSurface` …)
+ * built by the agent's code. The drawer renders them under the reply; a
+ * button's `userMessage` is sent as the user's next message. Today: the
+ * answer buttons of a check edit's confirmation question.
+ */
+export type A2uiEvent = {
+  type: 'a2ui';
+  messages: unknown[];
+};
+
+/**
+ * A dry_run_check result, sent as soon as it comes back so the drawer can
+ * show it while the reply is still being written. The words are the ones
+ * its test card shows at the end: `title` is the component, `subtitle` its
+ * kind, and `sections` what the rule needs and what the component has.
+ */
+export type DryRunResult = {
+  type: 'dry_run_result';
+  status: 'passed' | 'failed' | 'not-applicable';
+  title: string;
+  subtitle?: string;
+  summary: string;
+  sections: { label: string; lines: { label: string; value: string }[] }[];
+};
+
+/** What the confirm endpoint saved. */
+export type ConfirmResult = {
+  check_id: string;
+  /** The check's status now — differs from the one asked for when only the save worked. */
+  status: CheckStatus;
+  message: string;
+};
+
 // Mirrors the StreamEvent discriminated union emitted by portal-assistant.
 // Inlined here (rather than imported from a shared package) so this
-// plugin ships independent of other openchoreo plugins. The agent is
-// read-only — there is no `actions` event variant.
+// plugin ships independent of other openchoreo plugins. The agent itself
+// never writes: a check change arrives as `confirmation_required` and is
+// saved only through confirmChange, on the user's click.
 export type StreamEvent =
   | { type: 'tool_call'; tool: string; activeForm?: string; args?: string }
   | { type: 'message_chunk'; content: string }
@@ -171,6 +341,9 @@ export type StreamEvent =
        */
       fix_prompt?: string;
     }
+  | ConfirmationRequired
+  | A2uiEvent
+  | DryRunResult
   | { type: 'error'; message: string };
 
 export interface PortalAssistantApi {
@@ -179,6 +352,17 @@ export interface PortalAssistantApi {
     onEvent: (event: StreamEvent) => void,
     signal?: AbortSignal,
   ): Promise<void>;
+  /**
+   * Saves the check change on a confirm card, as the signed-in user, and
+   * leaves the check in `status`. `applyTexts` also saves the card's
+   * suggested Name / Description. Rejects with the reason
+   * when nothing was saved.
+   */
+  confirmChange(
+    token: string,
+    status: CheckStatus,
+    applyTexts: boolean,
+  ): Promise<ConfirmResult>;
   /**
    * Fire-and-forget call that pre-populates the per-user MCP tools cache on
    * the agent so the user's first chat doesn't pay the 6-9s tool-listing
@@ -218,10 +402,32 @@ export const portalAssistantApiRef = createApiRef<PortalAssistantApi>({
 export class PortalAssistantClient implements PortalAssistantApi {
   private readonly discoveryApi: DiscoveryApi;
   private readonly fetchApi: FetchApi;
+  private readonly identityApi: IdentityApi;
 
-  constructor(options: { discoveryApi: DiscoveryApi; fetchApi: FetchApi }) {
+  constructor(options: {
+    discoveryApi: DiscoveryApi;
+    fetchApi: FetchApi;
+    identityApi: IdentityApi;
+  }) {
     this.discoveryApi = options.discoveryApi;
     this.fetchApi = options.fetchApi;
+    this.identityApi = options.identityApi;
+  }
+
+  /**
+   * The signed-in user's Backstage token, for the Backstage backend forwarder
+   * to act on the user's behalf. Direct mode puts the OpenChoreo token in
+   * `Authorization`, so this rides in its own header. The forwarder is on
+   * the Backstage backend itself and never passes this header on; without a
+   * token the chat still works, read-only.
+   */
+  private async backstageIdentityHeaders(): Promise<Record<string, string>> {
+    try {
+      const { token } = await this.identityApi.getCredentials();
+      return token ? { [BACKSTAGE_IDENTITY_HEADER]: token } : {};
+    } catch {
+      return {};
+    }
   }
 
   async streamChat(
@@ -240,6 +446,7 @@ export class PortalAssistantClient implements PortalAssistantApi {
       headers: {
         'Content-Type': 'application/json',
         'x-openchoreo-direct': 'true',
+        ...(await this.backstageIdentityHeaders()),
       },
       signal,
     });
@@ -313,5 +520,38 @@ export class PortalAssistantClient implements PortalAssistantApi {
     } catch {
       // best-effort — first chat will simply pay the cache miss
     }
+  }
+
+  async confirmChange(
+    token: string,
+    status: CheckStatus,
+    applyTexts: boolean,
+  ): Promise<ConfirmResult> {
+    const base = await this.discoveryApi.getBaseUrl(
+      'openchoreo-portal-assistant-backend',
+    );
+    const response = await this.fetchApi.fetch(
+      `${base}/api/v1alpha1/portal-assistant/chat/confirm`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ token, status, applyTexts }),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-openchoreo-direct': 'true',
+          ...(await this.backstageIdentityHeaders()),
+        },
+      },
+    );
+    if (!response.ok) {
+      let message = response.statusText;
+      try {
+        const body = await response.json();
+        message = body?.detail?.message ?? body?.message ?? message;
+      } catch {
+        // keep statusText
+      }
+      throw new Error(message || 'The change could not be saved.');
+    }
+    return (await response.json()) as ConfirmResult;
   }
 }

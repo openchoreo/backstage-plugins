@@ -25,13 +25,37 @@ import remarkGfm from 'remark-gfm';
 import remend from 'remend';
 import {
   portalAssistantApiRef,
+  type ChatAction,
   type ChatMessage,
   type ChatScope,
+  type ConfirmationRequired,
+  type ConfirmResult,
+  type DryRunResult,
+  type Experience,
   type StreamEvent,
 } from '../../api/PortalAssistantApi';
 import type { PinnedContext } from '../AssistantContext/AssistantDrawerContext';
+import { AgentUi, hasReplyCard, hasSaveCard } from '../AgentUi/AgentUi';
+import type { AgentUiComposer, OpenedCheck } from '../AgentUi/context';
+import { ComponentPicker } from '../ComponentPicker/ComponentPicker';
+import {
+  ConfirmCard,
+  ConfirmCardNextStep,
+  ConfirmCardSkipTest,
+  SHOW_FACTS,
+  ConfirmCardTestPicker,
+  type SavedCheck,
+} from '../ConfirmCard/ConfirmCard';
+import { LiveProgressCard } from '../LiveProgressCard/LiveProgressCard';
 import { useStyles } from './styles';
 import { splitForCollapse, splitForStreaming } from './splitForCollapse';
+import { editCheckIntro } from './editCheckIntro';
+import {
+  EXPERIENCE_LEVELS,
+  newCheckIntro,
+  OWN_CHECK_HINT,
+} from './newCheckIntro';
+import { SavedNextStep } from './SavedNextStep';
 
 /**
  * Strip ``<comp:NAME>`` / ``<proj:NAME>`` / ``<env:NAME>`` /
@@ -47,6 +71,25 @@ const ENTITY_TAG_RE = /<(?:comp|proj|env|ns):([^>]+)>/g;
 function stripEntityTags(text: string): string {
   return text.replace(ENTITY_TAG_RE, '`$1`');
 }
+
+/** The scope fields of a chat about a saved check (see ChatScope.checkId). */
+function checkScope(check: OpenedCheck): Partial<ChatScope> {
+  return {
+    checkId: check.checkId,
+    checkName: check.name,
+    ...(check.description ? { checkDescription: check.description } : {}),
+    currentRule: check.rule,
+    ...(check.factIds?.length ? { selectedFactIds: check.factIds } : {}),
+  };
+}
+
+// A check authoring reply's hand-off from the live progress card: the card
+// shows every step done for READY_MS, then folds away over LEAVE_MS while
+// the reply fades in where it was (styles: handoff, handedOff).
+const READY_MS = 300;
+const LEAVE_MS = 280;
+const pause = (ms: number) =>
+  new Promise<void>(resolve => setTimeout(resolve, ms));
 
 // Module-level sentinel — a per-render symbol would never match the previous
 // render's symbol, breaking the conversationKey continuity check.
@@ -118,6 +161,8 @@ interface Props {
    * particular workflow run) and want chips to reference it by name.
    */
   suggestions?: string[];
+  /** Called after a confirm card in this chat saves a check. */
+  onChecksChanged?: () => void;
 }
 
 export const AssistantChatDrawer = ({
@@ -129,6 +174,7 @@ export const AssistantChatDrawer = ({
   conversationKey,
   resetConversation,
   suggestions,
+  onChecksChanged,
   openSeq,
 }: Props) => {
   const classes = useStyles();
@@ -139,7 +185,10 @@ export const AssistantChatDrawer = ({
   // but new turns use the latest scope. The pinned context (if any)
   // overrides URL-derived component/namespace so an explicit pin always wins.
   // scopeOverrides is applied last and wins over everything.
-  const scope = useMemo(() => {
+  // How much a check authoring user knows about checks: picked in the first
+  // message of each chat (not remembered for the next one).
+  const [experience, setExperience] = useState<Experience>();
+  const baseScope = useMemo(() => {
     const fromPath = deriveScopeFromPath(location.pathname);
     const fromPin: ChatScope = pin
       ? {
@@ -159,8 +208,38 @@ export const AssistantChatDrawer = ({
           componentPath: pin.componentPath,
         }
       : fromPath;
-    return scopeOverrides ? { ...fromPin, ...scopeOverrides } : fromPin;
-  }, [location.pathname, pin, scopeOverrides]);
+    const merged = scopeOverrides ? { ...fromPin, ...scopeOverrides } : fromPin;
+    return merged.caseType === 'check_authoring' && experience
+      ? { ...merged, experience }
+      : merged;
+  }, [location.pathname, pin, scopeOverrides, experience]);
+
+  // Once a save card saved a check, the rest of the chat is about that
+  // check, as an edit chat for it: a test only tests it, and a later change
+  // updates it instead of creating another check. Cleared with the chat.
+  const [savedCheck, setSavedCheck] = useState<SavedCheck>();
+  const scope = useMemo<ChatScope>(
+    () =>
+      savedCheck ? { ...baseScope, ...checkScope(savedCheck) } : baseScope,
+    [baseScope, savedCheck],
+  );
+
+  // "Edit with AI" opens with an intro to the check instead: its current
+  // rule and two questions, drawn by the drawer (editCheckIntro). It is
+  // worked out from the scope, never sent to the agent, and survives Clear.
+  const editIntro = useMemo(
+    () =>
+      baseScope.caseType === 'check_authoring' && baseScope.checkId
+        ? editCheckIntro(baseScope)
+        : undefined,
+    [baseScope],
+  );
+  // A new check's chat opens with its own intro card (newCheckIntro): the
+  // opening, the levels and the user's own check, the same every time.
+  const newIntro = useMemo(() => newCheckIntro(), []);
+  // A new check's chat opens with the level picker, in fixed words, at once.
+  // Picking a level sends its message, and the agent's reply is the welcome
+  // for that level — an ordinary turn of the chat.
 
   // The agent is read-only — every timeline item is a plain user / assistant
   // message. The unified-item shape is kept (rather than ChatMessage[])
@@ -171,17 +250,67 @@ export const AssistantChatDrawer = ({
   // turns with a code-level cause). The drawer uses its presence to
   // gate the per-message "Copy as prompt" affordance — the frontend
   // never synthesises this; it copies the backend payload verbatim.
-  type ChatItem = {
-    kind: 'message';
-    role: 'user' | 'assistant';
-    content: string;
-    fixPrompt?: string;
-  };
+  //
+  // ``confirmation`` is the check change the agent sent with this turn
+  // (check_authoring only), rendered as a confirm card under the reply.
+  //
+  // ``ui`` is the A2UI messages the agent sent with this turn (today the
+  // answer buttons of a check edit question), rendered under the reply.
+  //
+  // ``handedOff`` marks a reply that took the live progress card's place:
+  // it fades in where the card was.
+  //
+  // A ``next`` item is the drawer's own follow-up after a save card saved
+  // a check (SavedNextStep): it is shown, never sent to the agent. So is an
+  // ``intro`` item: the "Edit this check" intro of a saved check the user
+  // chose to edit instead of creating the same check again.
+  type ChatItem =
+    | {
+        kind: 'message';
+        role: 'user' | 'assistant';
+        content: string;
+        // The button a user message came from (see ChatAction).
+        action?: ChatAction;
+        fixPrompt?: string;
+        confirmation?: ConfirmationRequired;
+        ui?: unknown[];
+        handedOff?: boolean;
+      }
+    | { kind: 'next'; saved: SavedCheck }
+    | { kind: 'intro'; ui: unknown[] };
+
+  /** Whether an item carries a save card (as A2UI or the plain card). */
+  const hasSave = (item: ChatItem) =>
+    item.kind === 'message' && (!!item.confirmation || hasSaveCard(item.ui));
 
   const [timeline, setTimeline] = useState<ChatItem[]>([]);
+  // The drawer stays mounted while closed: opened again with no chat yet is
+  // a new chat, so it asks for the level again. A chat under way keeps it.
+  const wasOpen = useRef(open);
+  const timelineEmpty = timeline.length === 0;
+  useEffect(() => {
+    if (open && !wasOpen.current && timelineEmpty) {
+      setExperience(undefined);
+    }
+    wasOpen.current = open;
+  }, [open, timelineEmpty]);
   const [input, setInput] = useState('');
+  // A card's hint for what to type next ("Tell me something else"); cleared once a
+  // message is sent.
+  const [composerHint, setComposerHint] = useState<string | null>(null);
   const [streaming, setStreaming] = useState<string>('');
   const [toolStatus, setToolStatus] = useState<string | null>(null);
+  // What the turn in flight has done so far, for the live progress card of
+  // a check authoring turn: each step the agent reported (newest last) and
+  // a dry-run's result. ``ready`` once the reply has arrived, ``leaving``
+  // while the reply takes the card's place. Null when no turn is waiting.
+  const [progress, setProgress] = useState<{
+    steps: string[];
+    result?: DryRunResult;
+    startedAt: number;
+    ready?: boolean;
+    leaving?: boolean;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   // Toast for the "Copy as prompt" action on build_failure assistant
@@ -209,22 +338,70 @@ export const AssistantChatDrawer = ({
   // Forwarded to TextField.inputRef so the seed effect can focus the
   // composer after drafting a launcher's prefilled message.
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
+  // The message box as a check authoring chat's cards use it: they type
+  // into it and point the user to it instead of having their own box and
+  // Send (see AgentUiComposerContext). Other chats' cards keep theirs.
+  const composer = useMemo<AgentUiComposer | undefined>(
+    () =>
+      scope.caseType === 'check_authoring'
+        ? {
+            write: text => {
+              setInput(text);
+              composerRef.current?.focus();
+            },
+            focus: hint => {
+              setComposerHint(hint || null);
+              composerRef.current?.focus();
+            },
+          }
+        : undefined,
+    [scope.caseType],
+  );
 
   // Helpers — derive text-only ChatMessage history (what the backend wants)
   // from the unified timeline.
   const messageHistory: ChatMessage[] = useMemo(
-    () => timeline.map(({ role, content }) => ({ role, content })),
+    () =>
+      timeline.flatMap(item =>
+        item.kind === 'message'
+          ? [
+              {
+                role: item.role,
+                content: item.content,
+                ...(item.action ? { action: item.action } : {}),
+              },
+            ]
+          : [],
+      ),
     [timeline],
   );
 
   const abortRef = useRef<AbortController | null>(null);
   const bodyRef = useRef<HTMLDivElement | null>(null);
+  // The latest reply, while it is one handed off from the live progress card.
+  const handedOffRef = useRef<HTMLDivElement | null>(null);
+  // Counts turns and resets, so a hand-off still pausing when the chat is
+  // cleared or a new one starts leaves the new timeline alone.
+  const turnRef = useRef(0);
 
-  // Auto-scroll to the bottom on new content.
+  // Auto-scroll to the bottom on new content — except to a handed-off reply
+  // taller than the drawer: show its head, where the card was, not its end.
   useEffect(() => {
     const el = bodyRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [timeline, streaming, toolStatus, error]);
+    if (!el) return;
+    const reply = handedOffRef.current;
+    if (reply && reply.offsetHeight > el.clientHeight) {
+      el.scrollTo({
+        top:
+          el.scrollTop +
+          reply.getBoundingClientRect().top -
+          el.getBoundingClientRect().top,
+        behavior: 'smooth',
+      });
+    } else {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [timeline, streaming, toolStatus, progress, error]);
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();
@@ -232,9 +409,14 @@ export const AssistantChatDrawer = ({
 
   const handleClear = useCallback(() => {
     abortRef.current?.abort();
+    turnRef.current++;
     setTimeline([]);
+    setSavedCheck(undefined);
     setStreaming('');
     setToolStatus(null);
+    setProgress(null);
+    setComposerHint(null);
+    setExperience(undefined);
     setError(null);
     // expandedPrompts is keyed by timeline index, so it must be wiped
     // whenever the timeline is — otherwise indices from the previous
@@ -292,14 +474,32 @@ export const AssistantChatDrawer = ({
   }, []);
 
   const sendMessage = useCallback(
-    async (rawText: string, options?: { resetHistory?: boolean }) => {
+    async (
+      rawText: string,
+      options?: {
+        resetHistory?: boolean;
+        // Added to this turn's scope only (e.g. the level just picked).
+        scope?: Partial<ChatScope>;
+        // About a new check, not the one saved in this chat.
+        newCheck?: boolean;
+        // The button it came from; none when typed.
+        action?: ChatAction;
+      },
+    ) => {
       const trimmed = rawText.trim();
       if (!trimmed || isSending) return;
+      const turn = ++turnRef.current;
+      const chatScope = options?.newCheck ? baseScope : scope;
+      const turnScope = options?.scope
+        ? { ...chatScope, ...options.scope }
+        : chatScope;
 
+      const action = options?.action;
       const userItem: ChatItem = {
         kind: 'message',
         role: 'user',
         content: trimmed,
+        ...(action ? { action } : {}),
       };
       // resetHistory: true means start a fresh conversation — both the
       // visible timeline and the request body sent to the agent drop the
@@ -311,7 +511,7 @@ export const AssistantChatDrawer = ({
         : messageHistory;
       const nextHistory: ChatMessage[] = [
         ...baseHistory,
-        { role: 'user', content: trimmed },
+        { role: 'user', content: trimmed, ...(action ? { action } : {}) },
       ];
       // resetHistory has no in-component caller today; the option is kept
       // for external callers that may be wired up later. Skip the truthy
@@ -327,18 +527,25 @@ export const AssistantChatDrawer = ({
         setTimeline(prev => [...prev, userItem]);
       }
       setIsSending(true);
+      setComposerHint(null);
       setStreaming('');
       setToolStatus(null);
+      setProgress({ steps: [], startedAt: Date.now() });
       setError(null);
 
       const controller = new AbortController();
       abortRef.current = controller;
+      // Arrive before ``done``; attached to the reply they belong to.
+      let confirmation: ConfirmationRequired | undefined;
+      let ui: unknown[] | undefined;
+      // A check authoring reply taking the live progress card's place.
+      let handoff: Promise<void> | undefined;
 
       try {
         await api.streamChat(
           {
             messages: nextHistory,
-            scope: Object.keys(scope).length > 0 ? scope : undefined,
+            scope: Object.keys(turnScope).length > 0 ? turnScope : undefined,
           },
           (event: StreamEvent) => {
             switch (event.type) {
@@ -346,32 +553,76 @@ export const AssistantChatDrawer = ({
                 setStreaming(prev => prev + event.content);
                 setToolStatus(null);
                 break;
-              case 'tool_call':
-                setToolStatus(event.activeForm ?? `Running ${event.tool}…`);
+              case 'tool_call': {
+                const step = event.activeForm ?? `Running ${event.tool}…`;
+                setToolStatus(step);
+                setProgress(prev =>
+                  prev && prev.steps[prev.steps.length - 1] !== step
+                    ? { ...prev, steps: [...prev.steps, step] }
+                    : prev,
+                );
                 break;
-              case 'done':
-                if (typeof event.message === 'string' && event.message !== '') {
-                  setTimeline(prev => [
-                    ...prev,
-                    {
-                      kind: 'message',
-                      role: 'assistant',
-                      content: event.message,
-                      // Snake_case on the wire (matches the backend's
-                      // DoneEvent field). Only set on build_failure
-                      // turns where the agent surfaced a code-level
-                      // cause; absent for everything else.
-                      fixPrompt: event.fix_prompt || undefined,
-                    },
-                  ]);
-                }
+              }
+              case 'dry_run_result':
+                setProgress(prev => prev && { ...prev, result: event });
+                break;
+              case 'confirmation_required':
+                confirmation = event;
+                break;
+              case 'a2ui':
+                ui = event.messages;
+                break;
+              case 'done': {
+                const reply: ChatItem | undefined =
+                  typeof event.message === 'string' && event.message !== ''
+                    ? {
+                        kind: 'message',
+                        role: 'assistant',
+                        content: event.message,
+                        // Snake_case on the wire (matches the backend's
+                        // DoneEvent field). Only set on build_failure
+                        // turns where the agent surfaced a code-level
+                        // cause; absent for everything else.
+                        fixPrompt: event.fix_prompt || undefined,
+                        confirmation,
+                        ui,
+                      }
+                    : undefined;
                 setStreaming('');
                 setToolStatus(null);
+                // A check authoring reply takes the live progress card's
+                // place smoothly, unless the browser asks for reduced
+                // motion (or can't tell).
+                const smooth =
+                  scope.caseType === 'check_authoring' &&
+                  window.matchMedia?.('(prefers-reduced-motion: no-preference)')
+                    .matches;
+                if (!smooth) {
+                  if (reply) setTimeline(prev => [...prev, reply]);
+                  setProgress(null);
+                  break;
+                }
+                handoff = (async () => {
+                  setProgress(prev => prev && { ...prev, ready: true });
+                  await pause(READY_MS);
+                  if (turnRef.current !== turn) return;
+                  if (reply) {
+                    setTimeline(prev => [
+                      ...prev,
+                      { ...reply, handedOff: true },
+                    ]);
+                  }
+                  setProgress(prev => prev && { ...prev, leaving: true });
+                  await pause(LEAVE_MS);
+                  if (turnRef.current === turn) setProgress(null);
+                })();
                 break;
+              }
               case 'error':
                 setError(event.message);
                 setStreaming('');
                 setToolStatus(null);
+                setProgress(null);
                 break;
               default:
                 break;
@@ -379,6 +630,9 @@ export const AssistantChatDrawer = ({
           },
           controller.signal,
         );
+        // The turn (and the disabled composer) lasts until the reply has
+        // taken the card's place.
+        await handoff;
       } catch (err) {
         if (err instanceof Error && err.name !== 'AbortError') {
           setError(err.message);
@@ -388,7 +642,7 @@ export const AssistantChatDrawer = ({
         abortRef.current = null;
       }
     },
-    [api, isSending, messageHistory, scope],
+    [api, isSending, messageHistory, scope, baseScope],
   );
 
   const handleSend = useCallback(async () => {
@@ -409,6 +663,123 @@ export const AssistantChatDrawer = ({
     },
     [sendMessage],
   );
+
+  // A save card saved a check: refresh the page's check list and carry on
+  // with the saved check.
+  const handleSaved = useCallback(
+    (_result: ConfirmResult, saved: SavedCheck) => {
+      onChecksChanged?.();
+      setSavedCheck(saved);
+      setTimeline(prev => [...prev, { kind: 'next', saved }]);
+    },
+    [onChecksChanged],
+  );
+
+  // The user chose to edit a saved check a card found like their draft: the
+  // rest of the chat is about that check, as after a save. A change to make
+  // is sent at once, in that check's scope; without one, the check's "Edit
+  // this check" intro shows, as from "Edit with AI".
+  const handleOpenCheck = useCallback(
+    (check: OpenedCheck, message?: string) => {
+      if (isSending) return;
+      setSavedCheck({
+        ...check,
+        kind: 'update',
+        wasPublished: check.status === 'published',
+      });
+      if (message) {
+        void sendMessage(message, { scope: checkScope(check) });
+      } else {
+        const ui = editCheckIntro({ ...baseScope, ...checkScope(check) });
+        setTimeline(prev => [...prev, { kind: 'intro', ui }]);
+      }
+    },
+    [isSending, baseScope, sendMessage],
+  );
+
+  // After a beginner tested the welcome's example: the facts list, as a user
+  // familiar with checks sees it, and the rest of the chat suits that level.
+  // A new check, not the example.
+  const showFacts = useCallback(() => {
+    if (isSending) return;
+    setSavedCheck(undefined);
+    setExperience('experienced');
+    void sendMessage(SHOW_FACTS.label, {
+      newCheck: true,
+      scope: { experience: 'experienced', welcome: true },
+      action: { name: 'show_facts' },
+    });
+  }, [isSending, sendMessage]);
+
+  // The practice check's card, once tested: the areas, or their own check
+  // in the message box, with the same hint as the new check intro's.
+  const nextStep = useMemo(
+    () => ({
+      onShowFacts: showFacts,
+      onSomethingElse: () => composer?.focus(OWN_CHECK_HINT),
+    }),
+    [showFacts, composer],
+  );
+
+  // The full ref ("component:default/order-api") so the agent never guesses
+  // a namespace. The agent follows the action; the words are for the chat.
+  const testOn = useCallback(
+    (entityRef: string) => {
+      void sendMessage(`Test it on ${entityRef}`, {
+        action: { name: 'test', context: { entityRef } },
+      });
+    },
+    [sendMessage],
+  );
+
+  // The kinds a check applies to: the save card's, or else those of its
+  // facts' retrievers. Empty (Components) when it isn't limited.
+  const kindsOf = useCallback(
+    (appliesTo?: string[], factIds?: string[]) => {
+      if (appliesTo?.length) return appliesTo;
+      const ids = factIds?.length ? factIds : scope.selectedFactIds ?? [];
+      return Array.from(
+        new Set(
+          (scope.availableFactRetrievers ?? [])
+            .filter(retriever => ids.includes(retriever.id))
+            .flatMap(retriever => retriever.kinds ?? []),
+        ),
+      );
+    },
+    [scope],
+  );
+
+  const renderTestPicker = useCallback(
+    (card: ConfirmationRequired) => (
+      <ComponentPicker
+        kinds={kindsOf(card.applies_to, card.fact_ids)}
+        disabled={isSending}
+        onTest={testOn}
+      />
+    ),
+    [kindsOf, isSending, testOn],
+  );
+
+  // A level picked: it sends that level's message as the chat's first, and
+  // the agent answers with the welcome for the level (scope.welcome).
+  const pickExperience = useCallback(
+    (value: Experience) => {
+      const level = EXPERIENCE_LEVELS.find(l => l.value === value);
+      if (!level || isSending) return;
+      setExperience(value);
+      void sendMessage(level.message, {
+        scope: { experience: value, welcome: true },
+        action: { name: 'pick_level', context: { level: value } },
+      });
+    },
+    [isSending, sendMessage],
+  );
+
+  // A save card's "Skip the test": the agent sends the card again, ready to
+  // save, without a model call (card_for_save_request).
+  const skipTest = useCallback(() => {
+    void sendMessage('Skip the test', { action: { name: 'skip_test' } });
+  }, [sendMessage]);
 
   // When an external trigger (e.g. failed-build snackbar / Investigate
   // launcher) opens the drawer with a pre-seeded message, **draft it
@@ -452,9 +823,14 @@ export const AssistantChatDrawer = ({
     // error state so the user sees a clean slate, then prefill the
     // composer with the launcher's draft message.
     abortRef.current?.abort();
+    turnRef.current++;
     setTimeline([]);
+    setSavedCheck(undefined);
+    setExperience(undefined);
     setStreaming('');
     setToolStatus(null);
+    setProgress(null);
+    setComposerHint(null);
     setError(null);
     // Wipe the index-keyed expander state alongside the timeline — see
     // handleClear for the rationale.
@@ -532,268 +908,389 @@ export const AssistantChatDrawer = ({
       </Box>
 
       <div className={classes.body} ref={bodyRef}>
-        {timeline.length === 0 && !streaming && !toolStatus && (
-          <Box className={classes.emptyState}>
-            <Typography variant="body2">
-              {(() => {
-                if (scope.caseType === 'build_failure') {
-                  return (
-                    <>
-                      Ask anything about builds for{' '}
-                      <em>{scope.component ?? 'this component'}</em> — failed
-                      runs, build configuration, workflows.
-                    </>
-                  );
-                }
-                if (scope.caseType === 'runtime_debug') {
-                  // The same empty-state copy covers both anchors —
-                  // the bridge between logs and traces is the whole
-                  // point of runtime_debug.
-                  const subject =
-                    scope.component ?? scope.project ?? 'this service';
-                  return (
-                    <>
-                      Ask anything about runtime behaviour for{' '}
-                      <em>{subject}</em> — errors, slow requests, the path
-                      between a log line and the request that produced it.
-                    </>
-                  );
-                }
-                return (
-                  <>
-                    Ask anything about your platform — components, projects,
-                    environments.
-                  </>
-                );
-              })()}
-            </Typography>
-            {(() => {
-              // Launcher-supplied chips win when present (e.g. trace
-              // launcher tailoring chips to the focused trace's
-              // metadata). Otherwise fall back to the per-caseType
-              // defaults below so the drawer still has helpful starter
-              // prompts when opened from the generic FAB.
-              //
-              // Default chips can carry a shorter ``label`` than the
-              // ``message`` that gets sent — the chip surface is narrow
-              // but the agent benefits from a fuller, less ambiguous
-              // prompt. Launcher-supplied chips stay verbatim
-              // (label === message) for back-compat with existing callers.
-              let chips: { label: string; message: string }[] = (
-                suggestions ?? []
-              ).map(s => ({ label: s, message: s }));
-              if (chips.length === 0) {
-                if (scope.caseType === 'build_failure') {
-                  chips = [
-                    {
-                      label: 'Why did the build fail?',
-                      message: 'Why did the build fail?',
-                    },
-                  ];
-                } else if (scope.caseType === 'runtime_debug') {
-                  // runtime_debug is launched from the Logs tab today;
-                  // there's no trace-anchored launcher. Per-row
-                  // InvestigateLogButton can override these with
-                  // pinned-log-aware suggestions.
-                  //
-                  // ``label === message`` is intentional — what the
-                  // user sees on the chip is what lands in the chat
-                  // as their turn. Earlier versions used a verbose
-                  // ``message`` to give the model extra hints
-                  // ("…in these logs", "…in the window"), but the
-                  // runtime_debug scope now carries prefetchedLogs,
-                  // logLevels, logsStartTime/End and pinnedLog* — so
-                  // those hints are redundant and just bloat the
-                  // visible user-turn in the drawer.
-                  chips = [
-                    {
-                      label: 'Investigate the error',
-                      message: 'Investigate the error',
-                    },
-                    {
-                      label: 'What triggered this?',
-                      message: 'What triggered this?',
-                    },
-                    {
-                      label: 'When did this start?',
-                      message: 'When did this start?',
-                    },
-                  ];
-                } else {
-                  chips = [
-                    {
-                      label: 'List my components',
-                      message: 'List my components',
-                    },
-                    {
-                      label: 'Which environments are configured?',
-                      message: 'Which environments are configured?',
-                    },
-                    {
-                      label: 'Show projects in this namespace',
-                      message: 'Show projects in this namespace',
-                    },
-                  ];
-                }
-              }
-              return (
-                <Box className={classes.suggestionStrip}>
-                  {chips.map(c => (
-                    <Chip
-                      key={c.label}
-                      label={c.label}
-                      variant="outlined"
-                      size="small"
-                      clickable
-                      className={classes.suggestionChip}
-                      onClick={() => handleSuggestion(c.message)}
-                    />
-                  ))}
+        {/* Save cards offer a test before saving with this picker. */}
+        <ConfirmCardTestPicker.Provider value={renderTestPicker}>
+          <ConfirmCardSkipTest.Provider value={skipTest}>
+            <ConfirmCardNextStep.Provider value={nextStep}>
+              {editIntro && (
+                <Box className={`${classes.message} ${classes.assistant}`}>
+                  <AgentUi
+                    messages={editIntro}
+                    // Like the agent's cards: answerable until the chat moves on.
+                    disabled={isSending || timeline.length > 0}
+                    onAction={(text, action) => sendMessage(text, { action })}
+                    composer={composer}
+                  />
                 </Box>
-              );
-            })()}
-          </Box>
-        )}
+              )}
 
-        {timeline.map((item, i) => {
-          // User turns never contain an Evidence section — bypass the
-          // splitter and render verbatim. For assistant turns, split
-          // the diagnosis + next action from the supporting evidence
-          // so the actionable bits aren't scrolled out of view by a
-          // long bullet list. ``<details>`` is closed by default
-          // (collapsed) — the user opts in to seeing the evidence.
-          // Streaming-buffer rendering (below) deliberately skips this
-          // split: while tokens are arriving the response may not yet
-          // contain both opener and closer, and splitting mid-stream
-          // would reflow as the closer lands. The drawer's existing
-          // ``done`` handler clears the streaming buffer and the
-          // message lands in the timeline where the split applies.
-          const normalised = stripEntityTags(item.content);
-          if (item.role === 'user') {
-            return (
-              <Box
-                key={`m-${i}`}
-                className={`${classes.message} ${classes.user}`}
-              >
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {normalised}
-                </ReactMarkdown>
-              </Box>
-            );
-          }
-          const { summary, details } = splitForCollapse(normalised);
-          return (
-            <Box
-              key={`m-${i}`}
-              className={`${classes.message} ${classes.assistant}`}
-            >
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {summary}
-              </ReactMarkdown>
-              {item.fixPrompt && (
-                // Banner sits BETWEEN the summary and the <details>
-                // expander so the affordance is visible the moment the
-                // diagnosis lands — a small icon buried under
-                // "Show details" was easy to miss. Gate strictly on
-                // backend-supplied fixPrompt: build_failure turns
-                // without a code-level cause and runtime_debug turns
-                // with no actionable handoff (empty logs, trace not
-                // found) intentionally have it unset and the banner
-                // does not render. Recipient differs by case_type —
-                // build_failure targets a coding bot, runtime_debug
-                // targets an AI with the OpenChoreo MCP server +
-                // kubectl — but the rendering path is the same.
-                <>
-                  <Box
-                    className={`${classes.fixPromptBanner}${
-                      expandedPrompts.has(i)
-                        ? ` ${classes.fixPromptBannerOpen}`
-                        : ''
-                    }`}
-                  >
-                    <Box className={classes.fixPromptBannerLabel}>
-                      <AndroidOutlinedIcon
-                        className={classes.fixPromptBannerIcon}
-                      />
-                      <Typography
-                        variant="caption"
-                        className={classes.fixPromptBannerText}
-                      >
-                        Prompt for AI Agents
-                      </Typography>
-                    </Box>
-                    <Box className={classes.fixPromptBannerActions}>
-                      <Tooltip
-                        title={
-                          expandedPrompts.has(i) ? 'Hide prompt' : 'Show prompt'
+              {/* A new check's first message, a card like the agent's; it
+                stays at the top of the chat, read-only once it moves on. */}
+              {baseScope.caseType === 'check_authoring' && !editIntro && (
+                <Box className={`${classes.message} ${classes.assistant}`}>
+                  <AgentUi
+                    messages={newIntro}
+                    disabled={isSending || timeline.length > 0}
+                    // A level sends its message with the level's scope.
+                    onAction={(text, action) => {
+                      const level = EXPERIENCE_LEVELS.find(
+                        l => l.value === action.context?.level,
+                      );
+                      if (action.name === 'pick_level' && level) {
+                        pickExperience(level.value);
+                      } else void sendMessage(text, { action });
+                    }}
+                    composer={composer}
+                  />
+                </Box>
+              )}
+
+              {/* A check authoring chat opens with its level picker instead. */}
+              {baseScope.caseType !== 'check_authoring' &&
+                timeline.length === 0 &&
+                !streaming &&
+                !toolStatus && (
+                  <Box className={classes.emptyState}>
+                    <Typography variant="body2">
+                      {(() => {
+                        if (scope.caseType === 'build_failure') {
+                          return (
+                            <>
+                              Ask anything about builds for{' '}
+                              <em>{scope.component ?? 'this component'}</em> —
+                              failed runs, build configuration, workflows.
+                            </>
+                          );
                         }
-                      >
-                        <IconButton
-                          size="small"
-                          onClick={() => toggleExpandPrompt(i)}
-                          aria-label={
-                            expandedPrompts.has(i)
-                              ? 'Hide the generated prompt'
-                              : 'Show the generated prompt'
-                          }
-                          className={classes.fixPromptBannerExpand}
-                        >
-                          {expandedPrompts.has(i) ? (
-                            <ExpandLessIcon fontSize="small" />
-                          ) : (
-                            <ExpandMoreIcon fontSize="small" />
-                          )}
-                        </IconButton>
-                      </Tooltip>
-                      <Button
-                        size="small"
-                        color="primary"
-                        onClick={() => {
-                          void handleCopyPrompt(item.fixPrompt!);
-                        }}
-                        className={classes.fixPromptBannerButton}
-                        aria-label="Copy diagnosis as a prompt for an external AI assistant"
-                      >
-                        Copy
-                      </Button>
-                    </Box>
+                        if (scope.caseType === 'runtime_debug') {
+                          // The same empty-state copy covers both anchors —
+                          // the bridge between logs and traces is the whole
+                          // point of runtime_debug.
+                          const subject =
+                            scope.component ?? scope.project ?? 'this service';
+                          return (
+                            <>
+                              Ask anything about runtime behaviour for{' '}
+                              <em>{subject}</em> — errors, slow requests, the
+                              path between a log line and the request that
+                              produced it.
+                            </>
+                          );
+                        }
+                        return (
+                          <>
+                            Ask anything about your platform — components,
+                            projects, environments.
+                          </>
+                        );
+                      })()}
+                    </Typography>
+                    {(() => {
+                      // Launcher-supplied chips win when present (e.g. trace
+                      // launcher tailoring chips to the focused trace's
+                      // metadata). Otherwise fall back to the per-caseType
+                      // defaults below so the drawer still has helpful starter
+                      // prompts when opened from the generic FAB.
+                      //
+                      // Default chips can carry a shorter ``label`` than the
+                      // ``message`` that gets sent — the chip surface is narrow
+                      // but the agent benefits from a fuller, less ambiguous
+                      // prompt. Launcher-supplied chips stay verbatim
+                      // (label === message) for back-compat with existing callers.
+                      let chips: { label: string; message: string }[] = (
+                        suggestions ?? []
+                      ).map(s => ({ label: s, message: s }));
+                      if (chips.length === 0) {
+                        if (scope.caseType === 'build_failure') {
+                          chips = [
+                            {
+                              label: 'Why did the build fail?',
+                              message: 'Why did the build fail?',
+                            },
+                          ];
+                        } else if (scope.caseType === 'runtime_debug') {
+                          // runtime_debug is launched from the Logs tab today;
+                          // there's no trace-anchored launcher. Per-row
+                          // InvestigateLogButton can override these with
+                          // pinned-log-aware suggestions.
+                          //
+                          // ``label === message`` is intentional — what the
+                          // user sees on the chip is what lands in the chat
+                          // as their turn. Earlier versions used a verbose
+                          // ``message`` to give the model extra hints
+                          // ("…in these logs", "…in the window"), but the
+                          // runtime_debug scope now carries prefetchedLogs,
+                          // logLevels, logsStartTime/End and pinnedLog* — so
+                          // those hints are redundant and just bloat the
+                          // visible user-turn in the drawer.
+                          chips = [
+                            {
+                              label: 'Investigate the error',
+                              message: 'Investigate the error',
+                            },
+                            {
+                              label: 'What triggered this?',
+                              message: 'What triggered this?',
+                            },
+                            {
+                              label: 'When did this start?',
+                              message: 'When did this start?',
+                            },
+                          ];
+                        } else {
+                          chips = [
+                            {
+                              label: 'List my components',
+                              message: 'List my components',
+                            },
+                            {
+                              label: 'Which environments are configured?',
+                              message: 'Which environments are configured?',
+                            },
+                            {
+                              label: 'Show projects in this namespace',
+                              message: 'Show projects in this namespace',
+                            },
+                          ];
+                        }
+                      }
+                      return (
+                        <Box className={classes.suggestionStrip}>
+                          {chips.map(c => (
+                            <Chip
+                              key={c.label}
+                              label={c.label}
+                              variant="outlined"
+                              size="small"
+                              clickable
+                              className={classes.suggestionChip}
+                              onClick={() => handleSuggestion(c.message)}
+                            />
+                          ))}
+                        </Box>
+                      );
+                    })()}
                   </Box>
-                  {expandedPrompts.has(i) && (
-                    // Preview lives OUTSIDE the banner so its tinted
-                    // background visually anchors to the banner above
-                    // (same accent, square top corners). Rendered as
-                    // markdown (same renderer as the chat messages) so the
-                    // agent's backticks show as styled inline-code pills
-                    // instead of literally. The Copy button above still
-                    // copies the RAW fix_prompt verbatim — only this
-                    // on-screen preview is prettified.
-                    <Box className={classes.fixPromptPreview}>
+                )}
+
+              {timeline.map((item, i) => {
+                // User turns never contain an Evidence section — bypass the
+                // splitter and render verbatim. For assistant turns, split
+                // the diagnosis + next action from the supporting evidence
+                // so the actionable bits aren't scrolled out of view by a
+                // long bullet list. ``<details>`` is closed by default
+                // (collapsed) — the user opts in to seeing the evidence.
+                // Streaming-buffer rendering (below) deliberately skips this
+                // split: while tokens are arriving the response may not yet
+                // contain both opener and closer, and splitting mid-stream
+                // would reflow as the closer lands. The drawer's existing
+                // ``done`` handler clears the streaming buffer and the
+                // message lands in the timeline where the split applies.
+                //
+                // A newer save card turns an unsaved one off: the check changed
+                // again.
+                const superseded = timeline.slice(i + 1).some(hasSave);
+                if (item.kind === 'next') {
+                  return (
+                    <Box
+                      key={`n-${i}`}
+                      className={`${classes.message} ${classes.assistant}`}
+                    >
+                      <SavedNextStep saved={item.saved} />
+                    </Box>
+                  );
+                }
+                if (item.kind === 'intro') {
+                  return (
+                    <Box
+                      key={`i-${i}`}
+                      className={`${classes.message} ${classes.assistant}`}
+                    >
+                      <AgentUi
+                        messages={item.ui}
+                        // Like the agent's cards: answerable until the chat
+                        // moves on.
+                        disabled={isSending || i !== timeline.length - 1}
+                        onAction={(text, action) =>
+                          sendMessage(text, { action })
+                        }
+                        composer={composer}
+                      />
+                    </Box>
+                  );
+                }
+                const normalised = stripEntityTags(item.content);
+                if (item.role === 'user') {
+                  return (
+                    <Box
+                      key={`m-${i}`}
+                      className={`${classes.message} ${classes.user}`}
+                    >
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {item.fixPrompt}
+                        {normalised}
                       </ReactMarkdown>
                     </Box>
-                  )}
-                </>
-              )}
-              {details && (
-                // Affordance label is "Show details" (not "Show
-                // evidence") because the collapsed block holds BOTH
-                // ``**Evidence**`` bullets AND a ``**Trace bridge**``
-                // sentence. Saying "evidence" would also create a
-                // visual duplicate with the inner section label as
-                // soon as the user opens it.
-                <details className={classes.evidenceDetails}>
-                  <summary className={classes.evidenceSummary}>
-                    Show details
-                  </summary>
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {details}
-                  </ReactMarkdown>
-                </details>
-              )}
-            </Box>
-          );
-        })}
+                  );
+                }
+                const { summary, details } = splitForCollapse(normalised);
+                return (
+                  <Box
+                    key={`m-${i}`}
+                    className={`${classes.message} ${classes.assistant} ${
+                      item.handedOff ? classes.handedOff : ''
+                    }`}
+                    {...(item.handedOff && i === timeline.length - 1
+                      ? { ref: handedOffRef }
+                      : {})}
+                  >
+                    {(() => {
+                      // A change card carries the reply's sentence and the rules
+                      // in plain words: it replaces the reply's text.
+                      if (hasReplyCard(item.ui)) return null;
+                      return (
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {summary}
+                        </ReactMarkdown>
+                      );
+                    })()}
+                    {item.ui && (
+                      <AgentUi
+                        messages={item.ui}
+                        // Only the latest reply can be answered, and not while
+                        // the next one is loading.
+                        disabled={isSending || i !== timeline.length - 1}
+                        superseded={superseded}
+                        onAction={(text, action) =>
+                          sendMessage(text, { action })
+                        }
+                        onSaved={handleSaved}
+                        onOpenCheck={handleOpenCheck}
+                        composer={composer}
+                        renderMarkdown={text => (
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {stripEntityTags(text)}
+                          </ReactMarkdown>
+                        )}
+                      />
+                    )}
+                    {item.confirmation && !hasSaveCard(item.ui) && (
+                      <Box mt={1}>
+                        <ConfirmCard
+                          card={item.confirmation}
+                          onSaved={handleSaved}
+                          superseded={superseded}
+                        />
+                      </Box>
+                    )}
+                    {item.fixPrompt && (
+                      // Banner sits BETWEEN the summary and the <details>
+                      // expander so the affordance is visible the moment the
+                      // diagnosis lands — a small icon buried under
+                      // "Show details" was easy to miss. Gate strictly on
+                      // backend-supplied fixPrompt: build_failure turns
+                      // without a code-level cause and runtime_debug turns
+                      // with no actionable handoff (empty logs, trace not
+                      // found) intentionally have it unset and the banner
+                      // does not render. Recipient differs by case_type —
+                      // build_failure targets a coding bot, runtime_debug
+                      // targets an AI with the OpenChoreo MCP server +
+                      // kubectl — but the rendering path is the same.
+                      <>
+                        <Box
+                          className={`${classes.fixPromptBanner}${
+                            expandedPrompts.has(i)
+                              ? ` ${classes.fixPromptBannerOpen}`
+                              : ''
+                          }`}
+                        >
+                          <Box className={classes.fixPromptBannerLabel}>
+                            <AndroidOutlinedIcon
+                              className={classes.fixPromptBannerIcon}
+                            />
+                            <Typography
+                              variant="caption"
+                              className={classes.fixPromptBannerText}
+                            >
+                              Prompt for AI Agents
+                            </Typography>
+                          </Box>
+                          <Box className={classes.fixPromptBannerActions}>
+                            <Tooltip
+                              title={
+                                expandedPrompts.has(i)
+                                  ? 'Hide prompt'
+                                  : 'Show prompt'
+                              }
+                            >
+                              <IconButton
+                                size="small"
+                                onClick={() => toggleExpandPrompt(i)}
+                                aria-label={
+                                  expandedPrompts.has(i)
+                                    ? 'Hide the generated prompt'
+                                    : 'Show the generated prompt'
+                                }
+                                className={classes.fixPromptBannerExpand}
+                              >
+                                {expandedPrompts.has(i) ? (
+                                  <ExpandLessIcon fontSize="small" />
+                                ) : (
+                                  <ExpandMoreIcon fontSize="small" />
+                                )}
+                              </IconButton>
+                            </Tooltip>
+                            <Button
+                              size="small"
+                              color="primary"
+                              onClick={() => {
+                                void handleCopyPrompt(item.fixPrompt!);
+                              }}
+                              className={classes.fixPromptBannerButton}
+                              aria-label="Copy diagnosis as a prompt for an external AI assistant"
+                            >
+                              Copy
+                            </Button>
+                          </Box>
+                        </Box>
+                        {expandedPrompts.has(i) && (
+                          // Preview lives OUTSIDE the banner so its tinted
+                          // background visually anchors to the banner above
+                          // (same accent, square top corners). Rendered as
+                          // markdown (same renderer as the chat messages) so the
+                          // agent's backticks show as styled inline-code pills
+                          // instead of literally. The Copy button above still
+                          // copies the RAW fix_prompt verbatim — only this
+                          // on-screen preview is prettified.
+                          <Box className={classes.fixPromptPreview}>
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                              {item.fixPrompt}
+                            </ReactMarkdown>
+                          </Box>
+                        )}
+                      </>
+                    )}
+                    {details && (
+                      // Affordance label is "Show details" (not "Show
+                      // evidence") because the collapsed block holds BOTH
+                      // ``**Evidence**`` bullets AND a ``**Trace bridge**``
+                      // sentence. Saying "evidence" would also create a
+                      // visual duplicate with the inner section label as
+                      // soon as the user opens it.
+                      <details className={classes.evidenceDetails}>
+                        <summary className={classes.evidenceSummary}>
+                          Show details
+                        </summary>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {details}
+                        </ReactMarkdown>
+                      </details>
+                    )}
+                  </Box>
+                );
+              })}
+            </ConfirmCardNextStep.Provider>
+          </ConfirmCardSkipTest.Provider>
+        </ConfirmCardTestPicker.Provider>
 
         {streaming && (
           <Box className={`${classes.message} ${classes.assistant}`}>
@@ -809,17 +1306,48 @@ export const AssistantChatDrawer = ({
           </Box>
         )}
 
+        {/* A check authoring reply is held back until it is checked, so
+            the live progress card shows what the agent is doing instead
+            of the Thinking line. It sits in a reply's box, where the
+            reply's card will be. */}
+        {isSending &&
+          !error &&
+          progress &&
+          scope.caseType === 'check_authoring' && (
+            <Box
+              className={`${classes.handoff} ${
+                progress.leaving ? classes.handoffLeaving : ''
+              }`}
+            >
+              <Box className={classes.handoffInner}>
+                <Box
+                  className={`${classes.message} ${classes.assistant} ${classes.liveProgress}`}
+                >
+                  <LiveProgressCard
+                    steps={progress.steps}
+                    result={progress.result}
+                    startedAt={progress.startedAt}
+                    ready={progress.ready}
+                  />
+                </Box>
+              </Box>
+            </Box>
+          )}
+
         {/* "Thinking ." → "Thinking .." → "Thinking ..." sequential
             growing dots. Shown while ``isSending`` is true and no
             streamed content / error has landed. Label tracks the most
             recent tool_call's activeForm; falls back to "Thinking". */}
-        {isSending && !streaming && !error && (
-          <Box className={classes.workingIndicator}>
-            <span className={classes.workingDotsLabel}>
-              {toolStatus ?? 'Thinking'}
-            </span>
-          </Box>
-        )}
+        {isSending &&
+          !streaming &&
+          !error &&
+          scope.caseType !== 'check_authoring' && (
+            <Box className={classes.workingIndicator}>
+              <span className={classes.workingDotsLabel}>
+                {toolStatus ?? 'Thinking'}
+              </span>
+            </Box>
+          )}
         {error && <Box className={classes.errorMsg}>{error}</Box>}
       </div>
 
@@ -830,7 +1358,7 @@ export const AssistantChatDrawer = ({
           maxRows={4}
           variant="outlined"
           size="small"
-          placeholder="Message Portal Assistant"
+          placeholder={composerHint || 'Message Portal Assistant'}
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}

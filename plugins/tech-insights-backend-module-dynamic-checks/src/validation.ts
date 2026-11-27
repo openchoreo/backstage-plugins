@@ -4,11 +4,16 @@ import {
   JSON_RULE_ENGINE_CHECK_TYPE,
   type TechInsightJsonRuleCheck,
 } from '@backstage-community/plugin-tech-insights-backend-module-jsonfc';
+import {
+  filterCoversKinds,
+  kindsOfFilter,
+} from '@openchoreo/backstage-plugin-tech-insights-dynamic-checks-common';
 
 export type CheckProblemCode =
   | 'unknown-retriever'
   | 'unknown-fact'
-  | 'invalid-rule';
+  | 'invalid-rule'
+  | 'kind-mismatch';
 
 /** Why a check can't be evaluated. */
 export interface CheckProblem {
@@ -25,7 +30,8 @@ export interface CheckProblem {
 export type CheckDefinition = Pick<
   TechInsightJsonRuleCheck,
   'type' | 'name' | 'factIds' | 'rule'
->;
+> &
+  Partial<Pick<TechInsightJsonRuleCheck, 'filter'>>;
 
 /** Keys of a fact schema row that describe the retriever, not a fact. */
 export const SCHEMA_METADATA_KEYS = new Set(['id', 'version', 'entityFilter']);
@@ -42,6 +48,58 @@ export function factNamesIn(condition: unknown): string[] {
 }
 
 type FactSchemas = Awaited<ReturnType<TechInsightsStore['getLatestSchemas']>>;
+
+/**
+ * The kinds every one of the fact retrievers collects facts for, or `'all'`
+ * when none of them is limited to particular kinds. Empty means they have no
+ * kind in common, so a check reading them could never have a result.
+ */
+export function sharedKindsOf(schemas: FactSchemas): string[] | 'all' {
+  let shared: string[] | 'all' = 'all';
+  for (const schema of schemas) {
+    const kinds = kindsOfFilter(schema.entityFilter);
+    if (kinds !== 'all') {
+      shared =
+        shared === 'all'
+          ? kinds
+          : shared.filter(kind => filterCoversKinds({ kind: kinds }, [kind]));
+    }
+  }
+  return shared;
+}
+
+/**
+ * A check whose retrievers share no entity kind, or don't collect facts for
+ * any kind its own filter allows, is never evaluated for any entity.
+ */
+function kindProblems(
+  check: CheckDefinition,
+  schemas: FactSchemas,
+): CheckProblem[] {
+  const shared = sharedKindsOf(schemas);
+  if (shared === 'all') return [];
+  const retrievers = check.factIds.join(', ');
+  if (shared.length === 0) {
+    return [
+      {
+        code: 'kind-mismatch',
+        message: `${retrievers} don't collect facts for any of the same entity kinds, so the check would never have a result.`,
+      },
+    ];
+  }
+  const filterKinds = kindsOfFilter(check.filter);
+  if (filterKinds === 'all' || filterCoversKinds(check.filter, shared)) {
+    return [];
+  }
+  return [
+    {
+      code: 'kind-mismatch',
+      message: `${retrievers} don't collect facts for ${filterKinds.join(
+        ', ',
+      )}, the kinds this check applies to, so it would never have a result.`,
+    },
+  ];
+}
 
 const RULE_CACHE_LIMIT = 500;
 
@@ -166,6 +224,117 @@ async function ruleProblems(rule: unknown): Promise<CheckProblem[]> {
   return problems;
 }
 
+/** json-rules-engine's operators that only compare numbers. */
+const NUMBER_OPERATORS = new Set([
+  'lessThan',
+  'lessThanInclusive',
+  'greaterThan',
+  'greaterThanInclusive',
+]);
+
+/** Fact schema types whose values are numbers. */
+const NUMBER_FACT_TYPES = new Set(['integer', 'float']);
+
+/** The plain operators that look inside a list fact. */
+const LIST_FACT_OPERATORS = new Set(['contains', 'doesNotContain']);
+
+/**
+ * Whether ``types`` (every type the selected retrievers give a fact name)
+ * are all ``incompatible``: retrievers may give one name different types, and
+ * which one an entity's value comes from isn't known until it's evaluated.
+ */
+function everyType(
+  types: unknown[] | undefined,
+  incompatible: (type: unknown) => boolean,
+): boolean {
+  return !!types && types.length > 0 && types.every(incompatible);
+}
+
+/**
+ * Number operators on a fact that isn't a number. json-rules-engine doesn't
+ * throw for these: the condition is just false for every entity, so a rule
+ * like `githubVisibility greaterThan 5` builds and evaluates but can never
+ * pass. The same goes for `equal` with a list, which compares with `===`: it
+ * never passes, and `notEqual` with a list never fails.
+ *
+ * Other plain operators on a list fact compare the whole list too: `equal` and
+ * `in` never pass, while `notEqual` and `notIn` always do. A `path` reads one
+ * item and a decorator like `someFact:equal` tests each item, so those are fine.
+ */
+function typeProblems(
+  conditions: unknown,
+  factTypes: Map<string, unknown[]>,
+): CheckProblem[] {
+  return leavesOf({ node: conditions, path: '/conditions' }).flatMap(leaf => {
+    const {
+      fact,
+      operator,
+      path: factPath,
+      value,
+    } = leaf.node as Record<string, unknown>;
+    if (
+      typeof fact === 'string' &&
+      typeof operator === 'string' &&
+      everyType(factTypes.get(fact), type => type === 'set') &&
+      factPath === undefined &&
+      !operator.includes(':') &&
+      !LIST_FACT_OPERATORS.has(operator)
+    ) {
+      return [
+        {
+          code: 'invalid-rule' as const,
+          path: `${leaf.path}/operator`,
+          fact,
+          message: `${fact} is a list, so ${operator} can't test what it holds; use contains or doesNotContain.`,
+        },
+      ];
+    }
+    if (
+      typeof fact === 'string' &&
+      Array.isArray(value) &&
+      (operator === 'equal' || operator === 'notEqual')
+    ) {
+      return [
+        {
+          code: 'invalid-rule' as const,
+          path: `${leaf.path}/operator`,
+          fact,
+          message: `${operator} compares one value, so it can't match a list; use ${
+            operator === 'equal' ? 'in' : 'notIn'
+          }.`,
+        },
+      ];
+    }
+    // A path reads a value inside the fact (e.g. a list's $.length), whose
+    // type the fact schema doesn't give.
+    if (
+      typeof fact !== 'string' ||
+      factPath !== undefined ||
+      !NUMBER_OPERATORS.has(String(operator))
+    ) {
+      return [];
+    }
+    const types = factTypes.get(fact);
+    if (
+      !everyType(
+        types,
+        type => typeof type === 'string' && !NUMBER_FACT_TYPES.has(type),
+      )
+    ) {
+      return [];
+    }
+    const type = [...new Set(types)].join(' or ');
+    return [
+      {
+        code: 'invalid-rule' as const,
+        path: `${leaf.path}/operator`,
+        fact,
+        message: `${operator} compares numbers, but ${fact} is a ${type}; use equal, notEqual, in or notIn.`,
+      },
+    ];
+  });
+}
+
 /**
  * Decides whether a check can be evaluated against the facts tech-insights
  * currently has schemas for.
@@ -178,7 +347,9 @@ async function ruleProblems(rule: unknown): Promise<CheckProblem[]> {
 export class CheckValidator {
   private readonly ruleResults = new Map<string, CheckProblem[]>();
 
-  constructor(private readonly store: TechInsightsStore) {}
+  constructor(
+    private readonly store: Pick<TechInsightsStore, 'getLatestSchemas'>,
+  ) {}
 
   async problemsOf(check: CheckDefinition): Promise<CheckProblem[]> {
     const [problems] = await this.problemsOfEach([check]);
@@ -231,6 +402,7 @@ export class CheckValidator {
       }));
     }
 
+    const kinds = kindProblems(check, schemas);
     const provided = new Set(
       schemas.flatMap(schema =>
         Object.keys(schema).filter(name => !SCHEMA_METADATA_KEYS.has(name)),
@@ -239,7 +411,22 @@ export class CheckValidator {
     const unknownFacts = [
       ...new Set(factNamesIn(check.rule.conditions)),
     ].filter(name => !provided.has(name));
-    return unknownFacts.map(name => {
+    if (unknownFacts.length === 0) {
+      // Every type each fact name has across the selected retrievers.
+      const factTypes = new Map<string, unknown[]>();
+      for (const schema of schemas) {
+        for (const [name, field] of Object.entries(schema)) {
+          if (!SCHEMA_METADATA_KEYS.has(name)) {
+            factTypes.set(name, [
+              ...(factTypes.get(name) ?? []),
+              (field as { type?: unknown } | null)?.type,
+            ]);
+          }
+        }
+      }
+      return [...kinds, ...typeProblems(check.rule.conditions, factTypes)];
+    }
+    const unknown: CheckProblem[] = unknownFacts.map(name => {
       const owner = allSchemas.find(
         schema => name in schema && !SCHEMA_METADATA_KEYS.has(name),
       );
@@ -252,6 +439,7 @@ export class CheckValidator {
           : `No registered fact retriever provides a fact named ${name}.`,
       };
     });
+    return [...kinds, ...unknown];
   }
 
   /**
