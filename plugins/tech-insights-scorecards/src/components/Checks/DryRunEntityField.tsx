@@ -36,6 +36,9 @@ interface DryRunEntityFieldProps {
    * both, so its height doesn't shift the action.
    */
   action?: ReactNode;
+  /** The input's label; "<Entity> to dry-run against" by default. */
+  label?: string;
+  disabled?: boolean;
 }
 
 /**
@@ -48,6 +51,8 @@ export function DryRunEntityField({
   onChange,
   error,
   action,
+  label,
+  disabled = false,
 }: DryRunEntityFieldProps) {
   const catalogApi = useApi(catalogApiRef);
   const kindDisplay = useKindDisplay();
@@ -79,6 +84,7 @@ export function DryRunEntityField({
           <Autocomplete<Entity, false, false, true>
             freeSolo
             openOnFocus
+            disabled={disabled}
             options={options}
             loading={loading}
             filterOptions={list => list}
@@ -105,9 +111,10 @@ export function DryRunEntityField({
             renderInput={params => (
               <TextField
                 {...params}
-                label={`${capitalized(
-                  entityLabel.singular,
-                )} to dry-run against`}
+                label={
+                  label ??
+                  `${capitalized(entityLabel.singular)} to dry-run against`
+                }
                 placeholder="Search by name, or type a ref like component:default/name"
                 error={!!error}
                 inputProps={{

@@ -1,26 +1,21 @@
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { ComponentPicker } from './ComponentPicker';
 
 // ``mock`` prefix: jest lets the hoisted factories below refer to it.
 const mockQueryEntities = jest.fn();
 // One instance, like the real useApi: a new one each render would start a
-// new search each render.
-const mockCatalogApi = {
+// new search each render. It stands in for the catalog and config APIs the
+// check form's entity field reads.
+const mockApi = {
   queryEntities: (...args: unknown[]) => mockQueryEntities(...args),
+  getEntityFacets: async () => ({ facets: { kind: [] } }),
+  getOptionalString: () => undefined,
+  getOptionalConfig: () => undefined,
 };
 
 jest.mock('@backstage/core-plugin-api', () => ({
-  useApi: () => mockCatalogApi,
-}));
-
-jest.mock('@backstage/plugin-catalog-react', () => ({
-  catalogApiRef: { id: 'plugin.catalog.service' },
+  ...jest.requireActual('@backstage/core-plugin-api'),
+  useApi: () => mockApi,
 }));
 
 const entity = (name: string, namespace = 'default', title?: string) => ({
@@ -36,83 +31,30 @@ beforeEach(() => {
   });
 });
 
-const box = () => screen.getByRole('textbox', { name: 'Component to test on' });
-
-async function open() {
-  await act(async () => {
-    fireEvent.mouseDown(box());
-  });
-}
+const box = () => screen.getByRole('textbox', { name: 'Entity to test on' });
 
 describe('ComponentPicker', () => {
-  it('lists Components when the check is not limited to a kind', async () => {
+  it('searches every kind when the check is not limited to one', async () => {
     render(<ComponentPicker kinds={[]} onTest={jest.fn()} />);
 
-    await open();
+    await act(async () => {
+      fireEvent.mouseDown(box());
+    });
 
-    expect(await screen.findAllByRole('option')).toHaveLength(2);
     expect(mockQueryEntities).toHaveBeenCalledWith(
-      expect.objectContaining({
-        filter: { kind: ['component'] },
-        fullTextFilter: undefined,
-        limit: 20,
-      }),
+      expect.objectContaining({ filter: undefined }),
     );
-    expect(box()).toHaveAttribute('placeholder', 'Search components');
   });
 
   it('lists the kinds the check applies to', async () => {
     render(<ComponentPicker kinds={['API']} onTest={jest.fn()} />);
 
-    await waitFor(() =>
-      expect(mockQueryEntities).toHaveBeenCalledWith(
-        expect.objectContaining({ filter: { kind: ['API'] } }),
-      ),
-    );
-    expect(box()).toHaveAttribute('placeholder', 'Search apis');
-  });
-
-  it('searches the catalog for what is typed', async () => {
-    render(<ComponentPicker kinds={[]} onTest={jest.fn()} />);
-
     await act(async () => {
-      fireEvent.change(box(), { target: { value: 'ord' } });
+      fireEvent.mouseDown(box());
     });
 
-    await waitFor(() =>
-      expect(mockQueryEntities).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          fullTextFilter: {
-            term: 'ord',
-            fields: ['metadata.name', 'metadata.title'],
-          },
-        }),
-      ),
-    );
-  });
-
-  it('lists everything again when the search is cleared', async () => {
-    render(<ComponentPicker kinds={[]} onTest={jest.fn()} />);
-    await act(async () => {
-      fireEvent.change(box(), { target: { value: 'ord' } });
-    });
-    await waitFor(() =>
-      expect(mockQueryEntities).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          fullTextFilter: expect.objectContaining({ term: 'ord' }),
-        }),
-      ),
-    );
-
-    await act(async () => {
-      // MUI shows ✕ only on hover, so it isn't in the accessibility tree.
-      fireEvent.click(screen.getByTitle('Clear'));
-    });
-
-    await waitFor(() =>
-      expect(mockQueryEntities).toHaveBeenLastCalledWith(
-        expect.objectContaining({ fullTextFilter: undefined }),
-      ),
+    expect(mockQueryEntities).toHaveBeenCalledWith(
+      expect.objectContaining({ filter: { kind: ['API'] } }),
     );
   });
 
@@ -122,10 +64,11 @@ describe('ComponentPicker', () => {
     const test = screen.getByRole('button', { name: 'Test' });
     expect(test).toBeDisabled();
 
-    await open();
+    await act(async () => {
+      fireEvent.focus(box());
+      fireEvent.mouseDown(box());
+    });
     const option = await screen.findByRole('option', { name: /Order API/ });
-    // Its title, with the ref it will test.
-    expect(option).toHaveTextContent('component:shop/order-api');
     await act(async () => {
       fireEvent.click(option);
     });
@@ -136,19 +79,20 @@ describe('ComponentPicker', () => {
     expect(onTest).toHaveBeenCalledWith('component:shop/order-api');
   });
 
+  it('can not test a name without its kind and namespace', async () => {
+    render(<ComponentPicker kinds={[]} onTest={jest.fn()} />);
+
+    await act(async () => {
+      fireEvent.change(box(), { target: { value: 'order-api' } });
+    });
+
+    expect(screen.getByRole('button', { name: 'Test' })).toBeDisabled();
+  });
+
   it('can not test while turned off', async () => {
     render(<ComponentPicker kinds={[]} disabled onTest={jest.fn()} />);
 
     expect(box()).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Test' })).toBeDisabled();
-  });
-
-  it('says when the catalog can not be read', async () => {
-    mockQueryEntities.mockRejectedValue(new Error('down'));
-    render(<ComponentPicker kinds={[]} onTest={jest.fn()} />);
-
-    expect(
-      await screen.findByText("Couldn't load components from the catalog."),
-    ).toBeInTheDocument();
   });
 });

@@ -55,19 +55,15 @@ const mockApi = {
   warmup: () => holder.warmup(),
   confirmChange: (...args: unknown[]) => mockConfirmChange(...args),
   queryEntities: (...args: unknown[]) => mockQueryEntities(...args),
+  // The picker's entity field also reads the catalog's kinds and config.
+  getEntityFacets: async () => ({ facets: { kind: [] } }),
+  getOptionalString: () => undefined,
+  getOptionalConfig: () => undefined,
 };
 
 jest.mock('@backstage/core-plugin-api', () => ({
-  // PortalAssistantApi.ts calls createApiRef at module load — keep a real-ish
-  // stub so the import doesn't blow up during test setup.
-  createApiRef: (config: { id: string }) => ({ id: config.id }),
+  ...jest.requireActual('@backstage/core-plugin-api'),
   useApi: () => mockApi,
-}));
-
-// The real package needs the rest of core-plugin-api; the picker only
-// needs the catalog's API ref.
-jest.mock('@backstage/plugin-catalog-react', () => ({
-  catalogApiRef: { id: 'plugin.catalog.service' },
 }));
 
 jest.mock('react-router-dom', () => ({
@@ -660,7 +656,7 @@ describe('AssistantChatDrawer after a save', () => {
   async function pickAndTest(within_: HTMLElement) {
     await act(async () => {
       fireEvent.mouseDown(
-        within(within_).getByRole('textbox', { name: 'Component to test on' }),
+        within(within_).getByRole('textbox', { name: 'Entity to test on' }),
       );
     });
     const option = await screen.findByRole('option', { name: /order-api/ });
@@ -701,7 +697,7 @@ describe('AssistantChatDrawer after a save', () => {
     ).toBeInTheDocument();
     // A test is offered before saving, not after.
     expect(
-      screen.queryByRole('textbox', { name: 'Component to test on' }),
+      screen.queryByRole('textbox', { name: 'Entity to test on' }),
     ).toBeNull();
     expect(screen.queryByText(/try it on a component/i)).toBeNull();
     // Saving offers nothing more: what to do next is for the example only.
