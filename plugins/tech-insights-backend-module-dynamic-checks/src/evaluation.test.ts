@@ -314,6 +314,59 @@ describe('CheckValidator', () => {
     ]);
   });
 
+  describe('a fact name two retrievers give different types', () => {
+    // Which retriever an entity's value comes from isn't known until it's
+    // evaluated, so an operator is refused only if every type rules it out.
+    const validatorFor = (aType: string, bType: string) =>
+      new CheckValidator({
+        getLatestSchemas: async () =>
+          [
+            { id: 'a', score: { type: aType } },
+            { id: 'b', score: { type: bType } },
+          ] as any,
+      });
+    const scoreCheck = (operator: string) => ({
+      ...check('s', 'score'),
+      factIds: ['a', 'b'],
+      rule: { conditions: { all: [{ fact: 'score', operator, value: 5 }] } },
+    });
+
+    it('accepts a number operator when one type is a number', async () => {
+      await expect(
+        validatorFor('integer', 'string').problemsOf(scoreCheck('greaterThan')),
+      ).resolves.toEqual([]);
+      await expect(
+        validatorFor('string', 'integer').problemsOf(scoreCheck('greaterThan')),
+      ).resolves.toEqual([]);
+    });
+
+    it('refuses a number operator when no type is a number', async () => {
+      await expect(
+        validatorFor('string', 'boolean').problemsOf(scoreCheck('greaterThan')),
+      ).resolves.toEqual([
+        expect.objectContaining({
+          code: 'invalid-rule',
+          fact: 'score',
+          message: expect.stringContaining('score is a string or boolean'),
+        }),
+      ]);
+    });
+
+    it('accepts a value operator when one type is not a list', async () => {
+      await expect(
+        validatorFor('set', 'string').problemsOf(scoreCheck('equal')),
+      ).resolves.toEqual([]);
+    });
+
+    it('refuses a value operator when every type is a list', async () => {
+      await expect(
+        validatorFor('set', 'set').problemsOf(scoreCheck('equal')),
+      ).resolves.toEqual([
+        expect.objectContaining({ code: 'invalid-rule', fact: 'score' }),
+      ]);
+    });
+  });
+
   it.each([
     ['equal', 'in'],
     ['notEqual', 'notIn'],

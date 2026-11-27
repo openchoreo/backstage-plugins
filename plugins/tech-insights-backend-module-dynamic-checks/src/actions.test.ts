@@ -146,7 +146,6 @@ describe('registerCheckActions', () => {
       destructive: true,
       idempotent: true,
     };
-    const saves = { readOnly: false, destructive: false, idempotent: true };
     expect(attributes).toEqual({
       'list-checks': readOnly,
       'get-check': readOnly,
@@ -154,8 +153,14 @@ describe('registerCheckActions', () => {
       'get-entity-facts': readOnly,
       'dry-run-check': readOnly,
       'validate-check': readOnly,
-      'create-check': saves,
-      'update-check': saves,
+      // A repeat without an id saves a second check.
+      'create-check': {
+        readOnly: false,
+        destructive: false,
+        idempotent: false,
+      },
+      // Replaces the rule, a published check's at once.
+      'update-check': changesScores,
       'publish-check': changesScores,
       'unpublish-check': changesScores,
     });

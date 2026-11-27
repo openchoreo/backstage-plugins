@@ -454,8 +454,9 @@ export function registerCheckActions(options: CheckActionsOptions) {
           status: z.literal('draft'),
         }),
     },
-    // Idempotent with an id: a repeat is refused, so it saves one check.
-    attributes: { readOnly: false, destructive: false, idempotent: true },
+    // Not idempotent: without an id, a repeat saves a second check. With one,
+    // a repeat is refused.
+    attributes: { readOnly: false, destructive: false, idempotent: false },
     action: async ({ input, credentials }) => {
       await requireAccess(credentials, dynamicCheckManagePermission, {
         requireUser: true,
@@ -565,7 +566,8 @@ export function registerCheckActions(options: CheckActionsOptions) {
           status: z.enum(['draft', 'published']),
         }),
     },
-    attributes: { readOnly: false, destructive: false, idempotent: true },
+    // Destructive: it replaces the rule, and a published check's rule at once.
+    attributes: { readOnly: false, destructive: true, idempotent: true },
     action: async ({ input, credentials }) => {
       await requireAccess(credentials, dynamicCheckManagePermission, {
         requireUser: true,

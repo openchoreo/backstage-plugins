@@ -26,20 +26,27 @@ export function useAssistantSavedCheck(
   // Counts reloads: an older one that answers late must not replace the
   // check a newer one loaded.
   const reloads = useRef(0);
+  // The check the form shows now: a reload that answers after the form moved
+  // to another check (closed, then a new one opened) must not touch it, or
+  // the new revision would remount the form and drop what was typed there.
+  const shown = useRef(initialCheck);
+  shown.current = initialCheck;
 
   async function reloadCheck() {
     onChecksChanged?.();
     const reload = ++reloads.current;
+    const of = initialCheck;
+    const stale = () => reload !== reloads.current || shown.current !== of;
     try {
       const checks = await api.listChecks();
-      if (reload !== reloads.current) return;
-      const saved = checks.find(c => c.id === initialCheck?.id);
+      if (stale()) return;
+      const saved = checks.find(c => c.id === of?.id);
       if (saved) {
-        setLoaded({ of: initialCheck, check: saved });
+        setLoaded({ of, check: saved });
         setRevision(current => current + 1);
       }
     } catch (e) {
-      if (reload !== reloads.current) return;
+      if (stale()) return;
       toastApi.post({
         title: `Couldn't reload the check. Reopen it before saving: ${
           (e as Error).message

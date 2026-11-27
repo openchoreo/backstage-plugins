@@ -239,6 +239,18 @@ const NUMBER_FACT_TYPES = new Set(['integer', 'float']);
 const LIST_FACT_OPERATORS = new Set(['contains', 'doesNotContain']);
 
 /**
+ * Whether ``types`` (every type the selected retrievers give a fact name)
+ * are all ``incompatible``: retrievers may give one name different types, and
+ * which one an entity's value comes from isn't known until it's evaluated.
+ */
+function everyType(
+  types: unknown[] | undefined,
+  incompatible: (type: unknown) => boolean,
+): boolean {
+  return !!types && types.length > 0 && types.every(incompatible);
+}
+
+/**
  * Number operators on a fact that isn't a number. json-rules-engine doesn't
  * throw for these: the condition is just false for every entity, so a rule
  * like `githubVisibility greaterThan 5` builds and evaluates but can never
@@ -251,7 +263,7 @@ const LIST_FACT_OPERATORS = new Set(['contains', 'doesNotContain']);
  */
 function typeProblems(
   conditions: unknown,
-  factTypes: Map<string, unknown>,
+  factTypes: Map<string, unknown[]>,
 ): CheckProblem[] {
   return leavesOf({ node: conditions, path: '/conditions' }).flatMap(leaf => {
     const {
@@ -263,7 +275,7 @@ function typeProblems(
     if (
       typeof fact === 'string' &&
       typeof operator === 'string' &&
-      factTypes.get(fact) === 'set' &&
+      everyType(factTypes.get(fact), type => type === 'set') &&
       factPath === undefined &&
       !operator.includes(':') &&
       !LIST_FACT_OPERATORS.has(operator)
@@ -302,8 +314,16 @@ function typeProblems(
     ) {
       return [];
     }
-    const type = factTypes.get(fact);
-    if (typeof type !== 'string' || NUMBER_FACT_TYPES.has(type)) return [];
+    const types = factTypes.get(fact);
+    if (
+      !everyType(
+        types,
+        type => typeof type === 'string' && !NUMBER_FACT_TYPES.has(type),
+      )
+    ) {
+      return [];
+    }
+    const type = [...new Set(types)].join(' or ');
     return [
       {
         code: 'invalid-rule' as const,
@@ -392,11 +412,15 @@ export class CheckValidator {
       ...new Set(factNamesIn(check.rule.conditions)),
     ].filter(name => !provided.has(name));
     if (unknownFacts.length === 0) {
-      const factTypes = new Map<string, unknown>();
+      // Every type each fact name has across the selected retrievers.
+      const factTypes = new Map<string, unknown[]>();
       for (const schema of schemas) {
         for (const [name, field] of Object.entries(schema)) {
           if (!SCHEMA_METADATA_KEYS.has(name)) {
-            factTypes.set(name, (field as { type?: unknown } | null)?.type);
+            factTypes.set(name, [
+              ...(factTypes.get(name) ?? []),
+              (field as { type?: unknown } | null)?.type,
+            ]);
           }
         }
       }
