@@ -4,11 +4,16 @@ import {
   JSON_RULE_ENGINE_CHECK_TYPE,
   type TechInsightJsonRuleCheck,
 } from '@backstage-community/plugin-tech-insights-backend-module-jsonfc';
+import {
+  filterCoversKinds,
+  kindsOfFilter,
+} from '@openchoreo/backstage-plugin-tech-insights-dynamic-checks-common';
 
 export type CheckProblemCode =
   | 'unknown-retriever'
   | 'unknown-fact'
-  | 'invalid-rule';
+  | 'invalid-rule'
+  | 'kind-mismatch';
 
 /** Why a check can't be evaluated. */
 export interface CheckProblem {
@@ -25,7 +30,8 @@ export interface CheckProblem {
 export type CheckDefinition = Pick<
   TechInsightJsonRuleCheck,
   'type' | 'name' | 'factIds' | 'rule'
->;
+> &
+  Partial<Pick<TechInsightJsonRuleCheck, 'filter'>>;
 
 /** Keys of a fact schema row that describe the retriever, not a fact. */
 export const SCHEMA_METADATA_KEYS = new Set(['id', 'version', 'entityFilter']);
@@ -42,6 +48,58 @@ export function factNamesIn(condition: unknown): string[] {
 }
 
 type FactSchemas = Awaited<ReturnType<TechInsightsStore['getLatestSchemas']>>;
+
+/**
+ * The kinds every one of the fact retrievers collects facts for, or `'all'`
+ * when none of them is limited to particular kinds. Empty means they have no
+ * kind in common, so a check reading them could never have a result.
+ */
+export function sharedKindsOf(schemas: FactSchemas): string[] | 'all' {
+  let shared: string[] | 'all' = 'all';
+  for (const schema of schemas) {
+    const kinds = kindsOfFilter(schema.entityFilter);
+    if (kinds !== 'all') {
+      shared =
+        shared === 'all'
+          ? kinds
+          : shared.filter(kind => filterCoversKinds({ kind: kinds }, [kind]));
+    }
+  }
+  return shared;
+}
+
+/**
+ * A check whose retrievers share no entity kind, or don't collect facts for
+ * any kind its own filter allows, is never evaluated for any entity.
+ */
+function kindProblems(
+  check: CheckDefinition,
+  schemas: FactSchemas,
+): CheckProblem[] {
+  const shared = sharedKindsOf(schemas);
+  if (shared === 'all') return [];
+  const retrievers = check.factIds.join(', ');
+  if (shared.length === 0) {
+    return [
+      {
+        code: 'kind-mismatch',
+        message: `${retrievers} don't collect facts for any of the same entity kinds, so the check would never have a result.`,
+      },
+    ];
+  }
+  const filterKinds = kindsOfFilter(check.filter);
+  if (filterKinds === 'all' || filterCoversKinds(check.filter, shared)) {
+    return [];
+  }
+  return [
+    {
+      code: 'kind-mismatch',
+      message: `${retrievers} don't collect facts for ${filterKinds.join(
+        ', ',
+      )}, the kinds this check applies to, so it would never have a result.`,
+    },
+  ];
+}
 
 const RULE_CACHE_LIMIT = 500;
 
@@ -324,6 +382,7 @@ export class CheckValidator {
       }));
     }
 
+    const kinds = kindProblems(check, schemas);
     const provided = new Set(
       schemas.flatMap(schema =>
         Object.keys(schema).filter(name => !SCHEMA_METADATA_KEYS.has(name)),
@@ -341,9 +400,9 @@ export class CheckValidator {
           }
         }
       }
-      return typeProblems(check.rule.conditions, factTypes);
+      return [...kinds, ...typeProblems(check.rule.conditions, factTypes)];
     }
-    return unknownFacts.map(name => {
+    const unknown: CheckProblem[] = unknownFacts.map(name => {
       const owner = allSchemas.find(
         schema => name in schema && !SCHEMA_METADATA_KEYS.has(name),
       );
@@ -356,6 +415,7 @@ export class CheckValidator {
           : `No registered fact retriever provides a fact named ${name}.`,
       };
     });
+    return [...kinds, ...unknown];
   }
 
   /**

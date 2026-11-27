@@ -28,6 +28,7 @@ export type DryRunReasonCode =
   | 'unknown-retriever'
   | 'unknown-fact'
   | 'invalid-rule'
+  | 'kind-mismatch'
   | 'evaluation-error'
   | 'entity-filtered'
   | 'retriever-not-covering'

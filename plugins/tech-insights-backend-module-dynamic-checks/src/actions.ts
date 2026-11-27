@@ -7,7 +7,6 @@ import type {
   ActionsRegistryActionOptions,
   ActionsRegistryService,
 } from '@backstage/backend-plugin-api/alpha';
-import { parseEntityRef, stringifyEntityRef } from '@backstage/catalog-model';
 import { InputError, NotAllowedError, NotFoundError } from '@backstage/errors';
 import {
   AuthorizeResult,
@@ -21,32 +20,32 @@ import {
 } from '@openchoreo/backstage-plugin-tech-insights-dynamic-checks-common';
 import { randomUUID } from 'crypto';
 import type { DynamicCheckRegistry } from './DynamicCheckRegistry';
-import { dryRunCheck, type CheckEvaluation } from './dryRun';
-import type { CheckProblem } from './validation';
+import type { CheckEvaluation } from './dryRun';
+import {
+  describeProblem,
+  dryRunForCaller,
+  normalizeEntityRef,
+  requireEvaluable,
+  requireEvaluation as requireEvaluationOf,
+} from './checkOperations';
+import { requireReadable, toCatalogRef } from './entityAccess';
+import { sharedKindsOf } from './validation';
 
 type Zod = Parameters<
   ActionsRegistryActionOptions<any, any>['schema']['input']
 >[0];
-
-// Earlier versions saved a temporary check for each dry-run, and a crash
-// mid-run could leave one behind in the database; never show those to tools.
-const DRY_RUN_ID_PREFIX = '__dryrun__';
 
 const entityRefSchema = (z: Zod) =>
   z
     .string()
     .min(1)
     .describe(
-      'Entity ref of the component to use, e.g. component:default/my-service',
+      'Entity ref of the entity to use, e.g. component:default/my-service',
     );
 
 const checkIdSchema = (z: Zod) =>
-  z.string().min(1).describe('Check id from list_checks');
+  z.string().min(1).describe('Check id from list-checks');
 
-// Input schemas must stay valid for OpenAI strict function calling, which
-// the Portal Assistant turns on for every tool: every field required (no
-// .optional()) and no free-form objects (no z.record / z.unknown). That is
-// why rule.conditions travels as a JSON string. See actions.test.ts.
 const checkInputSchema = (z: Zod) =>
   z.object({
     name: z
@@ -62,15 +61,14 @@ const checkInputSchema = (z: Zod) =>
       .array(z.string())
       .min(1)
       .describe(
-        'Fact retriever ids the rule reads facts from (see list_fact_schemas)',
+        'Fact retriever ids the rule reads facts from (see list-fact-schemas)',
       ),
     rule: z
       .object({
         conditions: z
-          .string()
-          .min(1)
+          .record(z.unknown())
           .describe(
-            'json-rules-engine conditions as a JSON string, e.g. ' +
+            'json-rules-engine conditions, e.g. ' +
               '{"all":[{"fact":"githubIsArchived","operator":"equal","value":false}]}',
           ),
       })
@@ -81,12 +79,11 @@ type CheckToolInput = {
   name: string;
   description: string;
   factIds: string[];
-  rule: { conditions: string };
+  rule: { conditions: Record<string, unknown> };
 };
 
 // The check-editor form's category, maturity tier and "How to pass", which
-// live in the check's metadata. Every field is required (strict function
-// calling), so "not given" is an empty string or a rank of 0.
+// live in the check's metadata. "Not given" is an empty string or a rank of 0.
 const metadataSchema = (z: Zod) =>
   z
     .object({
@@ -127,37 +124,13 @@ function withMetadata(
 
 type DraftCheck = Omit<TechInsightJsonRuleCheck, 'id'>;
 
-const isObject = (v: unknown): v is Record<string, unknown> =>
-  !!v && typeof v === 'object' && !Array.isArray(v);
-
-/**
- * Parses JSON-string conditions. Errors are InputErrors with a fix-it hint,
- * so an agent can correct its call instead of retrying blindly.
- */
-function parseConditions(raw: string): DraftCheck['rule']['conditions'] {
-  let conditions: unknown;
-  try {
-    conditions = JSON.parse(raw);
-  } catch (err) {
+/** Conditions whose top level is a boolean operator, as jsonfc requires. */
+function checkConditions(
+  conditions: Record<string, unknown>,
+): DraftCheck['rule']['conditions'] {
+  if (!['all', 'any', 'not'].some(key => key in conditions)) {
     throw new InputError(
-      `rule.conditions is not valid JSON: ${(err as Error).message}`,
-    );
-  }
-  // LLMs often repeat the field name: {"conditions":{"all":[...]}}. The
-  // intent is unambiguous, so unwrap it rather than fail.
-  if (
-    isObject(conditions) &&
-    Object.keys(conditions).length === 1 &&
-    isObject(conditions.conditions)
-  ) {
-    conditions = conditions.conditions;
-  }
-  if (
-    !isObject(conditions) ||
-    !['all', 'any', 'not'].some(key => key in conditions)
-  ) {
-    throw new InputError(
-      'rule.conditions must be a JSON object whose top level is "all", "any" or "not", ' +
+      'rule.conditions must be an object whose top level is "all", "any" or "not", ' +
         'e.g. {"all":[{"fact":"githubIsArchived","operator":"equal","value":false}]}',
     );
   }
@@ -171,89 +144,8 @@ function toDraftCheck(input: CheckToolInput): DraftCheck {
     name: input.name,
     description: input.description,
     factIds: input.factIds,
-    rule: { conditions: parseConditions(input.rule.conditions) },
+    rule: { conditions: checkConditions(input.rule.conditions) },
   };
-}
-
-/** A problem with the condition it points at, so an agent can fix that one. */
-function describeProblem(problem: CheckProblem): string {
-  return problem.path
-    ? `${problem.message} (at ${problem.path})`
-    : problem.message;
-}
-
-/**
- * The kinds an entity filter matches, or undefined when it matches every
- * kind: no filter, or an entry without a kind. A filter is one object or an
- * array of them, any of which may match.
- */
-function kindsOfFilter(filter: unknown): string[] | undefined {
-  const entries = [filter ?? []].flat() as unknown[];
-  if (entries.length === 0) return undefined;
-  const kinds: string[] = [];
-  for (const entry of entries) {
-    if (!isObject(entry)) return undefined;
-    const key = Object.keys(entry).find(k => k.toLowerCase() === 'kind');
-    const named = key
-      ? [entry[key]].flat().filter((v): v is string => typeof v === 'string')
-      : [];
-    if (named.length === 0) return undefined;
-    kinds.push(...named);
-  }
-  return kinds;
-}
-
-/**
- * The kinds every selected fact retriever collects facts for, or undefined
- * when none of them is limited to particular kinds. Empty means they have no
- * kind in common, so the check could never have a result.
- */
-async function sharedKinds(
-  evaluation: CheckEvaluation,
-  factIds: string[],
-): Promise<string[] | undefined> {
-  const schemas = await evaluation.store.getLatestSchemas(factIds);
-  let shared: string[] | undefined;
-  for (const schema of schemas) {
-    const kinds = kindsOfFilter(schema.entityFilter);
-    if (kinds) {
-      const lower = kinds.map(kind => kind.toLowerCase());
-      shared = shared
-        ? shared.filter(kind => lower.includes(kind.toLowerCase()))
-        : kinds;
-    }
-  }
-  return shared;
-}
-
-const noSharedKind = (factIds: string[]) =>
-  `${factIds.join(
-    ', ',
-  )} don't collect facts for any of the same entity kinds, so the check would never have a result.`;
-
-function toEntityRef(entity: string): string {
-  try {
-    return stringifyEntityRef(parseEntityRef(entity.trim()));
-  } catch {
-    throw new InputError(
-      `"${entity}" isn't a complete entity ref. Use kind:namespace/name, e.g. component:default/my-service.`,
-    );
-  }
-}
-
-/** Collects `fact -> factResult` from a dry-run's evaluated conditions. */
-function factValuesIn(node: unknown, out: Record<string, unknown> = {}) {
-  if (Array.isArray(node)) {
-    node.forEach(child => factValuesIn(child, out));
-  } else if (isObject(node)) {
-    if (typeof node.fact === 'string' && 'factResult' in node) {
-      out[node.fact] = node.factResult;
-    }
-    for (const key of ['all', 'any', 'not']) {
-      if (key in node) factValuesIn(node[key], out);
-    }
-  }
-  return out;
 }
 
 export interface CheckActionsOptions {
@@ -268,19 +160,19 @@ export interface CheckActionsOptions {
 /**
  * Registers the dynamic-checks Actions Registry actions. With
  * @backstage/plugin-mcp-actions-backend installed they are served as MCP
- * tools (id `tech-insights:<name>`), and the scaffolder also exposes them as
- * template actions. They reuse this module's registry, dry-run and fact
- * store, so they behave like the REST routes.
+ * tools (`tech-insights.<name>` with namespaced tool names), and the
+ * scaffolder also exposes them as template actions. They share the REST
+ * routes' validator, dry-run, errors and entity access (checkOperations.ts,
+ * entityAccess.ts).
  *
- * Permissions: a signed-in user gets exactly the REST routes' checks. A
- * service caller (e.g. the Portal Assistant's static token, which carries no
- * user) may only read, validate and dry-run — nothing it does is saved. The
- * write actions (create, update, publish, unpublish) need a user, so they only
- * work when the assistant calls on behalf of the signed-in user.
+ * Permissions: every caller is authorized like the REST routes, so the
+ * permission policy decides what a user or a service may do. The write
+ * actions (create, update, publish, unpublish) also need a signed-in user, so
+ * a check is only ever saved on someone's behalf.
  *
- * Validation: update and publish run the same CheckValidator as the REST
- * routes. update_check is stricter than PUT and refuses a rule with problems
- * even for a draft.
+ * Validation: create, update and publish run the same CheckValidator as the
+ * REST routes. create-check and update-check are stricter than POST and PUT
+ * and refuse a rule with problems even for a draft.
  *
  * Every action sets readOnly/destructive/idempotent explicitly: an action
  * with no attributes is treated as destructive.
@@ -298,66 +190,38 @@ export function registerCheckActions(options: CheckActionsOptions) {
   async function requireAccess(
     credentials: BackstageCredentials,
     permission: BasicPermission,
-    { allowService }: { allowService: boolean },
+    { requireUser }: { requireUser: boolean },
   ) {
-    if (auth.isPrincipal(credentials, 'user')) {
-      const [decision] = await permissions.authorize([{ permission }], {
-        credentials,
-      });
-      if (decision.result !== AuthorizeResult.ALLOW) {
-        throw new NotAllowedError(
-          `You don't have the ${permission.name} permission.`,
-        );
-      }
-      return;
-    }
-    if (allowService && auth.isPrincipal(credentials, 'service')) return;
-    throw new NotAllowedError(
-      allowService
-        ? 'This tool requires a signed-in user or service credentials.'
-        : 'Saving checks requires a signed-in user with permission to manage checks; ' +
-          'the assistant can only read and dry-run.',
-    );
-  }
-
-  function requireEvaluation(): CheckEvaluation {
-    const evaluation = getEvaluation();
-    if (!evaluation) {
-      throw new InputError(
-        'Check evaluation is not ready yet; try again shortly.',
+    if (requireUser && !auth.isPrincipal(credentials, 'user')) {
+      throw new NotAllowedError(
+        'Saving checks requires a signed-in user with permission to manage checks.',
       );
     }
-    return evaluation;
-  }
-
-  /**
-   * Refuses a check that can't be evaluated against the current facts. The
-   * same validator backs the REST validate, update and publish routes.
-   */
-  async function requireEvaluable(check: TechInsightJsonRuleCheck) {
-    const problems = await requireEvaluation().validator.problemsOf(check);
-    if (problems.length > 0) {
-      throw new InputError(
-        `The check can't be evaluated: ${problems
-          .map(describeProblem)
-          .join(' ')}`,
+    const [decision] = await permissions.authorize([{ permission }], {
+      credentials,
+    });
+    if (decision.result !== AuthorizeResult.ALLOW) {
+      throw new NotAllowedError(
+        `You don't have the ${permission.name} permission.`,
       );
     }
   }
+
+  const requireEvaluation = () => requireEvaluationOf(getEvaluation);
 
   async function getExisting(id: string): Promise<TechInsightJsonRuleCheck> {
     try {
       return await registry.get(id);
     } catch (error) {
       if (error instanceof NotFoundError) {
-        throw new InputError(`No check with id "${id}"; use list_checks.`);
+        throw new InputError(`No check with id "${id}"; use list-checks.`);
       }
       throw error;
     }
   }
 
   actionsRegistry.register({
-    name: 'list_checks',
+    name: 'list-checks',
     title: 'List checks',
     description:
       'Lists all tech-insights checks, both draft and published, with their id, name, description, factIds and status. ' +
@@ -380,35 +244,30 @@ export function registerCheckActions(options: CheckActionsOptions) {
     attributes: { readOnly: true, destructive: false, idempotent: true },
     action: async ({ credentials }) => {
       await requireAccess(credentials, dynamicCheckReadPermission, {
-        allowService: true,
+        requireUser: false,
       });
       const checks = await registry.listAll();
       return {
         output: {
-          checks: checks
-            .filter(check => !check.id.startsWith(DRY_RUN_ID_PREFIX))
-            .map(({ id, name, description, factIds, status }) => ({
-              id,
-              name,
-              description: description ?? '',
-              factIds,
-              status,
-            })),
+          checks: checks.map(({ id, name, description, factIds, status }) => ({
+            id,
+            name,
+            description: description ?? '',
+            factIds,
+            status,
+          })),
         },
       };
     },
   });
 
   actionsRegistry.register({
-    name: 'get_check',
+    name: 'get-check',
     title: 'Get check',
     description:
       'Returns one tech-insights check by id, including its full json-rules-engine rule and its status (draft or published).',
     schema: {
-      input: z =>
-        z.object({
-          id: z.string().min(1).describe('Check id from list_checks'),
-        }),
+      input: z => z.object({ id: checkIdSchema(z) }),
       output: z =>
         z.object({
           check: z.object({
@@ -424,12 +283,12 @@ export function registerCheckActions(options: CheckActionsOptions) {
     attributes: { readOnly: true, destructive: false, idempotent: true },
     action: async ({ input, credentials }) => {
       await requireAccess(credentials, dynamicCheckReadPermission, {
-        allowService: true,
+        requireUser: false,
       });
       const check = (await registry.listAll()).find(c => c.id === input.id);
       if (!check) {
         throw new InputError(
-          `No check with id "${input.id}"; use list_checks.`,
+          `No check with id "${input.id}"; use list-checks.`,
         );
       }
       return {
@@ -448,7 +307,7 @@ export function registerCheckActions(options: CheckActionsOptions) {
   });
 
   actionsRegistry.register({
-    name: 'list_fact_schemas',
+    name: 'list-fact-schemas',
     title: 'List fact schemas',
     description:
       'Lists the facts a check rule can use: for each fact retriever id, the facts it provides with their type and description. ' +
@@ -467,7 +326,7 @@ export function registerCheckActions(options: CheckActionsOptions) {
     attributes: { readOnly: true, destructive: false, idempotent: true },
     action: async ({ input, credentials }) => {
       await requireAccess(credentials, dynamicCheckReadPermission, {
-        allowService: true,
+        requireUser: false,
       });
       const schemas = await requireEvaluation().store.getLatestSchemas(
         input.ids.length ? input.ids : undefined,
@@ -479,10 +338,10 @@ export function registerCheckActions(options: CheckActionsOptions) {
   });
 
   actionsRegistry.register({
-    name: 'get_entity_facts',
+    name: 'get-entity-facts',
     title: 'Get entity facts',
     description:
-      'Returns the latest real fact values for one component, keyed by fact retriever id. ' +
+      'Returns the latest real fact values for one entity, keyed by fact retriever id. ' +
       'Use it to see what values a rule will actually be compared against.',
     schema: {
       input: z =>
@@ -498,13 +357,11 @@ export function registerCheckActions(options: CheckActionsOptions) {
     attributes: { readOnly: true, destructive: false, idempotent: true },
     action: async ({ input, credentials }) => {
       await requireAccess(credentials, dynamicCheckReadPermission, {
-        allowService: true,
+        requireUser: false,
       });
-      // The /facts routes check catalog access (entityAccess.ts); so does this.
-      const entityRef = toEntityRef(input.entityRef);
-      if (!(await catalog.getEntityByRef(entityRef, { credentials }))) {
-        throw new InputError(`No entity ${entityRef} in the catalog.`);
-      }
+      const entityRef = normalizeEntityRef(input.entityRef);
+      // The same gate as the /facts routes.
+      await requireReadable(catalog, credentials, [toCatalogRef(entityRef)]);
       const latest = await requireEvaluation().store.getLatestFactsByIds(
         input.factIds,
         entityRef,
@@ -520,11 +377,12 @@ export function registerCheckActions(options: CheckActionsOptions) {
   });
 
   actionsRegistry.register({
-    name: 'dry_run_check',
+    name: 'dry-run-check',
     title: 'Dry-run check',
     description:
-      'Runs a check that is not saved yet against one component, using the facts already stored for it, and returns ' +
-      'whether it passes, the actual fact values and the reasons. Nothing is saved. Use it to test a rule before creating the check.',
+      'Runs a check that is not saved yet against one entity, using the facts already stored for it, and returns ' +
+      'its status (passed, failed, not-applicable or invalid), the reasons, and the conditions with the value each ' +
+      'fact had. Nothing is saved. A rule that cannot be evaluated comes back as status invalid.',
     schema: {
       input: z =>
         z.object({
@@ -534,85 +392,61 @@ export function registerCheckActions(options: CheckActionsOptions) {
       output: z =>
         z.object({
           status: z.enum(['passed', 'failed', 'not-applicable', 'invalid']),
-          passed: z.boolean(),
-          summary: z.string().describe('Plain-language reading of the result'),
-          factValues: z
-            .record(z.unknown())
-            .describe('The actual value of each fact the rule compared'),
-          reasons: z.array(z.object({ code: z.string(), message: z.string() })),
+          entityRef: z.string(),
+          reasons: z.array(
+            z.object({
+              code: z.string(),
+              message: z.string(),
+              factRetrieverId: z.string().optional(),
+            }),
+          ),
+          conditions: z
+            .unknown()
+            .describe(
+              "The rule's conditions with each fact condition's factResult and result",
+            ),
+          collectedAt: z
+            .record(z.string())
+            .describe('Latest collection time per fact retriever, ISO 8601'),
         }),
     },
     // Read-only: the check is evaluated in memory and nothing is saved.
     attributes: { readOnly: true, destructive: false, idempotent: true },
     action: async ({ input, credentials }) => {
       await requireAccess(credentials, dynamicCheckManagePermission, {
-        allowService: true,
+        requireUser: false,
       });
-      const check = toDraftCheck(input.check);
-      const entityRef = toEntityRef(input.entityRef);
-      const entity = await catalog.getEntityByRef(entityRef, { credentials });
-      if (!entity) {
-        throw new InputError(`No entity ${entityRef} in the catalog.`);
-      }
-      const result = await dryRunCheck({
-        check,
-        entity,
-        entityRef,
+      const result = await dryRunForCaller({
+        catalog,
+        credentials,
         evaluation: requireEvaluation(),
+        entity: input.entityRef,
+        check: toDraftCheck(input.check),
       });
-      const reasons = result.reasons.map(({ code, message }) => ({
-        code,
-        message,
-      }));
-      const reasonText = reasons.map(r => r.message).join(' ');
-
-      // A rule tech-insights can't evaluate (unknown fact, bad operator) is
-      // a fixable input problem; surface it as one.
-      if (result.status === 'invalid') {
-        throw new InputError(`The check could not be evaluated: ${reasonText}`);
-      }
-
-      const factValues = factValuesIn(result.conditions);
-      const values = Object.entries(factValues)
-        .map(([name, value]) => `${name} = ${JSON.stringify(value)}`)
-        .join(', ');
-      // Agents tend to read a failure as their own mistake and rewrite the
-      // rule until it passes, which inverts the check. Say plainly that this
-      // is the answer, not an error.
-      const summary =
-        result.status === 'not-applicable'
-          ? `The check does not apply to ${entityRef}: ${reasonText} ` +
-            "Report this; do not change the rule's meaning."
-          : `The check was evaluated successfully: ${entityRef} ` +
-            `${
-              result.status === 'passed' ? 'MEETS' : 'does NOT meet'
-            } this rule` +
-            `${
-              values ? ` (${values})` : ''
-            }. This is the final result — report it; ` +
-            'do not change the rule to make it pass.';
-      return {
-        output: {
-          status: result.status,
-          passed: result.status === 'passed',
-          summary,
-          factValues,
-          reasons,
-        },
-      };
+      return { output: result };
     },
   });
 
   actionsRegistry.register({
-    name: 'create_check',
+    name: 'create-check',
     title: 'Create draft check',
     description:
       'Saves a new tech-insights check as a DRAFT, with its category, maturity tier and How to pass text, and returns ' +
-      'its id. It applies to the entity kinds its fact retrievers collect facts for. ' +
+      'its id. It applies to the entity kinds its fact retrievers collect facts for. The rule must be valid. ' +
       'Drafts are not evaluated until a person publishes them. ' +
-      'Requires a signed-in user who may manage checks. Dry-run the check first.',
+      'Requires a signed-in user who may manage checks.',
     schema: {
-      input: z => checkInputSchema(z).extend({ metadata: metadataSchema(z) }),
+      input: z =>
+        checkInputSchema(z).extend({
+          id: z
+            .string()
+            .uuid()
+            .optional()
+            .describe(
+              'Id for the new check; a create repeated with the same id is refused instead of saving a second check',
+            ),
+          metadata: metadataSchema(z),
+        }),
       output: z =>
         z.object({
           id: z.string(),
@@ -620,22 +454,25 @@ export function registerCheckActions(options: CheckActionsOptions) {
           status: z.literal('draft'),
         }),
     },
-    attributes: { readOnly: false, destructive: false, idempotent: false },
+    // Idempotent with an id: a repeat is refused, so it saves one check.
+    attributes: { readOnly: false, destructive: false, idempotent: true },
     action: async ({ input, credentials }) => {
       await requireAccess(credentials, dynamicCheckManagePermission, {
-        allowService: false,
+        requireUser: true,
       });
+      const evaluation = requireEvaluation();
       const metadata = withMetadata(undefined, input.metadata);
-      const kinds = await sharedKinds(requireEvaluation(), input.factIds);
-      if (kinds?.length === 0) {
-        throw new InputError(noSharedKind(input.factIds));
-      }
-      const created = await registry.register({
+      const kinds = sharedKindsOf(
+        await evaluation.store.getLatestSchemas(input.factIds),
+      );
+      const check: TechInsightJsonRuleCheck = {
         ...toDraftCheck(input),
-        ...(kinds && { filter: { kind: kinds } }),
+        ...(kinds !== 'all' && kinds.length > 0 && { filter: { kind: kinds } }),
         ...(metadata && { metadata }),
-        id: randomUUID(),
-      });
+        id: input.id ?? randomUUID(),
+      };
+      await requireEvaluable(evaluation, check);
+      const created = await registry.register(check);
       return {
         output: {
           id: created.id,
@@ -647,13 +484,13 @@ export function registerCheckActions(options: CheckActionsOptions) {
   });
 
   actionsRegistry.register({
-    name: 'validate_check',
+    name: 'validate-check',
     title: 'Validate check rule',
     description:
       'Reports every problem that stops a rule from being evaluated: an invalid shape or operator, an unknown fact ' +
       'retriever, a fact the selected retrievers do not provide, or retrievers with no entity kind in common. Each ' +
       'problem names the condition it points at. Also returns the entity kinds the check can apply to (empty: any kind). ' +
-      'Nothing is saved. Use it to check an edited rule when no component is named to dry-run against.',
+      'Nothing is saved.',
     schema: {
       input: z =>
         z.object({
@@ -674,35 +511,35 @@ export function registerCheckActions(options: CheckActionsOptions) {
     attributes: { readOnly: true, destructive: false, idempotent: true },
     action: async ({ input, credentials }) => {
       await requireAccess(credentials, dynamicCheckManagePermission, {
-        allowService: true,
+        requireUser: false,
       });
       const evaluation = requireEvaluation();
       const found = await evaluation.validator.problemsOf({
         type: 'json-rules-engine',
         name: '',
         factIds: input.factIds,
-        rule: { conditions: parseConditions(input.rule.conditions) },
+        rule: { conditions: checkConditions(input.rule.conditions) },
       });
-      const kinds = await sharedKinds(evaluation, input.factIds);
-      const problems = found.map(describeProblem);
-      if (kinds?.length === 0) problems.push(noSharedKind(input.factIds));
+      const kinds = sharedKindsOf(
+        await evaluation.store.getLatestSchemas(input.factIds),
+      );
       return {
         output: {
-          valid: problems.length === 0,
-          problems,
-          kinds: kinds ?? [],
+          valid: found.length === 0,
+          problems: found.map(describeProblem),
+          kinds: kinds === 'all' ? [] : kinds,
         },
       };
     },
   });
 
   actionsRegistry.register({
-    name: 'update_check',
+    name: 'update-check',
     title: 'Update check',
     description:
       'Replaces the name, description, fact retrievers and rule of an existing check, and sets the category, tier and ' +
-      'How to pass text that are given; every other field (links, other metadata) is kept. The rule must be valid. ' +
-      'A published check changes for every entity at once. Requires a signed-in user who may manage checks.',
+      'How to pass text that are given; every other field (entity filter, links, other metadata) is kept. The rule ' +
+      'must be valid. A published check changes for every entity at once. Requires a signed-in user who may manage checks.',
     schema: {
       input: z =>
         checkInputSchema(z).extend({
@@ -719,31 +556,9 @@ export function registerCheckActions(options: CheckActionsOptions) {
     attributes: { readOnly: false, destructive: false, idempotent: true },
     action: async ({ input, credentials }) => {
       await requireAccess(credentials, dynamicCheckManagePermission, {
-        allowService: false,
+        requireUser: true,
       });
       const existing = await getExisting(input.id);
-      // The saved entity filter is kept, so the retrievers must still collect
-      // facts for one of its kinds.
-      const kinds = await sharedKinds(requireEvaluation(), input.factIds);
-      const filterKinds = kindsOfFilter(existing.filter);
-      if (kinds?.length === 0) {
-        throw new InputError(noSharedKind(input.factIds));
-      }
-      if (
-        kinds &&
-        filterKinds &&
-        !kinds.some(kind =>
-          filterKinds.some(k => k.toLowerCase() === kind.toLowerCase()),
-        )
-      ) {
-        throw new InputError(
-          `${input.factIds.join(
-            ', ',
-          )} don't collect facts for ${filterKinds.join(
-            ', ',
-          )}, the kinds this check applies to, so it would never have a result.`,
-        );
-      }
       const draft = toDraftCheck(input);
       const metadata = withMetadata(existing.metadata, input.metadata);
       const updated: TechInsightJsonRuleCheck = {
@@ -754,8 +569,8 @@ export function registerCheckActions(options: CheckActionsOptions) {
         rule: { ...existing.rule, conditions: draft.rule.conditions },
       };
       // Stricter than the REST route, which saves drafts with problems while
-      // a person is still editing: the assistant never saves a broken rule.
-      await requireEvaluable(updated);
+      // a person is still editing.
+      await requireEvaluable(requireEvaluation(), updated);
       await registry.update(input.id, updated);
       return {
         output: {
@@ -768,7 +583,7 @@ export function registerCheckActions(options: CheckActionsOptions) {
   });
 
   actionsRegistry.register({
-    name: 'publish_check',
+    name: 'publish-check',
     title: 'Publish check',
     description:
       'Publishes a check so it is evaluated for every entity it applies to and counts towards their scores. ' +
@@ -781,16 +596,16 @@ export function registerCheckActions(options: CheckActionsOptions) {
     attributes: { readOnly: false, destructive: true, idempotent: true },
     action: async ({ input, credentials }) => {
       await requireAccess(credentials, dynamicCheckManagePermission, {
-        allowService: false,
+        requireUser: true,
       });
-      await requireEvaluable(await getExisting(input.id));
+      await requireEvaluable(requireEvaluation(), await getExisting(input.id));
       await registry.publish(input.id);
       return { output: { id: input.id, status: 'published' as const } };
     },
   });
 
   actionsRegistry.register({
-    name: 'unpublish_check',
+    name: 'unpublish-check',
     title: 'Unpublish check',
     description:
       'Turns a published check back into a draft, so it stops being evaluated and drops out of every score. ' +
@@ -803,7 +618,7 @@ export function registerCheckActions(options: CheckActionsOptions) {
     attributes: { readOnly: false, destructive: true, idempotent: true },
     action: async ({ input, credentials }) => {
       await requireAccess(credentials, dynamicCheckManagePermission, {
-        allowService: false,
+        requireUser: true,
       });
       await getExisting(input.id);
       await registry.unpublish(input.id);

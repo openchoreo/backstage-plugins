@@ -99,6 +99,66 @@ function createEvaluation(store: TechInsightsStore) {
   return { evaluation, validator, checkerOver, logger };
 }
 
+describe('CheckValidator entity kinds', () => {
+  const kindSchemas = [
+    { id: 'components', entityFilter: [{ kind: 'component' }], a: {} },
+    { id: 'apis', entityFilter: { kind: 'API' }, b: {} },
+    { id: 'anything', c: {} },
+  ];
+  const validator = new CheckValidator({
+    getLatestSchemas: async () => kindSchemas as any,
+  });
+  const reading = (
+    factIds: string[],
+    filter?: TechInsightJsonRuleCheck['filter'],
+  ) => ({
+    ...check('k', 'a'),
+    factIds,
+    rule: {
+      conditions: {
+        all: factIds.map(id => ({
+          fact: { components: 'a', apis: 'b', anything: 'c' }[id]!,
+          operator: 'equal',
+          value: 1,
+        })),
+      },
+    },
+    ...(filter && { filter }),
+  });
+
+  it('reports retrievers with no kind in common', async () => {
+    await expect(
+      validator.problemsOf(reading(['components', 'apis'])),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        code: 'kind-mismatch',
+        message: expect.stringContaining('any of the same entity kinds'),
+      }),
+    ]);
+  });
+
+  it("reports retrievers that miss every kind the check's filter allows", async () => {
+    await expect(
+      validator.problemsOf(reading(['apis'], { kind: 'Component' })),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        code: 'kind-mismatch',
+        message: expect.stringContaining(
+          "don't collect facts for Component, the kinds this check applies to",
+        ),
+      }),
+    ]);
+  });
+
+  it('accepts a filter one of whose kinds the retrievers collect for', async () => {
+    await expect(
+      validator.problemsOf(
+        reading(['components', 'anything'], { kind: ['component', 'System'] }),
+      ),
+    ).resolves.toEqual([]);
+  });
+});
+
 describe('CheckValidator', () => {
   const { validator } = createEvaluation(createStore({}));
 

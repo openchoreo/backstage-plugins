@@ -14,15 +14,15 @@ const conditions = {
   all: [{ fact: 'githubVisibility', operator: 'equal', value: 'private' }],
 };
 
-// The check as a tool caller sends it: conditions as a JSON string.
+// The check as a tool caller sends it.
 const toolCheck = {
   name: 'Repo must be private',
   description: '',
   factIds: ['githubRepoMetadataFactRetriever'],
-  rule: { conditions: JSON.stringify(conditions) },
+  rule: { conditions },
 };
 
-// create_check / update_check input: the check plus metadata, here with
+// create-check / update-check input: the check plus metadata, here with
 // every metadata field left unset.
 const keepMetadata = { category: '', rank: 0, solution: '' };
 const toolSave = { ...toolCheck, metadata: keepMetadata };
@@ -79,6 +79,9 @@ function setup({ allow = true }: { allow?: boolean } = {}) {
   const validator = { problemsOf: jest.fn(async (): Promise<any[]> => []) };
   const catalog = {
     getEntityByRef: jest.fn(async () => ({ kind: 'Component' })),
+    getEntitiesByRefs: jest.fn(async () => ({
+      items: [{ kind: 'Component' }] as unknown[],
+    })),
   };
   const permissions = mockServices.permissions.mock({
     authorize: jest.fn(async () => [
@@ -128,39 +131,6 @@ const badOperator = {
   message: "The rule can't be evaluated: Unknown operator: equals",
 };
 
-/**
- * Collects violations of OpenAI strict function calling rules, which the
- * Portal Assistant enables for every tool: each object lists all its
- * properties as required and sets additionalProperties: false, and there are
- * no free-form ("any") schemas.
- */
-function strictModeViolations(schema: any, path = '$'): string[] {
-  if (!schema || typeof schema !== 'object') return [];
-  if (Object.keys(schema).filter(k => k !== 'description').length === 0) {
-    return [`${path}: free-form schema`];
-  }
-  const errors: string[] = [];
-  if (schema.type === 'object') {
-    const keys = Object.keys(schema.properties ?? {});
-    if (schema.additionalProperties !== false) {
-      errors.push(`${path}: additionalProperties must be false`);
-    }
-    const required = new Set(schema.required ?? []);
-    keys
-      .filter(k => !required.has(k))
-      .forEach(k => errors.push(`${path}.${k}: must be required`));
-    keys.forEach(k =>
-      errors.push(
-        ...strictModeViolations(schema.properties[k], `${path}.${k}`),
-      ),
-    );
-  }
-  if (schema.type === 'array') {
-    errors.push(...strictModeViolations(schema.items, `${path}[]`));
-  }
-  return errors;
-}
-
 describe('registerCheckActions', () => {
   beforeEach(() => dryRunCheckMock.mockReset());
 
@@ -176,64 +146,57 @@ describe('registerCheckActions', () => {
       destructive: true,
       idempotent: true,
     };
+    const saves = { readOnly: false, destructive: false, idempotent: true };
     expect(attributes).toEqual({
-      list_checks: readOnly,
-      get_check: readOnly,
-      list_fact_schemas: readOnly,
-      get_entity_facts: readOnly,
-      dry_run_check: readOnly,
-      validate_check: readOnly,
-      create_check: { readOnly: false, destructive: false, idempotent: false },
-      update_check: { readOnly: false, destructive: false, idempotent: true },
-      publish_check: changesScores,
-      unpublish_check: changesScores,
+      'list-checks': readOnly,
+      'get-check': readOnly,
+      'list-fact-schemas': readOnly,
+      'get-entity-facts': readOnly,
+      'dry-run-check': readOnly,
+      'validate-check': readOnly,
+      'create-check': saves,
+      'update-check': saves,
+      'publish-check': changesScores,
+      'unpublish-check': changesScores,
     });
-  });
-
-  // Regression: the Portal Assistant's OpenAI call failed with "Invalid
-  // schema for function 'dry_run_check'" when rule.conditions was a
-  // free-form object and some fields were optional.
-  it('every input schema is valid for OpenAI strict function calling', async () => {
-    const { actionsRegistry } = setup();
-
-    const { actions } = await actionsRegistry.list();
-
-    expect(
-      actions.flatMap(a => strictModeViolations(a.schema.input, a.name)),
-    ).toEqual([]);
   });
 
   describe('permissions', () => {
     it('applies the read permission to a signed-in user', async () => {
       const { invoke, registry } = setup({ allow: false });
 
-      await expect(invoke('list_checks', {}, user)).rejects.toThrow(
+      await expect(invoke('list-checks', {}, user)).rejects.toThrow(
         /don't have the .* permission/,
       );
       expect(registry.listAll).not.toHaveBeenCalled();
     });
 
-    it('lets a service caller (the assistant) read without a user', async () => {
-      const { invoke, registry, permissions } = setup();
-      registry.listAll.mockResolvedValue([]);
+    it('authorizes a service caller too, like the REST routes', async () => {
+      const { invoke, registry, permissions } = setup({ allow: false });
 
-      await invoke('list_checks', {}, agent);
-
-      expect(permissions.authorize).not.toHaveBeenCalled();
+      await expect(invoke('list-checks', {}, agent)).rejects.toThrow(
+        /don't have the .* permission/,
+      );
+      expect(permissions.authorize).toHaveBeenCalledWith(
+        [{ permission: expect.objectContaining({ name: expect.any(String) }) }],
+        { credentials: agent },
+      );
+      expect(registry.listAll).not.toHaveBeenCalled();
     });
 
-    it('rejects callers with no credentials', async () => {
-      const { invoke } = setup();
+    it('lets a permitted service caller read', async () => {
+      const { invoke, registry } = setup();
+      registry.listAll.mockResolvedValue([]);
 
-      await expect(
-        invoke('list_checks', {}, mockCredentials.none()),
-      ).rejects.toThrow(/signed-in user or service/);
+      await expect(invoke('list-checks', {}, agent)).resolves.toEqual({
+        output: { checks: [] },
+      });
     });
 
     it('never lets a service caller save a check', async () => {
       const { invoke, registry } = setup();
 
-      await expect(invoke('create_check', toolSave, agent)).rejects.toThrow(
+      await expect(invoke('create-check', toolSave, agent)).rejects.toThrow(
         /requires a signed-in user/,
       );
       expect(registry.register).not.toHaveBeenCalled();
@@ -242,16 +205,16 @@ describe('registerCheckActions', () => {
     it('applies the manage permission to a user saving a check', async () => {
       const { invoke, registry } = setup({ allow: false });
 
-      await expect(invoke('create_check', toolSave, user)).rejects.toThrow(
+      await expect(invoke('create-check', toolSave, user)).rejects.toThrow(
         /don't have the .* permission/,
       );
       expect(registry.register).not.toHaveBeenCalled();
     });
 
     it.each([
-      ['update_check', { ...toolSave, id: 'c1' }],
-      ['publish_check', { id: 'c1' }],
-      ['unpublish_check', { id: 'c1' }],
+      ['update-check', { ...toolSave, id: 'c1' }],
+      ['publish-check', { id: 'c1' }],
+      ['unpublish-check', { id: 'c1' }],
     ])('never lets a service caller run %s', async (name, input) => {
       const { invoke, registry } = setup();
 
@@ -264,9 +227,9 @@ describe('registerCheckActions', () => {
     });
 
     it.each([
-      ['update_check', { ...toolSave, id: 'c1' }],
-      ['publish_check', { id: 'c1' }],
-      ['unpublish_check', { id: 'c1' }],
+      ['update-check', { ...toolSave, id: 'c1' }],
+      ['publish-check', { id: 'c1' }],
+      ['unpublish-check', { id: 'c1' }],
     ])(
       'applies the manage permission to a user running %s',
       async (name, input) => {
@@ -282,47 +245,13 @@ describe('registerCheckActions', () => {
     );
   });
 
-  it('list_checks hides leftover dry-run checks', async () => {
-    const { invoke, registry } = setup();
-    registry.listAll.mockResolvedValue([
-      {
-        id: 'c1',
-        name: 'Real',
-        description: 'd',
-        factIds: ['f'],
-        status: 'draft',
-      },
-      {
-        id: '__dryrun__x',
-        name: 'Tmp',
-        description: 'd',
-        factIds: ['f'],
-        status: 'draft',
-      },
-    ]);
-
-    const { output } = await invoke('list_checks', {});
-
-    expect(output).toEqual({
-      checks: [
-        {
-          id: 'c1',
-          name: 'Real',
-          description: 'd',
-          factIds: ['f'],
-          status: 'draft',
-        },
-      ],
-    });
-  });
-
-  it('get_check returns the full check, or a hint when the id is unknown', async () => {
+  it('get-check returns the full check, or a hint when the id is unknown', async () => {
     const { invoke, registry } = setup();
     registry.listAll.mockResolvedValue([
       { ...draftCheck, id: 'c1', description: undefined, status: 'published' },
     ]);
 
-    const { output } = await invoke('get_check', { id: 'c1' });
+    const { output } = await invoke('get-check', { id: 'c1' });
     expect(output).toMatchObject({
       check: {
         id: 'c1',
@@ -331,22 +260,22 @@ describe('registerCheckActions', () => {
         rule: { conditions },
       },
     });
-    await expect(invoke('get_check', { id: 'nope' })).rejects.toThrow(
-      /use list_checks/,
+    await expect(invoke('get-check', { id: 'nope' })).rejects.toThrow(
+      /use list-checks/,
     );
   });
 
-  it('list_fact_schemas treats an empty ids array as "all"', async () => {
+  it('list-fact-schemas treats an empty ids array as "all"', async () => {
     const { invoke, store } = setup();
     store.getLatestSchemas.mockResolvedValue([{ id: 'a' }]);
 
-    await invoke('list_fact_schemas', { ids: [] });
-    await invoke('list_fact_schemas', { ids: ['a'] });
+    await invoke('list-fact-schemas', { ids: [] });
+    await invoke('list-fact-schemas', { ids: ['a'] });
 
     expect(store.getLatestSchemas.mock.calls).toEqual([[undefined], [['a']]]);
   });
 
-  it('get_entity_facts normalises the entity ref and returns fact values', async () => {
+  it('get-entity-facts normalises the entity ref and returns fact values', async () => {
     const { invoke, store } = setup();
     store.getLatestFactsByIds.mockResolvedValue({
       githubRepoMetadataFactRetriever: {
@@ -356,7 +285,7 @@ describe('registerCheckActions', () => {
       },
     });
 
-    const { output } = await invoke('get_entity_facts', {
+    const { output } = await invoke('get-entity-facts', {
       entityRef: 'component:order-api',
       factIds: ['githubRepoMetadataFactRetriever'],
     });
@@ -375,34 +304,35 @@ describe('registerCheckActions', () => {
     });
   });
 
-  it('get_entity_facts reads no facts of an entity the caller cannot see', async () => {
+  it('get-entity-facts reads no facts of an entity the caller cannot see', async () => {
     const { invoke, store, catalog } = setup();
-    catalog.getEntityByRef.mockResolvedValue(undefined as any);
+    catalog.getEntitiesByRefs.mockResolvedValue({ items: [null] });
 
     await expect(
-      invoke('get_entity_facts', {
-        entityRef: 'component:default/hidden-api',
+      invoke('get-entity-facts', {
+        entityRef: 'component:default/Hidden-API',
         factIds: ['githubRepoMetadataFactRetriever'],
       }),
-    ).rejects.toThrow('No entity component:default/hidden-api in the catalog.');
+    ).rejects.toThrow("You don't have access to that entity.");
 
-    expect(catalog.getEntityByRef).toHaveBeenCalledWith(
-      'component:default/hidden-api',
+    // The same gate as the /facts routes.
+    expect(catalog.getEntitiesByRefs).toHaveBeenCalledWith(
+      { entityRefs: ['component:default/hidden-api'], fields: ['kind'] },
       { credentials: agent },
     );
     expect(store.getLatestFactsByIds).not.toHaveBeenCalled();
   });
 
-  describe('dry_run_check', () => {
+  describe('dry-run-check', () => {
     const input = {
       entityRef: 'component:default/order-api',
       check: toolCheck,
     };
 
-    it('reports a failure as a final result with the actual values', async () => {
+    it('returns the same result as the REST dry-run', async () => {
       const { invoke } = setup();
-      dryRunCheckMock.mockResolvedValue({
-        status: 'failed',
+      const result = {
+        status: 'failed' as const,
         entityRef: 'component:default/order-api',
         reasons: [],
         collectedAt: {},
@@ -417,19 +347,12 @@ describe('registerCheckActions', () => {
             },
           ],
         },
-      });
+      };
+      dryRunCheckMock.mockResolvedValue(result);
 
-      const { output } = await invoke('dry_run_check', input);
+      const { output } = await invoke('dry-run-check', input);
 
-      expect(output).toEqual({
-        status: 'failed',
-        passed: false,
-        summary:
-          'The check was evaluated successfully: component:default/order-api does NOT meet this rule ' +
-          '(githubVisibility = "public"). This is the final result — report it; do not change the rule to make it pass.',
-        factValues: { githubVisibility: 'public' },
-        reasons: [],
-      });
+      expect(output).toEqual(result);
       expect(dryRunCheckMock).toHaveBeenCalledWith(
         expect.objectContaining({
           check: draftCheck,
@@ -438,86 +361,53 @@ describe('registerCheckActions', () => {
       );
     });
 
-    it('turns an invalid check into an input error with the reasons', async () => {
+    it('returns a check that cannot be evaluated as an invalid result', async () => {
       const { invoke } = setup();
-      dryRunCheckMock.mockResolvedValue({
-        status: 'invalid',
+      const result = {
+        status: 'invalid' as const,
         entityRef: 'component:default/order-api',
         reasons: [
           {
-            code: 'unknown-fact',
+            code: 'unknown-fact' as const,
             message: 'repoVisibility is not a known fact.',
           },
         ],
         collectedAt: {},
-      });
+      };
+      dryRunCheckMock.mockResolvedValue(result);
 
-      await expect(invoke('dry_run_check', input)).rejects.toMatchObject({
-        name: 'InputError',
-        message:
-          'The check could not be evaluated: repoVisibility is not a known fact.',
-      });
+      const { output } = await invoke('dry-run-check', input);
+
+      expect(output).toEqual(result);
     });
 
-    it('explains a check that does not apply to the entity', async () => {
-      const { invoke } = setup();
-      dryRunCheckMock.mockResolvedValue({
-        status: 'not-applicable',
-        entityRef: 'component:default/order-api',
-        reasons: [{ code: 'no-facts', message: 'No facts collected yet.' }],
-        collectedAt: {},
-      });
-
-      const { output } = await invoke('dry_run_check', input);
-
-      expect(output).toMatchObject({
-        status: 'not-applicable',
-        passed: false,
-        summary: expect.stringMatching(
-          /does not apply .* No facts collected yet/,
-        ),
-      });
-    });
-
-    it('unwraps conditions repeated as {"conditions":{...}}', async () => {
-      const { invoke } = setup();
-      dryRunCheckMock.mockResolvedValue({
-        status: 'passed',
-        entityRef: 'x',
-        reasons: [],
-        collectedAt: {},
-      });
-
-      await invoke('dry_run_check', {
-        ...input,
-        check: {
-          ...toolCheck,
-          rule: { conditions: JSON.stringify({ conditions }) },
-        },
-      });
-
-      expect(dryRunCheckMock).toHaveBeenCalledWith(
-        expect.objectContaining({ check: draftCheck }),
-      );
-    });
-
-    it.each([
-      ['not JSON', '{all: [', /not valid JSON/],
-      ['a JSON array', '[]', /top level is "all", "any" or "not"/],
-      [
-        'missing all/any/not',
-        '{"fact":"x","operator":"equal","value":1}',
-        /top level is/,
-      ],
-    ])('rejects conditions that are %s', async (_label, raw, message) => {
+    it('rejects conditions with no all, any or not at the top', async () => {
       const { invoke } = setup();
 
       await expect(
-        invoke('dry_run_check', {
+        invoke('dry-run-check', {
           ...input,
-          check: { ...toolCheck, rule: { conditions: raw } },
+          check: {
+            ...toolCheck,
+            rule: { conditions: { fact: 'x', operator: 'equal', value: 1 } },
+          },
         }),
-      ).rejects.toThrow(message);
+      ).rejects.toThrow(/top level is "all", "any" or "not"/);
+      expect(dryRunCheckMock).not.toHaveBeenCalled();
+    });
+
+    it('rejects conditions sent as a JSON string', async () => {
+      const { invoke } = setup();
+
+      await expect(
+        invoke('dry-run-check', {
+          ...input,
+          check: {
+            ...toolCheck,
+            rule: { conditions: JSON.stringify(conditions) },
+          },
+        }),
+      ).rejects.toThrow();
       expect(dryRunCheckMock).not.toHaveBeenCalled();
     });
 
@@ -525,15 +415,25 @@ describe('registerCheckActions', () => {
       const { invoke } = setup();
 
       await expect(
-        invoke('dry_run_check', { ...input, entityRef: 'order-api' }),
+        invoke('dry-run-check', { ...input, entityRef: 'order-api' }),
       ).rejects.toThrow(/isn't a complete entity ref/);
+    });
+
+    it('reports an entity the caller cannot see as not in the catalog', async () => {
+      const { invoke, catalog } = setup();
+      catalog.getEntityByRef.mockResolvedValue(undefined as any);
+
+      await expect(invoke('dry-run-check', input)).rejects.toThrow(
+        'No entity component:default/order-api in the catalog.',
+      );
+      expect(dryRunCheckMock).not.toHaveBeenCalled();
     });
   });
 
-  it('create_check saves a draft for a permitted user', async () => {
+  it('create-check saves a draft for a permitted user', async () => {
     const { invoke, registry } = setup();
 
-    const { output } = await invoke('create_check', toolSave, user);
+    const { output } = await invoke('create-check', toolSave, user);
 
     expect(registry.register).toHaveBeenCalledWith({
       ...draftCheck,
@@ -546,11 +446,11 @@ describe('registerCheckActions', () => {
     });
   });
 
-  it('create_check saves the category, tier and How to pass', async () => {
+  it('create-check saves the category, tier and How to pass', async () => {
     const { invoke, registry } = setup();
 
     await invoke(
-      'create_check',
+      'create-check',
       {
         ...toolCheck,
         metadata: {
@@ -573,14 +473,43 @@ describe('registerCheckActions', () => {
     });
   });
 
-  it('create_check applies to the kinds its fact retrievers collect for', async () => {
+  it('create-check saves under the given id, so a repeat cannot save a second check', async () => {
+    const { invoke, registry } = setup();
+    const id = '0b5e8d6e-4a7c-4f8e-9a51-2f0d6f1c9b11';
+
+    const { output } = await invoke('create-check', { ...toolSave, id }, user);
+
+    expect(registry.register).toHaveBeenCalledWith({ ...draftCheck, id });
+    expect(output).toMatchObject({ id });
+  });
+
+  it('create-check refuses an id that is not a UUID', async () => {
+    const { invoke, registry } = setup();
+
+    await expect(
+      invoke('create-check', { ...toolSave, id: 'my-check' }, user),
+    ).rejects.toThrow();
+    expect(registry.register).not.toHaveBeenCalled();
+  });
+
+  it('create-check refuses a rule with problems', async () => {
+    const { invoke, registry, validator } = setup();
+    validator.problemsOf.mockResolvedValue([badOperator]);
+
+    await expect(invoke('create-check', toolSave, user)).rejects.toThrow(
+      /can't be evaluated: .*\(at \/conditions\/all\/0\/operator\)/,
+    );
+    expect(registry.register).not.toHaveBeenCalled();
+  });
+
+  it('create-check applies to the kinds its fact retrievers collect for', async () => {
     const { invoke, registry, store } = setup();
     store.getLatestSchemas.mockResolvedValue([
       { id: 'a', entityFilter: [{ kind: ['Component', 'System'] }] },
       { id: 'b', entityFilter: { kind: 'component' } },
     ]);
 
-    await invoke('create_check', toolSave, user);
+    await invoke('create-check', toolSave, user);
 
     expect(registry.register).toHaveBeenCalledWith({
       ...draftCheck,
@@ -589,25 +518,12 @@ describe('registerCheckActions', () => {
     });
   });
 
-  it('create_check refuses fact retrievers with no kind in common', async () => {
-    const { invoke, registry, store } = setup();
-    store.getLatestSchemas.mockResolvedValue([
-      { id: 'a', entityFilter: [{ kind: 'component' }] },
-      { id: 'b', entityFilter: [{ kind: 'ClusterComponentType' }] },
-    ]);
-
-    await expect(invoke('create_check', toolSave, user)).rejects.toThrow(
-      "don't collect facts for any of the same entity kinds",
-    );
-    expect(registry.register).not.toHaveBeenCalled();
-  });
-
   it.each([4, -1, 1.5])('refuses a tier of %s', async rank => {
     const { invoke, registry } = setup();
 
     await expect(
       invoke(
-        'create_check',
+        'create-check',
         { ...toolSave, metadata: { ...keepMetadata, rank } },
         user,
       ),
@@ -615,13 +531,13 @@ describe('registerCheckActions', () => {
     expect(registry.register).not.toHaveBeenCalled();
   });
 
-  describe('validate_check', () => {
+  describe('validate-check', () => {
     const input = { factIds: toolCheck.factIds, rule: toolCheck.rule };
 
     it('reports a valid rule', async () => {
       const { invoke, validator } = setup();
 
-      const { output } = await invoke('validate_check', input);
+      const { output } = await invoke('validate-check', input);
 
       expect(output).toEqual({ valid: true, problems: [], kinds: [] });
       expect(validator.problemsOf).toHaveBeenCalledWith(
@@ -636,7 +552,7 @@ describe('registerCheckActions', () => {
       const { invoke, validator } = setup();
       validator.problemsOf.mockResolvedValue([badOperator, unknownFact]);
 
-      const { output } = await invoke('validate_check', input);
+      const { output } = await invoke('validate-check', input);
 
       expect(output).toEqual({
         valid: false,
@@ -655,7 +571,7 @@ describe('registerCheckActions', () => {
         { id: 'b' },
       ]);
 
-      const { output } = await invoke('validate_check', input);
+      const { output } = await invoke('validate-check', input);
 
       expect(output).toEqual({
         valid: true,
@@ -663,31 +579,15 @@ describe('registerCheckActions', () => {
         kinds: ['component'],
       });
     });
-
-    it('reports retrievers with no kind in common', async () => {
-      const { invoke, store } = setup();
-      store.getLatestSchemas.mockResolvedValue([
-        { id: 'a', entityFilter: [{ kind: 'component' }] },
-        { id: 'b', entityFilter: [{ kind: 'ClusterComponentType' }] },
-      ]);
-
-      const { output } = await invoke('validate_check', input);
-
-      expect(output).toEqual({
-        valid: false,
-        problems: [expect.stringContaining('any of the same entity kinds')],
-        kinds: [],
-      });
-    });
   });
 
-  describe('update_check', () => {
+  describe('update-check', () => {
     const input = { ...toolSave, id: 'c1' };
 
     it('changes the rule and texts and keeps every other field', async () => {
       const { invoke, registry } = setup();
 
-      const { output } = await invoke('update_check', input, user);
+      const { output } = await invoke('update-check', input, user);
 
       expect(registry.update).toHaveBeenCalledWith('c1', {
         ...savedCheck,
@@ -707,7 +607,7 @@ describe('registerCheckActions', () => {
       const { invoke, registry } = setup();
 
       await invoke(
-        'update_check',
+        'update-check',
         {
           ...input,
           metadata: {
@@ -731,73 +631,43 @@ describe('registerCheckActions', () => {
       const { invoke, registry, validator } = setup();
       validator.problemsOf.mockResolvedValue([badOperator]);
 
-      await expect(invoke('update_check', input, user)).rejects.toThrow(
+      await expect(invoke('update-check', input, user)).rejects.toThrow(
         /can't be evaluated: .*\(at \/conditions\/all\/0\/operator\)/,
       );
       expect(registry.update).not.toHaveBeenCalled();
     });
 
-    it('refuses fact retrievers with no kind in common', async () => {
-      const { invoke, registry, store } = setup();
-      store.getLatestSchemas.mockResolvedValue([
-        { id: 'a', entityFilter: [{ kind: 'component' }] },
-        { id: 'b', entityFilter: [{ kind: 'ClusterComponentType' }] },
-      ]);
-
-      await expect(invoke('update_check', input, user)).rejects.toThrow(
-        "don't collect facts for any of the same entity kinds",
-      );
-      expect(registry.update).not.toHaveBeenCalled();
-    });
-
-    it('refuses fact retrievers that miss the kinds the check applies to', async () => {
-      const { invoke, registry, store } = setup();
+    it('keeps the entity filter and validates the check with it', async () => {
+      const { invoke, registry, validator } = setup();
+      const filter = { kind: ['Component', 'System'] };
       registry.get.mockResolvedValue({
         ...savedCheck,
-        filter: { kind: ['Component'] },
+        filter,
       } as typeof savedCheck);
-      store.getLatestSchemas.mockResolvedValue([
-        { id: 'a', entityFilter: [{ kind: 'ClusterComponentType' }] },
-      ]);
 
-      await expect(invoke('update_check', input, user)).rejects.toThrow(
-        "don't collect facts for Component, the kinds this check applies to",
+      await invoke('update-check', input, user);
+
+      expect(validator.problemsOf).toHaveBeenCalledWith(
+        expect.objectContaining({ filter }),
       );
-      expect(registry.update).not.toHaveBeenCalled();
-    });
-
-    it('keeps the filter when the fact retrievers still collect for one of its kinds', async () => {
-      const { invoke, registry, store } = setup();
-      registry.get.mockResolvedValue({
-        ...savedCheck,
-        filter: { kind: ['Component', 'System'] },
-      } as typeof savedCheck);
-      store.getLatestSchemas.mockResolvedValue([
-        { id: 'a', entityFilter: [{ kind: 'component' }] },
-      ]);
-
-      await invoke('update_check', input, user);
-
-      expect(registry.update.mock.calls[0][1].filter).toEqual({
-        kind: ['Component', 'System'],
-      });
+      expect(registry.update.mock.calls[0][1].filter).toEqual(filter);
     });
 
     it('gives a hint for an unknown id', async () => {
       const { invoke, registry } = setup();
 
       await expect(
-        invoke('update_check', { ...input, id: 'nope' }, user),
-      ).rejects.toThrow(/No check with id "nope"; use list_checks/);
+        invoke('update-check', { ...input, id: 'nope' }, user),
+      ).rejects.toThrow(/No check with id "nope"; use list-checks/);
       expect(registry.update).not.toHaveBeenCalled();
     });
   });
 
-  describe('publish_check', () => {
+  describe('publish-check', () => {
     it('publishes a valid check', async () => {
       const { invoke, registry, validator } = setup();
 
-      const { output } = await invoke('publish_check', { id: 'c1' }, user);
+      const { output } = await invoke('publish-check', { id: 'c1' }, user);
 
       expect(validator.problemsOf).toHaveBeenCalledWith(savedCheck);
       expect(registry.publish).toHaveBeenCalledWith('c1');
@@ -808,7 +678,7 @@ describe('registerCheckActions', () => {
       const { invoke, registry, validator } = setup();
       validator.problemsOf.mockResolvedValue([unknownFact]);
 
-      await expect(invoke('publish_check', { id: 'c1' }, user)).rejects.toThrow(
+      await expect(invoke('publish-check', { id: 'c1' }, user)).rejects.toThrow(
         /can't be evaluated: No registered fact retriever provides a fact named repoVisibility/,
       );
       expect(registry.publish).not.toHaveBeenCalled();
@@ -818,17 +688,17 @@ describe('registerCheckActions', () => {
       const { invoke, registry } = setup();
 
       await expect(
-        invoke('publish_check', { id: 'nope' }, user),
-      ).rejects.toThrow(/use list_checks/);
+        invoke('publish-check', { id: 'nope' }, user),
+      ).rejects.toThrow(/use list-checks/);
       expect(registry.publish).not.toHaveBeenCalled();
     });
   });
 
-  describe('unpublish_check', () => {
+  describe('unpublish-check', () => {
     it('turns the check back into a draft', async () => {
       const { invoke, registry } = setup();
 
-      const { output } = await invoke('unpublish_check', { id: 'c1' }, user);
+      const { output } = await invoke('unpublish-check', { id: 'c1' }, user);
 
       expect(registry.unpublish).toHaveBeenCalledWith('c1');
       expect(output).toEqual({ id: 'c1', status: 'draft' });
@@ -838,8 +708,8 @@ describe('registerCheckActions', () => {
       const { invoke, registry } = setup();
 
       await expect(
-        invoke('unpublish_check', { id: 'nope' }, user),
-      ).rejects.toThrow(/use list_checks/);
+        invoke('unpublish-check', { id: 'nope' }, user),
+      ).rejects.toThrow(/use list-checks/);
       expect(registry.unpublish).not.toHaveBeenCalled();
     });
   });

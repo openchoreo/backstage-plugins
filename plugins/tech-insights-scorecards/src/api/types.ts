@@ -26,7 +26,7 @@ export interface DynamicCheckInput {
 
 /** Why a check can't be evaluated against the facts collected now. */
 export interface CheckProblem {
-  code: 'unknown-retriever' | 'unknown-fact' | 'invalid-rule';
+  code: 'unknown-retriever' | 'unknown-fact' | 'invalid-rule' | 'kind-mismatch';
   message: string;
   factRetrieverId?: string;
   /** JSON pointer into the rule at the condition an invalid rule fails on. */
@@ -141,6 +141,7 @@ export interface DryRunReason {
     | 'unknown-retriever'
     | 'unknown-fact'
     | 'invalid-rule'
+    | 'kind-mismatch'
     | 'evaluation-error'
     | 'entity-filtered'
     | 'retriever-not-covering'
