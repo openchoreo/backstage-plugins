@@ -43,9 +43,6 @@ app:
     - home-page-widget:home/world-clock: false
     - theme:app/light: false
     - theme:app/dark: false
-    # `page:kubernetes` needs an entity context (throws standalone); we
-    # want only the entity-page tab from the kubernetes plugin.
-    - page:kubernetes: false
     - entity-card:catalog/about: false
     - entity-card:catalog/links: false
     - entity-card:catalog/labels: false
