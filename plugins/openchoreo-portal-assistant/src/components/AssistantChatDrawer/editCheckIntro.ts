@@ -158,7 +158,8 @@ export function editCheckIntro(scope: ChatScope): unknown[] {
     component: 'PickRow',
     label: question,
     text: question,
-    action: { event: { name: 'pick_choice', userMessage: question } },
+    // A decision button: the agent follows its action (an explanation).
+    action: { event: { name: 'explain_rule', userMessage: question } },
   }));
   // Same text box as the agent's cards: what is typed is written to this
   // path and sent from it.

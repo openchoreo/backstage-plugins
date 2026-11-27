@@ -25,6 +25,7 @@ import remarkGfm from 'remark-gfm';
 import remend from 'remend';
 import {
   portalAssistantApiRef,
+  type ChatAction,
   type ChatMessage,
   type ChatScope,
   type ConfirmationRequired,
@@ -268,6 +269,8 @@ export const AssistantChatDrawer = ({
         kind: 'message';
         role: 'user' | 'assistant';
         content: string;
+        // The button a user message came from (see ChatAction).
+        action?: ChatAction;
         fixPrompt?: string;
         confirmation?: ConfirmationRequired;
         ui?: unknown[];
@@ -361,7 +364,13 @@ export const AssistantChatDrawer = ({
     () =>
       timeline.flatMap(item =>
         item.kind === 'message'
-          ? [{ role: item.role, content: item.content }]
+          ? [
+              {
+                role: item.role,
+                content: item.content,
+                ...(item.action ? { action: item.action } : {}),
+              },
+            ]
           : [],
       ),
     [timeline],
@@ -473,6 +482,8 @@ export const AssistantChatDrawer = ({
         scope?: Partial<ChatScope>;
         // About a new check, not the one saved in this chat.
         newCheck?: boolean;
+        // The button it came from; none when typed.
+        action?: ChatAction;
       },
     ) => {
       const trimmed = rawText.trim();
@@ -483,10 +494,12 @@ export const AssistantChatDrawer = ({
         ? { ...chatScope, ...options.scope }
         : chatScope;
 
+      const action = options?.action;
       const userItem: ChatItem = {
         kind: 'message',
         role: 'user',
         content: trimmed,
+        ...(action ? { action } : {}),
       };
       // resetHistory: true means start a fresh conversation — both the
       // visible timeline and the request body sent to the agent drop the
@@ -498,7 +511,7 @@ export const AssistantChatDrawer = ({
         : messageHistory;
       const nextHistory: ChatMessage[] = [
         ...baseHistory,
-        { role: 'user', content: trimmed },
+        { role: 'user', content: trimmed, ...(action ? { action } : {}) },
       ];
       // resetHistory has no in-component caller today; the option is kept
       // for external callers that may be wired up later. Skip the truthy
@@ -694,6 +707,7 @@ export const AssistantChatDrawer = ({
     void sendMessage(SHOW_FACTS.label, {
       newCheck: true,
       scope: { experience: 'experienced', welcome: true },
+      action: { name: 'show_facts' },
     });
   }, [isSending, sendMessage]);
 
@@ -708,10 +722,12 @@ export const AssistantChatDrawer = ({
   );
 
   // The full ref ("component:default/order-api") so the agent never guesses
-  // a namespace; the wording is what its test-only path recognises.
+  // a namespace. The agent follows the action; the words are for the chat.
   const testOn = useCallback(
     (entityRef: string) => {
-      void sendMessage(`Test it on ${entityRef}`);
+      void sendMessage(`Test it on ${entityRef}`, {
+        action: { name: 'test', context: { entityRef } },
+      });
     },
     [sendMessage],
   );
@@ -753,6 +769,7 @@ export const AssistantChatDrawer = ({
       setExperience(value);
       void sendMessage(level.message, {
         scope: { experience: value, welcome: true },
+        action: { name: 'pick_level', context: { level: value } },
       });
     },
     [isSending, sendMessage],
@@ -761,7 +778,7 @@ export const AssistantChatDrawer = ({
   // A save card's "Skip the test": the agent sends the card again, ready to
   // save, without a model call (card_for_save_request).
   const skipTest = useCallback(() => {
-    void sendMessage('Skip the test');
+    void sendMessage('Skip the test', { action: { name: 'skip_test' } });
   }, [sendMessage]);
 
   // When an external trigger (e.g. failed-build snackbar / Investigate
@@ -901,7 +918,7 @@ export const AssistantChatDrawer = ({
                     messages={editIntro}
                     // Like the agent's cards: answerable until the chat moves on.
                     disabled={isSending || timeline.length > 0}
-                    onAction={text => sendMessage(text)}
+                    onAction={(text, action) => sendMessage(text, { action })}
                     composer={composer}
                   />
                 </Box>
@@ -915,12 +932,13 @@ export const AssistantChatDrawer = ({
                     messages={newIntro}
                     disabled={isSending || timeline.length > 0}
                     // A level sends its message with the level's scope.
-                    onAction={text => {
+                    onAction={(text, action) => {
                       const level = EXPERIENCE_LEVELS.find(
-                        l => l.message === text,
+                        l => l.value === action.context?.level,
                       );
-                      if (level) pickExperience(level.value);
-                      else void sendMessage(text);
+                      if (action.name === 'pick_level' && level) {
+                        pickExperience(level.value);
+                      } else void sendMessage(text, { action });
                     }}
                     composer={composer}
                   />
@@ -1093,7 +1111,9 @@ export const AssistantChatDrawer = ({
                         // Like the agent's cards: answerable until the chat
                         // moves on.
                         disabled={isSending || i !== timeline.length - 1}
-                        onAction={text => sendMessage(text)}
+                        onAction={(text, action) =>
+                          sendMessage(text, { action })
+                        }
                         composer={composer}
                       />
                     </Box>
@@ -1140,7 +1160,9 @@ export const AssistantChatDrawer = ({
                         // the next one is loading.
                         disabled={isSending || i !== timeline.length - 1}
                         superseded={superseded}
-                        onAction={text => sendMessage(text)}
+                        onAction={(text, action) =>
+                          sendMessage(text, { action })
+                        }
                         onSaved={handleSaved}
                         onOpenCheck={handleOpenCheck}
                         composer={composer}

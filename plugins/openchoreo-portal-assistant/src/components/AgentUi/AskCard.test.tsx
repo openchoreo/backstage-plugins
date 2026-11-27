@@ -65,6 +65,7 @@ describe('AskCard after "No, keep it"', () => {
     await waitFor(() =>
       expect(onAction).toHaveBeenCalledWith(
         'Change approving reviews required before merging to at least 4',
+        expect.objectContaining({ name: expect.any(String) }),
       ),
     );
   });
@@ -83,6 +84,7 @@ describe('AskCard after "No, keep it"', () => {
     await waitFor(() =>
       expect(onAction).toHaveBeenCalledWith(
         'Change approving reviews required before merging to more than 3',
+        expect.objectContaining({ name: expect.any(String) }),
       ),
     );
   });
@@ -101,7 +103,10 @@ describe('AskCard after "No, keep it"', () => {
     await click(within(card).getByRole('button', { name: 'Send' }));
 
     await waitFor(() =>
-      expect(onAction).toHaveBeenCalledWith('Change branch protected to No'),
+      expect(onAction).toHaveBeenCalledWith(
+        'Change branch protected to No',
+        expect.objectContaining({ name: expect.any(String) }),
+      ),
     );
   });
 
@@ -121,6 +126,7 @@ describe('AskCard after "No, keep it"', () => {
     await waitFor(() =>
       expect(onAction).toHaveBeenCalledWith(
         'Remove the condition: branch protected',
+        expect.objectContaining({ name: expect.any(String) }),
       ),
     );
   });
@@ -156,6 +162,7 @@ describe('AskCard after "No, keep it"', () => {
     expect(onAction).toHaveBeenCalledWith(
       'Remove the condition: branch protected. ' +
         'Change approving reviews required before merging to at least 4',
+      expect.objectContaining({ name: expect.any(String) }),
     );
   });
 
@@ -182,6 +189,7 @@ describe('AskCard after "No, keep it"', () => {
       'Change branch protected to No. ' +
         'Change approving reviews required before merging to at least 4. ' +
         'also require code owner review',
+      expect.objectContaining({ name: expect.any(String) }),
     );
   });
 
@@ -199,7 +207,12 @@ describe('AskCard after "No, keep it"', () => {
     });
     await click(send);
 
-    await waitFor(() => expect(onAction).toHaveBeenCalledWith('make it 5'));
+    await waitFor(() =>
+      expect(onAction).toHaveBeenCalledWith(
+        'make it 5',
+        expect.objectContaining({ name: expect.any(String) }),
+      ),
+    );
   });
 
   it('keeps the rule', async () => {
@@ -210,7 +223,10 @@ describe('AskCard after "No, keep it"', () => {
     );
 
     await waitFor(() =>
-      expect(onAction).toHaveBeenCalledWith('Keep the rule as it is'),
+      expect(onAction).toHaveBeenCalledWith(
+        'Keep the rule as it is',
+        expect.objectContaining({ name: expect.any(String) }),
+      ),
     );
   });
 
@@ -274,6 +290,7 @@ describe('AskCard for options in words', () => {
     await waitFor(() =>
       expect(onAction).toHaveBeenCalledWith(
         'Require more than 2 approvals (so 3 or more approvals pass)',
+        expect.objectContaining({ name: expect.any(String) }),
       ),
     );
   });
@@ -292,7 +309,10 @@ describe('AskCard for options in words', () => {
     );
 
     await waitFor(() =>
-      expect(onAction).toHaveBeenCalledWith('A different number: 5'),
+      expect(onAction).toHaveBeenCalledWith(
+        'A different number: 5',
+        expect.objectContaining({ name: expect.any(String) }),
+      ),
     );
   });
 
@@ -304,7 +324,10 @@ describe('AskCard for options in words', () => {
     );
 
     await waitFor(() =>
-      expect(onAction).toHaveBeenCalledWith('Keep the rule as it is'),
+      expect(onAction).toHaveBeenCalledWith(
+        'Keep the rule as it is',
+        expect.objectContaining({ name: expect.any(String) }),
+      ),
     );
   });
 });

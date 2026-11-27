@@ -92,7 +92,12 @@ describe('ChangeCard', () => {
       fireEvent.click(await screen.findByRole('button', { name }));
     });
 
-    await waitFor(() => expect(onAction).toHaveBeenCalledWith(sent));
+    await waitFor(() =>
+      expect(onAction).toHaveBeenCalledWith(
+        sent,
+        expect.objectContaining({ name: expect.any(String) }),
+      ),
+    );
   });
 
   it('can not pick an option on an old question', async () => {
@@ -135,7 +140,12 @@ describe('ChangeCard', () => {
       fireEvent.click(within(card).getByRole('button', { name: 'Send' }));
     });
 
-    await waitFor(() => expect(onAction).toHaveBeenCalledWith('Make it 4'));
+    await waitFor(() =>
+      expect(onAction).toHaveBeenCalledWith(
+        'Make it 4',
+        expect.objectContaining({ name: expect.any(String) }),
+      ),
+    );
   });
 
   it('gives Yes / No no box', async () => {

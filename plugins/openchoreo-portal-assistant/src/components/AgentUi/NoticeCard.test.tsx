@@ -87,7 +87,12 @@ describe('NoticeCard', () => {
       fireEvent.click(await screen.findByRole('button', { name }));
     });
 
-    await waitFor(() => expect(onAction).toHaveBeenCalledWith(sent));
+    await waitFor(() =>
+      expect(onAction).toHaveBeenCalledWith(
+        sent,
+        expect.objectContaining({ name: expect.any(String) }),
+      ),
+    );
   });
 
   it('offers the covered kind instead', async () => {
@@ -104,7 +109,10 @@ describe('NoticeCard', () => {
       );
     });
     await waitFor(() =>
-      expect(onAction).toHaveBeenCalledWith('Yes, check Components instead'),
+      expect(onAction).toHaveBeenCalledWith(
+        'Yes, check Components instead',
+        expect.objectContaining({ name: expect.any(String) }),
+      ),
     );
   });
 
@@ -148,7 +156,10 @@ describe('NoticeCard', () => {
     });
 
     await waitFor(() =>
-      expect(onAction).toHaveBeenCalledWith('Repos must have a license'),
+      expect(onAction).toHaveBeenCalledWith(
+        'Repos must have a license',
+        expect.objectContaining({ name: expect.any(String) }),
+      ),
     );
   });
 

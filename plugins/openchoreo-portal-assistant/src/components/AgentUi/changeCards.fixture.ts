@@ -117,8 +117,9 @@ export const changeCards = {
           value: '3 or more',
           action: {
             event: {
-              name: 'pick_choice',
+              name: 'pick_proposal',
               userMessage: '1',
+              context: { choice: 1 },
             },
           },
         },
@@ -129,8 +130,9 @@ export const changeCards = {
           value: 'More than 3',
           action: {
             event: {
-              name: 'pick_choice',
+              name: 'pick_proposal',
               userMessage: '2',
+              context: { choice: 2 },
             },
           },
         },
@@ -938,6 +940,7 @@ const separateButton = [
         name: 'create_separate',
         userMessage:
           'Create a separate check instead of editing Branch protection',
+        context: { check: 'Branch protection' },
       },
     },
     variant: 'borderless',

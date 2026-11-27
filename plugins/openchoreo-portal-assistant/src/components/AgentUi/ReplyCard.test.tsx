@@ -152,7 +152,10 @@ describe('ReplyCard', () => {
     await click(within(card).getByRole('button', { name: 'APIs' }));
 
     await waitFor(() =>
-      expect(onAction).toHaveBeenCalledWith('Run it on APIs'),
+      expect(onAction).toHaveBeenCalledWith(
+        'Run it on APIs',
+        expect.objectContaining({ name: expect.any(String) }),
+      ),
     );
   });
 
@@ -172,7 +175,12 @@ describe('ReplyCard', () => {
     });
     await click(within(card).getByRole('button', { name: 'Send' }));
 
-    await waitFor(() => expect(onAction).toHaveBeenCalledWith('Systems'));
+    await waitFor(() =>
+      expect(onAction).toHaveBeenCalledWith(
+        'Systems',
+        expect.objectContaining({ name: expect.any(String) }),
+      ),
+    );
   });
 
   it('can not be answered once a newer message follows', async () => {
@@ -293,7 +301,10 @@ describe('ReplyCard suggestions with the drawer’s message box', () => {
     );
 
     await waitFor(() =>
-      expect(onAction).toHaveBeenCalledWith('Also require 2 approving reviews'),
+      expect(onAction).toHaveBeenCalledWith(
+        'Also require 2 approving reviews',
+        expect.objectContaining({ name: expect.any(String) }),
+      ),
     );
     expect(composer.write).not.toHaveBeenCalled();
     expect(within(card).queryByRole('radio')).toBeNull();

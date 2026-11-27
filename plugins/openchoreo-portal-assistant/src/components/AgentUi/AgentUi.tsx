@@ -5,7 +5,7 @@ import {
   MessageProcessor,
   type ProcessableMessagePayload,
 } from '@a2ui/web_core/v1_0';
-import type { ConfirmResult } from '../../api/PortalAssistantApi';
+import type { ChatAction, ConfirmResult } from '../../api/PortalAssistantApi';
 import type { SavedCheck } from '../ConfirmCard/ConfirmCard';
 import { AgentUiDisabled, agentUiCatalog } from './catalog';
 import {
@@ -18,11 +18,28 @@ import {
   type OpenedCheck,
 } from './context';
 
+/** A button's event as a message's action: its name and plain context. */
+function chatAction(action: {
+  name: string;
+  context?: Record<string, unknown>;
+}): ChatAction {
+  const context = Object.fromEntries(
+    Object.entries(action.context ?? {}).filter(
+      (entry): entry is [string, string | number] =>
+        typeof entry[1] === 'string' || typeof entry[1] === 'number',
+    ),
+  );
+  return Object.keys(context).length > 0
+    ? { name: action.name, context }
+    : { name: action.name };
+}
+
 /**
  * Renders the A2UI messages the agent sent with a reply (an `a2ui` stream
  * event) under that reply. A button's `userMessage` goes to `onAction`,
- * which sends it as the user's next chat message — clicking "Yes" is the
- * same as typing "yes". Messages that A2UI rejects render nothing, so a
+ * which sends it as the user's next chat message, with the button's event
+ * name and context as the message's action: the agent follows that, not the
+ * words. Messages that A2UI rejects render nothing, so a
  * bad payload never breaks the chat.
  */
 export const AgentUi = ({
@@ -40,7 +57,7 @@ export const AgentUi = ({
   disabled?: boolean;
   /** A newer save card came after this one: it can't be saved. */
   superseded?: boolean;
-  onAction: (userMessage: string) => void;
+  onAction: (userMessage: string, action: ChatAction) => void;
   /** Called after a save card saved a check, with the check as saved. */
   onSaved?: (result: ConfirmResult, saved: SavedCheck) => void;
   /** Moves the chat to a saved check a card found like the user's draft. */
@@ -61,7 +78,7 @@ export const AgentUi = ({
         action => {
           const text = action.userMessage;
           if (!latest.current.disabled && typeof text === 'string' && text) {
-            latest.current.onAction(text);
+            latest.current.onAction(text, chatAction(action));
           }
         },
       );

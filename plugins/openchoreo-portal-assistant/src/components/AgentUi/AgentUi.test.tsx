@@ -55,8 +55,54 @@ describe('AgentUi', () => {
       fireEvent.click(await screen.findByRole('button', { name: label }));
     });
 
-    await waitFor(() => expect(onAction).toHaveBeenCalledWith(sent));
+    await waitFor(() =>
+      expect(onAction).toHaveBeenCalledWith(
+        sent,
+        expect.objectContaining({ name: expect.any(String) }),
+      ),
+    );
     expect(onAction).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends a button's event name and context as the message's action", async () => {
+    const onAction = jest.fn();
+    const [message] = question();
+    const withContext = [
+      {
+        ...message,
+        createSurface: {
+          ...message.createSurface,
+          components: [
+            { id: 'root', component: 'Row', children: ['two'] },
+            {
+              id: 'two',
+              component: 'Button',
+              child: 'two_label',
+              action: {
+                event: {
+                  name: 'pick_proposal',
+                  userMessage: '2',
+                  context: { choice: 2 },
+                },
+              },
+            },
+            { id: 'two_label', component: 'Text', text: 'Option 2' },
+          ],
+        },
+      },
+    ];
+    render(<AgentUi messages={withContext} onAction={onAction} />);
+
+    await act(async () => {
+      fireEvent.click(await screen.findByRole('button', { name: 'Option 2' }));
+    });
+
+    await waitFor(() =>
+      expect(onAction).toHaveBeenCalledWith('2', {
+        name: 'pick_proposal',
+        context: { choice: 2 },
+      }),
+    );
   });
 
   it('can not be answered when disabled', async () => {

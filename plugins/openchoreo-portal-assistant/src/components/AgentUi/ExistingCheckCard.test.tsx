@@ -102,6 +102,7 @@ describe('ExistingCheckCard', () => {
 
     expect(onAction).toHaveBeenCalledWith(
       'Create a separate check instead of editing Branch protection',
+      expect.objectContaining({ name: expect.any(String) }),
     );
     expect(onOpenCheck).not.toHaveBeenCalled();
   });

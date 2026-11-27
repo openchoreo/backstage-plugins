@@ -719,6 +719,7 @@ describe('AssistantChatDrawer after a save', () => {
       {
         role: 'user',
         content: "I'm new to checks. Walk me through it, with examples.",
+        action: { name: 'pick_level', context: { level: 'beginner' } },
       },
       { role: 'assistant', content: 'Welcome!' },
       { role: 'user', content: 'Repos must not be archived' },
@@ -806,6 +807,7 @@ describe('AssistantChatDrawer after a save', () => {
     expect(holder.lastRequest?.messages.at(-1)).toEqual({
       role: 'user',
       content: 'Show me the different areas I can write checks for',
+      action: { name: 'show_facts' },
     });
     expect(holder.lastRequest?.scope).toMatchObject({
       experience: 'experienced',
@@ -840,6 +842,10 @@ describe('AssistantChatDrawer after a save', () => {
     expect(holder.lastRequest?.messages.at(-1)).toEqual({
       role: 'user',
       content: 'Test it on component:default/order-api',
+      action: {
+        name: 'test',
+        context: { entityRef: 'component:default/order-api' },
+      },
     });
     // Not saved: still a new check.
     expect(holder.lastRequest?.scope?.checkId).toBeUndefined();
@@ -999,6 +1005,7 @@ describe('AssistantChatDrawer answer buttons', () => {
     expect(holder.lastRequest?.messages.at(-1)).toEqual({
       role: 'user',
       content: 'yes',
+      action: { name: 'confirm_edit' },
     });
   });
 
@@ -1094,7 +1101,7 @@ describe('AssistantChatDrawer change card', () => {
 
     expect(holder.lastRequest?.messages.slice(-2)).toEqual([
       { role: 'assistant', content: '**Proposed rule:** `a` `equal` `true`' },
-      { role: 'user', content: 'yes' },
+      { role: 'user', content: 'yes', action: { name: 'confirm_edit' } },
     ]);
   });
 });
@@ -1467,6 +1474,7 @@ describe('AssistantChatDrawer check authoring level and welcome', () => {
       {
         role: 'user',
         content: "I'm new to checks. Walk me through it, with examples.",
+        action: { name: 'pick_level', context: { level: 'beginner' } },
       },
     ]);
     expect(holder.lastRequest?.scope).toMatchObject({
@@ -1511,6 +1519,7 @@ describe('AssistantChatDrawer check authoring level and welcome', () => {
     expect(holder.lastRequest?.messages.at(-1)).toEqual({
       role: 'user',
       content: 'Guide me through creating my first check',
+      action: { name: 'pick_choice' },
     });
     // The level stays; the welcome was for the first turn only.
     expect(holder.lastRequest?.scope).toMatchObject({ experience: 'beginner' });
@@ -1564,7 +1573,11 @@ describe('AssistantChatDrawer check authoring level and welcome', () => {
     });
 
     expect(holder.lastRequest?.messages).toEqual([
-      { role: 'user', content: 'Explain this rule' },
+      {
+        role: 'user',
+        content: 'Explain this rule',
+        action: { name: 'explain_rule' },
+      },
     ]);
     expect(holder.lastRequest?.scope).toMatchObject({ checkId: 'abc-123' });
     expect(holder.lastRequest?.scope).not.toHaveProperty('welcome');
@@ -1745,7 +1758,11 @@ describe('AssistantChatDrawer a saved check like the draft', () => {
     // The intro is the drawer's own: never sent to the agent.
     expect(holder.lastRequest?.messages.slice(-2)).toEqual([
       { role: 'assistant', content: DRAFT },
-      { role: 'user', content: 'Explain this rule' },
+      {
+        role: 'user',
+        content: 'Explain this rule',
+        action: { name: 'explain_rule' },
+      },
     ]);
     expect(holder.lastRequest?.scope).toMatchObject({
       caseType: 'check_authoring',
@@ -1796,6 +1813,10 @@ describe('AssistantChatDrawer a saved check like the draft', () => {
       expect(holder.lastRequest?.messages.at(-1)).toEqual({
         role: 'user',
         content: 'Create a separate check instead of editing Branch protection',
+        action: {
+          name: 'create_separate',
+          context: { check: 'Branch protection' },
+        },
       }),
     );
     expect(holder.lastRequest?.scope).not.toHaveProperty('checkId');

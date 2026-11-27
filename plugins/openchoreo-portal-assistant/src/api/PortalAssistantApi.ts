@@ -11,7 +11,21 @@ import {
  */
 export const BACKSTAGE_IDENTITY_HEADER = 'x-backstage-identity';
 
-export type ChatMessage = { role: 'user' | 'assistant'; content: string };
+/**
+ * The drawer button a user message came from: its A2UI event's name and
+ * context. The agent follows a decision button's action, not its words; a
+ * typed message has none.
+ */
+export type ChatAction = {
+  name: string;
+  context?: Record<string, string | number>;
+};
+
+export type ChatMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+  action?: ChatAction;
+};
 
 /**
  * A single pre-rendered log row passed to the agent in

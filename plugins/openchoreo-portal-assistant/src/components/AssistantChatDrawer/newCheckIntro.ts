@@ -49,7 +49,13 @@ export function newCheckIntro(): unknown[] {
     label: level.label,
     description: level.description,
     text: level.message,
-    action: { event: { name: 'pick_level', userMessage: level.message } },
+    action: {
+      event: {
+        name: 'pick_level',
+        userMessage: level.message,
+        context: { level: level.value },
+      },
+    },
   }));
   // Same text box as the agent's cards; with the drawer's message box it is
   // the pencil button that points there.
