@@ -302,10 +302,14 @@ describe('openchoreo-portal-assistant-backend router', () => {
       } as any;
     }
 
-    /** Sends a chat and returns the headers the upstream received. */
+    /**
+     * Sends a check-authoring chat (or another case) and returns the headers
+     * the upstream received.
+     */
     async function chatWith(
       headers: Record<string, string>,
       auth = makeAuth(),
+      caseType: string | null = 'check_authoring',
     ): Promise<{
       upstreamHeaders: http.IncomingHttpHeaders;
       status: number;
@@ -328,9 +332,24 @@ describe('openchoreo-portal-assistant-backend router', () => {
       }
       const res = await call.send({
         messages: [{ role: 'user', content: 'x' }],
+        ...(caseType && { scope: { caseType } }),
       });
       return { upstreamHeaders, status: res.status, auth };
     }
+
+    it.each([['runtime_debug'], [null]])(
+      'issues no token for a chat that is not check authoring (%s)',
+      async caseType => {
+        const { upstreamHeaders, auth } = await chatWith(
+          { 'x-backstage-identity': 'user-token' },
+          makeAuth(),
+          caseType,
+        );
+
+        expect(auth.authenticate).not.toHaveBeenCalled();
+        expect(upstreamHeaders['x-backstage-user-token']).toBeUndefined();
+      },
+    );
 
     it('forwards a token for mcp-actions issued on behalf of the user', async () => {
       const { upstreamHeaders, auth } = await chatWith({
@@ -403,7 +422,10 @@ describe('openchoreo-portal-assistant-backend router', () => {
       await request(app)
         .post('/api/v1alpha1/portal-assistant/chat')
         .set('x-backstage-identity', 'user-token')
-        .send({ messages: [{ role: 'user', content: 'x' }] });
+        .send({
+          messages: [{ role: 'user', content: 'x' }],
+          scope: { caseType: 'check_authoring' },
+        });
 
       expect(upstreamHeaders['x-backstage-user-token']).toBeUndefined();
       expect(upstreamHeaders['x-backstage-identity']).toBeUndefined();

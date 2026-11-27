@@ -285,6 +285,12 @@ async function userTokenHeaders(
   }
 }
 
+/** Whether a chat request is a check-authoring conversation. */
+function isCheckAuthoring(body: unknown): boolean {
+  const scope = (body as { scope?: { caseType?: unknown } } | undefined)?.scope;
+  return scope?.caseType === 'check_authoring';
+}
+
 /**
  * Streaming forwarder for the ndjson ``/chat`` endpoint. Pipes the
  * upstream body byte-for-byte; never buffers. Cancels the upstream
@@ -308,7 +314,11 @@ async function forwardStream(
   // log fallback diverged from the upstream id when the caller didn't
   // send X-Request-ID.
   const { headers: forwardHeaders, requestId } = buildForwardHeaders(req);
-  Object.assign(forwardHeaders, await userTokenHeaders(req, ctx, requestId));
+  // The token lasts up to an hour, so only check-authoring chats, which call
+  // the Backstage tools as the user, get one.
+  if (isCheckAuthoring(req.body)) {
+    Object.assign(forwardHeaders, await userTokenHeaders(req, ctx, requestId));
+  }
 
   // AbortController to tear down the upstream fetch when the client
   // disconnects mid-stream. We wire it to ``res.on('close')`` (NOT
