@@ -12,7 +12,9 @@ only read. `create-check`, `update-check`, `publish-check` and
 is authorized like the REST routes, which the actions share their validation,
 dry-run and errors with. Add `GET /dynamic-checks/fact-schemas`, which lists
 only running fact retrievers. Move `kindsOfFilter`, `filterCoversKinds` and
-`isKindKey` to the common package.
+`isKindKey` to the common package. `validate-check` takes an optional check
+`id`, so an edit is validated with that check's entity filter, as
+`update-check` validates the save.
 
 The validator now also rejects `equal` or `notEqual` with a list value, a
 non-list operator on a list fact, a number operator on a fact that isn't a

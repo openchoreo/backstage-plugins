@@ -490,10 +490,16 @@ export function registerCheckActions(options: CheckActionsOptions) {
       'Reports every problem that stops a rule from being evaluated: an invalid shape or operator, an unknown fact ' +
       'retriever, a fact the selected retrievers do not provide, or retrievers with no entity kind in common. Each ' +
       'problem names the condition it points at. Also returns the entity kinds the check can apply to (empty: any kind). ' +
+      'Pass id when the rule is an edit of a saved check, so its entity filter is checked against the retrievers too. ' +
       'Nothing is saved.',
     schema: {
       input: z =>
         z.object({
+          id: checkIdSchema(z)
+            .optional()
+            .describe(
+              'The saved check this rule is for, when editing one (from list-checks)',
+            ),
           factIds: checkInputSchema(z).shape.factIds,
           rule: checkInputSchema(z).shape.rule,
         }),
@@ -514,11 +520,17 @@ export function registerCheckActions(options: CheckActionsOptions) {
         requireUser: false,
       });
       const evaluation = requireEvaluation();
+      // An edit is validated with the saved check's filter, as update-check
+      // will: a rule that passes here then saves.
+      const filter = input.id
+        ? (await getExisting(input.id)).filter
+        : undefined;
       const found = await evaluation.validator.problemsOf({
         type: 'json-rules-engine',
         name: '',
         factIds: input.factIds,
         rule: { conditions: checkConditions(input.rule.conditions) },
+        ...(filter && { filter }),
       });
       const kinds = sharedKindsOf(
         await evaluation.store.getLatestSchemas(input.factIds),

@@ -579,6 +579,41 @@ describe('registerCheckActions', () => {
         kinds: ['component'],
       });
     });
+
+    it("validates an edit with the saved check's entity filter", async () => {
+      const { invoke, registry, validator } = setup();
+      const filter = { kind: ['API'] };
+      registry.get.mockResolvedValueOnce({
+        ...savedCheck,
+        filter,
+      } as typeof savedCheck);
+
+      await invoke('validate-check', { ...input, id: 'c1' });
+
+      expect(registry.get).toHaveBeenCalledWith('c1');
+      expect(validator.problemsOf).toHaveBeenCalledWith(
+        expect.objectContaining({ filter }),
+      );
+    });
+
+    it('validates a new rule without a filter', async () => {
+      const { invoke, registry, validator } = setup();
+
+      await invoke('validate-check', input);
+
+      expect(registry.get).not.toHaveBeenCalled();
+      expect(validator.problemsOf).toHaveBeenCalledWith(
+        expect.not.objectContaining({ filter: expect.anything() }),
+      );
+    });
+
+    it('gives a hint for an unknown id', async () => {
+      const { invoke } = setup();
+
+      await expect(
+        invoke('validate-check', { ...input, id: 'nope' }),
+      ).rejects.toThrow('No check with id "nope"; use list-checks.');
+    });
   });
 
   describe('update-check', () => {

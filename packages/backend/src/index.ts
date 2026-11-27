@@ -74,7 +74,8 @@ backend.add(
         '@openchoreo/backstage-plugin-tech-insights-backend-module-dynamic-checks'
       );
       // Serves the check authoring actions (tech-insights.list-checks and so
-      // on) as MCP tools at /api/mcp-actions/v1. See mcpActions in app-config.
+      // on) as MCP tools at /api/mcp-actions/v1/check-authoring. See
+      // mcpActions in app-config.
       yield import('@backstage/plugin-mcp-actions-backend');
     },
   }),
