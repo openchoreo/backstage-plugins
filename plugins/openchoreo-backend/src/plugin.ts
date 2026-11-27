@@ -21,6 +21,7 @@ import { ClusterResourceTypeInfoService } from './services/ClusterResourceTypeSe
 import { ResourceReleaseInfoService } from './services/ResourceReleaseService/ResourceReleaseInfoService';
 import { ComponentEndpointFollowService } from './services/EnvironmentService/ComponentEndpointFollowService';
 import { EndpointInfoService } from './services/EndpointService/EndpointInfoService';
+import { EndpointTrafficService } from './services/EndpointService/EndpointTrafficService';
 import { ProjectReleaseInfoService } from './services/ProjectReleaseService/ProjectReleaseInfoService';
 import { SecretReferencesService } from './services/SecretReferencesService/SecretReferencesService';
 import { SecretsService } from './services/SecretsService/SecretsService';
@@ -111,12 +112,6 @@ export const choreoPlugin = createBackendPlugin({
           baseUrl,
         );
 
-        const cellDiagramInfoService = new CellDiagramInfoService(
-          logger,
-          baseUrl,
-          config,
-        );
-
         const buildInfoService = new BuildInfoService(logger, baseUrl);
 
         const componentInfoService = new ComponentInfoService(logger, baseUrl);
@@ -159,6 +154,17 @@ export const choreoPlugin = createBackendPlugin({
             baseUrl,
             environmentInfoService,
           );
+        const endpointTrafficService = new EndpointTrafficService(
+          logger,
+          baseUrl,
+        );
+
+        const cellDiagramInfoService = new CellDiagramInfoService(
+          logger,
+          baseUrl,
+          config,
+          endpointTrafficService,
+        );
 
         const projectReleaseInfoService = new ProjectReleaseInfoService(
           logger,
@@ -258,6 +264,7 @@ export const choreoPlugin = createBackendPlugin({
             resourceReleaseInfoService,
             endpointInfoService,
             componentEndpointFollowService,
+            endpointTrafficService,
             projectReleaseInfoService,
             secretReferencesInfoService,
             secretsService,

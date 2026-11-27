@@ -136,19 +136,39 @@ beforeEach(() => {
 });
 
 describe('EndpointEnvironmentDetailPanel', () => {
-  it('shows how each backend resolved in the environment', () => {
+  it('shows how each backend resolved, open when one did not', () => {
     renderWithCtx(
       <EndpointEnvironmentDetailPanel env={dev} onClose={() => {}} />,
       { environments: [dev, prod] },
     );
 
-    expect(screen.getByText('Backends (2)')).toBeInTheDocument();
+    expect(screen.getByText('1 of 2 not resolved')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Hide backends' }),
+    ).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByText('http://orders.dp.svc:8080')).toBeInTheDocument();
     expect(
       screen.getByText(
         'BackendNotExposed: workload endpoint http has project visibility',
       ),
     ).toBeInTheDocument();
+    expect(screen.queryByText(/90%/)).not.toBeInTheDocument();
+  });
+
+  it('folds backends that all resolved into a summary', () => {
+    const allResolved = {
+      ...dev,
+      backends: [dev.backends![0], { ...dev.backends![1], resolved: true }],
+    };
+    renderWithCtx(
+      <EndpointEnvironmentDetailPanel env={allResolved} onClose={() => {}} />,
+      { environments: [allResolved, prod] },
+    );
+
+    expect(screen.getByText('2 resolved')).toBeInTheDocument();
+    expect(screen.queryByText('primary')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Show backends' }));
+    expect(screen.getByText('primary')).toBeInTheDocument();
   });
 
   it('lists the URLs the Endpoint is invoked at, with their security', () => {
@@ -190,6 +210,16 @@ describe('EndpointEnvironmentDetailPanel', () => {
     expect(
       screen.queryByRole('link', { name: 'orders-api.dp.svc:9000' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('offers the K8s artifacts of an environment with a release', () => {
+    renderWithCtx(
+      <EndpointEnvironmentDetailPanel env={dev} onClose={() => {}} />,
+      { environments: [dev, prod] },
+    );
+    expect(
+      screen.getByRole('button', { name: 'View K8s Artifacts' }),
+    ).toBeInTheDocument();
   });
 
   it('shows no URLs before the binding resolves any', () => {

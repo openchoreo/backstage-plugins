@@ -125,6 +125,66 @@ export class EndpointInfoService {
   }
 
   /**
+   * The live Kubernetes resources an EndpointReleaseBinding's releases
+   * deployed, as the resource tree a component's View K8s Artifacts shows.
+   */
+  async fetchEndpointResourceTree(
+    namespaceName: string,
+    bindingName: string,
+    token?: string,
+  ) {
+    const { data, error, response } = await this.client(token).GET(
+      '/api/v1/namespaces/{namespaceName}/endpointreleasebindings/{endpointReleaseBindingName}/k8sresources/tree',
+      {
+        params: {
+          path: { namespaceName, endpointReleaseBindingName: bindingName },
+        },
+      },
+    );
+    assertApiResponse(
+      { data, error, response },
+      'fetch endpoint resource tree',
+    );
+    return data;
+  }
+
+  /** Kubernetes events for one resource in an EndpointReleaseBinding's tree. */
+  async fetchEndpointResourceEvents(
+    request: {
+      namespaceName: string;
+      bindingName: string;
+      group: string;
+      version: string;
+      kind: string;
+      name: string;
+    },
+    token?: string,
+  ) {
+    const { data, error, response } = await this.client(token).GET(
+      '/api/v1/namespaces/{namespaceName}/endpointreleasebindings/{endpointReleaseBindingName}/k8sresources/events',
+      {
+        params: {
+          path: {
+            namespaceName: request.namespaceName,
+            endpointReleaseBindingName: request.bindingName,
+          },
+          query: {
+            ...(request.group ? { group: request.group } : {}),
+            version: request.version,
+            kind: request.kind,
+            name: request.name,
+          },
+        },
+      },
+    );
+    assertApiResponse(
+      { data, error, response },
+      'fetch endpoint resource events',
+    );
+    return data;
+  }
+
+  /**
    * Returns the environmentConfigs schema from the EndpointType snapshot
    * frozen on an EndpointRelease, so per-environment overrides validate
    * against what the pinned release was cut against rather than the live type.

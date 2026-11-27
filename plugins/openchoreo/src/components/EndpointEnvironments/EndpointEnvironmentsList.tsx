@@ -3,6 +3,7 @@ import { EmptyState } from '@backstage/core-components';
 import { PageLoader } from '@openchoreo/backstage-design-system';
 import { Box } from '@material-ui/core';
 import { useApi } from '@backstage/core-plugin-api';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAsyncEntity, useEntity } from '@backstage/plugin-catalog-react';
 import {
   ForbiddenState,
@@ -37,8 +38,15 @@ import {
   resolveDefaultEndpointSelection,
   type EndpointReleaseDriftInfo,
 } from './endpointEnvironmentUtils';
-import { useAwaitEndpointRelease } from './useAwaitEndpointRelease';
+import {
+  useAwaitEndpointRelease,
+  type EndpointBackendChange,
+} from './useAwaitEndpointRelease';
 import type { EndpointBackend } from '../EndpointOverview/EndpointBackendList';
+import {
+  EndpointTrafficProvider,
+  useEndpointTraffic,
+} from './traffic/useEndpointTraffic';
 
 // An Endpoint tile has a Backends row the default tile height has no room
 // for, which pushed the Promote button onto the tile's border.
@@ -190,16 +198,47 @@ export const EndpointEnvironmentsList = () => {
     fetchEnvs,
   );
 
+  const traffic = useEndpointTraffic(entity);
+
+  // A backend saved on its own page comes back here with the change, so the
+  // Set up pane opens and shows the release it cuts in progress.
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { beginAwaitingNewRelease, awaitingNewRelease } = releaseAwait;
+  const { backendChange, baseline } =
+    (location.state as {
+      backendChange?: EndpointBackendChange;
+      baseline?: string;
+    } | null) ?? {};
+  useEffect(() => {
+    if (!backendChange) return;
+    beginAwaitingNewRelease(backendChange, baseline);
+    handleSelectSetup();
+    navigate('.', { replace: true, state: null });
+  }, [
+    backendChange,
+    baseline,
+    beginAwaitingNewRelease,
+    handleSelectSetup,
+    navigate,
+  ]);
+
+  // Traffic is read again once the new release shows up.
+  const { refetch: refetchTraffic } = traffic;
+  const wasAwaiting = useRef(false);
+  useEffect(() => {
+    if (wasAwaiting.current && !awaitingNewRelease) void refetchTraffic();
+    wasAwaiting.current = awaitingNewRelease;
+  }, [awaitingNewRelease, refetchTraffic]);
+
   const handlePromote = useCallback(
     async (environment: string, releaseName: string) => {
       setPendingAction({ env: environment, kind: 'promote' });
       try {
-        await client.updateEndpointReleaseBinding(entity, environment, {
-          endpointRelease: releaseName,
-        });
+        await client.deployEndpointRelease(entity, environment, releaseName);
         if (cancelledRef.current) return;
         notification.showSuccess(`Deployed ${releaseName} to ${environment}`);
-        await fetchEnvs();
+        await Promise.all([fetchEnvs(), traffic.refetch()]);
       } catch (err: unknown) {
         if (cancelledRef.current) return;
         notification.showError(
@@ -209,7 +248,7 @@ export const EndpointEnvironmentsList = () => {
         if (!cancelledRef.current) setPendingAction(null);
       }
     },
-    [client, entity, notification, fetchEnvs],
+    [client, entity, notification, fetchEnvs, traffic],
   );
 
   const handleUndeployRequest = useCallback(
@@ -326,61 +365,63 @@ export const EndpointEnvironmentsList = () => {
 
   return (
     <EndpointEnvironmentsProvider value={contextValue}>
-      <NotificationBanner notification={notification.notification} />
-      <Box className={canvasClasses.splitContainer}>
-        <PipelineDeployCanvas
-          environments={envs}
-          selectedEnvName={selectedEnvName}
-          selectedSetup={selectedSetup}
-          onSelectEnv={setSelectedEnvName}
-          onSelectSetup={handleSelectSetup}
-          onClearSelection={handleClearSelection}
-          testId="endpoint-deploy-flow-canvas"
-          environmentNodeHeight={ENDPOINT_ENV_NODE_HEIGHT}
-          renderSetup={selected => <EndpointSetupCard selected={selected} />}
-          renderEnvironment={(env, selected, onSelect) => (
-            <EndpointMiniEnvironmentNode
-              env={env}
-              selected={selected}
-              onSelect={onSelect}
-            />
-          )}
-        />
-        <Box className={canvasClasses.detailPanelFrame}>
-          {selectedSetup ? (
-            // The view orders environments by the pipeline, so the first is
-            // where a new release enters.
-            <EndpointSetupDetailPane
-              firstEnvironment={envs[0]}
-              releaseAwait={releaseAwait}
-              onClose={handleClearSelection}
-            />
-          ) : (
-            <EndpointEnvironmentDetailPanel
-              env={selectedEnv}
-              onClose={() => setSelectedEnvName(null)}
-            />
-          )}
+      <EndpointTrafficProvider value={traffic}>
+        <NotificationBanner notification={notification.notification} />
+        <Box className={canvasClasses.splitContainer}>
+          <PipelineDeployCanvas
+            environments={envs}
+            selectedEnvName={selectedEnvName}
+            selectedSetup={selectedSetup}
+            onSelectEnv={setSelectedEnvName}
+            onSelectSetup={handleSelectSetup}
+            onClearSelection={handleClearSelection}
+            testId="endpoint-deploy-flow-canvas"
+            environmentNodeHeight={ENDPOINT_ENV_NODE_HEIGHT}
+            renderSetup={selected => <EndpointSetupCard selected={selected} />}
+            renderEnvironment={(env, selected, onSelect) => (
+              <EndpointMiniEnvironmentNode
+                env={env}
+                selected={selected}
+                onSelect={onSelect}
+              />
+            )}
+          />
+          <Box className={canvasClasses.detailPanelFrame}>
+            {selectedSetup ? (
+              // The view orders environments by the pipeline, so the first is
+              // where a new release enters.
+              <EndpointSetupDetailPane
+                firstEnvironment={envs[0]}
+                releaseAwait={releaseAwait}
+                onClose={handleClearSelection}
+              />
+            ) : (
+              <EndpointEnvironmentDetailPanel
+                env={selectedEnv}
+                onClose={() => setSelectedEnvName(null)}
+              />
+            )}
+          </Box>
         </Box>
-      </Box>
-      <EndpointRemoveDeploymentDialog
-        open={undeployTarget !== null}
-        environmentName={undeployTarget?.name ?? ''}
-        isRemoving={
-          pendingAction?.kind === 'undeploy' &&
-          undeployTarget !== null &&
-          pendingAction.env === envResourceName(undeployTarget)
-        }
-        onCancel={() => setUndeployTarget(null)}
-        onConfirm={handleUndeployConfirm}
-      />
-      <ReleaseManifestDialog
-        open={manifestTarget !== null}
-        onClose={() => setManifestTarget(null)}
-        releaseName={manifestTarget?.endpointRelease}
-        environmentName={manifestTarget?.name ?? ''}
-        loadRelease={loadEndpointRelease}
-      />
+        <EndpointRemoveDeploymentDialog
+          open={undeployTarget !== null}
+          environmentName={undeployTarget?.name ?? ''}
+          isRemoving={
+            pendingAction?.kind === 'undeploy' &&
+            undeployTarget !== null &&
+            pendingAction.env === envResourceName(undeployTarget)
+          }
+          onCancel={() => setUndeployTarget(null)}
+          onConfirm={handleUndeployConfirm}
+        />
+        <ReleaseManifestDialog
+          open={manifestTarget !== null}
+          onClose={() => setManifestTarget(null)}
+          releaseName={manifestTarget?.endpointRelease}
+          environmentName={manifestTarget?.name ?? ''}
+          loadRelease={loadEndpointRelease}
+        />
+      </EndpointTrafficProvider>
     </EndpointEnvironmentsProvider>
   );
 };

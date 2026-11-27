@@ -16,6 +16,7 @@ import {
 import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
 import CloudIcon from '@material-ui/icons/Cloud';
 import CodeOutlinedIcon from '@material-ui/icons/CodeOutlined';
+import OpenInNewIcon from '@material-ui/icons/OpenInNew';
 import MoreVertIcon from '@material-ui/icons/MoreVert';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import ReportProblemOutlinedIcon from '@material-ui/icons/ReportProblemOutlined';
@@ -160,6 +161,11 @@ export const EndpointMiniEnvironmentNode = ({
   const handleViewReleaseManifest = () => {
     closeMenu();
     onViewReleaseManifest(env);
+  };
+
+  const handleViewArtifacts = () => {
+    closeMenu();
+    navigate(`artifacts/${env.resourceName ?? env.name}`);
   };
 
   const renderPromoteButton = () => {
@@ -336,6 +342,18 @@ export const EndpointMiniEnvironmentNode = ({
             >
               <CodeOutlinedIcon fontSize="small" style={{ marginRight: 8 }} />
               View release manifest
+            </MenuItem>
+          </span>
+        </Tooltip>
+        <Tooltip
+          title={hasRelease ? '' : 'No release on this environment yet.'}
+          placement="left"
+          PopperProps={{ disablePortal: true }}
+        >
+          <span>
+            <MenuItem onClick={handleViewArtifacts} disabled={!hasRelease}>
+              <OpenInNewIcon fontSize="small" style={{ marginRight: 8 }} />
+              View K8s artifacts
             </MenuItem>
           </span>
         </Tooltip>

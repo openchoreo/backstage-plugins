@@ -1,4 +1,11 @@
-import { MouseEvent, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  MouseEvent,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { DiagramEngine } from '@projectstorm/react-diagrams';
 import { ComponentLinkModel } from './ComponentLinkModel';
 import { COMPONENT_LINK, LINK_WIDTH, WarningIcon } from '../../../resources';
@@ -10,6 +17,7 @@ import { SharedLink } from '../../SharedLink/SharedLink';
 import Popper from '@mui/material/Popper';
 import Box from '@mui/material/Box';
 import { useColors } from '../../../theme';
+import { BranchLabel } from '../../Split/BranchLabel';
 
 interface WidgetProps {
   engine: DiagramEngine;
@@ -58,6 +66,7 @@ export function ComponentLinkWidget(props: WidgetProps) {
 
   const [isSelected, setIsSelected] = useState<boolean>(false);
   const [anchorEl, setAnchorEl] = useState<null | SVGGElement>(null);
+  const hitPath = useRef<SVGPathElement>(null);
 
   const open =
     Boolean(link.tooltip || link.observations?.length > 0) && Boolean(anchorEl);
@@ -161,10 +170,13 @@ export function ComponentLinkWidget(props: WidgetProps) {
       return 'transparent';
     }
 
-    return colors.OUTLINE;
+    return link.faded ? colors.OUTLINE_VARIANT : colors.OUTLINE;
   };
 
   const strokeDash = () => {
+    if (link.copy) {
+      return '6,6';
+    }
     if (hasDiffLayer && !(link.observations?.length > 0)) {
       return '8,8';
     }
@@ -196,6 +208,7 @@ export function ComponentLinkWidget(props: WidgetProps) {
           </marker>
         </defs>
         <path
+          ref={hitPath}
           d={link.getCurvePath()}
           fill="none"
           stroke="transparent"
@@ -210,9 +223,25 @@ export function ComponentLinkWidget(props: WidgetProps) {
           strokeWidth={strokeWidth()}
           strokeDasharray={strokeDash()}
           markerEnd={
-            !hasObservabilityLayer ? `url(#${link.getLinkArrowId()})` : ''
+            !hasObservabilityLayer && !link.hideArrow
+              ? `url(#${link.getLinkArrowId()})`
+              : ''
           }
         />
+        {link.label && !hideLink && !previewMode && (
+          <BranchLabel
+            text={link.label}
+            path={hitPath}
+            d={link.getCurvePath()}
+            fallback={midPoint}
+            faded={link.faded}
+            middle={
+              Object.values(link.getTargetPort().getLinks()).filter(
+                l => (l as ComponentLinkModel).label,
+              ).length > 1
+            }
+          />
+        )}
         {hasDiffLayer && link.observationOnly && (
           <WarningIcon
             x={midPoint.x - 10}

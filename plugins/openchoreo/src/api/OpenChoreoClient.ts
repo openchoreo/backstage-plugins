@@ -14,6 +14,11 @@ import {
   type ComponentEndpointInput,
   type ComponentEndpointSummary,
   type EndpointTypeKind,
+  type EndpointBackendMatch,
+  type EndpointSplit,
+  type EndpointTrafficInfo,
+  type EndpointTrafficResult,
+  type SaveEndpointBackendRequest,
 } from '@openchoreo/backstage-plugin-common';
 import { CLUSTER_SCOPED_RESOURCE_KINDS } from './OpenChoreoClientApi';
 import type {
@@ -112,12 +117,15 @@ const API_ENDPOINTS = {
   UPDATE_ENDPOINT_RELEASE_BINDING: '/update-endpoint-release-binding',
   DELETE_ENDPOINT_RELEASE_BINDING: '/delete-endpoint-release-binding',
   ENDPOINT_RELEASE: '/endpoint-release',
+  ENDPOINT_RESOURCE_TREE: '/endpoint-resourcetree',
+  ENDPOINT_RESOURCE_EVENTS: '/endpoint-resource-events',
   ENDPOINT_RELEASE_SCHEMA: '/endpoint-release-schema',
   ENDPOINT_BACKENDS: '/endpoint-backends',
   ENDPOINT_TYPE_SCHEMA: '/endpoint-type-schema',
   CLUSTER_ENDPOINT_TYPE_SCHEMA: '/cluster-endpoint-type-schema',
   COMPONENT_ENDPOINTS: '/component-endpoints',
   RELEASE_LINE_ENDPOINT_DRAFTS: '/release-line-endpoint-drafts',
+  ENDPOINT_TRAFFIC: '/endpoint-traffic',
   COMPONENT_TRAITS: '/component-traits',
   RELEASE_LINE: '/release-line',
   COMPONENT_CONFIG: '/component-config',
@@ -284,6 +292,12 @@ function extractEndpointEntityMetadata(entity: Entity): EndpointEntityMetadata {
   }
 
   return { endpointName, projectName, namespaceName };
+}
+
+/** The namespace and name that identify an Endpoint in a request body. */
+function endpointRefBody(entity: Entity) {
+  const { namespaceName, endpointName } = extractEndpointEntityMetadata(entity);
+  return { namespaceName, endpointName };
 }
 
 interface ProjectEntityMetadata {
@@ -737,6 +751,74 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     });
   }
 
+  async fetchEndpointTraffic(entity: Entity): Promise<EndpointTrafficInfo> {
+    const ref = endpointRefBody(entity);
+    return this.apiFetch(API_ENDPOINTS.ENDPOINT_TRAFFIC, {
+      params: {
+        namespaceName: ref.namespaceName,
+        endpointName: ref.endpointName,
+      },
+    });
+  }
+
+  async saveEndpointBackend(
+    entity: Entity,
+    backend: Omit<SaveEndpointBackendRequest, 'namespaceName' | 'endpointName'>,
+  ): Promise<EndpointTrafficResult & { backendName: string }> {
+    return this.apiFetch(`${API_ENDPOINTS.ENDPOINT_TRAFFIC}/backend`, {
+      method: 'PUT',
+      body: { ...endpointRefBody(entity), ...backend },
+    });
+  }
+
+  async removeTrafficBackend(
+    entity: Entity,
+    backendName: string,
+  ): Promise<EndpointTrafficResult> {
+    return this.apiFetch(`${API_ENDPOINTS.ENDPOINT_TRAFFIC}/backend`, {
+      method: 'DELETE',
+      body: { ...endpointRefBody(entity), backendName },
+    });
+  }
+
+  async setEndpointSplit(
+    entity: Entity,
+    split: EndpointSplit,
+  ): Promise<EndpointTrafficResult> {
+    return this.apiFetch(`${API_ENDPOINTS.ENDPOINT_TRAFFIC}/split`, {
+      method: 'PUT',
+      body: { ...endpointRefBody(entity), split },
+    });
+  }
+
+  async setEnvironmentSplit(
+    entity: Entity,
+    environment: string,
+    split: EndpointSplit | null,
+    matches?: Record<string, EndpointBackendMatch>,
+  ): Promise<void> {
+    await this.apiFetch(`${API_ENDPOINTS.ENDPOINT_TRAFFIC}/environment`, {
+      method: 'PUT',
+      body: { ...endpointRefBody(entity), environment, split, matches },
+    });
+  }
+
+  async deployEndpointRelease(
+    entity: Entity,
+    environment: string,
+    releaseName: string,
+  ): Promise<void> {
+    await this.apiFetch(`${API_ENDPOINTS.ENDPOINT_TRAFFIC}/deploy`, {
+      method: 'PUT',
+      body: {
+        ...endpointRefBody(entity),
+        projectName: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT],
+        environment,
+        releaseName,
+      },
+    });
+  }
+
   async removeEndpointBackend(
     entity: Entity,
     backendName: string,
@@ -1063,6 +1145,31 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
           name: resourceParams.name,
         },
       },
+    );
+  }
+
+  async fetchEndpointResourceTree(
+    namespaceName: string,
+    bindingName: string,
+  ): Promise<any> {
+    return this.apiFetch(API_ENDPOINTS.ENDPOINT_RESOURCE_TREE, {
+      params: { namespaceName, bindingName },
+    });
+  }
+
+  async fetchEndpointResourceEvents(
+    namespaceName: string,
+    bindingName: string,
+    resourceParams: {
+      group: string;
+      version: string;
+      kind: string;
+      name: string;
+    },
+  ): Promise<ResourceEventsResponse> {
+    return this.apiFetch<ResourceEventsResponse>(
+      API_ENDPOINTS.ENDPOINT_RESOURCE_EVENTS,
+      { params: { namespaceName, bindingName, ...resourceParams } },
     );
   }
 

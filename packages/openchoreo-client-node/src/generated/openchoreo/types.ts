@@ -2757,6 +2757,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/namespaces/{namespaceName}/endpointreleasebindings/{endpointReleaseBindingName}/k8sresources/tree': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get K8s resource tree for an endpoint release binding
+     * @description Returns a hierarchical view of the live Kubernetes resources deployed by the releases owned by this endpoint release binding, such as the routes and policies its EndpointType renders.
+     */
+    get: operations['getEndpointReleaseBindingK8sResourceTree'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/endpointreleasebindings/{endpointReleaseBindingName}/k8sresources/events': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get K8s resource events for an endpoint release binding
+     * @description Returns Kubernetes events for a specific resource in the endpoint release binding's resource tree.
+     */
+    get: operations['getEndpointReleaseBindingK8sResourceEvents'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/namespaces/{namespaceName}/deploymentpipelines': {
     parameters: {
       query?: never;
@@ -5939,6 +5979,17 @@ export interface components {
       validations?: components['schemas']['ValidationRule'][];
       urls?: components['schemas']['EndpointTypeURLs'];
       /**
+       * @description Routing features this type renders beyond weighted backends. An Endpoint
+       *     that uses one the type doesn't list is not released. Unset means the
+       *     type doesn't declare them, and nothing is checked.
+       */
+      capabilities?: (
+        | 'Match'
+        | 'RegularExpression'
+        | 'Mirror'
+        | 'MirrorPercent'
+      )[];
+      /**
        * @description Routing manifests (e.g. HTTPRoute, Ingress) emitted on the data plane for each
        *     EndpointReleaseBinding. Templates see metadata.*, parameters.*,
        *     environmentConfigs.*, visibility, backends[], dataplane.*, environment.*,
@@ -6122,6 +6173,78 @@ export interface components {
        * @example 90
        */
       weight: number;
+      match?: components['schemas']['EndpointMatch'];
+      mirror?: components['schemas']['EndpointMirror'];
+    };
+    /**
+     * @description Conditions a request must meet to go to this backend before any weighted
+     *     split. All set conditions must hold. A backend with a match gets the
+     *     requests that meet it in addition to its weighted share.
+     */
+    EndpointMatch: {
+      path?: components['schemas']['EndpointPathMatch'];
+      /** @description Headers the request must carry. */
+      headers?: components['schemas']['EndpointHeaderMatch'][];
+      /** @description Cookies the request must carry, by exact value. */
+      cookies?: components['schemas']['EndpointCookieMatch'][];
+    };
+    /** @description A path condition, relative to where the Endpoint is served. */
+    EndpointPathMatch: {
+      /**
+       * @description How the path is compared.
+       * @default PathPrefix
+       * @enum {string}
+       */
+      type: 'PathPrefix' | 'Exact';
+      /**
+       * @description The path, relative to where the Endpoint is served.
+       * @example /next
+       */
+      value: string;
+    };
+    /** @description A header condition. */
+    EndpointHeaderMatch: {
+      /**
+       * @description Header name, case-insensitive. An HTTP token, as the Endpoint CRD requires.
+       * @example x-canary
+       */
+      name: string;
+      /**
+       * @description How the value is compared.
+       * @default Exact
+       * @enum {string}
+       */
+      type: 'Exact' | 'RegularExpression';
+      /**
+       * @description The expected value, or an RE2 regular expression.
+       * @example true
+       */
+      value: string;
+    };
+    /** @description A cookie condition, by exact value. */
+    EndpointCookieMatch: {
+      /**
+       * @description Cookie name.
+       * @example group
+       */
+      name: string;
+      /**
+       * @description Exact cookie value.
+       * @example b
+       */
+      value: string;
+    };
+    /**
+     * @description Copies a share of the requests to this backend. Its answers are discarded.
+     *     A mirror backend has weight 0 and no match.
+     */
+    EndpointMirror: {
+      /**
+       * Format: int32
+       * @description Percent of the requests to copy, from 0 to 100.
+       * @example 10
+       */
+      percent: number;
     };
     /** @description References a named workload endpoint of a Component in the Endpoint's project. */
     EndpointComponentBackend: {
@@ -6292,6 +6415,28 @@ export interface components {
       endpointTypeEnvironmentConfigs?: {
         [key: string]: unknown;
       };
+      /**
+       * @description Environment-specific weight and mirror share for the release's backends,
+       *     matched by name. Entries for a backend the pinned release does not have
+       *     are ignored and reported in the BackendOverridesApplied condition.
+       */
+      backendOverrides?: components['schemas']['EndpointBackendOverride'][];
+    };
+    /** @description Environment-specific values for one backend. A mirror only receives copies, so set weight or mirror, not both, and match or mirror, not both. */
+    EndpointBackendOverride: {
+      /**
+       * @description Name of the backend in the release.
+       * @example canary
+       */
+      name: string;
+      /**
+       * Format: int32
+       * @description Replaces the release's weight for this backend in this environment. When any backend has a weight override, a backend without one gets 0 there.
+       * @example 25
+       */
+      weight?: number;
+      match?: components['schemas']['EndpointMatch'];
+      mirror?: components['schemas']['EndpointMirror'];
     };
     /**
      * @description Per-visibility URL templates. Each entry is optional; a type declares only the visibilities it
@@ -6410,6 +6555,7 @@ export interface components {
        * @example 90
        */
       weight?: number;
+      mirror?: components['schemas']['EndpointMirror'];
       /** @description Whether the backend was found and can receive traffic in this environment. */
       resolved: boolean;
       serviceURL?: components['schemas']['EndpointURL'];
@@ -6428,7 +6574,7 @@ export interface components {
        * @description When the controller first observed the binding's current spec, such as a new endpointRelease being deployed.
        */
       lastSpecUpdateTime?: string;
-      /** @description Latest available observations of the binding's state. Includes BackendsResolved, Synced, ResourcesReady, URLsResolved, Ready (aggregate), and Finalizing. */
+      /** @description Latest available observations of the binding's state. Includes BackendsResolved, BackendOverridesApplied, Synced, ResourcesReady, URLsResolved, Ready (aggregate), and Finalizing. */
       conditions?: components['schemas']['Condition'][];
       /** @description Resolution of each backendRef in this binding's environment. */
       backends?: components['schemas']['ResolvedEndpointBackend'][];
@@ -15616,6 +15762,75 @@ export interface operations {
         };
         content?: never;
       };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getEndpointReleaseBindingK8sResourceTree: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Endpoint release binding name */
+        endpointReleaseBindingName: components['parameters']['EndpointReleaseBindingNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description K8s resource tree */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['K8sResourceTreeResponse'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getEndpointReleaseBindingK8sResourceEvents: {
+    parameters: {
+      query: {
+        /** @description API group of the resource (empty string or omitted for core resources) */
+        group?: string;
+        /** @description API version of the resource (e.g. v1) */
+        version: string;
+        /** @description Kind of the resource */
+        kind: string;
+        /** @description Name of the resource */
+        name: string;
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Endpoint release binding name */
+        endpointReleaseBindingName: components['parameters']['EndpointReleaseBindingNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Resource events */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResourceEventsResponse'];
+        };
+      };
+      400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];

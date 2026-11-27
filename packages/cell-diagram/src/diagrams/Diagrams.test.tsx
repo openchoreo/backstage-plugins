@@ -1,9 +1,9 @@
 import '@testing-library/jest-dom';
-import { act, render } from '@testing-library/react';
+import { act, fireEvent, render } from '@testing-library/react';
 import { ReactNode } from 'react';
 import { CellDiagramThemeProvider } from '../theme';
-import { ComponentType, Organization, Project } from '../types';
-import { MAIN_CELL, PROJECT_NODE } from '../resources';
+import { CellBounds, ComponentType, Organization, Project } from '../types';
+import { MAIN_CELL, PROJECT_NODE, SPLIT_NODE } from '../resources';
 import { RevealClass } from '../utils/animations';
 import { ProjectDiagram } from './ProjectDiagram';
 import { OrgDiagram } from './OrgDiagram';
@@ -81,6 +81,64 @@ describe('ProjectDiagram', () => {
     expect(
       container.querySelector(`div[data-nodeid="${MAIN_CELL}"]`),
     ).not.toHaveClass(RevealClass.SCALE);
+  });
+});
+
+describe('ProjectDiagram routes', () => {
+  const service = (id: string) => ({
+    id,
+    version: '1',
+    type: ComponentType.SERVICE,
+    services: {},
+    connections: [],
+  });
+  const split: Project = {
+    id: 'B',
+    name: 'B',
+    components: [service('storefront'), service('storefront@redesign')],
+    routes: [
+      {
+        id: 'shop',
+        name: 'Shop',
+        from: { boundary: CellBounds.NorthBound },
+        branches: [
+          { componentId: 'storefront', label: '100%' },
+          { componentId: 'storefront@redesign', label: 'if cookie beta=yes' },
+        ],
+      },
+    ],
+  };
+
+  it('draws a split point and its share labels', () => {
+    const { container, getByText } = render(
+      <ProjectDiagram project={split} animation={false} />,
+      { wrapper: Wrapper },
+    );
+    finishLoading();
+
+    expect(
+      container.querySelector(`div[data-nodeid^="${SPLIT_NODE}|"]`),
+    ).toBeInTheDocument();
+    expect(getByText('100%')).toBeInTheDocument();
+    expect(getByText('Endpoint')).toBeInTheDocument();
+  });
+
+  it('opens the Endpoint from its point with a button', () => {
+    const onRouteClick = jest.fn();
+    const { getByRole } = render(
+      <ProjectDiagram
+        project={split}
+        animation={false}
+        onRouteClick={onRouteClick}
+      />,
+      { wrapper: Wrapper },
+    );
+    finishLoading();
+
+    const point = getByRole('button', { name: 'Open Endpoint Shop' });
+    expect(point.tagName).toBe('BUTTON');
+    fireEvent.click(point);
+    expect(onRouteClick).toHaveBeenCalledWith('shop');
   });
 });
 

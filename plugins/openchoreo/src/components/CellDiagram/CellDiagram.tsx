@@ -152,6 +152,14 @@ export const CellDiagram = () => {
     [],
   );
 
+  // A split point's route id is `{namespace}/{endpoint}`: open its Deploy tab.
+  const openEndpoint = useCallback((routeId: string) => {
+    const [ns, name] = routeId.split('/');
+    if (ns && name) {
+      navDeps.current.navigate(`/catalog/${ns}/endpoint/${name}/environments`);
+    }
+  }, []);
+
   const projectName = entity.metadata.name;
   const namespaceName =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
@@ -473,6 +481,7 @@ export const CellDiagram = () => {
                 mode={mode}
                 defaultDiagramLayer={targetLayer}
                 componentMenu={componentMenu}
+                onRouteClick={openEndpoint}
               />
             );
           })()}

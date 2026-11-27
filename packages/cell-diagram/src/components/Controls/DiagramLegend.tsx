@@ -38,10 +38,12 @@ export const Text: FC<any> = styled.div`
 
 interface DiagramLegendProps {
   animation?: boolean;
+  /** Rows for the dependency layers; off when only route marks show. */
+  showLayerRows?: boolean;
 }
 
 export function DiagramLegend(props: DiagramLegendProps) {
-  const { animation = true } = props;
+  const { animation = true, showLayerRows = true } = props;
   const colors = useColors();
   // The "hsl(0, 0%, 30%)" stroke on the legend's svg <g> is a backdrop
   // line that gets overdrawn by the actual stroke color below; we leave
@@ -49,11 +51,17 @@ export function DiagramLegend(props: DiagramLegendProps) {
 
   const {
     diagramLayers: { hasLayer },
+    routeMarks,
   } = useContext(DiagramContext);
 
-  const hasArchitectureLayer = hasLayer(DiagramLayer.ARCHITECTURE);
-  const hasObservabilityLayer = hasLayer(DiagramLayer.OBSERVABILITY);
-  const hasDiffLayer = hasLayer(DiagramLayer.DIFF);
+  const hasArchitectureLayer =
+    showLayerRows && hasLayer(DiagramLayer.ARCHITECTURE);
+  const hasObservabilityLayer =
+    showLayerRows && hasLayer(DiagramLayer.OBSERVABILITY);
+  const hasDiffLayer = showLayerRows && hasLayer(DiagramLayer.DIFF);
+  const showRoutes =
+    Boolean(routeMarks?.split) &&
+    (hasLayer(DiagramLayer.ARCHITECTURE) || hasLayer(DiagramLayer.DIFF));
 
   return (
     <DiagramLegendPanel className={animation ? PANEL_REVEAL_CLASS : undefined}>
@@ -224,6 +232,47 @@ export function DiagramLegend(props: DiagramLegendProps) {
             </defs>
           </svg>
           <Text>Only static dependency</Text>
+        </LegendRow>
+      )}
+      {showRoutes && (
+        <LegendRow>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 50 10"
+            width={50}
+            height={10}
+          >
+            <circle
+              cx="25"
+              cy="5"
+              r="4"
+              fill={colors.SURFACE_DIM}
+              stroke={colors.OUTLINE}
+              strokeWidth="1.5"
+            />
+          </svg>
+          <Text>Endpoint</Text>
+        </LegendRow>
+      )}
+      {showRoutes && routeMarks?.copy && (
+        <LegendRow>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 200 50"
+            width={50}
+            height={10}
+          >
+            <line
+              x1="0"
+              y1="25"
+              x2="200"
+              y2="25"
+              stroke={colors.ON_SURFACE_VARIANT}
+              strokeWidth="10"
+              strokeDasharray="24,24"
+            />
+          </svg>
+          <Text>Copy of requests</Text>
         </LegendRow>
       )}
     </DiagramLegendPanel>

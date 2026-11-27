@@ -47,6 +47,7 @@ export const MAIN_CELL = 'mainCell';
 export const EMPTY_NODE = 'emptyNode';
 export const EXTERNAL_NODE = 'externalNode';
 export const BORDER_NODE = 'borderNode';
+export const SPLIT_NODE = 'splitNode';
 
 // link types
 export const PROJECT_LINK = 'projectLink';
@@ -61,6 +62,7 @@ export const CELL_LINE_MIN_WIDTH = 3;
 export const CELL_LINE_PREVIEW_WIDTH = 2;
 export const CIRCLE_WIDTH = 60;
 export const DOT_WIDTH = 20;
+export const SPLIT_DOT_WIDTH = 16;
 
 export const COMPONENT_CIRCLE_WIDTH = 80;
 export const COMPONENT_LINE_MIN_WIDTH = 3;

@@ -51,6 +51,10 @@ export { ExternalFactory } from './External/ExternalNode/ExternalFactory';
 export { ExternalModel } from './External/ExternalNode/ExternalModel';
 export { ExternalWidget } from './External/ExternalNode/ExternalWidget';
 
+export { SplitFactory } from './Split/SplitFactory';
+export { SplitModel } from './Split/SplitModel';
+export { SplitWidget } from './Split/SplitWidget';
+
 export { ExternalLinkFactory } from './External/ExternalLink/ExternalLinkFactory';
 export { ExternalLinkModel } from './External/ExternalLink/ExternalLinkModel';
 export { ExternalLinkWidget } from './External/ExternalLink/ExternalLinkWidget';

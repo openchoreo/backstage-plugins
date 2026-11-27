@@ -8,6 +8,7 @@ import type {
   Organization,
   OrgConnection,
   CellBounds,
+  Route,
 } from '@openchoreo/cell-diagram';
 
 // CellBounds boundary values, referenced by string literal rather than by
@@ -16,6 +17,7 @@ import type {
 // runtime value from it would break the backend at load time.
 const EAST_BOUND = 'eb' as CellBounds; // org egress
 const WEST_BOUND = 'wb' as CellBounds; // org ingress
+const NORTH_BOUND = 'nb' as CellBounds; // internet gateway
 import { CellDiagramService } from '../../types';
 import {
   createOpenChoreoApiClient,
@@ -31,7 +33,16 @@ import {
   parseReleaseLineNodeId,
   releaseLineNodeId,
   toStoredReleaseLine,
+  flowLabel,
+  isMirror,
+  labelOf,
+  splitPercents,
+  type EndpointTrafficBackend,
 } from '@openchoreo/backstage-plugin-common';
+import {
+  EndpointTrafficService,
+  toTrafficBackends,
+} from '../EndpointService/EndpointTrafficService';
 import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
 
 // Use generated OpenAPI schemas directly. CellDiagramInfoService previously
@@ -45,6 +56,7 @@ type WorkloadEndpoint = OpenChoreoComponents['schemas']['WorkloadEndpoint'];
 type EndpointDependency = OpenChoreoComponents['schemas']['WorkloadConnection'];
 type ResourceDependency =
   OpenChoreoComponents['schemas']['WorkloadResourceDependency'];
+type EndpointResource = OpenChoreoComponents['schemas']['Endpoint'];
 
 type HttpMetrics = ObservabilityComponents['schemas']['HttpMetricsTimeSeries'];
 type RuntimeTopologyMetrics =
@@ -181,15 +193,35 @@ export class CellDiagramInfoService implements CellDiagramService {
   private readonly baseUrl: string;
   private readonly componentTypeUtils: ComponentTypeUtils;
   private readonly resolver: ObservabilityUrlResolver;
+  private readonly endpointTraffic?: EndpointTrafficService;
 
-  public constructor(logger: LoggerService, baseUrl: string, config: Config) {
+  public constructor(
+    logger: LoggerService,
+    baseUrl: string,
+    config: Config,
+    endpointTraffic?: EndpointTrafficService,
+  ) {
     this.baseUrl = baseUrl;
+    this.endpointTraffic = endpointTraffic;
     this.logger = logger;
     this.componentTypeUtils = ComponentTypeUtils.fromConfig(config);
     this.resolver = new ObservabilityUrlResolver({ baseUrl, logger });
   }
 
   async fetchProjectInfo(
+    request: {
+      projectName: string;
+      namespaceName: string;
+      environmentName?: string;
+      startTime?: string;
+      endTime?: string;
+    },
+    token?: string,
+  ): Promise<Project | undefined> {
+    return this.buildProjectInfo(request, token, true);
+  }
+
+  private async buildProjectInfo(
     {
       projectName,
       namespaceName,
@@ -203,7 +235,8 @@ export class CellDiagramInfoService implements CellDiagramService {
       startTime?: string;
       endTime?: string;
     },
-    token?: string,
+    token: string | undefined,
+    withRoutes: boolean,
   ): Promise<Project | undefined> {
     try {
       const client = createOpenChoreoApiClient({
@@ -328,6 +361,14 @@ export class CellDiagramInfoService implements CellDiagramService {
         completeComponents,
       );
 
+      if (withRoutes) {
+        project.routes = await this.buildRoutes(
+          client,
+          { namespaceName, projectName, token },
+          completeComponents,
+        );
+      }
+
       if (environmentName) {
         await this.enrichWithObservations(project, {
           namespaceName,
@@ -403,7 +444,7 @@ export class CellDiagramInfoService implements CellDiagramService {
       // passed, so fetchProjectInfo skips the observability enrichment.
       const built = await Promise.all(
         projectNames.map(projectName =>
-          this.fetchProjectInfo({ projectName, namespaceName }, token),
+          this.buildProjectInfo({ projectName, namespaceName }, token, false),
         ),
       );
       // Fail rather than return a partial namespace: silently dropping a failed
@@ -1053,6 +1094,183 @@ export class CellDiagramInfoService implements CellDiagramService {
         tooltip: `Dependency on ${dependentComponentName} in ${dependentProjectName}`,
       };
     });
+  }
+
+  /**
+   * The project's Endpoints as routes: from the north gateway when external,
+   * the west gateway when internal, and from each in-project caller of a
+   * backend when namespace or project visible, with the Endpoint's default
+   * split. An Endpoint nothing in the project calls comes in from the west
+   * when namespace visible, and otherwise stands on its own. Without
+   * Endpoints, or when they can't be read, the diagram has no routes.
+   */
+  private async buildRoutes(
+    client: ReturnType<typeof createOpenChoreoApiClient>,
+    params: { namespaceName: string; projectName: string; token?: string },
+    completeComponents: CompleteComponent[],
+  ): Promise<Route[]> {
+    const { namespaceName, projectName, token } = params;
+    try {
+      const endpoints = await fetchAllPages(cursor =>
+        client
+          .GET('/api/v1/namespaces/{namespaceName}/endpoints', {
+            params: {
+              path: { namespaceName },
+              query: { project: projectName, limit: 100, cursor },
+            },
+          })
+          .then(res => {
+            if (res.error || !res.response.ok) {
+              throw new Error(
+                `Failed to fetch endpoints: ${res.response.status} ${res.response.statusText}`,
+              );
+            }
+            return res.data;
+          }),
+      );
+      const routes = await Promise.all(
+        endpoints.map(endpoint =>
+          this.routesOf(
+            endpoint,
+            { namespaceName, projectName, token },
+            completeComponents,
+          ),
+        ),
+      );
+      return routes.flat();
+    } catch (error: unknown) {
+      this.logger.warn(
+        `Drawing the cell diagram of '${projectName}' without Endpoints: ${error}`,
+      );
+      return [];
+    }
+  }
+
+  private async routesOf(
+    endpoint: EndpointResource,
+    params: { namespaceName: string; projectName: string; token?: string },
+    completeComponents: CompleteComponent[],
+  ): Promise<Route[]> {
+    const name = endpoint.metadata?.name ?? '';
+    if (!name) return [];
+    const split = await this.splitOf(endpoint, params);
+
+    const shared = split.backends.filter(b => !isMirror(b));
+    const percents = splitPercents(shared.map(b => b.weight));
+    const shareOf = (b: EndpointTrafficBackend) => percents[shared.indexOf(b)];
+    const branches = split.backends.flatMap(b => {
+      const node = completeComponents.find(
+        c =>
+          c.componentName === b.componentName &&
+          isSameReleaseLine(c.releaseLine, b.releaseLine),
+      );
+      if (!node) return [];
+      const share = shareOf(b);
+      return [
+        {
+          backend: b,
+          branch: {
+            componentId: node.name,
+            label: flowLabel(b, share),
+            ...(!b.mirror && !b.match && !share && { faded: true }),
+            ...(b.mirror && { copy: true }),
+          },
+        },
+      ];
+    });
+    if (!branches.length) return [];
+
+    const visibility = endpoint.spec?.visibility ?? [];
+    const details = {
+      subtitle: [
+        visibility.join(', '),
+        'default split',
+        split.ownSplitIn.length &&
+          `own split in ${split.ownSplitIn.join(', ')}`,
+      ]
+        .filter(Boolean)
+        .join(' · '),
+      rows: branches.map(({ backend, branch }) => ({
+        label: labelOf(split.backends, backend.name),
+        value: branch.label,
+      })),
+    };
+    const route = (from: Route['from']): Route => ({
+      id: `${params.namespaceName}/${name}`,
+      name:
+        endpoint.metadata?.annotations?.['openchoreo.dev/display-name'] ?? name,
+      ...(from && { from }),
+      branches: branches.map(b => b.branch),
+      details,
+    });
+
+    const routes: Route[] = [];
+    if (visibility.includes('external')) {
+      routes.push(route({ boundary: NORTH_BOUND }));
+    }
+    if (visibility.includes('internal')) {
+      routes.push(route({ boundary: WEST_BOUND }));
+    }
+    if (visibility.includes('namespace') || visibility.includes('project')) {
+      const targets = new Set(
+        branches.map(
+          ({ backend, branch }) => `${branch.componentId}/${backend.endpoint}`,
+        ),
+      );
+      completeComponents.forEach(caller => {
+        const calls = (caller.workload?.dependencies?.endpoints ?? []).some(
+          dependency => {
+            if (
+              dependency.project &&
+              dependency.project !== params.projectName
+            ) {
+              return false;
+            }
+            const target = this.findDependencyTarget(
+              dependency,
+              completeComponents,
+            );
+            return !!target && targets.has(`${target.name}/${dependency.name}`);
+          },
+        );
+        if (calls) routes.push(route({ componentId: caller.name }));
+      });
+    }
+    // Nothing in the project calls it: other projects come in through the
+    // west gateway, and a project-only Endpoint stands above its backends.
+    if (!routes.length) {
+      routes.push(
+        visibility.includes('namespace')
+          ? route({ boundary: WEST_BOUND })
+          : route(undefined),
+      );
+    }
+    return routes;
+  }
+
+  /**
+   * The Endpoint's default split, and the environments that run their own
+   * split instead.
+   */
+  private async splitOf(
+    endpoint: EndpointResource,
+    params: { namespaceName: string; token?: string },
+  ): Promise<{ backends: EndpointTrafficBackend[]; ownSplitIn: string[] }> {
+    const backends = toTrafficBackends(endpoint.spec?.backendRefs);
+    if (!this.endpointTraffic) return { backends, ownSplitIn: [] };
+    const traffic = await this.endpointTraffic
+      .fetchTraffic(
+        params.namespaceName,
+        endpoint.metadata?.name ?? '',
+        params.token,
+      )
+      .catch(() => undefined);
+    const ownSplitIn = (traffic?.environments ?? [])
+      .filter(e =>
+        e.overrides.some(o => o.weight !== undefined || o.mirror || o.match),
+      )
+      .map(e => e.environment);
+    return { backends, ownSplitIn };
   }
 
   /**

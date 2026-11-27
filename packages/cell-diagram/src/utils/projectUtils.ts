@@ -62,6 +62,14 @@ import {
   getExternalNodeName,
 } from '../components/External/external-node-util';
 import { DagreEngine } from '../resources/Dagre/DagreEngine';
+import {
+  POINT_GAP,
+  generateRouteDiagram,
+  isFreeStanding,
+  needsRoom,
+  positionSplitNodes,
+  routeLayoutLinks,
+} from './routeUtils';
 
 // Project diagram engine utils
 export function getDiagramDataFromProject(
@@ -83,10 +91,17 @@ export function getDiagramDataFromProject(
 
   const componentLinks: Map<string, ComponentLinkModel> =
     generateComponentLinks(project, componentNodes);
-  const cellLinks: Map<string, ComponentLinkModel> = generateCellLinks(
+  const cellLinks: Map<string, CellLinkModel> = generateCellLinks(
     project,
     emptyNodes,
     componentNodes,
+  );
+  const routes = generateRouteDiagram(
+    project,
+    componentNodes,
+    emptyNodes,
+    componentLinks,
+    cellLinks,
   );
   const connectorLinks: Map<string, ExternalLinkModel> = generateConnectorLinks(
     emptyNodes,
@@ -109,10 +124,12 @@ export function getDiagramDataFromProject(
       connectorNodes,
       externalNodes,
       emptyNodes,
+      splitNodes: routes.splitNodes,
     },
     links: {
       componentLinks,
       cellLinks,
+      routeLinks: routes.routeLinks,
       connectorLinks,
       connectionLinks,
       externalLinks,
@@ -133,19 +150,28 @@ export function getComponentDiagramWidth(models: ProjectDiagramData): number {
     ...models.nodes.emptyNodes.values(),
     ...models.links.cellLinks.values(),
   );
+  // lay components out as if each Endpoint's point were not there
+  const layoutLinks = routeLayoutLinks(models.nodes.splitNodes);
+  tempModel.addAll(...layoutLinks);
   // auto distribute component nodes, component links, empty nodes and cell links
+  // with room between ranks for Endpoints' points and their labels
+  const routed = models.nodes.splitNodes.size > 0;
   const dagreEngine = new DagreEngine({
     graph: {
       rankdir: 'LR',
-      ranksep: 200,
+      ranksep: routed ? 300 : 200,
       edgesep: 100,
-      nodesep: 150,
+      nodesep: routed ? 190 : 150,
       ranker: 'tight-tree',
     },
   });
   dagreEngine.redistribute(tempModel);
-  // calculate component diagram width
-  return calculateCellWidth(tempModel);
+  layoutLinks.forEach(link => link.remove());
+  // calculate component diagram width, with room for points before backends
+  return calculateCellWidth(
+    tempModel,
+    [...models.nodes.splitNodes.values()].some(needsRoom),
+  );
 }
 
 export function getComponentDiagramBoundaries(model: DiagramModel) {
@@ -154,7 +180,7 @@ export function getComponentDiagramBoundaries(model: DiagramModel) {
   let maxX = 0;
   let maxY = 0;
   model.getNodes().forEach(node => {
-    if (!isRenderInsideCell(node)) {
+    if (!isRenderInsideCell(node) && !isFreeStanding(node)) {
       return;
     }
     const nodePosition = node.getPosition().clone();
@@ -166,20 +192,46 @@ export function getComponentDiagramBoundaries(model: DiagramModel) {
   return { maxX, minX, maxY, minY };
 }
 
-export function calculateCellWidth(model: DiagramModel) {
+/** Room a node and its label need clear of the cell's cut corners. */
+const CORNER_ROOM = 90;
+
+export function calculateCellWidth(
+  model: DiagramModel,
+  pointsBeforeBackends = false,
+) {
   const { maxX, minX, maxY, minY } = getComponentDiagramBoundaries(model);
-  const layoutWidth = Math.max(
-    maxX - minX,
-    maxY - minY,
-    MAIN_CELL_DEFAULT_HEIGHT,
-  );
+  // room for points standing before their backends, clear of the cell's corners
+  const pointRoom =
+    pointsBeforeBackends || model.getNodes().some(needsRoom) ? POINT_GAP : 0;
+  const layoutWidth =
+    Math.max(
+      maxX - minX + (pointsBeforeBackends ? POINT_GAP : 0),
+      maxY - minY,
+      MAIN_CELL_DEFAULT_HEIGHT,
+    ) + pointRoom;
   const cellWidth = (layoutWidth * 3) / 2;
-  return cellWidth;
+  // wide enough that no node or label reaches the cell's cut corners
+  const centerX = (maxX + minX) / 2;
+  const centerY = (maxY + minY) / 2;
+  const cornerWidth = Math.max(
+    0,
+    ...model
+      .getNodes()
+      .filter(node => isRenderInsideCell(node) || isFreeStanding(node))
+      .map(node => {
+        const { x, y } = node.getPosition();
+        const dx = Math.abs(x + node.width / 2 - centerX);
+        const dy = Math.abs(y + node.height / 2 - centerY);
+        return Math.SQRT2 * (dx + dy) + 2 * CORNER_ROOM;
+      }),
+  );
+  return Math.max(cellWidth, cornerWidth);
 }
 
 // Node distribution utils
 
 export function manualDistribute(model: DiagramModel): DiagramModel {
+  positionSplitNodes(model);
   // get component diagram boundaries and calculate center
   const { maxX, minX, maxY, minY } = getComponentDiagramBoundaries(model);
   const layoutCenterX = (maxX + minX) / 2;
@@ -196,6 +248,7 @@ export function manualDistribute(model: DiagramModel): DiagramModel {
   cellNode.setPosition(cellNodePosition);
   // update empty node and connection node positions
   updateBoundNodePositions(cellNode, model);
+  positionSplitNodes(model);
 
   return model;
 }
@@ -516,6 +569,18 @@ function getCellGateways(project: Project): Gateways {
         }
       }
     }
+  });
+  const present = new Set(project.components?.map(c => c.id));
+  project.routes?.forEach(route => {
+    if (
+      !route.from ||
+      !('boundary' in route.from) ||
+      !route.branches.some(b => present.has(b.componentId))
+    ) {
+      return;
+    }
+    if (route.from.boundary === CellBounds.NorthBound) gateways.internet = true;
+    if (route.from.boundary === CellBounds.WestBound) gateways.intranet = true;
   });
 
   return gateways;

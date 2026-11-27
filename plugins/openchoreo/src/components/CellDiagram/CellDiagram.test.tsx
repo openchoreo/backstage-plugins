@@ -1,4 +1,10 @@
-import { render, screen, waitFor, act } from '@testing-library/react';
+import {
+  render,
+  screen,
+  waitFor,
+  act,
+  fireEvent,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 // Import from the sub-path (not the barrel) so this suite — which mocks
 // @backstage/core-plugin-api — doesn't transitively load @backstage/test-utils'
@@ -22,8 +28,9 @@ jest.mock('@backstage/plugin-catalog-react', () => ({
 
 // The component calls useNavigate() at render (for the node ⋮ menu's tab
 // navigation); the tests render <CellDiagram> without a Router, so stub it.
+const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
-  useNavigate: () => jest.fn(),
+  useNavigate: () => mockNavigate,
 }));
 
 jest.mock('@backstage/core-plugin-api', () => ({
@@ -38,9 +45,12 @@ jest.mock('@backstage/core-components', () => ({
 }));
 
 jest.mock('@openchoreo/cell-diagram', () => ({
-  CellDiagram: ({ project, defaultDiagramLayer }: any) => (
+  CellDiagram: ({ project, defaultDiagramLayer, onRouteClick }: any) => (
     <div data-testid="cell-diagram-view" data-layer={defaultDiagramLayer}>
       {project?.id}
+      <button onClick={() => onRouteClick?.('default/reviews-api')}>
+        split
+      </button>
     </div>
   ),
   DiagramLayer: {
@@ -462,6 +472,23 @@ describe('CellDiagram', () => {
     expect(mockClient.getCellDiagramInfo).toHaveBeenCalledWith(
       expect.anything(),
       { environmentName: undefined, startTime: undefined, endTime: undefined },
+    );
+  });
+
+  it('opens the Endpoint’s Deploy tab when its split point is clicked', async () => {
+    setupMockClient();
+
+    await act(async () => {
+      renderCell();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('cell-diagram-view')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'split' }));
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      '/catalog/default/endpoint/reviews-api/environments',
     );
   });
 

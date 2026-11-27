@@ -1,13 +1,17 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { EndpointEnvironmentOverridesPage } from './EndpointEnvironmentOverridesPage';
 
 const mockClient = {
   fetchEndpointEnvironmentInfo: jest.fn(),
   fetchEndpointReleaseSchema: jest.fn(),
   updateEndpointReleaseBinding: jest.fn(),
+  fetchEndpointTraffic: jest.fn(),
+  deployEndpointRelease: jest.fn(),
 };
 
 jest.mock('@backstage/core-plugin-api', () => ({
+  ...jest.requireActual('@backstage/core-plugin-api'),
   useApi: () => mockClient,
   createApiRef: (def: { id: string }) => ({ id: def?.id ?? 'ref' }),
   discoveryApiRef: { id: 'discovery' },
@@ -30,6 +34,7 @@ jest.mock('@backstage/plugin-catalog-react', () => ({
 }));
 
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
+  ...jest.requireActual('@openchoreo/backstage-plugin-react'),
   DetailPageLayout: ({ title, actions, children }: any) => (
     <div>
       <h1>{title}</h1>
@@ -63,6 +68,11 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockClient.fetchEndpointReleaseSchema.mockResolvedValue(SCHEMA);
   mockClient.updateEndpointReleaseBinding.mockResolvedValue({});
+  mockClient.deployEndpointRelease.mockResolvedValue({});
+  mockClient.fetchEndpointTraffic.mockResolvedValue({
+    backends: [],
+    environments: [],
+  });
 });
 
 describe('EndpointEnvironmentOverridesPage', () => {
@@ -80,11 +90,13 @@ describe('EndpointEnvironmentOverridesPage', () => {
     const onSaved = jest.fn();
 
     render(
-      <EndpointEnvironmentOverridesPage
-        envName="staging"
-        onBack={jest.fn()}
-        onSaved={onSaved}
-      />,
+      <MemoryRouter>
+        <EndpointEnvironmentOverridesPage
+          envName="staging"
+          onBack={jest.fn()}
+          onSaved={onSaved}
+        />
+      </MemoryRouter>,
     );
 
     fireEvent.click(await screen.findByTestId('rjsf-change'));
@@ -108,7 +120,7 @@ describe('EndpointEnvironmentOverridesPage', () => {
     );
   });
 
-  it('pins the release from the URL when deploying', async () => {
+  const deployStaging = (onSaved: () => void) => {
     mockClient.fetchEndpointEnvironmentInfo.mockResolvedValue([
       {
         name: 'Staging',
@@ -116,28 +128,56 @@ describe('EndpointEnvironmentOverridesPage', () => {
         latestRelease: 'orders-api-r2',
       },
     ]);
-
     render(
-      <EndpointEnvironmentOverridesPage
-        envName="staging"
-        releaseFromUrl="orders-api-r2"
-        onBack={jest.fn()}
-        onSaved={jest.fn()}
-      />,
+      <MemoryRouter>
+        <EndpointEnvironmentOverridesPage
+          envName="staging"
+          releaseFromUrl="orders-api-r2"
+          onBack={jest.fn()}
+          onSaved={onSaved}
+        />
+      </MemoryRouter>,
     );
+  };
+
+  it('deploys the release from the URL, then saves the overrides', async () => {
+    const onSaved = jest.fn();
+    deployStaging(onSaved);
 
     fireEvent.click(await screen.findByTestId('rjsf-change'));
     fireEvent.click(screen.getByRole('button', { name: /^deploy$/i }));
 
-    await waitFor(() =>
-      expect(mockClient.updateEndpointReleaseBinding).toHaveBeenCalledWith(
-        entity,
-        'staging',
-        {
-          endpointRelease: 'orders-api-r2',
-          endpointTypeEnvironmentConfigs: { hostname: 'new.example.com' },
-        },
-      ),
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    expect(mockClient.deployEndpointRelease).toHaveBeenCalledWith(
+      entity,
+      'staging',
+      'orders-api-r2',
     );
+    expect(mockClient.updateEndpointReleaseBinding).toHaveBeenCalledWith(
+      entity,
+      'staging',
+      {
+        endpointRelease: 'orders-api-r2',
+        endpointTypeEnvironmentConfigs: { hostname: 'new.example.com' },
+      },
+    );
+    expect(
+      mockClient.deployEndpointRelease.mock.invocationCallOrder[0],
+    ).toBeLessThan(
+      mockClient.updateEndpointReleaseBinding.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('writes nothing more and stays open when the deploy fails', async () => {
+    mockClient.deployEndpointRelease.mockRejectedValue(new Error('denied'));
+    const onSaved = jest.fn();
+    deployStaging(onSaved);
+
+    fireEvent.click(await screen.findByTestId('rjsf-change'));
+    fireEvent.click(screen.getByRole('button', { name: /^deploy$/i }));
+
+    expect(await screen.findByText(/denied/)).toBeInTheDocument();
+    expect(mockClient.updateEndpointReleaseBinding).not.toHaveBeenCalled();
+    expect(onSaved).not.toHaveBeenCalled();
   });
 });

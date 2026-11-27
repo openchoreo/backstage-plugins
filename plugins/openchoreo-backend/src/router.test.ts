@@ -105,11 +105,21 @@ function createMockServices() {
       createComponentEndpoint: jest.fn(),
       updateComponentEndpoint: jest.fn(),
       deleteComponentEndpoint: jest.fn(),
+      fetchEndpointResourceTree: jest.fn(),
+      fetchEndpointResourceEvents: jest.fn(),
     },
     componentEndpointFollowService: {
       checkPromotion: jest.fn(),
       follow: jest.fn(),
       remove: jest.fn(),
+    },
+    endpointTrafficService: {
+      fetchTraffic: jest.fn(),
+      saveBackend: jest.fn(),
+      removeBackend: jest.fn(),
+      setDefaultSplit: jest.fn(),
+      setEnvironmentSplit: jest.fn(),
+      deployRelease: jest.fn(),
     },
     projectReleaseInfoService: {
       fetchProjectRelease: jest.fn(),
@@ -195,6 +205,207 @@ describe('createRouter', () => {
     app = express();
     app.use(router);
     app.use(mockErrorHandler());
+  });
+
+  describe('Endpoint K8s artifact routes', () => {
+    it('reads the resource tree of an endpoint release binding', async () => {
+      services.endpointInfoService.fetchEndpointResourceTree.mockResolvedValue({
+        renderedReleases: [],
+      });
+      const response = await request(app)
+        .get('/endpoint-resourcetree')
+        .query({ namespaceName: 'acme', bindingName: 'trips-development' });
+      expect(response.status).toBe(200);
+      expect(
+        services.endpointInfoService.fetchEndpointResourceTree,
+      ).toHaveBeenCalledWith('acme', 'trips-development', 'mock-user-token');
+    });
+
+    it('needs the binding to read its tree', async () => {
+      const response = await request(app)
+        .get('/endpoint-resourcetree')
+        .query({ namespaceName: 'acme' });
+      expect(response.status).toBe(400);
+    });
+
+    it('reads the events of one resource', async () => {
+      services.endpointInfoService.fetchEndpointResourceEvents.mockResolvedValue(
+        { events: [] },
+      );
+      const query = {
+        namespaceName: 'acme',
+        bindingName: 'trips-development',
+        group: 'gateway.networking.k8s.io',
+        version: 'v1',
+        kind: 'HTTPRoute',
+        name: 'trips',
+      };
+      const response = await request(app)
+        .get('/endpoint-resource-events')
+        .query(query);
+      expect(response.status).toBe(200);
+      expect(
+        services.endpointInfoService.fetchEndpointResourceEvents,
+      ).toHaveBeenCalledWith(query, 'mock-user-token');
+    });
+  });
+
+  describe('Endpoint traffic routes', () => {
+    const ref = { namespaceName: 'acme', endpointName: 'trips' };
+
+    it('reads the traffic of an Endpoint', async () => {
+      services.endpointTrafficService.fetchTraffic.mockResolvedValue({
+        backends: [],
+        environments: [],
+      });
+      const response = await request(app).get('/endpoint-traffic').query(ref);
+      expect(response.status).toBe(200);
+      expect(services.endpointTrafficService.fetchTraffic).toHaveBeenCalledWith(
+        'acme',
+        'trips',
+        'mock-user-token',
+      );
+    });
+
+    it('needs the Endpoint to read its traffic', async () => {
+      const response = await request(app)
+        .get('/endpoint-traffic')
+        .query({ namespaceName: 'acme' });
+      expect(response.status).toBe(400);
+    });
+
+    it('saves a backend with how it gets traffic', async () => {
+      services.endpointTrafficService.saveBackend.mockResolvedValue({
+        backendName: 'trips-go',
+      });
+      const traffic = {
+        kind: 'match',
+        match: { headers: [{ name: 'x-preview', value: 'true' }] },
+      };
+      const response = await request(app)
+        .put('/endpoint-traffic/backend')
+        .send({
+          ...ref,
+          componentName: 'trips-go',
+          endpoint: 'http',
+          releaseLine: 'main',
+          traffic,
+        });
+      expect(response.status).toBe(200);
+      expect(services.endpointTrafficService.saveBackend).toHaveBeenCalledWith(
+        {
+          ...ref,
+          componentName: 'trips-go',
+          endpoint: 'http',
+          releaseLine: undefined,
+          traffic,
+        },
+        'mock-user-token',
+      );
+    });
+
+    it('refuses a backend without a valid traffic choice', async () => {
+      for (const traffic of [
+        'mock-user-token',
+        { kind: 'canary' },
+        { kind: 'mirror', percent: 150 },
+        { kind: 'match', match: null },
+      ]) {
+        const response = await request(app)
+          .put('/endpoint-traffic/backend')
+          .send({
+            ...ref,
+            componentName: 'trips-go',
+            endpoint: 'http',
+            traffic,
+          });
+        expect(response.status).toBe(400);
+      }
+      expect(
+        services.endpointTrafficService.saveBackend,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('removes a backend', async () => {
+      services.endpointTrafficService.removeBackend.mockResolvedValue({});
+      const response = await request(app)
+        .delete('/endpoint-traffic/backend')
+        .send({ ...ref, backendName: 'trips-python' });
+      expect(response.status).toBe(200);
+      expect(
+        services.endpointTrafficService.removeBackend,
+      ).toHaveBeenCalledWith(
+        { ...ref, backendName: 'trips-python' },
+        'mock-user-token',
+      );
+      const missing = await request(app)
+        .delete('/endpoint-traffic/backend')
+        .send(ref);
+      expect(missing.status).toBe(400);
+    });
+
+    it('saves the default split', async () => {
+      services.endpointTrafficService.setDefaultSplit.mockResolvedValue({});
+      const split = { 'trips-python': 90, 'trips-go': 10 };
+      const response = await request(app)
+        .put('/endpoint-traffic/split')
+        .send({ ...ref, split });
+      expect(response.status).toBe(200);
+      expect(
+        services.endpointTrafficService.setDefaultSplit,
+      ).toHaveBeenCalledWith({ ...ref, split }, 'mock-user-token');
+    });
+
+    it('saves or drops an environment’s own split', async () => {
+      services.endpointTrafficService.setEnvironmentSplit.mockResolvedValue({
+        bindingName: 'trips-development',
+      });
+      for (const split of [{ 'trips-python': 90, 'trips-go': 10 }, null]) {
+        const response = await request(app)
+          .put('/endpoint-traffic/environment')
+          .send({ ...ref, environment: 'development', split });
+        expect(response.status).toBe(200);
+      }
+      expect(
+        services.endpointTrafficService.setEnvironmentSplit,
+      ).toHaveBeenLastCalledWith(
+        { ...ref, environment: 'development', split: null },
+        'mock-user-token',
+      );
+    });
+
+    it('refuses a split that isn’t whole percentages', async () => {
+      for (const split of [{ 'trips-go': 2.5 }, { 'trips-go': 101 }, [10]]) {
+        const response = await request(app)
+          .put('/endpoint-traffic/split')
+          .send({ ...ref, split });
+        expect(response.status).toBe(400);
+      }
+    });
+
+    it('deploys a release to an environment', async () => {
+      services.endpointTrafficService.deployRelease.mockResolvedValue({
+        bindingName: 'trips-staging',
+      });
+      const body = {
+        ...ref,
+        projectName: 'trips',
+        environment: 'staging',
+        releaseName: 'trips-7',
+      };
+      const response = await request(app)
+        .put('/endpoint-traffic/deploy')
+        .send(body);
+      expect(response.status).toBe(200);
+      expect(
+        services.endpointTrafficService.deployRelease,
+      ).toHaveBeenCalledWith(body, 'mock-user-token');
+
+      const missing = await request(app)
+        .put('/endpoint-traffic/deploy')
+        .send({ ...body, releaseName: undefined });
+      expect(missing.status).toBe(400);
+    });
   });
 
   describe('GET /platform-version', () => {

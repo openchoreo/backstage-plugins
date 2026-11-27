@@ -7,6 +7,7 @@ import {
   ExternalLinkModel,
   ExternalModel,
   ProjectModel,
+  SplitModel,
 } from './components';
 import { CellBounds } from './components/Cell/CellNode/CellModel';
 import { AdvancedLinkModel } from './components/Project/AdvancedLink/AdvancedLinkModel';
@@ -32,6 +33,35 @@ export interface Project {
   connections?: OrgConnection[];
   configurations?: Connection[];
   modelVersion?: string;
+  routes?: Route[];
+}
+
+/** One backend a route sends requests to. */
+export interface RouteBranch {
+  componentId: string;
+  /** Its share or condition, e.g. `90%` or `if cookie beta=yes`. */
+  label?: string;
+  /** Gets no requests: drawn faded. */
+  faded?: boolean;
+  /** Gets copies of the requests only. */
+  copy?: boolean;
+}
+
+/**
+ * Requests an Endpoint routes: from a gateway or a caller to its backends,
+ * through the Endpoint's point. Without `from`, nothing in the diagram calls
+ * it, and the point stands beside its backends.
+ */
+export interface Route {
+  /** Passed back by `onRouteClick`. */
+  id: string;
+  name: string;
+  from?: { boundary: CellBounds } | { componentId: string };
+  branches: RouteBranch[];
+  details?: {
+    subtitle?: string;
+    rows?: { label: string; value: string }[];
+  };
 }
 
 export enum ComponentType {
@@ -164,7 +194,8 @@ export type CommonModel =
   | ComponentModel
   | ConnectionModel
   | ExternalModel
-  | EmptyModel;
+  | EmptyModel
+  | SplitModel;
 export interface OrgDiagramData {
   nodes: Nodes;
   links: Links;
