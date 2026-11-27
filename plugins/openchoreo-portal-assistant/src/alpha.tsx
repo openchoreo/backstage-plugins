@@ -10,7 +10,7 @@ import {
   type PortalAssistantIntegration,
 } from '@openchoreo/backstage-plugin-react';
 import { LogRowActionBlueprint } from '@openchoreo/backstage-plugin-openchoreo-observability/alpha';
-import { checkAuthoringAssistantApiRef } from '@openchoreo/backstage-plugin-tech-insights-scorecards';
+import { CheckAuthoringAssistantBlueprint } from '@openchoreo/backstage-plugin-tech-insights-scorecards/alpha';
 
 import {
   portalAssistantApiRef,
@@ -89,18 +89,12 @@ const investigateLogAction = LogRowActionBlueprint.make({
 
 // "Generate with AI" in the scorecards "Create check" menu and "Edit with AI"
 // when editing a check. Same composition as above: the scorecards plugin only
-// exposes the slot and owns no dependency on the assistant.
-const checkAuthoringAssistant = ApiBlueprint.make({
-  name: 'check-authoring-assistant',
-  params: defineParams =>
-    defineParams({
-      api: checkAuthoringAssistantApiRef,
-      deps: {},
-      factory: () => ({
-        LaunchButton: EditCheckWithAiButton,
-        NewCheckLauncher,
-      }),
-    }),
+// exposes the blueprint and owns no dependency on the assistant.
+const checkAuthoringAssistant = CheckAuthoringAssistantBlueprint.make({
+  name: 'portal-assistant',
+  params: {
+    assistant: { LaunchButton: EditCheckWithAiButton, NewCheckLauncher },
+  },
 });
 
 /**

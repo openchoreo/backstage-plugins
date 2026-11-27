@@ -7,8 +7,8 @@ import {
 import { configApiRef } from '@backstage/core-plugin-api';
 import { toastApiRef } from '@backstage/frontend-plugin-api';
 import {
-  checkAuthoringAssistantApiRef,
-  type CheckAuthoringAssistantApi,
+  checkAuthoringAssistantsApiRef,
+  type CheckAuthoringAssistant,
 } from '../../api/CheckAuthoringAssistantApi';
 import { dynamicChecksApiRef } from '../../api/DynamicChecksApi';
 import type { DynamicCheck } from '../../api/types';
@@ -50,7 +50,7 @@ function renderPage(
   pageCheck: DynamicCheck | null,
   onChecksChanged?: () => void,
 ) {
-  const assistant = { LaunchButton } as unknown as CheckAuthoringAssistantApi;
+  const assistant = { LaunchButton } as unknown as CheckAuthoringAssistant;
   return renderInTestApp(
     <TestApiProvider
       apis={
@@ -58,7 +58,7 @@ function renderPage(
           [dynamicChecksApiRef, { listChecks }],
           [toastApiRef, { post: toastPost }],
           [configApiRef, mockApis.config()],
-          [checkAuthoringAssistantApiRef, assistant],
+          [checkAuthoringAssistantsApiRef, { assistant }],
         ] as any
       }
     >

@@ -1,7 +1,9 @@
 import type { Entity } from '@backstage/catalog-model';
 import { createExtensionTester } from '@backstage/frontend-test-utils';
+import { ApiBlueprint } from '@backstage/frontend-plugin-api';
 import { EntityContentBlueprint } from '@backstage/plugin-catalog-react/alpha';
 import featureLoader, {
+  CheckAuthoringAssistantBlueprint,
   techInsightsMaturityApiModule,
   techInsightsScorecardsPlugin,
 } from './alpha';
@@ -23,6 +25,36 @@ function entityOfKind(kind: string): Entity {
 }
 
 describe('tech-insights-scorecards alpha plugin', () => {
+  it('hands the check views an assistant contributed with the blueprint', () => {
+    const assistant = { LaunchButton: () => null };
+    const tester = createExtensionTester(
+      techInsightsScorecardsPlugin.getExtension(
+        `api:${PLUGIN}/check-authoring-assistants`,
+      ),
+    ).add(
+      CheckAuthoringAssistantBlueprint.make({
+        name: 'test',
+        params: { assistant },
+      }),
+    );
+
+    const api = tester.get(ApiBlueprint.dataRefs.factory);
+
+    expect(api.factory({})).toEqual({ assistant });
+  });
+
+  it('gives no assistant when none is installed', () => {
+    const tester = createExtensionTester(
+      techInsightsScorecardsPlugin.getExtension(
+        `api:${PLUGIN}/check-authoring-assistants`,
+      ),
+    );
+
+    const api = tester.get(ApiBlueprint.dataRefs.factory);
+
+    expect(api.factory({})).toEqual({ assistant: undefined });
+  });
+
   it('registers its API, page, entity tab and summary card', () => {
     const ids = (
       techInsightsScorecardsPlugin as unknown as {

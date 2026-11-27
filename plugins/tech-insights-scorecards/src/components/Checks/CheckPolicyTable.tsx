@@ -30,7 +30,7 @@ import {
 } from '@backstage/core-components';
 import { useApi, useApiHolder } from '@backstage/core-plugin-api';
 import { toastApiRef } from '@backstage/frontend-plugin-api';
-import { checkAuthoringAssistantApiRef } from '../../api/CheckAuthoringAssistantApi';
+import { checkAuthoringAssistantsApiRef } from '../../api/CheckAuthoringAssistantApi';
 import { dynamicChecksApiRef } from '../../api/DynamicChecksApi';
 import type { DynamicCheck, FactSchema } from '../../api/types';
 import { CHECK_TIERS } from '../../utils/tierPalette';
@@ -131,7 +131,9 @@ export function CheckPolicyTable(props: CheckPolicyTableProps) {
   const toastApi = useApi(toastApiRef);
   const tierLabel = useTierLabel();
   // Optional: only present when a host app installs a check-authoring assistant.
-  const assistant = useApiHolder().get(checkAuthoringAssistantApiRef);
+  const assistant = useApiHolder().get(
+    checkAuthoringAssistantsApiRef,
+  )?.assistant;
   const permissions = useCheckPermissions();
 
   const [checks, setChecks] = useState<DynamicCheck[]>([]);
@@ -271,6 +273,12 @@ export function CheckPolicyTable(props: CheckPolicyTableProps) {
 
   async function handleSaved() {
     setDialogOpen(false);
+    onChecksChanged?.();
+    await refresh();
+  }
+
+  // The dialog stays open and reloads the check, keeping it in sync.
+  async function handleAssistantSaved() {
     onChecksChanged?.();
     await refresh();
   }
@@ -586,7 +594,7 @@ export function CheckPolicyTable(props: CheckPolicyTableProps) {
         onClose={() => setDialogOpen(false)}
         onSaved={handleSaved}
         onPublished={handlePublished}
-        onAssistantSaved={handleSaved}
+        onAssistantSaved={handleAssistantSaved}
       />
     </>
   );

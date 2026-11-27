@@ -88,7 +88,7 @@ function useOpenCheckAuthoring() {
 
 /**
  * "Edit with AI", rendered on the check edit page and dialog, through the
- * scorecards plugin's `checkAuthoringAssistantApiRef` slot (see
+ * scorecards plugin's `CheckAuthoringAssistantBlueprint` (see
  * ../../alpha.tsx).
  */
 export const EditCheckWithAiButton = ({

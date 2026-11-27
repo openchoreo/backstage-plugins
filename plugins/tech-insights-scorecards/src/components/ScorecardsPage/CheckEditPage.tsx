@@ -1,11 +1,9 @@
-import { useRef, useState } from 'react';
-import { useApi, useApiHolder } from '@backstage/core-plugin-api';
-import { toastApiRef } from '@backstage/frontend-plugin-api';
-import { checkAuthoringAssistantApiRef } from '../../api/CheckAuthoringAssistantApi';
-import { dynamicChecksApiRef } from '../../api/DynamicChecksApi';
+import { useApiHolder } from '@backstage/core-plugin-api';
+import { checkAuthoringAssistantsApiRef } from '../../api/CheckAuthoringAssistantApi';
 import type { DynamicCheck, FactSchema } from '../../api/types';
 import { useEntityLabel } from '../../utils/kinds';
 import { CheckForm } from '../Checks/CheckForm';
+import { useAssistantSavedCheck } from '../Checks/useAssistantSavedCheck';
 import { FullPageView } from '../FullPageView';
 
 interface CheckEditPageProps {
@@ -35,42 +33,16 @@ export function CheckEditPage(props: CheckEditPageProps) {
     onChecksChanged,
   } = props;
   const entityLabel = useEntityLabel();
-  const api = useApi(dynamicChecksApiRef);
-  const toastApi = useApi(toastApiRef);
 
   // Optional: only present when a host app installs a check-authoring assistant.
-  const assistant = useApiHolder().get(checkAuthoringAssistantApiRef);
+  const assistant = useApiHolder().get(
+    checkAuthoringAssistantsApiRef,
+  )?.assistant;
 
-  const [check, setCheck] = useState(initialCheck);
-  // Part of the form's key: the form copies the check into its state only once.
-  const [revision, setRevision] = useState(0);
-  // Counts reloads: an older one that answers late must not replace the
-  // check a newer one loaded.
-  const reloads = useRef(0);
-
-  // The assistant saves without going through the form, so reload the form;
-  // a later Save would otherwise overwrite the assistant's change.
-  async function reloadCheck() {
-    onChecksChanged?.();
-    const reload = ++reloads.current;
-    try {
-      const checks = await api.listChecks();
-      if (reload !== reloads.current) return;
-      const saved = checks.find(c => c.id === initialCheck?.id);
-      if (saved) {
-        setCheck(saved);
-        setRevision(current => current + 1);
-      }
-    } catch (e) {
-      if (reload !== reloads.current) return;
-      toastApi.post({
-        title: `Couldn't reload the check. Reopen it before saving: ${
-          (e as Error).message
-        }`,
-        status: 'danger',
-      });
-    }
-  }
+  const { check, revision, reloadCheck } = useAssistantSavedCheck(
+    initialCheck,
+    onChecksChanged,
+  );
 
   return (
     <FullPageView

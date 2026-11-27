@@ -10,8 +10,8 @@ import { toastApiRef } from '@backstage/frontend-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { mockCatalogApi } from '../../__testUtils__/testApis';
 import {
-  checkAuthoringAssistantApiRef,
-  type CheckAuthoringAssistantApi,
+  checkAuthoringAssistantsApiRef,
+  type CheckAuthoringAssistant,
 } from '../../api/CheckAuthoringAssistantApi';
 import { dynamicChecksApiRef } from '../../api/DynamicChecksApi';
 import type { DynamicCheck } from '../../api/types';
@@ -43,7 +43,7 @@ const dynamicChecksApi = {
 };
 
 function renderTable(
-  assistant?: CheckAuthoringAssistantApi,
+  assistant?: CheckAuthoringAssistant,
   onNewCheck?: () => void,
   onChecksChanged?: () => void,
 ) {
@@ -54,7 +54,7 @@ function renderTable(
     // The edit dialog's form lists the catalog's kinds.
     [catalogApiRef, mockCatalogApi()],
   ];
-  if (assistant) apis.push([checkAuthoringAssistantApiRef, assistant]);
+  if (assistant) apis.push([checkAuthoringAssistantsApiRef, { assistant }]);
   return renderInTestApp(
     <TestApiProvider apis={apis as any}>
       <CheckPolicyTable
@@ -154,7 +154,7 @@ describe('CheckPolicyTable create check action', () => {
     await waitFor(() => expect(dynamicChecksApi.listChecks).toHaveBeenCalled());
   });
 
-  it('closes the edit dialog and reloads the list after the assistant saves the check', async () => {
+  it('keeps the edit dialog open and shows the check the assistant saved', async () => {
     const onChecksChanged = jest.fn();
     await renderTable(
       {
@@ -169,17 +169,26 @@ describe('CheckPolicyTable create check action', () => {
       await screen.findByLabelText(`Edit check ${check.name}`),
     );
     const dialog = await screen.findByRole('dialog');
-    dynamicChecksApi.listChecks.mockClear();
+    const saved = { ...check, name: 'Saved by the assistant' };
+    dynamicChecksApi.listChecks.mockImplementation(async () => [saved]);
 
     await userEvent.click(
       within(dialog).getByRole('button', { name: 'Assistant saved' }),
     );
 
     expect(onChecksChanged).toHaveBeenCalledTimes(1);
-    await waitFor(() => expect(dynamicChecksApi.listChecks).toHaveBeenCalled());
-    await waitFor(() =>
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
-    );
+    // The form is rebuilt from the saved check, so a later Save keeps it.
+    expect(
+      await within(dialog).findByDisplayValue('Saved by the assistant'),
+    ).toBeInTheDocument();
+    // Longer than the dialog's closing transition: it must still be open.
+    await expect(
+      waitFor(
+        () => expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+        { timeout: 600 },
+      ),
+    ).rejects.toThrow();
+    dynamicChecksApi.listChecks.mockImplementation(async () => [check]);
   });
 
   it('is disabled for a user who may not manage checks', async () => {

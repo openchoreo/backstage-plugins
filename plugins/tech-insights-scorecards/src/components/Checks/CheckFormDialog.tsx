@@ -4,7 +4,8 @@ import IconButton from '@material-ui/core/IconButton';
 import CloseIcon from '@material-ui/icons/Close';
 import { useApiHolder } from '@backstage/core-plugin-api';
 import { CheckForm } from './CheckForm';
-import { checkAuthoringAssistantApiRef } from '../../api/CheckAuthoringAssistantApi';
+import { useAssistantSavedCheck } from './useAssistantSavedCheck';
+import { checkAuthoringAssistantsApiRef } from '../../api/CheckAuthoringAssistantApi';
 import type { DynamicCheck, FactSchema } from '../../api/types';
 
 interface CheckFormDialogProps {
@@ -15,7 +16,10 @@ interface CheckFormDialogProps {
   onClose: () => void;
   onSaved: (check: DynamicCheck) => void;
   onPublished: () => void;
-  /** Called after the assistant saves the check. */
+  /**
+   * Called after the assistant saves the check; the dialog stays open and
+   * reloads the check.
+   */
   onAssistantSaved?: () => void;
 }
 
@@ -28,7 +32,7 @@ interface CheckFormDialogProps {
 export function CheckFormDialog(props: CheckFormDialogProps) {
   const {
     open,
-    check,
+    check: initialCheck,
     factSchemas,
     existingCategories,
     onClose,
@@ -38,7 +42,13 @@ export function CheckFormDialog(props: CheckFormDialogProps) {
   } = props;
 
   // Optional: only present when a host app installs a check-authoring assistant.
-  const assistant = useApiHolder().get(checkAuthoringAssistantApiRef);
+  const assistant = useApiHolder().get(
+    checkAuthoringAssistantsApiRef,
+  )?.assistant;
+  const { check, revision, reloadCheck } = useAssistantSavedCheck(
+    initialCheck,
+    onAssistantSaved,
+  );
 
   return (
     <Dialog
@@ -69,12 +79,12 @@ export function CheckFormDialog(props: CheckFormDialogProps) {
             <assistant.LaunchButton
               factSchemas={factSchemas}
               check={check}
-              onChecksChanged={onAssistantSaved}
+              onChecksChanged={reloadCheck}
             />
           </div>
         )}
         <CheckForm
-          key={check?.id ?? 'new'}
+          key={`${check?.id ?? 'new'}:${revision}`}
           check={check}
           factSchemas={factSchemas}
           existingCategories={existingCategories}

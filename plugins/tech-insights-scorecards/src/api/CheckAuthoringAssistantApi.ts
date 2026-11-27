@@ -3,13 +3,13 @@ import { createApiRef } from '@backstage/core-plugin-api';
 import type { DynamicCheck, FactSchema } from './types';
 
 /**
- * Optional slot for an AI assistant that helps write checks. When a host app
- * provides it, the check list's "Create check" menu offers `NewCheckLauncher`
- * and the edit page and dialog show `LaunchButton`; otherwise nothing is
- * rendered. Lets an assistant plugin plug in without this plugin depending on
- * it.
+ * An AI assistant that helps write checks, contributed with
+ * `CheckAuthoringAssistantBlueprint`. The check list's "Create check" menu
+ * offers `NewCheckLauncher` and the edit page and dialog show `LaunchButton`.
+ *
+ * @alpha
  */
-export interface CheckAuthoringAssistantApi {
+export interface CheckAuthoringAssistant {
   /**
    * Rendered when editing a check; receives the fact schemas already loaded
    * and the check being edited. `onChecksChanged` is called after the
@@ -33,7 +33,16 @@ export interface CheckAuthoringAssistantApi {
   }>;
 }
 
-export const checkAuthoringAssistantApiRef =
-  createApiRef<CheckAuthoringAssistantApi>({
-    id: 'plugin.tech-insights-scorecards.check-authoring-assistant',
+/**
+ * Collects the `CheckAuthoringAssistantBlueprint` extensions; `assistant` is
+ * the first one, or undefined when none is installed and nothing renders.
+ * Internal to this plugin: other plugins contribute through the blueprint.
+ */
+export interface CheckAuthoringAssistantsApi {
+  assistant?: CheckAuthoringAssistant;
+}
+
+export const checkAuthoringAssistantsApiRef =
+  createApiRef<CheckAuthoringAssistantsApi>({
+    id: 'plugin.tech-insights-scorecards.check-authoring-assistants',
   });
