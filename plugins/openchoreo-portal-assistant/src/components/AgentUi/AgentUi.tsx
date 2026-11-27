@@ -68,9 +68,7 @@ export const AgentUi = ({
       // The agent's JSON; the processor checks each message itself.
       processor.processMessages(messages as ProcessableMessagePayload);
       return Array.from(processor.model.surfacesMap.values());
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.warn('Agent UI not shown: A2UI rejected the messages', e);
+    } catch {
       return [];
     }
   }, [messages]);

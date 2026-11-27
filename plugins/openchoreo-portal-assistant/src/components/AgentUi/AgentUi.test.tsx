@@ -72,7 +72,6 @@ describe('AgentUi', () => {
   });
 
   it('shows nothing for messages A2UI rejects', () => {
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     // No catalogId: A2UI can't tell which components to use.
     const [message] = question();
     const broken = [
@@ -87,7 +86,5 @@ describe('AgentUi', () => {
     );
 
     expect(container).toBeEmptyDOMElement();
-    expect(warn).toHaveBeenCalled();
-    warn.mockRestore();
   });
 });

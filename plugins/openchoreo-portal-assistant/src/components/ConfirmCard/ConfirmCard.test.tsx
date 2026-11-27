@@ -108,6 +108,53 @@ beforeEach(() => {
 });
 
 describe('ConfirmCard', () => {
+  it.each([
+    [
+      'both all and any at the root',
+      {
+        all: [{ fact: 'githubIsArchived', operator: 'equal', value: false }],
+        any: [{ fact: 'githubVisibility', operator: 'equal', value: 'public' }],
+      },
+    ],
+    [
+      'a condition with a path',
+      {
+        all: [
+          {
+            fact: 'githubTopics',
+            path: '$.length',
+            operator: 'greaterThan',
+            value: 0,
+          },
+        ],
+      },
+    ],
+    [
+      'a condition with params',
+      {
+        all: [
+          {
+            fact: 'githubVisibility',
+            operator: 'equal',
+            value: 'public',
+            params: { x: 1 },
+          },
+        ],
+      },
+    ],
+  ])('shows the JSON that gets saved for %s', (_label, rule) => {
+    const json = JSON.stringify(rule, null, 2);
+    const { container } = render(
+      <ConfirmCard card={{ ...edit, new_rule: json }} />,
+    );
+
+    expect(container.querySelector('pre')).toHaveTextContent(
+      json.replace(/\s+/g, ' '),
+      { normalizeWhitespace: true },
+    );
+    expect(screen.queryByText(/^(All|Any) of:$/)).not.toBeInTheDocument();
+  });
+
   it('shows an edit compactly: name, status, rule, text changes', () => {
     render(<ConfirmCard card={edit} />);
 

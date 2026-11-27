@@ -181,31 +181,41 @@ const OPERATOR_SIGNS: Record<string, string> = {
 
 type Leaf = { fact: string; operator: string; value: unknown };
 
-/** A flat all/any rule as one line per condition; null for anything else. */
+const PLAIN_LEAF_KEYS = new Set(['fact', 'operator', 'value']);
+
+/**
+ * A rule that is one plain `all` or `any` as one line per condition. Anything
+ * else, such as both `all` and `any` at the root (the engine reads `any`
+ * first), nesting, or a condition with a `path` or `params`, is null, so the
+ * card shows the JSON that gets saved.
+ */
 function conditionLines(
   ruleJson: string,
 ): { joiner: 'all' | 'any'; leaves: Leaf[] } | null {
-  let rule: Record<string, unknown>;
+  let rule: unknown;
   try {
     rule = JSON.parse(ruleJson);
   } catch {
     return null;
   }
-  const joiner = (['all', 'any'] as const).find(key =>
-    Array.isArray(rule?.[key]),
-  );
-  if (!joiner) return null;
-  const leaves = rule[joiner] as Leaf[];
-  const flat = leaves.every(
+  if (!rule || typeof rule !== 'object' || Array.isArray(rule)) return null;
+  const keys = Object.keys(rule);
+  const joiner = keys.length === 1 ? keys[0] : undefined;
+  if (joiner !== 'all' && joiner !== 'any') return null;
+  const leaves = (rule as Record<string, unknown>)[joiner];
+  if (!Array.isArray(leaves)) return null;
+  const plain = leaves.every(
     leaf =>
       leaf &&
+      typeof leaf === 'object' &&
       typeof leaf.fact === 'string' &&
-      typeof leaf.operator === 'string',
+      typeof leaf.operator === 'string' &&
+      Object.keys(leaf).every(key => PLAIN_LEAF_KEYS.has(key)),
   );
-  return flat ? { joiner, leaves } : null;
+  return plain ? { joiner, leaves: leaves as Leaf[] } : null;
 }
 
-/** The rule as readable conditions, or the JSON when it's nested. */
+/** The rule as readable conditions, or the JSON when it isn't plain. */
 const RuleView = ({ ruleJson }: { ruleJson: string }) => {
   const classes = useStyles();
   const lines = conditionLines(ruleJson);
