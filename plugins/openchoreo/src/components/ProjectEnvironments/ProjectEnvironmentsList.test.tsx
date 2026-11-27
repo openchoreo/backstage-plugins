@@ -181,16 +181,14 @@ describe('ProjectEnvironmentsList', () => {
     expect(mockNavigate).toHaveBeenCalledWith('parameters-config');
   });
 
-  it('promotes through the context handler', async () => {
+  it('opens the override step before promoting through the context handler', async () => {
     mockClient.fetchProjectEnvironmentInfo.mockResolvedValue([{ name: 'dev' }]);
     render(<ProjectEnvironmentsList />);
 
     fireEvent.click(await screen.findByText('promote'));
     await waitFor(() =>
-      expect(mockClient.updateProjectReleaseBinding).toHaveBeenCalledWith(
-        entity,
-        'staging',
-        { projectRelease: 'rel-x' },
+      expect(mockNavigate).toHaveBeenCalledWith(
+        'overrides/staging?action=promote&release=rel-x',
       ),
     );
   });
