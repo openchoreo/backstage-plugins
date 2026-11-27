@@ -1,9 +1,7 @@
-import { Fragment } from 'react';
+import { Fragment, useMemo } from 'react';
 import { Content, Page, Header } from '@backstage/core-components';
-import {
-  CustomHomepageGrid,
-  type LayoutConfiguration,
-} from '@backstage/plugin-home';
+import { configApiRef, useApi } from '@backstage/core-plugin-api';
+import { CustomHomepageGrid } from '@backstage/plugin-home';
 import type { HomePageLayoutProps } from '@backstage/plugin-home-react/alpha';
 import { HomePageSearchBar } from '@backstage/plugin-search';
 import { SearchContextProvider } from '@backstage/plugin-search-react';
@@ -12,14 +10,7 @@ import { useStyles } from './styles';
 import { useUserInfo } from '../../hooks';
 import { useNamespacePermission } from '@openchoreo/backstage-plugin-react';
 import { HomePagePlatformDetailsCard } from '@openchoreo/backstage-plugin-platform-engineer-core';
-
-// Default layout: Starred Entities + Recently Visited side by side. Other
-// widgets are added via the grid's "Add widget" control. `component` is each
-// widget's core.extensionName (declared in homeExtensions.tsx).
-const defaultLayout: LayoutConfiguration[] = [
-  { component: 'HomePageStarredEntities', x: 0, y: 0, width: 6, height: 4 },
-  { component: 'OpenChoreoRecentlyVisited', x: 6, y: 0, width: 6, height: 4 },
-];
+import { readHomeLayout, toLayoutConfiguration } from './defaultLayout';
 
 // Per-breakpoint columns. The default `md: 10` can't fit two width-6 cards, so
 // on ~1200px (14") screens the second card overlaps. `md: 12` keeps them side
@@ -30,6 +21,11 @@ const gridCols = { xxs: 2, xs: 4, sm: 6, md: 12, lg: 12, xl: 12 };
 // editable widget grid.
 export const HomePageLayout = ({ widgets }: HomePageLayoutProps) => {
   const classes = useStyles();
+  const configApi = useApi(configApiRef);
+  const gridConfig = useMemo(
+    () => toLayoutConfiguration(readHomeLayout(configApi), widgets),
+    [configApi, widgets],
+  );
   const { userName, loading } = useUserInfo();
   const { canView: canViewPlatformDetails } = useNamespacePermission();
 
@@ -63,7 +59,7 @@ export const HomePageLayout = ({ widgets }: HomePageLayoutProps) => {
           </Box>
 
           <CustomHomepageGrid
-            config={defaultLayout}
+            config={gridConfig}
             cols={gridCols}
             containerPadding={[0, 10]}
           >

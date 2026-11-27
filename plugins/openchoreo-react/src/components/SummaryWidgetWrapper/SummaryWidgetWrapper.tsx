@@ -29,6 +29,8 @@ interface SummaryWidgetWrapperProps {
   refreshing?: boolean;
   errorMessage?: string;
   variant?: 'default' | 'cards';
+  /** Fixed column count for the 'cards' variant; auto-fills when omitted. */
+  columns?: number;
   /** Render only the metrics body (no InfoCard/title) when an outer frame owns the card. */
   disableCard?: boolean;
 }
@@ -42,6 +44,7 @@ export const SummaryWidgetWrapper = ({
   refreshing = false,
   errorMessage,
   variant = 'default',
+  columns,
   disableCard = false,
 }: SummaryWidgetWrapperProps) => {
   const classes = useStyles();
@@ -73,7 +76,14 @@ export const SummaryWidgetWrapper = ({
     // Card grid variant
     if (variant === 'cards') {
       return (
-        <Box className={classes.cardGrid}>
+        <Box
+          className={classes.cardGrid}
+          style={
+            columns
+              ? { gridTemplateColumns: `repeat(${columns}, 1fr)` }
+              : undefined
+          }
+        >
           {metrics.map(metric => {
             const card = (
               <Box

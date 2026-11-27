@@ -9,6 +9,7 @@ import {
 } from '@material-ui/core';
 import LaunchIcon from '@material-ui/icons/Launch';
 import { Link } from 'react-router-dom';
+import clsx from 'clsx';
 import { useComponentCreatePermission } from '@openchoreo/backstage-plugin-react';
 import { useStyles } from './styles';
 
@@ -28,7 +29,7 @@ export const QuickActionsSection = ({
     {
       title: 'Create Component',
       description: 'Start a new service',
-      link: '/create/templates/default/create-openchoreo-component',
+      link: '/create?view=components',
       disabled: !canCreate && !createPermLoading,
       tooltip:
         !canCreate && !createPermLoading
@@ -53,9 +54,13 @@ export const QuickActionsSection = ({
   ];
 
   return (
-    <Box className={classes.overviewSection}>
+    <Box className={hideTitle ? undefined : classes.overviewSection}>
       {!hideTitle && <Typography variant="h3">Quick Actions</Typography>}
-      <Grid container spacing={2} className={classes.quickActionsContainer}>
+      <Grid
+        container
+        spacing={2}
+        className={hideTitle ? undefined : classes.quickActionsContainer}
+      >
         {quickActions.map((action, index) => (
           <Grid item xs={12} sm={6} md={6} key={index}>
             <Tooltip title={action.tooltip ?? ''}>
@@ -70,8 +75,18 @@ export const QuickActionsSection = ({
                   disabled={action.disabled}
                   disableRipple
                 >
-                  <CardContent className={classes.quickActionCardContent}>
-                    <Box className={classes.quickActionHeader}>
+                  <CardContent
+                    className={clsx(
+                      classes.quickActionCardContent,
+                      hideTitle && classes.quickActionCardContentCompact,
+                    )}
+                  >
+                    <Box
+                      className={clsx(
+                        classes.quickActionHeader,
+                        hideTitle && classes.quickActionHeaderCompact,
+                      )}
+                    >
                       <Typography
                         variant="h5"
                         className={classes.quickActionTitle}
