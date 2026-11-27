@@ -210,6 +210,12 @@ backend:
     connection:
       filename: ':memory:'
   # workingDirectory: /tmp # Use this to configure a working directory for the scaffolder, defaults to the OS temp-dir
+  # Plugins whose Actions Registry actions are served, here the check
+  # authoring tools of tech-insights' dynamic-checks module. No
+  # backend.actions.filter: the MCP server and the scaffolder read the same
+  # list, so a global filter would hide actions from both.
+  actions:
+    pluginSources: [tech-insights]
 
 integrations:
   github:
@@ -545,6 +551,17 @@ events:
 permission:
   # setting this to `false` will disable permissions
   enabled: true
+
+# MCP tools for check authoring (tech-insights.list-checks and so on), served
+# with Scorecards. The Portal Assistant calls them as the signed-in user.
+mcpActions:
+  servers:
+    check-authoring:
+      name: Check Authoring
+      description: Draft, validate, dry-run, save and publish tech-insights checks
+      filter:
+        include:
+          - id: 'tech-insights:*'
 
 # Tech Insights — scorecards/checks against catalog entities.
 # Play environment: short initialDelay so facts populate right after backend

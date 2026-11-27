@@ -5281,7 +5281,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@backstage/plugin-mcp-actions-backend@npm:0.2.4":
+"@backstage/plugin-mcp-actions-backend@npm:^0.2.4":
   version: 0.2.4
   resolution: "@backstage/plugin-mcp-actions-backend@npm:0.2.4"
   dependencies:
@@ -18605,7 +18605,7 @@ __metadata:
     "@backstage/config": "npm:^1.3.11"
     "@backstage/plugin-auth-node": "npm:^0.7.8"
     "@backstage/plugin-kubernetes-backend": "npm:^0.21.15"
-    "@backstage/plugin-mcp-actions-backend": "npm:0.2.4"
+    "@backstage/plugin-mcp-actions-backend": "npm:^0.2.4"
     "@backstage/plugin-permission-common": "npm:^0.9.13"
     "@backstage/plugin-permission-node": "npm:^0.11.6"
     "@backstage/plugin-search-backend-module-techdocs": "npm:^0.4.20"
