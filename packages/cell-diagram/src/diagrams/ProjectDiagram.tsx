@@ -83,6 +83,9 @@ export function ProjectDiagram(props: ProjectDiagramProps) {
 
   const cellNodeWidth = useRef<number>(0); // INFO: use this reference to check if cell node width should change
   const observationSummary = useRef<ObservationSummary | null>(null);
+  // The pending layout pass of the latest draw. A draw replaces the one before it,
+  // so its pass is cancelled rather than left to lay out a model no longer shown.
+  const drawTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const styles = useStyles();
 
@@ -92,6 +95,7 @@ export function ProjectDiagram(props: ProjectDiagramProps) {
       drawDiagram();
     }
     return () => {
+      clearTimeout(drawTimer.current);
       diagramEngine
         .getModel()
         ?.getNodes()
@@ -101,8 +105,10 @@ export function ProjectDiagram(props: ProjectDiagramProps) {
           }
         });
     };
+    // Draw only when the drawn data changes: a draw restarts the layout pass, so
+    // redrawing on every parent render could hold the preloader up indefinitely.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props]);
+  }, [project, previewMode]);
 
   useLayoutEffect(() => {
     if (diagramEngine && animation && isDiagramLoaded) {
@@ -212,7 +218,8 @@ export function ProjectDiagram(props: ProjectDiagramProps) {
     // update observability summary
     observationSummary.current = diagramData.observationSummary;
 
-    setTimeout(() => {
+    clearTimeout(drawTimer.current);
+    drawTimer.current = setTimeout(() => {
       // manual distribute - update empty node, external node and connector node position based on cell node position
       manualDistribute(model);
       if (diagramEngine.getCanvas()?.getBoundingClientRect !== undefined) {
@@ -254,6 +261,10 @@ export function ProjectDiagram(props: ProjectDiagramProps) {
     cellNode.updateDimensions({ width: cellWidth, height: cellWidth });
 
     setTimeout(() => {
+      // a later draw has replaced this model; don't set it back on the engine
+      if (diagramEngine.getModel() !== model) {
+        return;
+      }
       // manual distribute - update empty node, external node and connector node position based on cell node position
       manualDistribute(model);
       // update diagram
