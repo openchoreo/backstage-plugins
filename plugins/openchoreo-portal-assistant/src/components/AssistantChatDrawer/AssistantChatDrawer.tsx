@@ -17,7 +17,6 @@ import SendIcon from '@material-ui/icons/Send';
 import StopIcon from '@material-ui/icons/Stop';
 import DeleteOutlineIcon from '@material-ui/icons/DeleteOutline';
 import AndroidOutlinedIcon from '@material-ui/icons/AndroidOutlined';
-import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ExpandLessIcon from '@material-ui/icons/ExpandLess';
 import { useApi } from '@backstage/core-plugin-api';
@@ -90,175 +89,6 @@ const READY_MS = 300;
 const LEAVE_MS = 280;
 const pause = (ms: number) =>
   new Promise<void>(resolve => setTimeout(resolve, ms));
-
-/**
- * Pulls the structured check object out of a check_authoring reply's
- * fenced ```json block, so individual fields can get their own copy
- * button instead of one big blob. Returns null for any other reply
- * shape (non-JSON, malformed, or no json fence at all) so callers
- * fall back to the normal markdown rendering.
- */
-type ParsedCheckSections = {
-  name?: string;
-  description?: string;
-  factRetriever?: string;
-  isSuggestedFactRetriever?: boolean;
-  category?: string;
-  maturityTier?: string;
-  ruleJson?: string;
-  /**
-   * Text before "Name:" (or before the json fence when there is no
-   * "Name:", as in edit-check replies), e.g. the "Tested on …" summary.
-   */
-  preamble?: string;
-  /** Text after the json fence that isn't a parsed suggestion. */
-  trailing?: string;
-  /** Edit replies' "Suggested related changes" bullets, each copyable. */
-  suggestions?: SuggestedChange[];
-};
-
-type SuggestedChange = { field: string; from?: string; to: string };
-
-const FIELD_LABELS: Record<string, string> = {
-  name: 'Name',
-  description: 'Description',
-};
-
-const SUGGESTIONS_HEADING_RE = /^\s*\**Suggested related changes:?\**:?\s*$/im;
-// One suggestion per line: "- Description: `old` → `new`". Tolerates the
-// variations small models produce — "**Description:**", "1." or no bullet,
-// quotes instead of backticks, "->" for the arrow, or only the new text.
-const SUGGESTION_RE =
-  /^[ \t]*(?:[-*]|\d+[.)])?[ \t]*\**(Name|Description)\**(?:[ \t]*\(new\))?\**[ \t]*:[ \t]*\**[ \t]*(.+?)[ \t]*$/gim;
-const SUGGESTION_ARROW_RE = /\s+(?:→|->)\s+/;
-
-/**
- * Strips the backticks, quotes and bold markers models wrap values in,
- * plus stray punctuation after the closing one (e.g. "…required`.").
- */
-function unwrapValue(value: string): string {
-  return value
-    .trim()
-    .replace(/[`"*]+[.,;:!]*$/, '')
-    .replace(/^[`"*]+/, '')
-    .trim();
-}
-
-/**
- * Splits an edit reply's trailing text into copyable suggestions and
- * whatever is left (e.g. "- None — …"), which still renders as markdown.
- */
-function extractSuggestions(trailing: string | undefined): {
-  suggestions?: SuggestedChange[];
-  rest?: string;
-} {
-  if (!trailing) return {};
-  const suggestions: SuggestedChange[] = [];
-  const rest = trailing.replace(
-    SUGGESTION_RE,
-    (match, field: string, body: string) => {
-      const parts = body.split(SUGGESTION_ARROW_RE);
-      const to = unwrapValue(parts[parts.length - 1]);
-      if (!to) return match;
-      suggestions.push({
-        field: FIELD_LABELS[field.toLowerCase()] ?? field,
-        from: parts.length > 1 ? unwrapValue(parts[0]) || undefined : undefined,
-        to,
-      });
-      return '';
-    },
-  );
-  if (suggestions.length === 0) return { rest: trailing };
-  const leftover = rest.replace(SUGGESTIONS_HEADING_RE, '').trim();
-  return { suggestions, rest: leftover || undefined };
-}
-
-/** True for a json-rules-engine root (`all`/`any`/`not`/`condition`) missing its `conditions` wrapper. */
-function isBareConditions(value: unknown): boolean {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-  const keys = Object.keys(value);
-  return (
-    keys.length === 1 && ['all', 'any', 'not', 'condition'].includes(keys[0])
-  );
-}
-
-// The model sometimes bolds the field labels ("**Name:** …" or
-// "- **Name**: …"); read them as plain labels so the confirm card still
-// replaces them.
-const BOLD_LABEL_RE =
-  /^[ \t]*(?:[-*][ \t]+)?\*\*(Name|Description|Suggested Fact Retriever|Fact Retriever|Suggested Category|Suggested Maturity Tier):?\*\*:?/gm;
-
-function extractCheckSections(reply: string): ParsedCheckSections | null {
-  const text = reply.replace(BOLD_LABEL_RE, '$1:');
-  // Accept a plain ``` fence too — small models sometimes drop the tag.
-  const ruleMatch = /```(?:json)?\s*([\s\S]*?)```/i.exec(text);
-  // Form fields come before the rule; anything after it (an edit reply's
-  // "Description: old → new" suggestions) must not be read as one.
-  const head = ruleMatch ? text.slice(0, ruleMatch.index) : text;
-  const nameMatch = /^Name:\s*(.+)$/m.exec(head);
-  const descMatch = /^Description:\s*(.+)$/m.exec(head);
-  // "Suggested Fact Retriever:" (no retriever selected yet) and
-  // "Fact Retriever:" (one already selected) are mutually exclusive —
-  // see perch_prompt.j2's CHECK AUTHORING "Response format" section.
-  const suggestedRetrieverMatch = /^Suggested Fact Retriever:\s*(.+)$/m.exec(
-    head,
-  );
-  const retrieverMatch = /^Fact Retriever:\s*(.+)$/m.exec(head);
-  const categoryMatch = /^Suggested Category:\s*(.+)$/m.exec(head);
-  const tierMatch = /^Suggested Maturity Tier:\s*(.+)$/m.exec(head);
-  if (
-    !nameMatch &&
-    !descMatch &&
-    !suggestedRetrieverMatch &&
-    !retrieverMatch &&
-    !categoryMatch &&
-    !tierMatch &&
-    !ruleMatch
-  ) {
-    return null;
-  }
-
-  // Edit-check replies have no "Name:" line, so their preamble ends at the fence.
-  const firstMatch = nameMatch ?? ruleMatch;
-
-  let ruleJson = ruleMatch?.[1]?.trim();
-  if (ruleJson) {
-    try {
-      // Re-serialize with consistent 2-space indentation, regardless of
-      // how compactly the model formatted individual leaf conditions.
-      let parsed = JSON.parse(ruleJson);
-      // The Rule field expects `{ "conditions": ... }`; if the model
-      // dropped that wrapper, add it back so a copied rule always pastes.
-      if (isBareConditions(parsed)) {
-        parsed = { conditions: parsed };
-      }
-      ruleJson = JSON.stringify(parsed, null, 2);
-    } catch {
-      // Leave as-is if it doesn't parse — still shown, just unformatted.
-    }
-  }
-
-  const { suggestions, rest } = extractSuggestions(
-    ruleMatch
-      ? text.slice(ruleMatch.index + ruleMatch[0].length).trim() || undefined
-      : undefined,
-  );
-
-  return {
-    name: nameMatch?.[1]?.trim(),
-    description: descMatch?.[1]?.trim(),
-    factRetriever: (suggestedRetrieverMatch ?? retrieverMatch)?.[1]?.trim(),
-    isSuggestedFactRetriever: !!suggestedRetrieverMatch,
-    category: categoryMatch?.[1]?.trim(),
-    maturityTier: tierMatch?.[1]?.trim(),
-    ruleJson,
-    preamble: firstMatch
-      ? text.slice(0, firstMatch.index).trim() || undefined
-      : undefined,
-    trailing: rest,
-    suggestions,
-  };
-}
 
 // Module-level sentinel — a per-render symbol would never match the previous
 // render's symbol, breaking the conversationKey continuity check.
@@ -591,57 +421,48 @@ export const AssistantChatDrawer = ({
   // has the real tool-call context (logs, error excerpts, repo URL
   // from scope) and produces a far better-targeted prompt than the
   // frontend ever could. We just expose it to the user.
-  const handleCopyPrompt = useCallback(
-    async (
-      prompt: string,
-      successMessage = 'Copied — paste into your AI coding assistant',
-    ) => {
-      try {
-        // Prefer the async Clipboard API (only available on secure
-        // contexts — https + localhost). Fall back to the legacy
-        // execCommand path so http-served Backstage instances still
-        // work — the textarea is briefly mounted off-screen so the
-        // user never sees it.
-        let succeeded = false;
-        if (
-          typeof navigator !== 'undefined' &&
-          navigator.clipboard?.writeText
-        ) {
-          await navigator.clipboard.writeText(prompt);
-          succeeded = true;
-        } else {
-          const ta = document.createElement('textarea');
-          ta.value = prompt;
-          ta.style.position = 'fixed';
-          ta.style.opacity = '0';
-          document.body.appendChild(ta);
-          try {
-            ta.select();
-            // execCommand returns boolean — false means the browser
-            // refused to copy (focus rules, sandbox flags, etc.). Treat
-            // that as a failure so the toast tells the truth.
-            succeeded = document.execCommand('copy');
-          } finally {
-            // ``finally`` guarantees the off-screen textarea is removed
-            // even if ``select()`` / ``execCommand`` throw — otherwise
-            // a copy attempt that hits a sandbox restriction would leak
-            // a hidden element into the DOM on every click.
-            document.body.removeChild(ta);
-          }
+  const handleCopyPrompt = useCallback(async (prompt: string) => {
+    try {
+      // Prefer the async Clipboard API (only available on secure
+      // contexts — https + localhost). Fall back to the legacy
+      // execCommand path so http-served Backstage instances still
+      // work — the textarea is briefly mounted off-screen so the
+      // user never sees it.
+      let succeeded = false;
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(prompt);
+        succeeded = true;
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = prompt;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        try {
+          ta.select();
+          // execCommand returns boolean — false means the browser
+          // refused to copy (focus rules, sandbox flags, etc.). Treat
+          // that as a failure so the toast tells the truth.
+          succeeded = document.execCommand('copy');
+        } finally {
+          // ``finally`` guarantees the off-screen textarea is removed
+          // even if ``select()`` / ``execCommand`` throw — otherwise
+          // a copy attempt that hits a sandbox restriction would leak
+          // a hidden element into the DOM on every click.
+          document.body.removeChild(ta);
         }
-        if (succeeded) {
-          setCopyToast(successMessage);
-        } else {
-          setCopyToast('Copy failed — please copy manually');
-        }
-      } catch (e) {
-        setCopyToast(
-          `Copy failed: ${e instanceof Error ? e.message : 'unknown error'}`,
-        );
       }
-    },
-    [],
-  );
+      if (succeeded) {
+        setCopyToast('Copied — paste into your AI coding assistant');
+      } else {
+        setCopyToast('Copy failed — please copy manually');
+      }
+    } catch (e) {
+      setCopyToast(
+        `Copy failed: ${e instanceof Error ? e.message : 'unknown error'}`,
+      );
+    }
+  }, []);
 
   const sendMessage = useCallback(
     async (
@@ -1306,206 +1127,10 @@ export const AssistantChatDrawer = ({
                       // A change card carries the reply's sentence and the rules
                       // in plain words: it replaces the reply's text.
                       if (hasReplyCard(item.ui)) return null;
-                      const parsedCheck =
-                        scope.caseType === 'check_authoring'
-                          ? extractCheckSections(normalised)
-                          : null;
-                      if (!parsedCheck) {
-                        return (
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {summary}
-                          </ReactMarkdown>
-                        );
-                      }
-                      if (item.confirmation) {
-                        // The confirm card below shows the check, rule and
-                        // suggested texts; keep only the reply's own words.
-                        const words = [
-                          parsedCheck.preamble?.replace(
-                            /^\s*Edited rule:?\s*$/im,
-                            '',
-                          ),
-                          parsedCheck.trailing,
-                        ]
-                          .map(part => part?.trim())
-                          .filter(Boolean)
-                          .join('\n\n');
-                        return words ? (
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {words}
-                          </ReactMarkdown>
-                        ) : null;
-                      }
                       return (
-                        <Box my={1}>
-                          {parsedCheck.preamble && (
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                              {parsedCheck.preamble}
-                            </ReactMarkdown>
-                          )}
-                          {parsedCheck.name && (
-                            <Box
-                              display="flex"
-                              alignItems="center"
-                              style={{ gap: 2 }}
-                            >
-                              <Typography variant="body2">
-                                <strong>Name:</strong> {parsedCheck.name}
-                              </Typography>
-                              <IconButton
-                                size="small"
-                                style={{ padding: 2 }}
-                                aria-label="Copy name"
-                                onClick={() =>
-                                  handleCopyPrompt(
-                                    parsedCheck.name!,
-                                    'Copied — paste into the Name field',
-                                  )
-                                }
-                              >
-                                <FileCopyOutlinedIcon
-                                  style={{ fontSize: 14 }}
-                                />
-                              </IconButton>
-                            </Box>
-                          )}
-                          {parsedCheck.description && (
-                            <Box
-                              display="flex"
-                              alignItems="center"
-                              style={{ gap: 2 }}
-                            >
-                              <Typography variant="body2">
-                                <strong>Description:</strong>{' '}
-                                {parsedCheck.description}
-                              </Typography>
-                              <IconButton
-                                size="small"
-                                style={{ padding: 2 }}
-                                aria-label="Copy description"
-                                onClick={() =>
-                                  handleCopyPrompt(
-                                    parsedCheck.description!,
-                                    'Copied — paste into the Description field',
-                                  )
-                                }
-                              >
-                                <FileCopyOutlinedIcon
-                                  style={{ fontSize: 14 }}
-                                />
-                              </IconButton>
-                            </Box>
-                          )}
-                          {parsedCheck.factRetriever && (
-                            <Typography variant="body2">
-                              <strong>
-                                {parsedCheck.isSuggestedFactRetriever
-                                  ? 'Suggested Fact Retriever:'
-                                  : 'Fact Retriever:'}
-                              </strong>{' '}
-                              {parsedCheck.factRetriever}
-                            </Typography>
-                          )}
-                          {parsedCheck.category && (
-                            <Typography variant="body2">
-                              <strong>Suggested Category:</strong>{' '}
-                              {parsedCheck.category}
-                            </Typography>
-                          )}
-                          {parsedCheck.maturityTier && (
-                            <Typography variant="body2">
-                              <strong>Suggested Maturity Tier:</strong>{' '}
-                              {parsedCheck.maturityTier}
-                            </Typography>
-                          )}
-                          {parsedCheck.ruleJson && (
-                            <Box>
-                              <Box
-                                display="flex"
-                                alignItems="center"
-                                style={{ gap: 2 }}
-                              >
-                                <Typography variant="body2">
-                                  <strong>
-                                    Rule (json-rules-engine conditions)
-                                  </strong>
-                                </Typography>
-                                <IconButton
-                                  size="small"
-                                  style={{ padding: 2 }}
-                                  aria-label="Copy rule"
-                                  onClick={() =>
-                                    handleCopyPrompt(
-                                      parsedCheck.ruleJson!,
-                                      'Copied — paste into the Rule field',
-                                    )
-                                  }
-                                >
-                                  <FileCopyOutlinedIcon
-                                    style={{ fontSize: 14 }}
-                                  />
-                                </IconButton>
-                              </Box>
-                              <Typography
-                                variant="body2"
-                                component="pre"
-                                style={{
-                                  fontFamily: 'monospace',
-                                  fontSize: 12,
-                                  overflowX: 'auto',
-                                  margin: 0,
-                                }}
-                              >
-                                {parsedCheck.ruleJson}
-                              </Typography>
-                            </Box>
-                          )}
-                          {parsedCheck.suggestions && (
-                            <Box mt={1}>
-                              <Typography variant="body2">
-                                <strong>Suggested related changes</strong>
-                              </Typography>
-                              {parsedCheck.suggestions.map(s => (
-                                <Box
-                                  key={s.field}
-                                  display="flex"
-                                  alignItems="center"
-                                  style={{ gap: 2 }}
-                                >
-                                  <Typography variant="body2">
-                                    <strong>{s.field}:</strong>{' '}
-                                    {s.from && (
-                                      <>
-                                        <s>{s.from}</s> →{' '}
-                                      </>
-                                    )}
-                                    {s.to}
-                                  </Typography>
-                                  <IconButton
-                                    size="small"
-                                    style={{ padding: 2 }}
-                                    aria-label={`Copy suggested ${s.field}`}
-                                    onClick={() =>
-                                      handleCopyPrompt(
-                                        s.to,
-                                        `Copied — paste into the ${s.field} field`,
-                                      )
-                                    }
-                                  >
-                                    <FileCopyOutlinedIcon
-                                      style={{ fontSize: 14 }}
-                                    />
-                                  </IconButton>
-                                </Box>
-                              ))}
-                            </Box>
-                          )}
-                          {parsedCheck.trailing && (
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                              {parsedCheck.trailing}
-                            </ReactMarkdown>
-                          )}
-                        </Box>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {summary}
+                        </ReactMarkdown>
                       );
                     })()}
                     {item.ui && (
