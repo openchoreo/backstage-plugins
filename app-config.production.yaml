@@ -208,6 +208,9 @@ techInsights:
     openchoreoBuildFactRetriever:
       cadence: '*/30 * * * *'
       lifecycle: { timeToLive: { hours: 6 } }
+    openchoreoAlertingFactRetriever:
+      cadence: '*/30 * * * *'
+      lifecycle: { timeToLive: { hours: 6 } }
   dynamicChecks:
     # Adds OpenChoreo's starter checks, published, once per database. Edits,
     # unpublishing and deletion made afterwards are kept.

@@ -582,6 +582,10 @@ techInsights:
       cadence: '*/30 * * * *'
       initialDelay: { seconds: 40 }
       lifecycle: { timeToLive: { hours: 6 } }
+    openchoreoAlertingFactRetriever:
+      cadence: '*/30 * * * *'
+      initialDelay: { seconds: 50 }
+      lifecycle: { timeToLive: { hours: 6 } }
   # No factChecker.checks: checks are stored by
   # tech-insights-backend-module-dynamic-checks and managed on the
   # Scorecards page.
