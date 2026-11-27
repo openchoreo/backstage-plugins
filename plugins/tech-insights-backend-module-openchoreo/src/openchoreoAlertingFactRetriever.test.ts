@@ -714,6 +714,60 @@ describe('openchoreoAlertingFactRetriever', () => {
     expect(posts).toHaveLength(6);
   });
 
+  it("leaves a query's counts out when the observer answers it with a body that isn't JSON, still querying it", async () => {
+    const { byName, logger, posts } = await run(
+      [mainLine, releaseLine],
+      fakeClient(),
+      fakeObservers(path => {
+        if (path === ALERTS) {
+          throw new SyntaxError('Unexpected token < in JSON at position 0');
+        }
+        return ok(incidentsResponse);
+      }),
+    );
+    const incidentCountsOnly = {
+      incidentsLast30Days: 3,
+      openIncidentsLast30Days: 2,
+      unacknowledgedIncidentsLast30Days: 1,
+    };
+    expect(byName.api.openchoreoEnvironmentAlerts).toStrictEqual([
+      {
+        environment: 'dev',
+        isProduction: false,
+        hasObservability: true,
+        ...incidentCountsOnly,
+      },
+      {
+        environment: 'prod',
+        isProduction: true,
+        hasObservability: true,
+        ...incidentCountsOnly,
+      },
+    ]);
+    expect(
+      byName['api-experimental'].openchoreoEnvironmentAlerts,
+    ).toStrictEqual([
+      {
+        environment: 'dev',
+        isProduction: false,
+        hasObservability: true,
+        ...incidentCountsOnly,
+      },
+    ]);
+    expect(byName.api).not.toHaveProperty('openchoreoAlertCountsResolved');
+    expect(posts).toHaveLength(6);
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining(`${OBSERVER_A} can't provide: the alerts query`),
+    );
+    expect(logger.warn).not.toHaveBeenCalledWith(
+      expect.stringContaining('skipped until the next run'),
+    );
+    expect(logger.warn).not.toHaveBeenCalledWith(
+      expect.stringContaining('Unexpected token'),
+    );
+  });
+
   it("leaves counts out when the observer can't be reached, and doesn't query it again this run", async () => {
     const { byName, logger, posts } = await run(
       [mainLine, releaseLine],

@@ -192,6 +192,11 @@ observed. A check that needs that should also select on `hasObservability`.
 a field left out of every selected entry. Wrap the count condition in `any` with one that passes in
 that case, such as `{ "fact": "openchoreoEnvironmentAlerts", "path": "$[*].isProduction", "operator": "everyFact:equal", "value": false }`,
 when that should pass, and keep the `openchoreoAlertCountsResolved` condition outside the `any`.
+The fallback makes the check pass only when `openchoreoAlertCountsResolved` is set, so a line where
+no environment has observability still shows no result. The gate stays outside the `any` because
+an entry whose Environment can't be read has no `isProduction` or `hasObservability`, so the
+fallback would pass on the remaining entries, and `openchoreoAlertCountsResolved` is left out in
+that case.
 
 Facts are left out rather than guessed:
 
@@ -211,7 +216,9 @@ Facts are left out rather than guessed:
   the query, or doesn't know the component or line yet.
 - The observer returns at most 1000 alerts or incidents per query, so `criticalAlertsLast30Days`,
   `openIncidentsLast30Days` and `unacknowledgedIncidentsLast30Days` are left out when a query
-  returns 1000 items (the observer's cap) or fewer than its total. The totals are still reported.
+  returns 1000 items (the observer's cap) or a number of items other than its total. The totals
+  are still reported. `openIncidentsLast30Days` and `unacknowledgedIncidentsLast30Days` are also
+  left out when an incident has no recognized status (`active`, `acknowledged` or `resolved`).
 - `openchoreoAlertCountsResolved` is left out when an entry with observability misses any count
   for the reasons above, when an entry's `hasObservability` is left out, when no entry has
   observability, and whenever `openchoreoEnvironmentAlerts` is left out.

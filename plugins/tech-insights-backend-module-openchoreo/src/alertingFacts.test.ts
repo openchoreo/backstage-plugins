@@ -129,6 +129,12 @@ describe('alertCounts', () => {
     ).toStrictEqual({ alertsFiredLast30Days: 1500 });
   });
 
+  it('leaves the critical count out when the page holds more items than the total', () => {
+    expect(
+      alertCounts({ alerts: [alert('critical')], total: 0 }),
+    ).toStrictEqual({ alertsFiredLast30Days: 0 });
+  });
+
   it("leaves the critical count out when the page reaches the observer's cap, even if it matches the total", () => {
     expect(
       alertCounts({
@@ -184,6 +190,40 @@ describe('incidentCounts', () => {
     expect(
       incidentCounts({ incidents: [{ status: 'active' }], total: 2 }),
     ).toStrictEqual({ incidentsLast30Days: 2 });
+  });
+
+  it('leaves the status counts out when the page holds more items than the total', () => {
+    expect(
+      incidentCounts({ incidents: [{ status: 'active' }], total: 0 }),
+    ).toStrictEqual({ incidentsLast30Days: 0 });
+  });
+
+  it('leaves the status counts out when an incident has no status', () => {
+    expect(incidentCounts({ incidents: [{}], total: 1 })).toStrictEqual({
+      incidentsLast30Days: 1,
+    });
+  });
+
+  it('leaves the status counts out when an incident has an unrecognized status', () => {
+    expect(
+      incidentCounts({
+        incidents: [{ status: 'active' }, { status: 'closed' }],
+        total: 2,
+      }),
+    ).toStrictEqual({ incidentsLast30Days: 2 });
+  });
+
+  it('counts zero open and unacknowledged incidents when all are resolved', () => {
+    expect(
+      incidentCounts({
+        incidents: [{ status: 'resolved' }, { status: 'resolved' }],
+        total: 2,
+      }),
+    ).toStrictEqual({
+      incidentsLast30Days: 2,
+      openIncidentsLast30Days: 0,
+      unacknowledgedIncidentsLast30Days: 0,
+    });
   });
 
   it("leaves the status counts out when the page reaches the observer's cap, even if it matches the total", () => {

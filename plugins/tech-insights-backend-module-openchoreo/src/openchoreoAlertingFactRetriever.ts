@@ -80,7 +80,8 @@ const OBSERVER_QUERY_TIMEOUT_MS = 10_000;
  * the observer doesn't answer, so only that entry's counts are left out.
  * A 401 (token rejected) and a 403 (grant missing) concern the service
  * credentials rather than one observer, so each is warned about once per run;
- * other HTTP errors once per run per observer. An observer that times out or
+ * other HTTP errors, and a 2xx body that isn't JSON, once per run per
+ * observer, without skipping that observer. An observer that times out or
  * can't be reached isn't queried again until the next run. Rejects when the
  * entity's own deadline cuts a query short, which says nothing about the
  * observer.
@@ -181,6 +182,10 @@ function observerQueries(
     } catch (error) {
       if (signal.aborted) {
         throw signal.reason;
+      }
+      if (error instanceof SyntaxError) {
+        failed(observerUrl, `the ${subject} returned a body that isn't JSON`);
+        return undefined;
       }
       unreachableObservers.add(observerUrl);
       logger.warn(
@@ -395,7 +400,7 @@ const ENVIRONMENT_ALERT_ENTRIES = {
   },
   criticalAlertsLast30Days: {
     type: 'integer',
-    description: `Alerts fired in the last 30 days by a rule with critical severity. ${COUNT_LEFT_OUT}, or returns 1000 alerts (its cap) or fewer than it counts.`,
+    description: `Alerts fired in the last 30 days by a rule with critical severity. ${COUNT_LEFT_OUT}, or returns 1000 alerts (its cap) or a number of alerts other than its total.`,
   },
   incidentsLast30Days: {
     type: 'integer',
@@ -403,7 +408,7 @@ const ENVIRONMENT_ALERT_ENTRIES = {
   },
   openIncidentsLast30Days: {
     type: 'integer',
-    description: `Incidents triggered in the last 30 days that are still active or acknowledged. ${COUNT_LEFT_OUT}, or returns 1000 incidents (its cap) or fewer than it counts.`,
+    description: `Incidents triggered in the last 30 days that are still active or acknowledged. ${COUNT_LEFT_OUT}, or returns 1000 incidents (its cap), a number of incidents other than its total, or an incident without a recognized status (active, acknowledged or resolved).`,
   },
   unacknowledgedIncidentsLast30Days: {
     type: 'integer',
@@ -431,7 +436,7 @@ const schema: FactRetriever['schema'] = {
   openchoreoAlertCountsResolved: {
     type: 'boolean',
     description:
-      "True when every openchoreoEnvironmentAlerts entry with observability holds all its alert and incident counts and at least one entry has observability. Never false: left out when any count of such an entry is missing (the observer refused or failed a query, doesn't know the component or line yet, or returned 1000 items, its cap, or fewer than it counts), when an entry's hasObservability is unknown, when no entry has observability, and whenever openchoreoEnvironmentAlerts is left out. Entries without observability don't count against it. Pair it, with equal true, with a condition whose path reads the count fields, so an incomplete count skips the check instead of passing it on the environments that returned counts.",
+      "True when every openchoreoEnvironmentAlerts entry with observability holds all its alert and incident counts and at least one entry has observability. Never false: left out when any count of such an entry is missing (the observer refused or failed a query, doesn't know the component or line yet, or returned 1000 items, its cap, a number of items other than its total, or an incident without a recognized status), when an entry's hasObservability is unknown, when no entry has observability, and whenever openchoreoEnvironmentAlerts is left out. Entries without observability don't count against it. Pair it, with equal true, with a condition whose path reads the count fields, so an incomplete count skips the check instead of passing it on the environments that returned counts.",
   },
 };
 

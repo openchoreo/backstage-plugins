@@ -107,6 +107,8 @@ export interface AlertsResult {
   total?: number;
 }
 
+const INCIDENT_STATUSES = ['active', 'acknowledged', 'resolved'];
+
 /** The subset of an observer incidents query response read here. */
 export interface IncidentsResult {
   incidents?: { status?: string }[];
@@ -114,16 +116,18 @@ export interface IncidentsResult {
 }
 
 /**
- * A full page can't be trusted: the observer counts the total in a separate
- * query before it selects the page.
+ * The observer counts the total in a separate query before it selects the
+ * page, so a page whose length differs from the total is a mismatched
+ * snapshot, and a full page may be truncated.
  */
 function isComplete(items: unknown[], total: number) {
-  return items.length >= total && items.length < OBSERVER_QUERY_LIMIT;
+  return items.length === total && items.length < OBSERVER_QUERY_LIMIT;
 }
 
 /**
  * Counts over one alerts query. Counts read from the items are left out when
- * the response holds 1000 items (the observer's cap) or fewer than its total.
+ * the response holds 1000 items (the observer's cap) or a number of items
+ * other than its total.
  */
 export function alertCounts(result: AlertsResult) {
   const { total } = result;
@@ -145,7 +149,8 @@ export function alertCounts(result: AlertsResult) {
  * Counts over one incidents query. An incident is open while it is active
  * or acknowledged, and unacknowledged while it is active. Counts read from
  * the items are left out when the response holds 1000 items (the observer's
- * cap) or fewer than its total.
+ * cap) or a number of items other than its total, and when an incident has no
+ * recognized status.
  */
 export function incidentCounts(result: IncidentsResult) {
   const { total } = result;
@@ -156,12 +161,16 @@ export function incidentCounts(result: IncidentsResult) {
   const withStatus = (...statuses: string[]) =>
     incidents.filter(incident => statuses.includes(incident.status ?? ''))
       .length;
+  const statusesKnown = incidents.every(incident =>
+    INCIDENT_STATUSES.includes(incident.status ?? ''),
+  );
   return {
     incidentsLast30Days: total,
-    ...(isComplete(incidents, total) && {
-      openIncidentsLast30Days: withStatus('active', 'acknowledged'),
-      unacknowledgedIncidentsLast30Days: withStatus('active'),
-    }),
+    ...(isComplete(incidents, total) &&
+      statusesKnown && {
+        openIncidentsLast30Days: withStatus('active', 'acknowledged'),
+        unacknowledgedIncidentsLast30Days: withStatus('active'),
+      }),
   };
 }
 
